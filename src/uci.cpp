@@ -316,13 +316,13 @@ void UCI::execute(const std::string_view command) noexcept {
         std::cout << engine.position() << std::endl;
         break;
     case Command::DUMP : {
-        std::string      input;
-        std::string_view dumpFile;
+        std::string input;
+        fs::path    dumpFilePath;
 
         if (is >> input)
-            dumpFile = input;
+            dumpFilePath = input;
 
-        engine.dump(dumpFile);
+        engine.dump(dumpFilePath);
     }
     break;
     case Command::EVAL :
@@ -341,12 +341,12 @@ void UCI::execute(const std::string_view command) noexcept {
         break;
     case Command::EXPORT_NET : {
         std::string input;
-        fs::path    netFile;
+        fs::path    netFilePath;
 
         if (is >> input)
-            netFile = utf8_to_path(input);
+            netFilePath = utf8_to_path(input);
 
-        engine.save_network(netFile);
+        engine.save_network(netFilePath);
     }
     break;
     case Command::HELP :
@@ -407,7 +407,7 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 }  // namespace
 
 u64 UCI::perft(Depth depth, bool detail) const noexcept {
-    u64 nodes = engine.perft(depth, detail);
+    const u64 nodes = engine.perft(depth, detail);
 
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
 

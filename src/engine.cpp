@@ -66,7 +66,7 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("HistoryLoadFactor", Option(75, 10, 100, OnChange([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
     options().add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnChange([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options().add("Book",              Option(false));
-    options().add("BookFile",          Option("", OnChange([](const Option& o) { auto bookFile = utf8_to_path(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+    options().add("BookFile",          Option("", OnChange([](const Option& o) { return load_book(utf8_to_path(o)) ? "Load succeeded" : "Load failed"; })));
     options().add("BookProbeDepth",    Option(100, 1, 256));
     options().add("BookBestPick",      Option(true));
     options().add("SyzygyPath",        Option("", OnChange([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
@@ -198,11 +198,11 @@ std::string Engine::evaluation() const noexcept {
     return Evaluate::trace(pos, *network);
 }
 
-void Engine::dump(const fs::path& dumpFile) const noexcept {
+void Engine::dump(const fs::path& dumpFilePath) const noexcept {
 
-    if (!dumpFile.empty())
+    if (!dumpFilePath.empty())
     {
-        if (std::ofstream ofs{dumpFile, std::ios::binary})
+        if (std::ofstream ofs{dumpFilePath, std::ios::binary})
         {
             pos.dump(ofs);
 
@@ -211,7 +211,7 @@ void Engine::dump(const fs::path& dumpFile) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFile << "', writing to stdout instead");
+        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFilePath << "', writing to stdout instead");
     }
 
     // Default: dump to console
@@ -353,12 +353,12 @@ void Engine::save_network(const fs::path& networkFilePath) const noexcept {
     network->save(networkFilePath, networkFile);
 }
 
-bool Engine::load_hash(const fs::path& hashFile) noexcept {
-    return transpositionTable.load(hashFile, threads);
+bool Engine::load_hash(const fs::path& hashFilePath) noexcept {
+    return transpositionTable.load(hashFilePath, threads);
 }
 
-bool Engine::save_hash(const fs::path& hashFile) const noexcept {
-    return transpositionTable.save(hashFile);
+bool Engine::save_hash(const fs::path& hashFilePath) const noexcept {
+    return transpositionTable.save(hashFilePath);
 }
 
 void Engine::set_on_update_start(Manager::OnUpdateStart&& f) noexcept {

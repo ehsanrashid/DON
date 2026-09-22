@@ -419,17 +419,17 @@ bool is_draw(Position& pos, const Move m) noexcept {
 
 void PolyGlot::clear() noexcept { entries.clear(); }
 
-bool PolyGlot::load(const fs::path& bookFile) noexcept {
+bool PolyGlot::load(const fs::path& bookFilePath) noexcept {
     clear();
 
-    if (bookFile.empty())
+    if (bookFilePath.empty())
         return false;
 
-    filename = bookFile.string();
+    filename = bookFilePath.string();
 
     std::error_code ec;
 
-    usize fileSize = fs::file_size(bookFile, ec);
+    usize fileSize = fs::file_size(bookFilePath, ec);
 
     if (ec)
     {
@@ -460,7 +460,7 @@ bool PolyGlot::load(const fs::path& bookFile) noexcept {
         //DEBUG_LOG("Warning: Bad size Book file " << filename << ", ignoring " << remainder << " trailing bytes");
     }
 
-    std::ifstream ifs{bookFile, std::ios::binary};
+    std::ifstream ifs{bookFilePath, std::ios::binary};
 
     if (!ifs)
     {

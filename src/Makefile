@@ -772,9 +772,11 @@ endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
 ifneq ($(filter-out any,$(arch)),)
-MACOS_BUILD_FLAGS += -arch $(arch)
+MACOS_ARCH_FLAG := -arch $(arch)
 endif
-MACOS_BUILD_FLAGS += -mmacosx-version-min=10.15
+MACOS_MIN_VERSION_FLAG := -mmacosx-version-min=10.15
+
+MACOS_BUILD_FLAGS := $(MACOS_ARCH_FLAG) $(MACOS_MIN_VERSION_FLAG)
 
 XCRUN    := xcrun
 CXXFLAGS += $(MACOS_BUILD_FLAGS)
@@ -1652,7 +1654,7 @@ UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_riscv64.o
 BASELINE_ARCH       := riscv64
 endif
 
-# Top-level tracked items in src/ (directories and files)
+# Top-level source-tree items to symlink into each per-architecture build.
 TRACKED_TOP := $(sort $(foreach f,$(SRCS) $(HEADERS) Makefile incbin,$(firstword $(subst /, ,$(f)))))
 
 # Link the baseline architecture first so it is preferred when the linker
@@ -1660,41 +1662,38 @@ TRACKED_TOP := $(sort $(foreach f,$(SRCS) $(HEADERS) Makefile incbin,$(firstword
 ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
-UNIVERSAL_CXXFLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-extensions # suppress #embed warnings
-UNIVERSAL_LDFLAGS  :=
-UNIVERSAL_LDLIBS   :=
+UNIVERSAL_LDFLAGS := -fno-exceptions -Os
 
 ifeq ($(TARGET_KERNEL),Darwin)
-UNIVERSAL_CXXFLAGS += $(MACOS_BUILD_FLAGS)
+UNIVERSAL_LDFLAGS += $(MACOS_MIN_VERSION_FLAG)
 else \
 ifeq ($(TARGET_KERNEL),Linux)
-UNIVERSAL_LDFLAGS  += -static-libstdc++ -static-libgcc
+UNIVERSAL_LDFLAGS += -static-libstdc++ -static-libgcc
 ifeq ($(COMP),ndk)
-UNIVERSAL_LDFLAGS  += -static
+UNIVERSAL_LDFLAGS += -static
 else
-UNIVERSAL_LDLIBS   += -lpthread -lrt
+UNIVERSAL_LDLIBS  += -lpthread -lrt
 endif
 else  # Windows
-UNIVERSAL_LDFLAGS  += -Wl,--allow-multiple-definition -static
+UNIVERSAL_LDFLAGS += -Wl,--allow-multiple-definition -static
 ifeq ($(COMP),clang)
-UNIVERSAL_LDLIBS   += -lpthread
+UNIVERSAL_LDLIBS  += -lpthread
 endif
 endif
 
 # $(call ARCH_NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
 ARCH_SUFFIX    = $(subst -,_,$(1))
 ARCH_NAMESPACE = DON_$(call ARCH_SUFFIX,$(1))
-# Itanium ABI mangled name for DON_<suffix>::main(int, char**)
+# Itanium ABI mangled name for DON_<suffix>::main(int, char*const*const).
 ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH_NAMESPACE,$(1))4mainEiPKPKc
-# Mach-O initializer section name: strip the "x86-64" or "x86-64-" prefix,
-# replace remaining '-' with '_', and prefix with "_i_".
-# Mach-O section names are limited to 16 characters, hence this naming scheme.
+# Mach-O initializer section: strip the "x86-64" prefix, replace '-' with '_',
+# and prefix with "_i_" to keep the section name within 16 characters.
 ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
 ARCH_ENTRY_FLAG = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
-# lld-link, used on Windows+clang, doesn't accept --defsym, so
-# define main directly in main.cpp instead and delete it later.
+# lld-link, used on Windows+clang, doesn't support --defsym, so emit a
+# per-architecture main shim instead and remove it after linking the object.
 else \
 ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
 ARCH_MAIN_CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
@@ -1703,6 +1702,7 @@ ARCH_ENTRY_FLAG = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo "int main(){}" | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
+
 ifeq ($(EMBED_DIR_SUPPORTED),1)
 EMBED_DIR = --embed-dir='$(CURDIR)'
 else
@@ -1716,7 +1716,9 @@ ifeq ($(MACOS_X86_64_SLICE),1)
 SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
-ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
+#NO_EXTENSIONS_FLAGS = -Wno-c++26-extensions
+
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS)
 
 UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1736,43 +1738,42 @@ profile-build: $(UNIVERSAL_EXE)
 $(TEMP_DIR):
 	@mkdir -p '$@'
 
-# Download nnue files once in src/ (reused by every sub-arch via --embed-dir).
+# Download NNUE files once into src/; all architecture builds reuse them via --embed-dir.
 $(NET_SENTINEL): | $(TEMP_DIR)
 	@cd '$(CURDIR)' && $(SHELL) '../scripts/net.sh' $(EMBED_DIR_SUPPORTED)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(EXTRA_CXXFLAGS) $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EMBED_DIR)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(SLICE_DEF) $(MACOS_MIN_VERSION_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(MACOS_BUILD_FLAGS)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(MACOS_MIN_VERSION_FLAG)) -c '$<' -o '$@'
 
-# Symlink tracked top-level items from src/ into temp_builds/<arch>/.
+# Symlink top-level source-tree items into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 	@rm -rf '$(TEMP_DIR)/$*'
 	@mkdir -p '$(TEMP_DIR)/$*'
 	@$(foreach f,$(TRACKED_TOP),ln -s '$(CURDIR)/$(f)' '$(TEMP_DIR)/$*/$(f)';)
 	@touch '$@'
 
-# Per-arch DON.o
+# Build and prepare the per-architecture DON.o.
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' ENV_LDLIBS='$(ENV_LDLIBS)' \
-	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
+	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
 	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'
 	mv '$@.tmp' '$@'
 else
-# Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
-# template instantiations which causes problems at the final link
+# Drop COMDAT groups left by clang LTO around internalized LOCAL template
+# instantiations; they cause problems at the final link.
 	$(OBJCOPY) -R .group '$@'
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 # Delete per-arch main shim
 	$(OBJCOPY) -N main '$@'
 else
-# Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
+# Rename .init_array (Linux) or .ctors (Windows) so can manually invoke them.
 	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init '$@'
 	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init '$@'
 # Make the array inert
@@ -1781,7 +1782,7 @@ endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) $(strip $(UNIVERSAL_CXXFLAGS) $(EXTRA_CXXFLAGS)) $(strip $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS)) $(strip $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS)) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) -o '$@'
+	$(strip $(CXX) $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS) $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS)) -o '$@'
 	@echo "$(OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

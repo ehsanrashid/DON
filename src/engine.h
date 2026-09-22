@@ -76,7 +76,7 @@ class Engine final {
 
     std::string position() const noexcept;
     std::string evaluation() const noexcept;
-    void        dump(const fs::path& dumpFile = {}) const noexcept;
+    void        dump(const fs::path& dumpFilePath = {}) const noexcept;
 
     std::optional<Error> flip() noexcept;
     std::optional<Error> mirror() noexcept;
@@ -103,8 +103,8 @@ class Engine final {
 
     // Hash related
 
-    bool load_hash(const fs::path& hashFile) noexcept;
-    bool save_hash(const fs::path& hashFile) const noexcept;
+    bool load_hash(const fs::path& hashFilePath) noexcept;
+    bool save_hash(const fs::path& hashFilePath) const noexcept;
 
     // On update modifiers
 
