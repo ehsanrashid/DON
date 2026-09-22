@@ -232,7 +232,7 @@ CpuVector parse_to_cpus(std::string_view sv) noexcept;
 //
 // As a special case, when performing system-wide replication of read-only data
 // (i.e., LazyNumaReplicatedSystemWide), the system NUMA node is used, rather than
-// custom or L3-aware nodes. See that class's get_discriminator() function.
+// custom or L3-aware nodes. See that class's discriminator_hash() function.
 //
 // It is guaranteed that NUMA nodes are NOT empty: every node exposed by NumaConfig
 // has at least one processor assigned.
@@ -864,7 +864,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    u64 get_discriminator(const NumaIndex numaId) const noexcept {
+    u64 discriminator_hash(const NumaIndex numaId) const noexcept {
 
         const NumaConfig& numaCfg = numa_config();
         const NumaConfig  sysCfg  = NumaConfig::from_system(SystemNumaPolicy{}, false);
@@ -894,7 +894,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         const NumaConfig& numaCfg = numa_config();
 
         numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept -> void {
-            instances[numaId] = SystemWideSharedMemory<T>(*instances[0], get_discriminator(numaId));
+            instances[numaId] =
+              SystemWideSharedMemory<T>(*instances[0], discriminator_hash(numaId));
         });
     }
 
@@ -910,7 +911,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
             assert(numaCfg.nodes_size() != 0);
 
             numaCfg.execute_on_numa_node(0, [this, &source]() {
-                instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
+                instances.emplace_back(SystemWideSharedMemory<T>(*source, discriminator_hash(0)));
             });
 
             // Prepare others for lazy init
@@ -920,7 +921,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         {
             assert(numaCfg.nodes_size() == 1);
 
-            instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
+            instances.emplace_back(SystemWideSharedMemory<T>(*source, discriminator_hash(0)));
         }
     }
 

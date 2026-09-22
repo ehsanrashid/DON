@@ -17,6 +17,7 @@
 
 #include "network.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -71,8 +72,24 @@ bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noex
     if (!is || fileVersion != FILE_VERSION)
         return false;
 
-    netDescription.resize(descSize);
-    is.read(netDescription.data(), descSize);
+    netDescription.clear();
+
+    Array<char, 4096> buffer;
+    for (usize remaining = descSize; remaining > 0;)
+    {
+        const usize want = std::min(remaining, buffer.size());
+
+        is.read(buffer.data(), std::streamsize(want));
+
+        const auto got = is.gcount();
+
+        if (got != std::streamsize(want))
+            return false;
+
+        netDescription.append(buffer.data(), usize(got));
+
+        remaining -= usize(got);
+    }
 
     return !is.fail();
 }
@@ -240,14 +257,16 @@ NetworkOutput Network::evaluate(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
+    const auto bucket = pos.bucket();
+
     NNZ<L1> nnz;
 
-    const auto bucket     = pos.bucket();
     const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                         bucket, nnz, transformedFeatures);
+                                                         bucket, transformedFeatures, nnz);
     const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-    return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
+    return {constexpr_round(double(psqt) / OUTPUT_SCALE),
+            constexpr_round(double(positional) / OUTPUT_SCALE)};
 }
 
 NetworkTrace Network::trace(const Position&   pos,
@@ -260,17 +279,18 @@ NetworkTrace Network::trace(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
-    NNZ<L1> nnz;
-
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
     for (Index bucket = 0; bucket < LAYER_STACKS; ++bucket)
     {
+        NNZ<L1> nnz;
+
         const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                             bucket, nnz, transformedFeatures);
+                                                             bucket, transformedFeatures, nnz);
         const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-        netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
+        netTrace.netOut[bucket] = {constexpr_round(double(psqt) / OUTPUT_SCALE),
+                                   constexpr_round(double(positional) / OUTPUT_SCALE)};
     }
 
     return netTrace;

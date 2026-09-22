@@ -18,15 +18,10 @@
 #ifndef SHM_H_INCLUDED
 #define SHM_H_INCLUDED
 
-#include <algorithm>   // min()/max()
-#include <cinttypes>   // PRIX64
 #include <cstddef>     // nullptr_t
-#include <cstdio>      // snprintf
 #include <functional>  // hash<>
-#include <iomanip>     // setw()
-#include <iostream>    // cout, cerr
+#include <iostream>    // IWYU pragma: keep: cout, cerr
 #include <new>         // launder()
-#include <sstream>     // ostringstream<>
 #include <string>
 #include <string_view>
 #include <type_traits>  // decay_t<>
@@ -1038,52 +1033,18 @@ struct SystemWideSharedMemory final {
     // Content is addressed by its hash.
     // An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
-    SystemWideSharedMemory(const T& value, u64 discriminator = 0) noexcept {
+    SystemWideSharedMemory(const T& value, const u64 discriminatorHash = 0) noexcept {
 
-        std::string shmName{"DON_"};
+        const usize valueHash      = std::hash<T>{}(value);
+        const u64   executableHash = hash_string(executable_path());
 
         // Create a unique name based on the value, executable path, and discriminator
-        // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
-        constexpr usize BufferSize = 3 * HEX64_SIZE + 2 + 1;
-        // Build the three-part hex identifier safely into a temporary buffer
-        Array<char, BufferSize> buffer{};
+        // Hex hashes separated by dollar signs
+        const auto hashName = usize_to_hex(valueHash) + '$'     //
+                            + u64_to_hex(executableHash) + '$'  //
+                            + u64_to_hex(discriminatorHash);
 
-        u64 valueHash      = std::hash<T>{}(value);
-        u64 executableHash = hash_string(executable_path());
-
-        // snprintf returns the number of chars that would have been written (excluding NUL)
-        int writtenSize = std::snprintf(buffer.data(), buffer.size(),
-                                        "%016" PRIX64 "$"  //
-                                        "%016" PRIX64 "$"  //
-                                        "%016" PRIX64,     //
-                                        valueHash, executableHash, discriminator);
-
-        std::string hashName;
-
-        if (writtenSize > 0)
-        {
-            // Ensure size is within bounds
-            // If snprintf truncated, use up to (buf.size() - 1) characters
-            usize copySize = std::min<usize>(writtenSize, buffer.size() - 1);
-            // Shrink to actual content
-            hashName.append(buffer.data(), copySize);
-        }
-        else
-        {
-            // snprintf failed - use fallback format
-            // This should never happen, but handle it anyway
-            //DEBUG_LOG("snprintf() failed: using fallback hash name");
-
-            // Fallback: use hex representation directly
-            std::ostringstream oss{};
-            oss << std::hex << std::setfill('0')           //
-                << std::setw(16) << valueHash << '$'       //
-                << std::setw(16) << executableHash << '$'  //
-                << std::setw(16) << discriminator;
-            hashName.append(oss.str());
-        }
-
-        shmName.append(hashName);
+        auto shmName = std::string{"DON_"} + hashName;
 
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.

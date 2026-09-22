@@ -144,7 +144,8 @@ inline void write_little_endian(std::ostream& os, const std::array<IntType, Size
 template<typename BufType, typename IntType>
 inline void _read_leb_128(std::istream& is,
                           BufType&      buffer,
-                          u32&          bufferIdx,
+                          u32&          bufferPos,
+                          u32&          bufferEnd,
                           u32&          byteCount,
                           IntType*      out,
                           const usize   Size) noexcept {
@@ -160,15 +161,20 @@ inline void _read_leb_128(std::istream& is,
     for (usize i = 0; i < Size;)
     {
         // Refill buffer if needed
-        if (bufferIdx == buffer.size())
+        if (bufferPos == bufferEnd)
         {
             is.read(reinterpret_cast<char*>(buffer.data()),
                     std::min<usize>(byteCount, buffer.size()));
-            bufferIdx = 0;
 
-            auto bytesRead = is.gcount();
-            if (bytesRead == 0)
-                break;  // EOF or error - stop decoding
+            bufferPos = 0;
+            bufferEnd = u32(is.gcount());
+
+            // EOF or error - stop decoding
+            if (bufferEnd == 0)
+            {
+                is.setstate(std::ios::failbit);
+                return;
+            }
         }
 
         // Guard against byteCount underflow
@@ -176,9 +182,9 @@ inline void _read_leb_128(std::istream& is,
         if (byteCount == 0)
             break;
 
-        u8 b = buffer[bufferIdx];
+        u8 b = buffer[bufferPos];
 
-        ++bufferIdx;
+        ++bufferPos;
         --byteCount;
 
         value |= UIntType(b & LEB128_DATA_MASK) << shift;
@@ -191,9 +197,9 @@ inline void _read_leb_128(std::istream& is,
             const bool signExtendNeeded = (b & LEB128_SIGN_BIT) != 0  //
                                        && (shift < sizeof(IntType) * BYTE_BITS);
             if (signExtendNeeded)
-                value |= static_cast<UIntType>(-1) << shift;
+                value |= UIntType(-1) << shift;
 
-            out[i] = static_cast<IntType>(value);
+            out[i] = IntType(value);
 
             value = 0;
             shift = 0;
@@ -211,19 +217,25 @@ inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
     // Read and check the presence of LEB128 magic string
     Array<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
-    assert(
-      std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size())
-      == 0);
+    if (is.gcount() != LEB128_MAGIC_STRING.size()
+        || std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(),
+                        LEB128_MAGIC_STRING.size())
+             != 0)
+    {
+        is.setstate(std::ios::failbit);
+        return;
+    }
 
     u32 byteCount = read_little_endian<u32>(is);
 
     Array<u8, 8192> buffer;
 
-    u32 bufferIdx = u32(buffer.size());
+    u32 bufferPos = 0, bufferEnd = 0;
 
-    (_read_leb_128(is, buffer, bufferIdx, byteCount, outs.data(), outs.size()), ...);
+    (_read_leb_128(is, buffer, bufferPos, bufferEnd, byteCount, outs.data(), outs.size()), ...);
 
-    assert(byteCount == 0);
+    if (byteCount != 0)
+        is.setstate(std::ios::failbit);
 }
 
 template<typename IntType>
@@ -231,19 +243,25 @@ inline void read_leb_128(std::istream& is, IntType* out, const usize expected) n
     // Read and check the presence of LEB128 magic string
     Array<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
-    assert(
-      std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size())
-      == 0);
+    if (is.gcount() != LEB128_MAGIC_STRING.size()
+        || std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(),
+                        LEB128_MAGIC_STRING.size())
+             != 0)
+    {
+        is.setstate(std::ios::failbit);
+        return;
+    }
 
     u32 byteCount = read_little_endian<u32>(is);
 
     Array<u8, 8192> buffer;
 
-    u32 bufferIdx = u32(buffer.size());
+    u32 bufferPos = 0, bufferEnd = 0;
 
-    _read_leb_128(is, buffer, bufferIdx, byteCount, out, expected);
+    _read_leb_128(is, buffer, bufferPos, bufferEnd, byteCount, out, expected);
 
-    assert(byteCount == 0);
+    if (byteCount != 0)
+        is.setstate(std::ios::failbit);
 }
 
 // Write signed integers to a ostream with LEB128 compression.
@@ -277,21 +295,21 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
 
     Array<u8, 4096> buffer;
 
-    u32 bufferIdx = 0;
+    u32 bufferPos = 0;
 
-    const auto flush = [&os, &buffer, &bufferIdx]() noexcept -> void {
-        if (bufferIdx == 0)
+    const auto flush = [&os, &buffer, &bufferPos]() noexcept -> void {
+        if (bufferPos == 0)
             return;
 
-        os.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
-        bufferIdx = 0;
+        os.write(reinterpret_cast<const char*>(buffer.data()), bufferPos);
+        bufferPos = 0;
     };
 
     const auto write = [&](const u8 b) noexcept {
-        buffer[bufferIdx] = b;
-        ++bufferIdx;
+        buffer[bufferPos] = b;
+        ++bufferPos;
 
-        if (bufferIdx == buffer.size())
+        if (bufferPos == buffer.size())
             flush();
     };
 

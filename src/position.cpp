@@ -898,8 +898,8 @@ void Position::do_castling(const Color    ac,
                            Dirties* const dirties) noexcept {
     assert(!Do || dirties != nullptr);
 
-    auto* dP  = Do ? &dirties->dirtyPiece : nullptr;
-    auto* dTs = Do ? &dirties->dirtyThreats : nullptr;
+    auto* const dP  = Do ? &dirties->dirtyPiece : nullptr;
+    auto* const dTs = Do ? &dirties->dirtyThreats : nullptr;
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
     kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
@@ -962,10 +962,10 @@ Dirties Position::do_move(const Move          m,
       capturedPc == Piece::NO_PIECE
       || (color_of(capturedPc) == (mt != MT::CASTLING ? ~ac : ac) && type_of(capturedPc) != KING));
 
-    Dirties dirties;
-    auto*   dP   = &dirties.dirtyPiece;
-    auto*   dTs  = &dirties.dirtyThreats;
-    auto*   dPps = &dirties.dirtyPawnPairs;
+    Dirties     dirties;
+    auto* const dP   = &dirties.dirtyPiece;
+    auto* const dTs  = &dirties.dirtyThreats;
+    auto* const dPps = &dirties.dirtyPawnPairs;
 
     dP->movedPc = movedPc;
     dP->orgSq   = orgSq;
@@ -2364,7 +2364,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nFen: " << pos.fen();
 
-    os << "\nKey: " << u64_to_string(pos.key());
+    os << "\nKey: " << u64_to_hex_prefix(pos.key());
 
     os << "\nKings: ";
     os << to_square(pos.square<KING>(pos.active_color())) << ", "
@@ -2405,15 +2405,15 @@ void State::dump(std::ostream& os) const noexcept {
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(pawnKeys[c]) << "\n";
+        os << u64_to_hex_prefix(pawnKeys[c]) << "\n";
     }
 
     os << "Non-Pawn Keys:\n";
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(nonPawnKeys[c][0]) << " ";
-        os << u64_to_string(nonPawnKeys[c][1]) << "\n";
+        os << u64_to_hex_prefix(nonPawnKeys[c][0]) << " ";
+        os << u64_to_hex_prefix(nonPawnKeys[c][1]) << "\n";
     }
 
     os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");

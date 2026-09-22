@@ -579,7 +579,9 @@ void UCI::bench(std::istream& is) noexcept {
         case Command::EVAL :
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
+            startTime = SteadyClock::now();
             engine.eval();
+            totalDuration += SteadyClock::now() - startTime;
             break;
         case Command::POSITION :
             position(iss);

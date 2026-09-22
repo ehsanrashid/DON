@@ -26,6 +26,7 @@
     #include <sys/time.h>  // timeval
     #include <sys/uio.h>   // iovec
 
+    #include <algorithm>     // min()/max()
     #include <cstdlib>       // atexit()
     #include <mutex>         // lock_guard
     #include <shared_mutex>  // shared_lock, shared_mutex
@@ -487,34 +488,35 @@ void* map_shared(const int fd, const usize size) noexcept {
 
     if (size >= Alignment && pageSize > 0)
     {
+        // Align the mapping to 2 MiB for huge-page-friendly virtual addressing.
         // File-backed huge pages require matching virtual-address and file-offset alignment.
-        // Reserve the address range first so MAP_FIXED cannot replace an unrelated mapping.
-        const usize mappingSize =
-          ((size + static_cast<usize>(pageSize) - 1) / static_cast<usize>(pageSize))
-          * static_cast<usize>(pageSize);
-        const usize reservationSize = mappingSize + Alignment;
-        void*       reservation =
-          ::mmap(nullptr, reservationSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        const usize mappingSize  = ceil_to_multiple(size, usize(pageSize));
+        const usize reservedSize = mappingSize + Alignment;
+        void*       reservedAddress =
+          ::mmap(nullptr, reservedSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-        if (reservation != MAP_FAILED)
+        if (reservedAddress != MAP_FAILED)
         {
-            char* const base        = static_cast<char*>(reservation);
-            char* const alignedBase = align_ptr_up<Alignment>(base);
-            void*       mapped =
-              ::mmap(alignedBase, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+            char* const reservationBase = static_cast<char*>(reservedAddress);
+            char* const mappingAddress  = align_ptr_up<Alignment>(reservationBase);
+            void*       mappedAddress = ::mmap(mappingAddress, mappingSize, PROT_READ | PROT_WRITE,
+                                               MAP_SHARED | MAP_FIXED, fd, 0);
 
-            if (mapped != MAP_FAILED)
+            if (mappedAddress != MAP_FAILED)
             {
-                const usize prefixSize = static_cast<usize>(alignedBase - base);
-                const usize suffixSize = reservationSize - prefixSize - mappingSize;
+                const usize prefixSize = usize(mappingAddress - reservationBase);
+                const usize suffixSize = reservedSize - prefixSize - mappingSize;
+
                 if (prefixSize != 0)
-                    ::munmap(reservation, prefixSize);
+                    ::munmap(reservedAddress, prefixSize);
+
                 if (suffixSize != 0)
-                    ::munmap(alignedBase + mappingSize, suffixSize);
-                return mapped;
+                    ::munmap(mappingAddress + mappingSize, suffixSize);
+
+                return mappedAddress;
             }
 
-            ::munmap(reservation, reservationSize);
+            ::munmap(reservedAddress, reservedSize);
         }
     }
     #endif
@@ -523,11 +525,9 @@ void* map_shared(const int fd, const usize size) noexcept {
 }
 
 std::string make_sentinel_base(const std::string_view name) noexcept {
-    char buf[32];
     // Using std::to_string here causes non-deterministic PGO builds.
     // snprintf, being part of libc, is insensitive to the formatted values.
-    std::snprintf(buf, sizeof(buf), "donshm_%016" PRIu64, hash_string(name));
-    return buf;
+    return std::string{"DONSHM_"} + u64_to_hex(hash_string(name));
 }
 
 void set_cloexec(const int fd) noexcept {

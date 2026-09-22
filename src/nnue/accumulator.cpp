@@ -106,17 +106,20 @@ void AccumulatorStack::evaluate(const Color               perspective,
         update_incremental_forward(perspective, pos, featureTransformer, lastUsableIdx);
     else
     {
-        const auto& dirtyPiece = top().dirties.dirtyPiece;
-
-        if (dirtyPiece.movedPc == make_piece(perspective, KING)
-            && accumulators[size() - 2].computed[perspective] && pos.count() >= PC_COUNT_HYBRID_MIN
-            && ((u8(dirtyPiece.orgSq) & 4) == (u8(dirtyPiece.dstSq) & 4))
-            // excludes castling
-            && !is_ok(dirtyPiece.addedSq))
+        if (size() >= 2 && accumulators[size() - 2].computed[perspective]
+            && pos.count() >= PC_COUNT_HYBRID_MIN)
         {
-            update_hybrid(perspective, pos, featureTransformer, accumulators[size() - 2], top(),
-                          accCache);
-            return;
+            const auto& dP = top().dirties.dirtyPiece;
+
+            if (dP.movedPc == make_piece(perspective, KING)
+                && ((u8(dP.orgSq) & u8{4}) == (u8(dP.dstSq) & u8{4}))
+                // excludes castling
+                && !is_ok(dP.addedSq))
+            {
+                update_hybrid(perspective, pos, featureTransformer, accumulators[size() - 2], top(),
+                              accCache);
+                return;
+            }
         }
 
         update_refresh_cache(perspective, pos, featureTransformer, top(), accCache);

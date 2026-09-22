@@ -40,24 +40,25 @@ Value evaluate(const Position&         pos,
                NNUE::AccumulatorCache& accCache,
                NNUE::AccumulatorStack& accStack,
                i32                     optimism) noexcept {
+    constexpr double Scale = 91000.0;
+
     assert(pos.checkers_bb() == 0);
 
     const auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
 
     i32 nnue = psqt + positional;
 
-    double complexity = constexpr_abs(psqt - positional);
+    const double complexity = constexpr_abs(double(psqt) - double(positional));
     // Blend eval and optimism with complexity
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
-    nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
-
-    i32 v = constexpr_round((nnue * (91000.0 + pos.material()) + optimism * 7675.0) / 91000.0);
-
-    // Damp evaluation linearly based on the 50-move rule
-    v = constexpr_round(v * std::max(1.0 - pos.rule50_count() / 195.0, 0.0));
+    nnue     = constexpr_round(nnue * std::max(1.0 - complexity / 18236.0, 0.0));
 
     // Guarantee evaluation does not hit the table-base range
-    return in_range(v);
+    return in_range(
+      // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
+      constexpr_round(((nnue * (Scale + double(pos.material())) + optimism * 7675.0) / Scale)
+                      // Damp evaluation linearly based on the 50-move rule
+                      * std::max(1.0 - double(pos.rule50_count()) / 195.0, 0.0)));
 }
 
 namespace {
@@ -133,8 +134,6 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
 
-    std::ostringstream oss{};
-
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
     accStack->reset();
@@ -173,6 +172,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
             write_square(f, r, pc, v);
         }
 
+    std::ostringstream oss{};
 
     oss << "NNUE derived piece values:\n";
 
@@ -182,7 +182,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     accStack->reset();
 
-    auto netTrace = network.trace(pos, accCache, *accStack);
+    const auto netTrace = network.trace(pos, accCache, *accStack);
 
     oss << "NNUE network contributions (Normalized, ";
     oss << to_string(pos.active_color()) << " to move):\n";
@@ -220,7 +220,7 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     auto accCache = std::make_unique<NNUE::AccumulatorCache>(network);
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
-    auto fmt = [](const double d) noexcept -> std::string {
+    const auto fmt = [](const double d) noexcept -> std::string {
         Array<char, 8> buffer{};
 
         int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", d);
@@ -240,9 +240,15 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
 
     auto [psqt, positional] = network.evaluate(pos, *accCache, *accStack);
 
-    Value v;
+    i32 v;
 
     v = psqt + positional;
+
+    output  //
+      .append("NNUE evaluation      : ")
+      .append(fmt(v))
+      .append(" (side to move, internal units)\n");
+
     v = pos.active_color() == WHITE ? +v : -v;
 
     output  //
