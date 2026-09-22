@@ -326,7 +326,7 @@ void UCI::execute(const std::string_view command) noexcept {
     }
     break;
     case Command::EVAL :
-        std::cout << '\n' << engine.eval() << std::endl;
+        std::cout << '\n' << engine.evaluation() << std::endl;
         break;
     case Command::FLIP :
         if (auto err = engine.flip())
@@ -433,6 +433,7 @@ void UCI::position(std::istream& is) noexcept {
     if (token.empty() || lower_case(token[0]) == 's')  // "startpos"
     {
         fen.append(START_FEN);
+        token.clear();
         is >> token;  // Consume the "moves" token, if any
     }
     else if (lower_case(token[0]) == 'f')  // "fen"
@@ -585,7 +586,7 @@ void UCI::bench(std::istream& is) noexcept {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
             startTime = SteadyClock::now();
-            std::cout << '\n' << engine.eval() << std::endl;
+            std::cout << '\n' << engine.evaluation() << std::endl;
             totalDuration += SteadyClock::now() - startTime;
             break;
         case Command::POSITION :

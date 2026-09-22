@@ -75,7 +75,7 @@ class Engine final {
     void resize_tt(usize ttSize) noexcept;
 
     std::string position() const noexcept;
-    std::string eval() const noexcept;
+    std::string evaluation() const noexcept;
     void        dump(const fs::path& dumpFile = {}) const noexcept;
 
     std::optional<Error> flip() noexcept;

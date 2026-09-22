@@ -192,7 +192,7 @@ std::string Engine::position() const noexcept {
     return oss.str();
 }
 
-std::string Engine::eval() const noexcept {
+std::string Engine::evaluation() const noexcept {
     verify_network();
 
     return Evaluate::trace(pos, *network);
