@@ -570,19 +570,19 @@ TableData make_table_data(const std::string_view code) noexcept {
 
     tableData.hasPawns = pos.pieces_bb(PAWN) != 0;
 
-    tableData.hasUniquePieces = false;
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : EX_KING_PIECE_TYPES)
-            if (pos.count(c, pt) == 1)
-                tableData.hasUniquePieces = true;
+    tableData.hasUniquePieces = [&pos] {
+        for (Color c : {WHITE, BLACK})
+            for (PieceType pt : EX_KING_PIECE_TYPES)
+                if (exactly_one(pos.pieces_bb(c, pt)))
+                    return true;
 
-    const Array<u8, COLOR_NB> pawnCnt{
-      pos.count(WHITE, PAWN),  //
-      pos.count(BLACK, PAWN)   //
-    };
+        return false;
+    }();
 
-    // Set the leading color. In case both sides have pawns the leading color
-    // is the side with fewer pawns because this leads to better compression.
+    const Array<u8, COLOR_NB> pawnCnt{pos.count(WHITE, PAWN), pos.count(BLACK, PAWN)};
+
+    // Choose the side with fewer pawns as the leading color;
+    // default to WHITE when neither side has pawns.
     const Color c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK])
                     ? WHITE
                     : BLACK;
@@ -1725,11 +1725,11 @@ Ret do_probe_table(T*                table,
     Square* groupSq = squares.data() + pd->groupLen[0];
 
     // Encode remaining pawns and then pieces according to square, in ascending order
-    bool pawnsRemaining = table->hasPawns && table->pawnCount[BLACK];
+    bool pawnsRemaining = table->hasPawns && table->pawnCount[BLACK] != 0;
 
     for (usize next = 1; pd->groupLen[next] != 0; ++next)
     {
-        const auto groupLen = pd->groupLen[next];
+        const i32 groupLen = pd->groupLen[next];
 
         std::stable_sort(groupSq, groupSq + groupLen);
 
@@ -1743,10 +1743,7 @@ Ret do_probe_table(T*                table,
             for (const Square* s = squares.data(); s != groupSq; ++s)
                 adjust += usize(groupSq[i] > *s);
 
-            const i8 index = i8(groupSq[i]) - i8(adjust + i8(pawnsRemaining) * 8);
-            assert(index >= 0 && usize(index) < Binomial[0].size());
-
-            n += Binomial[i + 1][index];
+            n += Binomial[i + 1][i8(groupSq[i]) - i8(adjust + i8(pawnsRemaining) * 8)];
         }
 
         pawnsRemaining = false;
