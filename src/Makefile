@@ -1716,8 +1716,6 @@ ifeq ($(MACOS_X86_64_SLICE),1)
 SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
-#NO_EXTENSIONS_FLAGS = -Wno-c++26-extensions
-
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS)
 
 UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
@@ -1744,10 +1742,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(SLICE_DEF) $(MACOS_MIN_VERSION_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 -Wno-c23-extensions $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(SLICE_DEF) $(MACOS_MIN_VERSION_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(MACOS_MIN_VERSION_FLAG)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(SLICE_DEF) $(MACOS_MIN_VERSION_FLAG)) -c '$<' -o '$@'
 
 # Symlink top-level source-tree items into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
