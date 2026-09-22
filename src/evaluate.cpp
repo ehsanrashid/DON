@@ -185,13 +185,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     accStack->reset();
 
-    NNUE::NetworkTrace netTrace =
-#if defined(USE_AVX512ICL)
-    {}
-#else
-      network.trace(pos, accCache, *accStack);
-#endif
-    ;
+    const auto netTrace = network.trace(pos, accCache, *accStack);
 
     oss << "NNUE network contributions (Normalized, ";
     oss << to_string(pos.active_color()) << " to move):\n";
