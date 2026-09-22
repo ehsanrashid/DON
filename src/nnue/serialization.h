@@ -219,7 +219,8 @@ inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
     if (is.gcount() != LEB128_MAGIC_STRING.size()
         || std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(),
-                        LEB128_MAGIC_STRING.size() != 0))
+                        LEB128_MAGIC_STRING.size())
+             != 0)
     {
         is.setstate(std::ios::failbit);
         return;
@@ -244,7 +245,8 @@ inline void read_leb_128(std::istream& is, IntType* out, const usize expected) n
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
     if (is.gcount() != LEB128_MAGIC_STRING.size()
         || std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(),
-                        LEB128_MAGIC_STRING.size() != 0))
+                        LEB128_MAGIC_STRING.size())
+             != 0)
     {
         is.setstate(std::ios::failbit);
         return;
