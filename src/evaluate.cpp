@@ -46,7 +46,7 @@ Value evaluate(const Position&         pos,
 
     i32 nnue = psqt + positional;
 
-    const double complexity = constexpr_abs(psqt - positional);
+    const double complexity = constexpr_abs(double(psqt) - double(positional));
     // Blend eval and optimism with complexity
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
     nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
@@ -183,7 +183,11 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     accStack->reset();
 
-    auto netTrace = network.trace(pos, accCache, *accStack);
+#if defined(USE_AVX512ICL)
+    NNUE::NetworkTrace netTrace = {};
+#else
+    NNUE::NetworkTrace netTrace = network.trace(pos, accCache, *accStack);
+#endif
 
     oss << "NNUE network contributions (Normalized, ";
     oss << to_string(pos.active_color()) << " to move):\n";

@@ -57,13 +57,13 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    constexpr Array<double, 4> A{-72.32565836,  185.93832038, -144.58862193, 416.44950446};
-    constexpr Array<double, 4> B{ 83.86794042, -136.06112997,   69.98820887,  47.62901433};
+    constexpr Array<double, 4> A{-142.72052667, 372.35176398, -340.71073572, 415.23490212};
+    constexpr Array<double, 4> B{   5.93832785,  15.61267078,  -30.57816876,  69.63866711};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58
     double m = std::clamp(pos.std_material(), 17, 78) / 58.0;
-    // Return a = p_a(material) and b = p_b(material).
+    // Return a = p_a(material) and b = p_b(material)
     double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
     double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];
 
