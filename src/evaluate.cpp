@@ -64,7 +64,6 @@ Value evaluate(const Position&         pos,
 
 namespace {
 
-#if !defined(USE_AVX512ICL)
 // Converts a Value into centi-pawns and writes it in a buffer.
 // The buffer must have capacity for at least 5 chars.
 void format_cp_compact(char* buffer, const Value v, const Position& pos) noexcept {
@@ -99,7 +98,6 @@ void format_cp_compact(char* buffer, const Value v, const Position& pos) noexcep
         buffer[4] = digit_to_char(cp / 1);
     }
 }
-#endif
 
 // Converts a value into pawns, always keeping two decimals
 void format_cp_aligned_dot(std::ostringstream& oss, const i32 val, const Position& pos) noexcept {
@@ -116,7 +114,6 @@ std::string
 nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& accCache) noexcept {
     constexpr std::string_view Sep{"+------------+------------+------------+------------+\n"};
 
-#if !defined(USE_AVX512ICL)
     char board[3 * 8 + 1][8 * 8 + 2];
     std::memset(board, ' ', sizeof(board));
     for (auto& row : board)
@@ -137,7 +134,6 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
         if (is_valid(value))
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
-#endif
 
     std::ostringstream oss{};
 
@@ -145,7 +141,6 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     accStack->reset();
 
-#if !defined(USE_AVX512ICL)
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
     const auto  baseNetOut = network.evaluate(pos, accCache, *accStack);
@@ -187,7 +182,6 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
     oss << '\n';
 
     accStack->reset();
-#endif
 
     auto netTrace = network.trace(pos, accCache, *accStack);
 

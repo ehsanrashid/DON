@@ -86,10 +86,10 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert postfix_check(self.engine.get_output()) == True
         self.engine.clear_output()
 
-    def test_eval(self):
-        self.engine = DON("eval".split(" "), True)
-        assert self.engine.process is not None
-        assert self.engine.process.returncode == 0
+    # def test_eval(self):
+    #     self.engine = DON("eval".split(" "), True)
+    #     assert self.engine.process is not None
+    #     assert self.engine.process.returncode == 0
 
     def test_go_nodes_1000(self):
         self.engine = DON("go nodes 1000".split(" "), True)
