@@ -26,6 +26,7 @@
     #include <sys/time.h>  // timeval
     #include <sys/uio.h>   // iovec
 
+    #include <algorithm>     // min()/max()
     #include <cstdlib>       // atexit()
     #include <mutex>         // lock_guard
     #include <shared_mutex>  // shared_lock, shared_mutex

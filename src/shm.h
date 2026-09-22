@@ -18,15 +18,10 @@
 #ifndef SHM_H_INCLUDED
 #define SHM_H_INCLUDED
 
-#include <algorithm>   // min()/max()
-#include <cinttypes>   // PRIX64
 #include <cstddef>     // nullptr_t
-#include <cstdio>      // snprintf
 #include <functional>  // hash<>
-#include <iomanip>     // setw()
-#include <iostream>    // cout, cerr
+#include <iostream>    // IWYU pragma: keep: cout, cerr
 #include <new>         // launder()
-#include <sstream>     // ostringstream<>
 #include <string>
 #include <string_view>
 #include <type_traits>  // decay_t<>
