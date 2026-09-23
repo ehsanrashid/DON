@@ -28,13 +28,13 @@ jobs:
           sdeVersion: 9.58.0
 
       - name: Build Linux x86-64 universal binary with GCC and SDE
-        run: make -j4 -C src profile-build ARCH=x86-64-universal RUN_PREFIX="$SDE_DIR/sde -future --"
+        run: make -j4 -C src profile-build ARCH='x86-64-universal' RUN_PREFIX="$SDE_DIR/sde -future --"
 
       - name: Strip Linux x86-64 universal binary
-        run: strip src/DON
+        run: strip 'src/DON'
 
       - name: Rename Linux x86-64 universal binary
-        run: mv src/DON DON-linux-x86-64-universal
+        run: mv 'src/DON' 'DON-linux-x86-64-universal'
 
       - name: Extract the bench number from the commit history
         run: |
@@ -57,7 +57,7 @@ jobs:
           fi
 
       - name: Verify architecture selection under SDE
-        run: ./scripts/check_universal_x86_64.sh ./DON-linux-x86-64-universal "$SDE_DIR/sde" "$benchref"
+        run: ./scripts/check_universal_x86_64.sh './DON-linux-x86-64-universal' "$SDE_DIR/sde" "$benchref"
 
       - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
@@ -98,13 +98,13 @@ jobs:
       - name: Build Windows x86-64 universal binary with MinGW-w64 GCC and SDE
         run: |
           SDE_PATH=$(cygpath "$SDE_DIR")
-          make -j4 -C src profile-build ARCH=x86-64-universal RUN_PREFIX="$SDE_PATH/sde.exe -future --"
+          make -j4 -C src profile-build ARCH='x86-64-universal' RUN_PREFIX="$SDE_PATH/sde.exe -future --"
 
       - name: Strip Windows x86-64 universal binary
-        run: strip src/DON.exe
+        run: strip 'src/DON.exe'
 
       - name: Rename Windows x86-64 universal binary
-        run: mv src/DON.exe DON-windows-x86-64-universal.exe
+        run: mv 'src/DON.exe' 'DON-windows-x86-64-universal.exe'
 
       - name: Extract the bench number from the commit history
         run: |
@@ -127,7 +127,7 @@ jobs:
           fi
 
       - name: Verify architecture selection under SDE
-        run: ./scripts/check_universal_x86_64.sh ./DON-windows-x86-64-universal.exe "$SDE_DIR/sde" "$benchref"
+        run: ./scripts/check_universal_x86_64.sh './DON-windows-x86-64-universal.exe' "$SDE_DIR/sde" "$benchref"
 
       - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
@@ -164,13 +164,13 @@ jobs:
           sudo apt-get install -y qemu-user
 
       - name: Build Linux ARM64 universal binary with GCC
-        run: make -j4 -C src profile-build ARCH=arm64-universal
+        run: make -j4 -C src profile-build ARCH='arm64-universal'
 
       - name: Strip Linux ARM64 universal binary
-        run: strip src/DON
+        run: strip 'src/DON'
 
       - name: Rename Linux ARM64 universal binary
-        run: mv src/DON DON-linux-arm64-universal
+        run: mv 'src/DON' 'DON-linux-arm64-universal'
 
       - name: Extract the bench number from the commit history
         run: |
@@ -193,7 +193,7 @@ jobs:
           fi
 
       - name: Verify architecture selection under QEMU
-        run: ./scripts/check_universal_arm64.sh ./DON-linux-arm64-universal "$benchref"
+        run: ./scripts/check_universal_arm64.sh './DON-linux-arm64-universal' "$benchref"
 
       - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
@@ -226,10 +226,10 @@ jobs:
           install: mingw-w64-clang-aarch64-clang make git zip
 
       - name: Build Windows ARM64 universal binary with Clang
-        run: make -j4 -C src profile-build ARCH=arm64-universal COMP=clang COMPCXX=clang++
+        run: make -j4 -C src profile-build ARCH='arm64-universal' COMP='clang' COMPCXX='clang++'
 
       - name: Strip Windows ARM64 universal binary
-        run: strip src/DON.exe
+        run: strip 'src/DON.exe'
 
       - name: Extract the bench number from the commit history
         run: |
@@ -255,10 +255,10 @@ jobs:
         working-directory: src
         run: |
           ../tests/signature.sh "$benchref"
-          ./DON compiler 2>&1 | grep -q DOTPROD || { echo "compiler output missing DOTPROD" >&2; exit 1; }
+          './DON.exe' compiler 2>&1 | grep -q DOTPROD || { echo "compiler output missing DOTPROD" >&2; exit 1; }
 
       - name: Rename Windows ARM64 universal binary
-        run: mv src/DON.exe DON-windows-arm64-universal.exe
+        run: mv 'src/DON.exe' 'DON-windows-arm64-universal.exe'
 
       - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
@@ -288,11 +288,11 @@ jobs:
 
       - name: Install clang and the riscv cross runtime
         run: |
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
-          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main" | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
+          wget -qO- 'https://apt.llvm.org/llvm-snapshot.gpg.key' | sudo tee '/etc/apt/trusted.gpg.d/apt.llvm.org.asc' >/dev/null
+          echo 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main' | sudo tee '/etc/apt/sources.list.d/llvm.list' >/dev/null
           sudo apt-get update
-          sudo apt-get install -y clang-22 lld-22 llvm-22 g++-riscv64-linux-gnu
-          echo "/usr/lib/llvm-22/bin" >> "$GITHUB_PATH"
+          sudo apt-get install -y 'clang-22' 'lld-22' 'llvm-22' 'g++-riscv64-linux-gnu'
+          echo '/usr/lib/llvm-22/bin' >> "$GITHUB_PATH"
 
       - name: Cache qemu-user
         id: cache-qemu
@@ -304,25 +304,25 @@ jobs:
       - name: Install qemu
         run: |
           if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != 'true' ]; then
-            curl -fsSL -o /tmp/qemu.deb "$QEMU_DEB"
-            dpkg -x /tmp/qemu.deb /tmp/qemu
+            curl -fsSL -o '/tmp/qemu.deb' "$QEMU_DEB"
+            dpkg -x '/tmp/qemu.deb' '/tmp/qemu'
           fi
-          /tmp/qemu/usr/bin/qemu-riscv64 --version
-          echo "/tmp/qemu/usr/bin" >> "$GITHUB_PATH"
+          '/tmp/qemu/usr/bin/qemu-riscv64' --version
+          echo '/tmp/qemu/usr/bin' >> "$GITHUB_PATH"
 
       - name: Build Linux RISC-V64 universal binary with Clang
         run: |
-          make -j4 -C src build ARCH=riscv64-universal \
-            COMP=clang COMPCXX=clang++ \
-            EXTRA_CXXFLAGS="--target=riscv64-linux-gnu" \
-            EXTRA_LDFLAGS="--target=riscv64-linux-gnu -fuse-ld=lld" \
-            OBJCOPY=llvm-objcopy
+          make -j4 -C src build ARCH='riscv64-universal' \
+            COMP='clang' COMPCXX='clang++' \
+            EXTRA_CXXFLAGS='--target=riscv64-linux-gnu' \
+            EXTRA_LDFLAGS='--target=riscv64-linux-gnu -fuse-ld=lld' \
+            OBJCOPY='llvm-objcopy'
 
       - name: Strip Linux RISC-V64 universal binary
-        run: llvm-strip src/DON
+        run: llvm-strip 'src/DON'
 
       - name: Rename Linux RISC-V64 universal binary
-        run: mv src/DON DON-linux-riscv64-universal
+        run: mv 'src/DON' 'DON-linux-riscv64-universal'
 
       - name: Extract the bench number from the commit history
         run: |
@@ -346,8 +346,8 @@ jobs:
 
       - name: Verify architecture selection under QEMU
         run: |
-          QEMU=qemu-riscv64 QEMU_LD_PREFIX=/usr/riscv64-linux-gnu \
-          ./scripts/check_universal_riscv64.sh ./DON-linux-riscv64-universal "$benchref"
+          QEMU='qemu-riscv64' QEMU_LD_PREFIX='/usr/riscv64-linux-gnu' \
+          ./scripts/check_universal_riscv64.sh './DON-linux-riscv64-universal' "$benchref"
 
       - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
@@ -378,13 +378,13 @@ jobs:
         run: softwareupdate --install-rosetta --agree-to-license
 
       - name: Build macOS universal binary with Clang
-        run: make -j4 -C src macos-lipo COMP=clang
+        run: make -j4 -C src macos-lipo COMP='clang'
 
       - name: Rename macOS universal binary
-        run: mv src/DON DON-macos-universal
+        run: mv 'src/DON' 'DON-macos-universal'
 
       - name: Verify macOS universal binary runs natively and under Rosetta
-        run: ./scripts/check_universal_macos.sh ./DON-macos-universal
+        run: ./scripts/check_universal_macos.sh './DON-macos-universal'
 
       - name: Clean untracked and ignored src files
         run: git clean -fxd -- src

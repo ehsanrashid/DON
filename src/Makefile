@@ -1313,11 +1313,11 @@ macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' '$(CURDIR)/evaluat
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
-	$(MAKE) ARCH='x86-64-universal' MACOS_X86_64_SLICE='1' build
+	$(MAKE) build ARCH='x86-64-universal' MACOS_X86_64_SLICE='1'
 	mv '$(EXE)' '$(EXE)-x86_64'
 	@echo; \
 	echo "Step 2/4. Building Apple silicon slice ..."
-	$(MAKE) ARCH='apple-silicon' profile-build
+	$(MAKE) profile-build ARCH='apple-silicon'
 	mv '$(EXE)' '$(EXE)-arm64'
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
@@ -1708,12 +1708,11 @@ endif
 # slice reads the network out of the Apple-silicon slice instead of embedding
 # its own copy (see universal/nnue_embed.cpp and universal/patch_x86_64_slice.sh).
 ifeq ($(MACOS_X86_64_SLICE),1)
-SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
-ARCH_MAIN_CXXFLAGS += -arch x86_64
+ARCH_MAIN_CXXFLAGS += -arch x86_64 -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE  # SLICE_DEF
 UNIVERSAL_LDFLAGS += -arch x86_64
 endif
 
-ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS)
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS)
 
 UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1739,10 +1738,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 -Wno-c23-extensions $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(SLICE_DEF) $(MACOS_MIN_VERSION_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 -Wno-c23-extensions $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(MACOS_MIN_VERSION_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(SLICE_DEF) $(MACOS_MIN_VERSION_FLAG)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(MACOS_MIN_VERSION_FLAG)) -c '$<' -o '$@'
 
 # Symlink top-level source-tree items into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
