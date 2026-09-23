@@ -21,8 +21,6 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
-#include <cstddef>
-#include <cstring>
 #include <utility>
 
 #include "../misc.h"
