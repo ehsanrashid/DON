@@ -34,7 +34,10 @@ std::string pretty_str(const Bitboard b) noexcept {
         bb.push_back(to_char(r));
 
         for (File f = FILE_A; f <= FILE_H; ++f)
-            bb.append(" | ").push_back((b & make_square(f, r)) != 0 ? '*' : ' ');
+        {
+            const char marker = (b & make_square(f, r)) != 0 ? '*' : ' ';
+            bb.append(" | ").push_back(marker);
+        }
 
         bb.append(" |").append(Sep);
 

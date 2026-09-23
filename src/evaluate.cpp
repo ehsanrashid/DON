@@ -213,14 +213,28 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
 }  // namespace
 
-std::string trace(Position& pos, const NNUE::Network& network) noexcept {
-    if (pos.checkers_bb() != 0)
+std::string trace(const Position& pos, const NNUE::Network& network) noexcept {
+    State    st;
+    Position p;
+    p.set(pos, &st);
+
+    if (p.checkers_bb() != 0)
         return "Final evaluation     : none (in check)";
 
     auto accCache = std::make_unique<NNUE::AccumulatorCache>(network);
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
-    const auto fmt = [](const double d) noexcept -> std::string {
+    const auto fmt_int = [](const i32 value) noexcept -> std::string {
+        Array<char, 16> buffer{};
+
+        const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+d", value);
+        const usize copiedSize =
+          writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
+
+        return std::string{buffer.data(), copiedSize};
+    };
+
+    const auto fmt_double = [](const double d) noexcept -> std::string {
         Array<char, 8> buffer{};
 
         int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", d);
@@ -234,34 +248,29 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     std::string output;
     output.reserve(3 * KB);
 
-    output  //
-      .append(nnue_trace(pos, network, *accCache))
-      .append("\n");
+    output.append(nnue_trace(p, network, *accCache)).push_back('\n');
 
-    auto [psqt, positional] = network.evaluate(pos, *accCache, *accStack);
+    auto [psqt, positional] = network.evaluate(p, *accCache, *accStack);
 
     i32 v;
 
     v = psqt + positional;
 
-    output  //
-      .append("NNUE evaluation      : ")
-      .append(fmt(v))
+    output.append("NNUE evaluation      : ")
+      .append(fmt_int(v))
       .append(" (side to move, internal units)\n");
 
-    v = pos.active_color() == WHITE ? +v : -v;
+    v = p.active_color() == WHITE ? +v : -v;
 
-    output  //
-      .append("NNUE evaluation      : ")
-      .append(fmt(0.01 * to_cp(v, pos)))
+    output.append("NNUE evaluation      : ")
+      .append(fmt_double(0.01 * to_cp(v, p)))
       .append(" (white side)\n");
 
-    v = evaluate(pos, network, *accCache, *accStack);
-    v = pos.active_color() == WHITE ? +v : -v;
+    v = evaluate(p, network, *accCache, *accStack);
+    v = p.active_color() == WHITE ? +v : -v;
 
-    output  //
-      .append("Final evaluation     : ")
-      .append(fmt(0.01 * to_cp(v, pos)))
+    output.append("Final evaluation     : ")
+      .append(fmt_double(0.01 * to_cp(v, p)))
       .append(" (white side) [with scaled NNUE, ...]\n");
 
     return output;

@@ -53,7 +53,7 @@ Value evaluate(const Position&         pos,
 // it returns a string (suitable for outputting to stdout)
 // that contains the detailed descriptions and values of each evaluation term.
 // Trace scores are from white's point of view.
-std::string trace(Position& pos, const NNUE::Network& network) noexcept;
+std::string trace(const Position& pos, const NNUE::Network& network) noexcept;
 
 }  // namespace Evaluate
 }  // namespace DON

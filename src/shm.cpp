@@ -30,6 +30,9 @@
     #include <cstdlib>       // atexit()
     #include <mutex>         // lock_guard
     #include <shared_mutex>  // shared_lock, shared_mutex
+
+#elif defined(__ANDROID__)
+    #include <unistd.h>
 #endif
 
 namespace DON {
@@ -96,7 +99,7 @@ std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__ANDROID__)
     ssize_t size =  //
       ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
 

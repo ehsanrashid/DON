@@ -482,9 +482,8 @@ Setup benchmark(std::istream& is) noexcept {
     if (is >> input)
     {
         setup.threads = clamped("Threads", input, 1, THREAD_MAX);
-        setup
-          .originalInvocation  //
-          .append(std::to_string(setup.threads));
+
+        setup.originalInvocation.append(std::to_string(setup.threads)).push_back(' ');
     }
     else
     {
@@ -494,10 +493,8 @@ Setup benchmark(std::istream& is) noexcept {
     if (is >> input)
     {
         setup.ttSize = clamped("Hash", input, 1, HASH_MAX);
-        setup
-          .originalInvocation  //
-          .append(" ")
-          .append(std::to_string(setup.ttSize));
+
+        setup.originalInvocation.append(std::to_string(setup.ttSize)).push_back(' ');
     }
     else
     {
@@ -507,23 +504,20 @@ Setup benchmark(std::istream& is) noexcept {
     if (is >> desiredTimeS)
     {
         desiredTimeS = clamped("Seconds", desiredTimeS, 1, DurationSMax);
-        setup
-          .originalInvocation  //
-          .append(" ")
-          .append(std::to_string(desiredTimeS));
+
+        setup.originalInvocation.append(std::to_string(desiredTimeS)).push_back(' ');
     }
     else
     {
         desiredTimeS = MoveTime;
     }
 
-    setup
-      .currentInvocation  //
-      .append(std::to_string(setup.threads))
-      .append(" ")
-      .append(std::to_string(setup.ttSize))
-      .append(" ")
-      .append(std::to_string(desiredTimeS));
+    if (!setup.originalInvocation.empty())
+        setup.originalInvocation.pop_back();
+
+    setup.currentInvocation.append(std::to_string(setup.threads)).push_back(' ');
+    setup.currentInvocation.append(std::to_string(setup.ttSize)).push_back(' ');
+    setup.currentInvocation.append(std::to_string(desiredTimeS));
 
     const auto calc_move_time = [](const u32 ply) noexcept -> double {
         // time per move is fit roughly based on LTC games

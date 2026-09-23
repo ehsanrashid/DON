@@ -235,13 +235,13 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go nodes 1000")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_go_nodes_1000(self):
+    def test_position_go_nodes_1000(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1")
         self.engine.send_command("go nodes 1000")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_flip_go_nodes_1000(self):
+    def test_position_flip_go_nodes_1000(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1")
         self.engine.send_command("flip")
@@ -332,69 +332,69 @@ class TestInteractive(metaclass=OrderedClassMembers):
     def test_clear_hash(self):
         self.engine.setoption("Clear Hash")
 
-    def test_position_fen_mate_plus_1(self):
+    def test_position_mate_plus_1(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 5K2/8/2qk4/2nPp3/3r4/6B1/B7/3R4 w - e6 0 1")
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate 1 * pv d5e6")
         self.engine.starts_with("bestmove d5e6")
 
-    def test_position_fen_mate_minus_1(self):
+    def test_position_mate_minus_1(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 2brrb2/8/p7/Q7/1p1kpPp1/1P1pN1K1/3P4/8 b - - 0 1")
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate -1 *")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_go_nodes_500000(self):
+    def test_position_go_nodes_500000(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 5K2/8/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1")
         self.engine.send_command("go nodes 500000")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_with_mate_go_depth_18_searchmoves(self):
+    def test_position_go_depth_18_searchmoves(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go depth 18 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_with_mate_go_mate_2_searchmoves(self):
+    def test_position_go_mate_2_searchmoves(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go mate 2 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 *")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_with_mate_go_nodes_500000_searchmoves(self):
+    def test_position_go_nodes_500000_searchmoves(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go nodes 500000 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_with_mate_go(self):
+    def test_position_go(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen r1b2r1k/pp1p2pp/2p5/2B1q3/8/8/P1PN2PP/R4RK1 w - - 0 18")
         self.engine.send_command("go")
         self.engine.contains("score mate 1")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_moves_with_mate_go_depth_18(self):
+    def test_position_go_depth_18(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7 f2f1q")
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate 1 * pv f7f5")
         self.engine.starts_with("bestmove f7f5")
 
-    def test_position_fen_with_mate_go_depth_18_searchmoves_exact(self):
+    def test_position_go_depth_18_searchmoves_exact_1(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go depth 18 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
         self.engine.starts_with("bestmove c6d7")
 
-    def test_position_fen_moves_with_mate_go_depth_18_searchmoves(self):
+    def test_position_go_depth_18_searchmoves_exact_2(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7")
         self.engine.send_command("go depth 18 searchmoves e3e2")
@@ -444,7 +444,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.send_command("bench 128 1 8 default depth")
         self.engine.expect("Total nodes     :*")
 
-    def test_syzygy_position_fen_1_go_depth_5_callback(self):
+    def test_syzygy_position_1_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 4k3/PP6/8/8/8/8/8/4K3 w - - 0 1")
         self.engine.send_command("go depth 5")
@@ -456,7 +456,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-    def test_syzygy_position_fen_2_go_depth_5_callback(self):
+    def test_syzygy_position_2_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 w - - 0 1")
         self.engine.send_command("go depth 5")
@@ -468,7 +468,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-    def test_syzygy_position_fen_3_go_depth_5_callback(self):
+    def test_syzygy_position_3_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 b - - 0 1")
         self.engine.send_command("go depth 5")
@@ -480,7 +480,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-    def test_syzygy_position_fen_4_go_depth_1(self):
+    def test_syzygy_position_4_go_depth_1(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/8/7B/3B3P/7k/8/5K2/3r4 w - - 0 1")
         self.engine.send_command("go depth 1")
@@ -564,15 +564,15 @@ class TestEnPassantSanitization(metaclass=OrderedClassMembers):
 
         self.engine.expect_matching_line("Fen*", "*kb6/8/8/3pP3/5K2/8/8/8 w - d6 0 1*")
 
-    def test_position_find_draw(self):
+    def test_position_12_go_nodes_10000_callback(self):
         self.engine.send_command("position fen q4kb1/3Q2nq/8/r3PpK1/2n5/7q/8/q7 w - f6 0 1 moves d7c8 f8f7 c8d7 f7f8 d7d8 f8f7")
         self.engine.send_command("go nodes 10000")
 
-        def check_output(output):
+        def callback(output):
             if fnmatch.fnmatch(output, "* score cp 0 * pv d8d7*"):
                 return True
 
-        self.engine.check_output(check_output)
+        self.engine.check_output(callback)
         self.engine.expect("bestmove d8d7*")
 
 class TestInvalidFEN(metaclass=OrderedClassMembers):
@@ -591,19 +591,19 @@ class TestInvalidFEN(metaclass=OrderedClassMembers):
         assert isinstance(self.engine.process.stdout, str)
         assert "CRITICAL ERROR" in self.engine.process.stdout
 
-    def test_no_kings(self):
+    def test_position_no_kings(self):
         self._expect_critical("8/8/8/8/8/8/8/8 w - - 0 1")
 
-    def test_invalid_piece(self):
+    def test_position_invalid_piece(self):
         self._expect_critical("rnbqkbnr/pppXpppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
-    def test_invalid_side_to_move(self):
+    def test_position_invalid_side_to_move(self):
         self._expect_critical("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1")
 
-    def test_pawns_on_back_rank(self):
+    def test_position_pawns_on_back_rank(self):
         self._expect_critical("pppppppp/8/8/8/8/8/8/4K2k w - - 0 1")
 
-    def test_invalid_skip_count(self):
+    def test_position_invalid_skip_count(self):
         self._expect_critical("9/8/8/8/8/8/8/8 w - - 0 1")
 
 class TestInvalidOptions(metaclass=OrderedClassMembers):
@@ -634,18 +634,18 @@ class TestInvalidOptions(metaclass=OrderedClassMembers):
         self.engine.send_command("isready")
         self.engine.equals("readyok")
 
-    # Warn on bogus NUMA configs
-    def test_numa_garbage(self):
+    # Warn on bogus NumaPolicy configs
+    def test_numapolicy_garbage(self):
         self.engine.send_command("setoption name NumaPolicy value zzz")
         self.engine.expect("*NumaPolicy: invalid value 'zzz', keeping previous config.*")
         self.engine.send_command("isready")
         self.engine.equals("readyok")
 
-    def test_numa_malformed_range(self):
+    def test_numapolicy_malformed_range(self):
         self.engine.send_command("setoption name NumaPolicy value 0-")
         self.engine.expect("*NumaPolicy: invalid value '0-', keeping previous config.*")
 
-    def test_numa_overflow(self):
+    def test_numapolicy_overflow(self):
         self.engine.send_command("setoption name NumaPolicy value 99999999999999999999999")
         self.engine.expect("*NumaPolicy: invalid value*keeping previous config.*")
         self.engine.send_command("isready")

@@ -50,6 +50,8 @@ class UCI final {
     UCI(UCI&&) noexcept                 = delete;
     UCI& operator=(UCI&&) noexcept      = delete;
 
+    u64 perft(Depth depth, bool detail = false) const noexcept;
+
     void set_on_updates() noexcept;
 
     void position(std::istream& is) noexcept;
@@ -57,8 +59,6 @@ class UCI final {
     void setoption(std::istream& is) noexcept;
     void bench(std::istream& is) noexcept;
     void benchmark(std::istream& is) noexcept;
-
-    u64 perft(Depth depth, bool detail = false) noexcept;
 
     Engine engine;
 };

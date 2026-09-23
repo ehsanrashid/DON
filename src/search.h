@@ -23,6 +23,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <initializer_list>
 #include <limits>
@@ -61,6 +62,8 @@ inline constexpr usize MOVES_CAPACITY = 32;
 using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
+
+bool load_book(const fs::path& bookFilePath) noexcept;
 
 // extend_tb_pv() may lead to PVs longer than PLY_MAX
 struct RootPVMoves final {
@@ -101,11 +104,9 @@ struct RootPVMoves final {
         std::string pv;
         pv.reserve(6 * size());
 
+        pv.push_back(' ');
         for (const Move m : *this)
-        {
-            pv.push_back(' ');
-            pv.append(move_to_can(m));
-        }
+            pv.append(move_to_can(m)).push_back(' ');
 
         return pv;
     }

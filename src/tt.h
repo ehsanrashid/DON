@@ -125,8 +125,8 @@ class TranspositionTable final {
     // Only counts entries which match the current generation. [maxAge: 0-GENERATION_MASK]
     u16 hashfull(u8 maxAge = 0) const noexcept;
 
-    bool load(const fs::path& hashFile, const Threads& threads) noexcept;
-    bool save(const fs::path& hashFile) const noexcept;
+    bool load(const fs::path& hashFilePath, const Threads& threads) noexcept;
+    bool save(const fs::path& hashFilePath) const noexcept;
 
    private:
     TranspositionTable(const TranspositionTable&) noexcept            = delete;

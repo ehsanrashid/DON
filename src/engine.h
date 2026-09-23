@@ -50,20 +50,21 @@ class Engine final {
 
     std::string fen() const noexcept;
 
-    // Set a new position, moves are in UCI or SAN format
-    std::optional<Error> setup(std::string_view fen   = START_FEN,
-                               const Strings&   moves = {}) noexcept;
+    u64 perft(Depth depth, bool detail = false) const noexcept;
 
-    u64 perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching
-    void start(const Limit& limit) noexcept;
+    void start(const Limit& limit) const noexcept;
     // Non-blocking call to stop searching
-    void stop() noexcept;
+    void stop() const noexcept;
 
     void ponderhit() const noexcept;
 
     // Blocking call to wait for search to finish
     void wait_finish() const noexcept;
+
+    // Set a new position, moves are in UCI or SAN format
+    std::optional<Error> setup(std::string_view fen   = START_FEN,
+                               const Strings&   moves = {}) noexcept;
 
     void reset() noexcept;
 
@@ -73,9 +74,9 @@ class Engine final {
 
     void resize_tt(usize ttSize) noexcept;
 
-    void show() const noexcept;
-    void dump(const fs::path& dumpFile = {}) const noexcept;
-    void eval() noexcept;
+    std::string position() const noexcept;
+    std::string evaluation() const noexcept;
+    void        dump(const fs::path& dumpFilePath = {}) const noexcept;
 
     std::optional<Error> flip() noexcept;
     std::optional<Error> mirror() noexcept;
@@ -102,8 +103,8 @@ class Engine final {
 
     // Hash related
 
-    bool load_hash(const fs::path& hashFile) noexcept;
-    bool save_hash(const fs::path& hashFile) const noexcept;
+    bool load_hash(const fs::path& hashFilePath) noexcept;
+    bool save_hash(const fs::path& hashFilePath) const noexcept;
 
     // On update modifiers
 
@@ -133,8 +134,8 @@ class Engine final {
 
     SharedState sharedState{network, options(), transpositionTable, threads, atomicHistoriesMap};
 
-    StateListPtr states;
-    Position     pos;
+    mutable StateListPtr states;
+    Position             pos;
 
     Manager::UpdateContext updateContext;
 };

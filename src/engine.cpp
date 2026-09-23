@@ -22,13 +22,13 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
+#include <sstream>
 
 #include "evaluate.h"
 #include "movegen.h"
 #include "notation.h"
 #include "perft.h"
 #include "shm.h"
-#include "book/polyglot.h"
 #include "tablebase/syzygy.h"
 
 namespace DON {
@@ -65,7 +65,7 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("HistoryLoadFactor", Option(75, 10, 100, OnChange([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
     options().add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnChange([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options().add("Book",              Option(false));
-    options().add("BookFile",          Option("", OnChange([](const Option& o) { auto bookFile = utf8_to_path(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+    options().add("BookFile",          Option("", OnChange([](const Option& o) { return load_book(utf8_to_path(o)) ? "Load succeeded" : "Load failed"; })));
     options().add("BookProbeDepth",    Option(100, 1, 256));
     options().add("BookBestPick",      Option(true));
     options().add("SyzygyPath",        Option("", OnChange([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
@@ -93,6 +93,32 @@ const Options& Engine::options() const noexcept { return options_; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
+u64 Engine::perft(const Depth depth, const bool detail) const noexcept {
+    return Perft::perft(pos, threads, options()["Hash"], depth, detail);
+}
+
+void Engine::start(const Limit& limit) const noexcept {
+    assert(!limit.perft);
+
+    verify_network();
+
+    threads.start(pos, states, limit, options());
+}
+
+void Engine::stop() const noexcept { threads.request_stop(); }
+
+void Engine::ponderhit() const noexcept {
+    auto* manager = threads.manager();
+    if (manager != nullptr)
+        manager->set_ponder(false);
+}
+
+void Engine::wait_finish() const noexcept {
+    auto* mainThread = threads.main_thread();
+    if (mainThread != nullptr)
+        mainThread->wait_finish();
+}
+
 std::optional<Error> Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
@@ -119,37 +145,6 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
     }
 
     return std::nullopt;
-}
-
-u64 Engine::perft(const Depth depth, const bool detail) noexcept {
-
-    State    st;
-    Position p;
-    p.set(pos, &st);
-
-    return Perft::perft(p, options()["Hash"], threads, depth, detail);
-}
-
-void Engine::start(const Limit& limit) noexcept {
-    assert(!limit.perft);
-
-    verify_network();
-
-    threads.start(pos, states, limit, options());
-}
-
-void Engine::stop() noexcept { threads.request_stop(); }
-
-void Engine::ponderhit() const noexcept {
-    auto* manager = threads.manager();
-    if (manager != nullptr)
-        manager->set_ponder(false);
-}
-
-void Engine::wait_finish() const noexcept {
-    auto* mainThread = threads.main_thread();
-    if (mainThread != nullptr)
-        mainThread->wait_finish();
 }
 
 void Engine::reset() noexcept {
@@ -190,13 +185,23 @@ void Engine::resize_tt(const usize ttSize) noexcept {
     transpositionTable.resize(ttSize, threads);
 }
 
-void Engine::show() const noexcept { std::cout << pos << std::endl; }
+std::string Engine::position() const noexcept {
+    std::ostringstream oss;
+    oss << pos;
+    return oss.str();
+}
 
-void Engine::dump(const fs::path& dumpFile) const noexcept {
+std::string Engine::evaluation() const noexcept {
+    verify_network();
 
-    if (!dumpFile.empty())
+    return Evaluate::trace(pos, *network);
+}
+
+void Engine::dump(const fs::path& dumpFilePath) const noexcept {
+
+    if (!dumpFilePath.empty())
     {
-        if (std::ofstream ofs{dumpFile, std::ios::binary})
+        if (std::ofstream ofs{dumpFilePath, std::ios::binary})
         {
             pos.dump(ofs);
 
@@ -205,17 +210,11 @@ void Engine::dump(const fs::path& dumpFile) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFile << "', writing to stdout instead");
+        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFilePath << "', writing to stdout instead");
     }
 
     // Default: dump to console
     pos.dump(std::cout);
-}
-
-void Engine::eval() noexcept {
-    verify_network();
-
-    std::cout << '\n' << Evaluate::trace(pos, *network) << std::endl;
 }
 
 std::optional<Error> Engine::flip() noexcept { return pos.flip(); }
@@ -225,21 +224,25 @@ std::optional<Error> Engine::mirror() noexcept { return pos.mirror(); }
 u16 Engine::hashfull(const u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
 
 bool Engine::set_numa_config(const std::string_view cfg) noexcept {
+    NumaConfig numaCfg;
+
     if (cfg == "none")
-        numaContext.set_numa_config(NumaConfig{});
+        numaCfg = NumaConfig{};
     else if (cfg == "auto" || cfg == "system")
-        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
+        numaCfg = NumaConfig::from_system(NUMA_POLICY_DEFAULT, true);
     else if (cfg == "hardware")
         // Don't respect affinity set in the system
-        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
+        numaCfg = NumaConfig::from_system(NUMA_POLICY_DEFAULT, false);
     else
     {
-        auto numaCfg = NumaConfig::from_string(cfg);
-        if (!numaCfg)
+        auto config = NumaConfig::from_string(cfg);
+        if (!config)
             return false;
 
-        numaContext.set_numa_config(std::move(*numaCfg));
+        numaCfg = std::move(*config);
     }
+
+    numaContext.set_numa_config(std::move(numaCfg));
 
     // Force reallocation of threads in case affinities need to change
     resize_threads_tt();
@@ -275,21 +278,20 @@ std::string Engine::numa_config_info() const noexcept {
 }
 
 std::string Engine::thread_binding() const noexcept {
+    std::string threadBinding;
+
     auto boundThreadCounts = bound_thread_counts();
 
-    std::string threadBinding;
     threadBinding.reserve(8 * boundThreadCounts.size());
 
     for (const auto& [numaId, threadCount] : boundThreadCounts)
     {
-        if (!threadBinding.empty())
-            threadBinding.append(":");
-
-        threadBinding  //
-          .append(std::to_string(numaId))
-          .append("/")
-          .append(std::to_string(threadCount));
+        threadBinding.append(std::to_string(numaId)).push_back('/');
+        threadBinding.append(std::to_string(threadCount)).push_back(':');
     }
+
+    if (!threadBinding.empty())
+        threadBinding.pop_back();
 
     return threadBinding;
 }
@@ -299,9 +301,7 @@ std::string Engine::thread_allocation() const noexcept {
     threadAllocation.append(std::to_string(threads.size()));
 
     if (const auto threadBinding = thread_binding(); !threadBinding.empty())
-        threadAllocation  //
-          .append(" with NUMA node thread binding: ")
-          .append(threadBinding);
+        threadAllocation.append(" with NUMA node thread binding: ").append(threadBinding);
 
     return threadAllocation;
 }
@@ -326,14 +326,16 @@ void Engine::verify_network() const noexcept {
     {
         auto& [status, error] = statuses[i];
 
-        std::string message{"Network replica "};
-        message  //
-          .append(std::to_string(i))
-          .append(": ")
-          .append(to_string(status));
+        auto message = std::string{"Network replica "}
+                         .append(std::to_string(i))
+                         .append(": ")
+                         .append(to_string(status));
 
         if (!error.empty())
-            message.append(". ").append(error);
+        {
+            message.push_back(' ');
+            message.append(error);
+        }
 
         print_info_string(message);
     }
@@ -354,12 +356,12 @@ void Engine::save_network(const fs::path& networkFilePath) const noexcept {
     network->save(networkFilePath, networkFile);
 }
 
-bool Engine::load_hash(const fs::path& hashFile) noexcept {
-    return transpositionTable.load(hashFile, threads);
+bool Engine::load_hash(const fs::path& hashFilePath) noexcept {
+    return transpositionTable.load(hashFilePath, threads);
 }
 
-bool Engine::save_hash(const fs::path& hashFile) const noexcept {
-    return transpositionTable.save(hashFile);
+bool Engine::save_hash(const fs::path& hashFilePath) const noexcept {
+    return transpositionTable.save(hashFilePath);
 }
 
 void Engine::set_on_update_start(Manager::OnUpdateStart&& f) noexcept {
