@@ -1155,12 +1155,13 @@ CXXFLAGS += -fwhole-program-vtables
 endif
 # Clang-compatible compiler
 ifeq ($(CXX_IS_CLANG),yes)
-LTO_FLAGS := -flto=full
+LTO_FLAGS   := -flto=full
 # Native GCC
 else
-LTO_FLAGS := -flto -flto-partition=one
+LTO_FLAGS   := -flto -flto-partition=one
+LTO_LDFLAGS := -save-temps
 ifneq ($(TARGET_KERNEL),Darwin)
-LTO_LDFLAGS := -flto=jobserver
+LTO_LDFLAGS += -flto=jobserver
 endif
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
@@ -1383,7 +1384,7 @@ else
 endif
 
 universal-object-nopgo: obj-clean universal-clean
-	$(MAKE) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' all
+	$(MAKE) all ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)'
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
 	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
