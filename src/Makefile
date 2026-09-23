@@ -395,7 +395,7 @@ ifeq ($(bits),32)
 bmi2 = no
 endif
 
-# all other architectures
+# All other architectures
 else
 
 ifneq ($(findstring general,$(ARCH)),)
@@ -1416,8 +1416,8 @@ obj-clean:
 # Remove profiling data and temporary profiling files
 profile-clean:
 	@rm -rf 'profdir'
-	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f '$(NAME).profdata' *.profraw
+	@rm -f bench.txt *.gcda *.gcno *.s PGOBENCH.out
+	@rm -f '$(NAME).profdata' *'.profraw'
 	@rm -f '$(NAME)'.*args*
 	@rm -f '$(NAME)'.*lt*
 	@rm -f '$(NAME).res'
@@ -1566,27 +1566,29 @@ misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 
 # Clang PGO
 clang-profile-make:
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' all
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate='\''profdir'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate='\''profdir'\'''
 
 clang-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\''' all
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' 'profdir'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use='\''$(NAME).profdata'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\'''
 
 # GCC PGO
 gcc-profile-make:
 	@mkdir -p 'profdir'
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate='\''profdir'\''' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate='\''profdir'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate='\''profdir'\''' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
 
+# Ensure the profile directory exists before GCC searches it.
 gcc-profile-use:
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
+	@mkdir -p 'profdir'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
 
 # ICC/ICX PGO
 icx-profile-make:
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' all
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-generate='\''profdir'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate='\''profdir'\'''
 
 icx-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' all
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' 'profdir'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use='\''$(NAME).profdata'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\'''
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
@@ -1661,6 +1663,7 @@ ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
 UNIVERSAL_LDFLAGS := -fno-exceptions -Os
+UNIVERSAL_LDLIBS  :=
 
 ifeq ($(TARGET_KERNEL),Darwin)
 UNIVERSAL_LDFLAGS += $(MACOS_VERSION_MIN_FLAG)
@@ -1688,6 +1691,8 @@ ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr
 # Mach-O initializer section: strip the "x86-64" prefix, replace '-' with '_',
 # and prefix with "_i_" to keep the section name within 16 characters.
 ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
+
+ARCH_MAIN_CXXFLAGS :=
 
 ifeq ($(TARGET_KERNEL),Darwin)
 ARCH_ENTRY_FLAG = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
@@ -1717,6 +1722,10 @@ UNIVERSAL_LDFLAGS += -arch x86_64
 endif
 
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS)
+
+# Include the normal link flags in the custom universal link flags.
+UNIVERSAL_LDFLAGS += $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
+UNIVERSAL_LDLIBS  += $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 
 UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1759,7 +1768,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' \
-		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_LDLIBS='$(ENV_LDLIBS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
+		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
 	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'
@@ -1780,8 +1789,8 @@ else
 endif
 endif
 
-$(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(strip $(CXX) $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS) $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS)) -o '$@'
+$(UNIVERSAL_EXE): $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ)
+	$(strip $(CXX) $(UNIVERSAL_LDFLAGS) $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(UNIVERSAL_LDLIBS)) -o '$@'
 	@echo "$(OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD
