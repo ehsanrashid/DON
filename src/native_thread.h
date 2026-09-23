@@ -43,6 +43,10 @@ namespace DON {
 
 struct ThreadOptions final {
    public:
+    explicit constexpr ThreadOptions(bool sStackSize = false, bool sGuardSize = false) noexcept :
+        useStackSize(sStackSize),
+        useGuardSize(sGuardSize) {}
+
     bool useStackSize = false;
     bool useGuardSize = false;
 };

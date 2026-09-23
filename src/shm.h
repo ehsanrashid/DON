@@ -401,16 +401,6 @@ class BackendSharedMemory final {
 };
 
 #elif defined(USE_UNIX_SHM)
-// Poll Index
-enum class PI : u8 {
-    SERVER,
-    SHUTDOWN
-};
-
-constexpr usize PI_NB = 2;
-
-constexpr u8 operator+(const PI pi) noexcept { return u8(pi); }
-
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept;
