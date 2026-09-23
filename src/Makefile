@@ -1146,13 +1146,11 @@ endif
 
 ## Determine LTO flags
 
-# MinGW (requires GCC 10.1+ for LTO and static linking)
-ifeq ($(COMP),mingw)
-LTO_FLAGS   := -flto -flto-partition=one
-LTO_LDFLAGS := -save-temps
 # GCC / Clang / ICX / NDK Clang
-else \
 ifneq ($(filter gcc clang icx ndk,$(COMP)),)
+ifeq ($(COMP),icx)
+CXXFLAGS += -fwhole-program-vtables
+endif
 # Clang-compatible compiler
 ifeq ($(CXX_IS_CLANG),yes)
 LTO_FLAGS := -flto=full
@@ -1163,15 +1161,16 @@ ifneq ($(TARGET_KERNEL),Darwin)
 LTO_LDFLAGS := -flto=jobserver
 endif
 endif
-ifeq ($(COMP),icx)
-CXXFLAGS += -fwhole-program-vtables
-endif
+# MinGW (requires GCC 10.1+ for LTO and static linking)
+else \
+ifeq ($(COMP),mingw)
+LTO_FLAGS   := -flto -flto-partition=one
+LTO_LDFLAGS := -save-temps
 endif
 
 ## Apply LTO flags
 CXXFLAGS += $(LTO_FLAGS)
 LDFLAGS  += $(strip $(LTO_FLAGS) $(LTO_LDFLAGS))
-
 endif
 
 ## Inline settings
@@ -1368,7 +1367,7 @@ universal-object-pgo: obj-clean profile-clean universal-clean
 	@echo; \
 	echo "Step 3/4. Building optimized object files ..."
 	$(MAKE) obj-clean
-	$(MAKE) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' $(PROFILE_USE)
+	$(MAKE) $(PROFILE_USE) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)'
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo; \
 	echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
@@ -1757,7 +1756,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' \
-		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' ENV_LDLIBS='$(ENV_LDLIBS)'
+		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_LDLIBS='$(ENV_LDLIBS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
 	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'
