@@ -242,8 +242,8 @@ void FullThreats::append_active_indices(const Color     perspective,
 
     const Bitboard occupancyBB = pos.pieces_bb();
     const Bitboard pTargetsBB  = pos.pieces_bb(KNIGHT, ROOK);
-    const Bitboard brTargetsBB = pos.pieces_bb(PAWN, KNIGHT, BISHOP, ROOK);
-    const Bitboard kqTargetsBB = pos.pieces_bb(PAWN, KNIGHT, BISHOP, ROOK, QUEEN);
+    const Bitboard brTargetsBB = pos.pieces_bb(PAWN, BISHOP) | pTargetsBB;
+    const Bitboard kqTargetsBB = pos.pieces_bb(QUEEN) | brTargetsBB;
 
     for (const Color c : {WHITE, BLACK})
     {

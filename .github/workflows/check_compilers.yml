@@ -26,7 +26,7 @@ jobs:
           # Clang 10 compiler image
           - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", needs_install: true }
 
-          # Clang 11–17 compiler images
+          # Clang 11-17 compiler images
           - { name: Clang-11, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-11" }
           - { name: Clang-12, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-12" }
           - { name: Clang-13, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-13" }
