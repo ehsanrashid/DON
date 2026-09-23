@@ -29,8 +29,8 @@ class Threads;
 namespace Perft {
 
 u64 perft(const Position& pos,
-          usize           ptSize,
           const Threads&  threads,
+          usize           ptSize,
           Depth           depth,
           bool            detail = false) noexcept;
 

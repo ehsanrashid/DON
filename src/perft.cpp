@@ -447,8 +447,8 @@ template PerftData perft<true>(Position& pos, Depth depth, bool detail) noexcept
 }  // namespace
 
 u64 perft(const Position& pos,
-          const usize     ptSize,
           const Threads&  threads,
+          const usize     ptSize,
           const Depth     depth,
           const bool      detail) noexcept {
 

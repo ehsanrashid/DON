@@ -620,7 +620,7 @@ NumaConfig::NumaConfig(const CpuIndex maxCpuIdx, const bool customAff) noexcept 
     customAffinity(customAff) {}
 
 NumaConfig::NumaConfig() noexcept :
-    NumaConfig(0, false) {
+    NumaConfig{0, false} {
     add_cpu_range_to_node(NumaIndex{0}, CpuIndex{0}, SYSTEM_THREAD_MAX - 1);
 }
 

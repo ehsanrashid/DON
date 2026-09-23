@@ -93,6 +93,32 @@ const Options& Engine::options() const noexcept { return options_; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
+u64 Engine::perft(const Depth depth, const bool detail) const noexcept {
+    return Perft::perft(pos, threads, options()["Hash"], depth, detail);
+}
+
+void Engine::start(const Limit& limit) const noexcept {
+    assert(!limit.perft);
+
+    verify_network();
+
+    threads.start(pos, states, limit, options());
+}
+
+void Engine::stop() const noexcept { threads.request_stop(); }
+
+void Engine::ponderhit() const noexcept {
+    auto* manager = threads.manager();
+    if (manager != nullptr)
+        manager->set_ponder(false);
+}
+
+void Engine::wait_finish() const noexcept {
+    auto* mainThread = threads.main_thread();
+    if (mainThread != nullptr)
+        mainThread->wait_finish();
+}
+
 std::optional<Error> Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
@@ -119,32 +145,6 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
     }
 
     return std::nullopt;
-}
-
-u64 Engine::perft(const Depth depth, const bool detail) const noexcept {
-    return Perft::perft(pos, options()["Hash"], threads, depth, detail);
-}
-
-void Engine::start(const Limit& limit) const noexcept {
-    assert(!limit.perft);
-
-    verify_network();
-
-    threads.start(pos, states, limit, options());
-}
-
-void Engine::stop() const noexcept { threads.request_stop(); }
-
-void Engine::ponderhit() const noexcept {
-    auto* manager = threads.manager();
-    if (manager != nullptr)
-        manager->set_ponder(false);
-}
-
-void Engine::wait_finish() const noexcept {
-    auto* mainThread = threads.main_thread();
-    if (mainThread != nullptr)
-        mainThread->wait_finish();
 }
 
 void Engine::reset() noexcept {
@@ -224,21 +224,25 @@ std::optional<Error> Engine::mirror() noexcept { return pos.mirror(); }
 u16 Engine::hashfull(const u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
 
 bool Engine::set_numa_config(const std::string_view cfg) noexcept {
+    NumaConfig numaCfg;
+
     if (cfg == "none")
-        numaContext.set_numa_config(NumaConfig{});
+        numaCfg = NumaConfig{};
     else if (cfg == "auto" || cfg == "system")
-        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
+        numaCfg = NumaConfig::from_system(NUMA_POLICY_DEFAULT, true);
     else if (cfg == "hardware")
         // Don't respect affinity set in the system
-        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
+        numaCfg = NumaConfig::from_system(NUMA_POLICY_DEFAULT, false);
     else
     {
-        auto numaCfg = NumaConfig::from_string(cfg);
-        if (!numaCfg)
+        auto config = NumaConfig::from_string(cfg);
+        if (!config)
             return false;
 
-        numaContext.set_numa_config(std::move(*numaCfg));
+        numaCfg = std::move(*config);
     }
+
+    numaContext.set_numa_config(std::move(numaCfg));
 
     // Force reallocation of threads in case affinities need to change
     resize_threads_tt();

@@ -406,7 +406,7 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 
 }  // namespace
 
-u64 UCI::perft(Depth depth, bool detail) const noexcept {
+u64 UCI::perft(const Depth depth, const bool detail) const noexcept {
     const u64 nodes = engine.perft(depth, detail);
 
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
