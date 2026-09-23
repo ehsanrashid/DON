@@ -119,6 +119,9 @@ OBJS := $(notdir $(SRCS:.cpp=.o))
 
 VPATH := nnue:nnue/features:book:tablebase
 
+PGO_PROFILE_DIR  := profdir
+PGO_PROFILE_DATA := $(NAME).profdata
+
 # ---------------------------------------------------------
 # Detect clang-format:
 # Use environment override; otherwise prefer newest version
@@ -1415,9 +1418,9 @@ obj-clean:
 
 # Remove profiling data and temporary profiling files
 profile-clean:
-	@rm -rf 'profdir'
-	@rm -f bench.txt *.gcda *.gcno *.s PGOBENCH.out
-	@rm -f '$(NAME).profdata' *'.profraw'
+	@rm -rf '$(PGO_PROFILE_DIR)'  # *'.gcda' *'.gcno' *'.profraw'
+	@rm -f '$(PGO_PROFILE_DATA)'
+	@rm -f 'PGOBENCH.out' *'.s'
 	@rm -f '$(NAME)'.*args*
 	@rm -f '$(NAME)'.*lt*
 	@rm -f '$(NAME).res'
@@ -1566,29 +1569,29 @@ misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 
 # Clang PGO
 clang-profile-make:
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate='\''profdir'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate='\''profdir'\'''
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"'
 
 clang-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' 'profdir'
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use='\''$(NAME).profdata'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\'''
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='"$(PGO_PROFILE_DATA)"' '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
 
 # GCC PGO
 gcc-profile-make:
-	@mkdir -p 'profdir'
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate='\''profdir'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate='\''profdir'\''' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
+	@mkdir -p '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
 
 # Ensure the profile directory exists before GCC searches it.
 gcc-profile-use:
-	@mkdir -p 'profdir'
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
+	@mkdir -p '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use="$(PGO_PROFILE_DIR)" -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DIR)" -fprofile-correction' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
 
 # ICC/ICX PGO
 icx-profile-make:
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-generate='\''profdir'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate='\''profdir'\'''
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate="$(PGO_PROFILE_DIR)"'
 
 icx-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' 'profdir'
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use='\''$(NAME).profdata'\'' $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\'''
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='"$(PGO_PROFILE_DATA)"' '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
 
 .depend: $(SRCS)
 	@echo Generating dependencies...

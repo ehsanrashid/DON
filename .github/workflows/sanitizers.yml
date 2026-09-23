@@ -66,9 +66,6 @@ jobs:
           sudo apt update
           sudo apt install expect valgrind g++-multilib
 
-      - name: Download the network
-        run: make net
-
       - name: Check compiler version
         run: $COMPCXX -v
 
@@ -77,6 +74,9 @@ jobs:
 
       - name: Check Make help
         run: make help
+
+      - name: Download the network
+        run: make net
 
       # Since Linux Kernel 6.5 we are getting false positives from the ci,
       # lower the ALSR entropy to disable ALSR, which works as a temporary workaround.
