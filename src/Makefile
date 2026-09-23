@@ -120,7 +120,7 @@ OBJS := $(notdir $(SRCS:.cpp=.o))
 VPATH := nnue:nnue/features:book:tablebase
 
 PGO_PROFILE_DIR  := profdir
-PGO_PROFILE_DATA := $(NAME).profdata
+PGO_PROFILE_DATA := $(PGO_PROFILE_DIR)/$(NAME).profdata
 
 # ---------------------------------------------------------
 # Detect clang-format:
@@ -1370,6 +1370,15 @@ endif
 
 MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 
+universal-object-nopgo: obj-clean universal-clean
+	$(MAKE) all ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)'
+ifeq ($(USE_LTO_EMIT_ASM),yes)
+	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
+	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
+else
+	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
+endif
+
 universal-object-pgo: obj-clean profile-clean universal-clean
 	@echo; \
 	echo "Step 1/4. Building instrumented executable ..."
@@ -1394,15 +1403,6 @@ else
 	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
 endif
 
-universal-object-nopgo: obj-clean universal-clean
-	$(MAKE) all ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)'
-ifeq ($(USE_LTO_EMIT_ASM),yes)
-	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
-	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
-else
-	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
-endif
-
 # Evaluation network (nnue)
 net:
 	@$(SHELL) '../scripts/net.sh'
@@ -1422,7 +1422,7 @@ clean: obj-clean profile-clean universal-clean
 
 # Remove build metadata, object files, and binaries
 obj-clean:
-	@rm -f '$(GIT_DATE_FILE)' '$(GIT_SHA_FILE)' '$(GIT_DIFFINDEX_FILE)' './'*.o '$(EXE)'
+	@rm -f '$(GIT_DATE_FILE)' '$(GIT_SHA_FILE)' '$(GIT_DIFFINDEX_FILE)' './'*'.o' '$(NAME)' '$(NAME).exe' '$(NAME).js'
 
 # Remove profiling data and temporary profiling files
 profile-clean:
@@ -1595,7 +1595,7 @@ gcc-profile-use:
 
 # ICC/ICX PGO
 icx-profile-make:
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate="$(PGO_PROFILE_DIR)"'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"'
 
 icx-profile-use:
 	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(PGO_PROFILE_DATA)' '$(PGO_PROFILE_DIR)'
