@@ -96,7 +96,7 @@ std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 
-#elif defined(__linux__)
+#elif defined(__linux__) && !defined(__ANDROID__)
     ssize_t size =  //
       ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
 
@@ -107,6 +107,8 @@ std::string executable_path() noexcept {
     }
 
 #elif defined(__wasm__)
+
+#elif defined(__ANDROID__)
 
 #else
     #error "Unsupported platform"
