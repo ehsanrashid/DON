@@ -29,7 +29,7 @@ jobs:
         with:
           repository: vondele/matetrack
           path: matetrack
-          ref: 1e7f6c6fff8e2f23923880a94fae596281346395
+          ref: e9bd59960bfd47b5e49144ba1b419a746c0f5c3e
           persist-credentials: false
 
       - name: Matetrack install deps
@@ -84,6 +84,44 @@ jobs:
           python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --time 3 --timeinc 0.01 --threads 4 | tee matecheck4g.out
           ! grep "issues were detected" matecheck4g.out >/dev/null
 
+      - name: Run matetrack th1 multiPV
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 256 --multipvFile matetrack_multipv.epd | tee matecheck1mpv.out
+          ! grep "issues were detected" matecheck1mpv.out >/dev/null
+
+      - name: Run matetrack th4 multiPV
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 256 --multipvFile matetrack_multipv.epd --threads 4 | tee matecheck4mpv.out
+          ! grep "issues were detected" matecheck4mpv.out >/dev/null
+
+      - name: Run matetrack th1 with --syzygy50MoveRule false
+        working-directory: matetrack
+        run: |
+          grep 5men cursed.epd > cursed5.epd
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --syzygy50MoveRule false --nodes 100000 | tee matecheckcursed1.out
+          ! grep "issues were detected" matecheckcursed1.out >/dev/null
+          mates=$(grep "Found mates:" matecheckcursed1.out | awk '{print $3}')
+          tbwins=$(grep "Found TB wins:" matecheckcursed1.out | awk '{print $4}')
+          if [ $((mates + tbwins)) -ne 32 ]; then
+            echo "Sum of mates and TB wins is not 32 in matecheckcursed1.out" >&2
+            exit 1
+          fi
+
+      - name: Run matetrack th4 with --syzygy50MoveRule false
+        working-directory: matetrack
+        run: |
+          grep 5men cursed.epd > cursed5.epd
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --syzygy50MoveRule false --nodes 100000 --threads 4 | tee matecheckcursed4.out
+          ! grep "issues were detected" matecheckcursed4.out >/dev/null
+          mates=$(grep "Found mates:" matecheckcursed4.out | awk '{print $3}')
+          tbwins=$(grep "Found TB wins:" matecheckcursed4.out | awk '{print $4}')
+          if [ $((mates + tbwins)) -ne 32 ]; then
+            echo "Sum of mates and TB wins is not 32 in matecheckcursed4.out" >&2
+            exit 1
+          fi
+
       - name: Run matetrack th1 go-mate
         working-directory: matetrack
         timeout-minutes: 30
@@ -111,43 +149,5 @@ jobs:
           bmates=$(grep "Best mates:" matecheck4gm.out | awk '{print $3}')
           if [ $bmates -ne $total ]; then
             echo "At least one go-mate search did not yield expected mate, see matecheck4gm.out" >&2
-            exit 1
-          fi
-
-      - name: Run matetrack th1 multiPV
-        working-directory: matetrack
-        run: |
-          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs | tee matecheck1mpv.out
-          ! grep "issues were detected" matecheck1mpv.out >/dev/null
-
-      - name: Run matetrack th4 multiPV
-        working-directory: matetrack
-        run: |
-          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs --threads 4 | tee matecheck4mpv.out
-          ! grep "issues were detected" matecheck4mpv.out >/dev/null
-
-      - name: Run matetrack th1 with --syzygy50MoveRule false
-        working-directory: matetrack
-        run: |
-          grep 5men cursed.epd > cursed5.epd
-          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --syzygy50MoveRule false --nodes 100000 | tee matecheckcursed1.out
-          ! grep "issues were detected" matecheckcursed1.out >/dev/null
-          mates=$(grep "Found mates:" matecheckcursed1.out | awk '{print $3}')
-          tbwins=$(grep "Found TB wins:" matecheckcursed1.out | awk '{print $4}')
-          if [ $((mates + tbwins)) -ne 32 ]; then
-            echo "Sum of mates and TB wins is not 32 in matecheckcursed1.out" >&2
-            exit 1
-          fi
-
-      - name: Run matetrack th4 with --syzygy50MoveRule false
-        working-directory: matetrack
-        run: |
-          grep 5men cursed.epd > cursed5.epd
-          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --syzygy50MoveRule false --nodes 100000 --threads 4 | tee matecheckcursed4.out
-          ! grep "issues were detected" matecheckcursed4.out >/dev/null
-          mates=$(grep "Found mates:" matecheckcursed4.out | awk '{print $3}')
-          tbwins=$(grep "Found TB wins:" matecheckcursed4.out | awk '{print $4}')
-          if [ $((mates + tbwins)) -ne 32 ]; then
-            echo "Sum of mates and TB wins is not 32 in matecheckcursed4.out" >&2
             exit 1
           fi

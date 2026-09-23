@@ -771,14 +771,16 @@ endif
 endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
+XCRUN := xcrun
 ifneq ($(filter-out any,$(arch)),)
 MACOS_ARCH_FLAG := -arch $(arch)
 endif
-MACOS_MIN_VERSION_FLAG := -mmacosx-version-min=10.15
+ifneq ($(MACOSX_VERSION_MIN),)
+MACOS_VERSION_MIN_FLAG := -mmacosx-version-min=$(MACOSX_VERSION_MIN)
+endif
 
-MACOS_BUILD_FLAGS := $(MACOS_ARCH_FLAG) $(MACOS_MIN_VERSION_FLAG)
+MACOS_BUILD_FLAGS := $(MACOS_ARCH_FLAG) $(MACOS_VERSION_MIN_FLAG)
 
-XCRUN    := xcrun
 CXXFLAGS += $(MACOS_BUILD_FLAGS)
 LDFLAGS  += $(MACOS_BUILD_FLAGS)
 endif
@@ -1660,7 +1662,7 @@ ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
 UNIVERSAL_LDFLAGS := -fno-exceptions -Os
 
 ifeq ($(TARGET_KERNEL),Darwin)
-UNIVERSAL_LDFLAGS += $(MACOS_MIN_VERSION_FLAG)
+UNIVERSAL_LDFLAGS += $(MACOS_VERSION_MIN_FLAG)
 else \
 ifeq ($(TARGET_KERNEL),Linux)
 UNIVERSAL_LDFLAGS += -static-libstdc++ -static-libgcc
@@ -1672,6 +1674,7 @@ endif
 else  # Windows
 UNIVERSAL_LDFLAGS += -Wl,--allow-multiple-definition -static
 ifeq ($(COMP),clang)
+UNIVERSAL_LDFLAGS += -fuse-ld=lld
 UNIVERSAL_LDLIBS  += -lpthread
 endif
 endif
@@ -1738,10 +1741,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 -Wno-c23-extensions $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(MACOS_MIN_VERSION_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 -Wno-c23-extensions $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(MACOS_VERSION_MIN_FLAG) $(EMBED_DIR)) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(MACOS_MIN_VERSION_FLAG)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(ARCH_MAIN_CXXFLAGS) $(MACOS_VERSION_MIN_FLAG)) -c '$<' -o '$@'
 
 # Symlink top-level source-tree items into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)

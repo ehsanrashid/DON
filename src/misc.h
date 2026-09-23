@@ -1136,6 +1136,8 @@ struct CommandLine final {
     CommandLine& operator=(CommandLine&&)      = default;
 
     // Returns the directory containing the executable, or "." if the directory is empty.
+    // This is useful because, when the NNUE network is not embedded in the binary,
+    // this directory is one of the locations to look for the NNUE file.
     static fs::path binary_directory(fs::path path) noexcept;
     // Returns the process's current working directory.
     static fs::path working_directory() noexcept;
