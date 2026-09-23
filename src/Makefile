@@ -1068,10 +1068,25 @@ endif
 ifneq ($(call FIND_EXE,$(GIT)),)
 GIT += -c core.filemode=false -c core.autocrlf=false
 
-NEW_GIT_DATE      := \
+ifeq ($(strip $(GIT_DATE)),)
+NEW_GIT_DATE := \
 $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-NEW_GIT_SHA       := \
+ifneq ($(NEW_GIT_DATE),)
+override GIT_DATE := $(NEW_GIT_DATE)
+export GIT_DATE
+endif
+endif
+
+ifeq ($(strip $(GIT_SHA)),)
+NEW_GIT_SHA := \
 $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
+ifneq ($(NEW_GIT_SHA),)
+override GIT_SHA := $(NEW_GIT_SHA)
+export GIT_SHA
+endif
+endif
+
+ifeq ($(strip $(GIT_DIFFINDEX)),)
 NEW_GIT_DIFFINDEX := \
 $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
     $(GIT) diff-index --quiet HEAD -- 2>/dev/null; \
@@ -1080,22 +1095,15 @@ $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
         $(GIT) diff HEAD --no-ext-diff | \
         $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
-
-ifneq ($(NEW_GIT_DATE),)
-override GIT_DATE := $(NEW_GIT_DATE)
-endif
-ifneq ($(NEW_GIT_SHA),)
-override GIT_SHA := $(NEW_GIT_SHA)
-endif
 ifneq ($(NEW_GIT_DIFFINDEX),)
 override GIT_DIFFINDEX := $(NEW_GIT_DIFFINDEX)
+export GIT_DIFFINDEX
 endif
-
-export GIT_DATE GIT_SHA GIT_DIFFINDEX
+endif
 endif
 
 # Cache Git metadata in files only when the values have changed
-define CACHE_FILE_IF_CHANGED
+define CACHE_IF_CHANGED
 $(shell \
     if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
         printf '%s\n' "$(2)" > "$(1)"; \
@@ -1103,12 +1111,12 @@ $(shell \
 endef
 # Update cached Git metadata when at least one non-excluded goal is requested
 ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-_ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
-_ := $(call CACHE_FILE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
-_ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
+_ := $(call CACHE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
+_ := $(call CACHE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
+_ := $(call CACHE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
-ifndef BUILD_INFO
+ifeq ($(strip $(BUILD_INFO)),)
 BUILD_INFO := $(shell LC_ALL=C date '+%Y %m %b %d %a %H %M %S')
 endif
 export BUILD_INFO
@@ -1572,8 +1580,8 @@ clang-profile-make:
 	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"'
 
 clang-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='"$(PGO_PROFILE_DATA)"' '$(PGO_PROFILE_DIR)'
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(PGO_PROFILE_DATA)' '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
 
 # GCC PGO
 gcc-profile-make:
@@ -1590,8 +1598,8 @@ icx-profile-make:
 	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate="$(PGO_PROFILE_DIR)"'
 
 icx-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='"$(PGO_PROFILE_DATA)"' '$(PGO_PROFILE_DIR)'
-	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-instr-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(PGO_PROFILE_DATA)' '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
