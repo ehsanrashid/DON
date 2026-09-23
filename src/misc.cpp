@@ -1430,12 +1430,12 @@ std::string usize_to_hex(const usize value) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string u64_to_hex(const u64 hash) noexcept {
+std::string u64_to_hex(const u64 value) noexcept {
     constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
 
     Array<char, BufferSize> buffer{};
 
-    const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
+    const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, value);
     const usize copiedSize  = writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
 
     return std::string{buffer.data(), copiedSize};

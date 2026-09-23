@@ -2151,7 +2151,7 @@ StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart
 
 std::string usize_to_hex(usize value) noexcept;
 
-std::string u64_to_hex(u64 hash) noexcept;
+std::string u64_to_hex(u64 value) noexcept;
 
 std::string u32_to_hex_prefix(u32 value) noexcept;
 

@@ -485,13 +485,17 @@ const Thread* Threads::best_thread() const noexcept {
 template const Thread* Threads::best_thread<false>() const noexcept;
 template const Thread* Threads::best_thread<true>() const noexcept;
 
-void Threads::start(Position&      pos,
-                    StateListPtr&  states,
-                    const Limit&   limit,
-                    const Options& options) noexcept {
+void Threads::start(const Position& pos,
+                    StateListPtr&   states,
+                    const Limit&    limit,
+                    const Options&  options) const noexcept {
+
     main_thread()->wait_finish();
 
-    state.store(State::Active, std::memory_order_relaxed);
+    state.store(ThState::Active, std::memory_order_relaxed);
+
+    Position p;
+    p = pos;
 
     RootMoves rootMoves;
 
@@ -505,7 +509,7 @@ void Threads::start(Position&      pos,
             if (emplace && rootMoves.size() == legalMoveList.size())
                 break;
 
-            const Move m = mix_to_move(move, pos, legalMoveList);
+            const Move m = mix_to_move(move, p, legalMoveList);
 
             emplace = m != Move::None && !rootMoves.contains(m);
 
@@ -527,7 +531,7 @@ void Threads::start(Position&      pos,
             if (erase && rootMoves.empty())
                 break;
 
-            const Move m = mix_to_move(move, pos, legalMoveList);
+            const Move m = mix_to_move(move, p, legalMoveList);
 
             erase = m != Move::None;
 
@@ -540,7 +544,7 @@ void Threads::start(Position&      pos,
     for (usize i = 0; i < rootMoves.size(); ++i)
         rootMoves[i].id = static_cast<u16>(i);
 
-    const auto& clock = limit.clocks[pos.active_color()];
+    const auto& clock = limit.clocks[p.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
     const auto startTime = SteadyClock::now();
@@ -554,11 +558,10 @@ void Threads::start(Position&      pos,
                          * clock.time);
     };
 
-    auto tbConfig =
-      Tablebase::Syzygy::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
+    auto tbConfig = Tablebase::Syzygy::rank_root_moves(p, rootMoves, options, false, time_to_abort);
 
-    // After ownership transfer 'states' becomes empty, so if stop the search
-    // and call 'go' again without setting a new position states.get() == nullptr.
+    // After ownership transfer, 'states' becomes empty. If the search is stopped
+    // and 'go' is called again without setting a new position, 'states.get()' is nullptr.
     assert(states.get() != nullptr || setupStates.get() != nullptr);
 
     if (states.get() != nullptr)
@@ -579,14 +582,14 @@ void Threads::start(Position&      pos,
     // The rootState is per thread, earlier states are shared since they are read-only.
     for (auto* th : snapThreads)
     {
-        th->run_custom_job([th, &pos, &rootMoves, &limit, &tbConfig]() noexcept -> void {
+        th->run_custom_job([th, &p, &rootMoves, &limit, &tbConfig]() noexcept -> void {
             auto* worker = th->worker.get();
 
             worker->nodes       = 0;
             worker->tbHits      = 0;
             worker->moveChanges = 0;
 
-            worker->rootPos.set(pos, &worker->rootState);
+            worker->rootPos.set(p, &worker->rootState);
             worker->rootMoves = rootMoves;
             worker->limit     = limit;
             worker->tbConfig  = tbConfig;

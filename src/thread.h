@@ -239,17 +239,17 @@ class Threads final {
     Threads() noexcept = default;
     ~Threads() noexcept;
 
-    auto begin() noexcept { return threads.begin(); }
-    auto end() noexcept { return threads.end(); }
-    auto begin() const noexcept { return threads.begin(); }
-    auto end() const noexcept { return threads.end(); }
+    [[nodiscard]] auto begin() noexcept { return threads.begin(); }
+    [[nodiscard]] auto end() noexcept { return threads.end(); }
+    [[nodiscard]] auto begin() const noexcept { return threads.begin(); }
+    [[nodiscard]] auto end() const noexcept { return threads.end(); }
 
-    u16 size() const noexcept {
+    [[nodiscard]] u16 size() const noexcept {
         std::shared_lock readLock(mutex);
 
         return u16(threads.size());
     }
-    bool empty() const noexcept {
+    [[nodiscard]] bool empty() const noexcept {
         std::shared_lock readLock(mutex);
 
         return threads.empty();
@@ -287,8 +287,10 @@ class Threads final {
 
     // Wakes up main thread waiting in idle_func() and returns immediately.
     // Main thread will wake up other threads and start the search.
-    void
-    start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
+    void start(const Position& pos,
+               StateListPtr&   states,
+               const Limit&    limit,
+               const Options&  options) const noexcept;
 
     void start_search() const noexcept;
 
@@ -306,24 +308,24 @@ class Threads final {
 
     // --- queries ---
     bool is_researching() const noexcept {
-        return state.load(std::memory_order_acquire) == State::Research;
+        return state.load(std::memory_order_acquire) == ThState::Research;
     }
 
     bool is_stopped() const noexcept {
-        return state.load(std::memory_order_acquire) == State::Stopped;
+        return state.load(std::memory_order_acquire) == ThState::Stopped;
     }
 
     // --- actions ---
-    void request_research() noexcept {
-        auto expectedState = State::Active;
+    void request_research() const noexcept {
+        auto expectedState = ThState::Active;
 
-        state.compare_exchange_strong(expectedState, State::Research, std::memory_order_release,
+        state.compare_exchange_strong(expectedState, ThState::Research, std::memory_order_release,
                                       std::memory_order_relaxed);
     }
 
-    void request_stop() noexcept {
+    void request_stop() const noexcept {
         // Always go to stopped state, even if currently researching or active
-        state.store(State::Stopped, std::memory_order_release);
+        state.store(ThState::Stopped, std::memory_order_release);
 
         notify_manager();
     }
@@ -372,7 +374,7 @@ class Threads final {
     }
 
     template<typename T>
-    u64 sum(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
+    [[nodiscard]] u64 sum(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
         std::shared_lock readLock(mutex);
 
         u64 sum = initialSum;
@@ -383,7 +385,8 @@ class Threads final {
     }
 
     template<typename T>
-    u64 sum_and_reset(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) noexcept {
+    [[nodiscard]] u64 sum_and_reset(RelaxedAtomic<T> Worker::* member,
+                                    u64                        initialSum = 0) noexcept {
         std::shared_lock readLock(mutex);
 
         u64 sum = initialSum;
@@ -398,7 +401,7 @@ class Threads final {
     // Active -> Research
     //   |          |
     //   >---------->Stopped (terminal, no exit)
-    enum class State : u8 {
+    enum class ThState : u8 {
         Active,
         Research,
         Stopped
@@ -409,13 +412,13 @@ class Threads final {
     Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(Threads&&) noexcept      = delete;
 
-    std::atomic<State> state{State::Active};
+    mutable std::atomic<ThState> state{ThState::Active};
+    mutable StateListPtr         setupStates;
     // Protects concurrent access to the threads vector for short snapshots.
     // Use shared lock for readers and lock guard for writers when mutating threads.
     mutable std::shared_mutex mutex;
     std::vector<ThreadPtr>    threads;
     std::vector<NumaIndex>    threadBoundNumaNodes;
-    StateListPtr              setupStates;
 };
 
 inline Threads::~Threads() noexcept { destroy(); }

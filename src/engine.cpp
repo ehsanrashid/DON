@@ -125,7 +125,7 @@ u64 Engine::perft(const Depth depth, const bool detail) const noexcept {
     return Perft::perft(pos, options()["Hash"], threads, depth, detail);
 }
 
-void Engine::start(const Limit& limit) noexcept {
+void Engine::start(const Limit& limit) const noexcept {
     assert(!limit.perft);
 
     verify_network();
@@ -133,7 +133,7 @@ void Engine::start(const Limit& limit) noexcept {
     threads.start(pos, states, limit, options());
 }
 
-void Engine::stop() noexcept { threads.request_stop(); }
+void Engine::stop() const noexcept { threads.request_stop(); }
 
 void Engine::ponderhit() const noexcept {
     auto* manager = threads.manager();

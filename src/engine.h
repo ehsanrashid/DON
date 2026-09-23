@@ -57,9 +57,9 @@ class Engine final {
     u64 perft(Depth depth, bool detail = false) const noexcept;
 
     // Non-blocking call to start searching
-    void start(const Limit& limit) noexcept;
+    void start(const Limit& limit) const noexcept;
     // Non-blocking call to stop searching
-    void stop() noexcept;
+    void stop() const noexcept;
 
     void ponderhit() const noexcept;
 
@@ -134,8 +134,8 @@ class Engine final {
 
     SharedState sharedState{network, options(), transpositionTable, threads, atomicHistoriesMap};
 
-    StateListPtr states;
-    Position     pos;
+    mutable StateListPtr states;
+    Position             pos;
 
     Manager::UpdateContext updateContext;
 };
