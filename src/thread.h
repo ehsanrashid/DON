@@ -288,7 +288,7 @@ class Threads final {
     // Wakes up main thread waiting in idle_func() and returns immediately.
     // Main thread will wake up other threads and start the search.
     void start(const Position& pos,
-               StateListPtr&   states,
+               StateListPtr    states,
                const Limit&    limit,
                const Options&  options) const noexcept;
 

@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "*"
   pull_request:
     branches:
       - main
@@ -16,50 +14,25 @@ concurrency:
 
 jobs:
   Prerelease:
-    name: Prerelease
-    if: github.repository == 'ehsanrashid/DON' && (github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'))
-    runs-on: ubuntu-latest
-    needs: [Matrix, BuildAndroid, BuildUniversal]
+    if: github.repository == 'ehsanrashid/DON' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-slim
+    needs: [Matrix, BuildUniversal, BuildAndroid]
+    outputs:
+      release_tag: ${{ steps.prerelease-metadata.outputs.release_tag }}
     permissions:
-      contents: write # For deleting/creating a prerelease
+      contents: write # For managing the dev prerelease
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
           fetch-depth: 0
 
-      # Returns 'null' if no pre-release exists
-      - name: Get Latest Pre-release Tag
-        id: prerelease-tag
-        run: |
-          # Install required packages
-          sudo apt-get update
-          sudo apt-get install -y curl jq
-
-          PRERELEASE_TAG=$(curl -fsSL "https://api.github.com/repos/${{ github.repository }}/releases" | jq -r 'map(select(.prerelease)) | first | .tag_name')
-          echo "PRERELEASE_TAG=$PRERELEASE_TAG" >> "$GITHUB_OUTPUT"
-
-      # Delete previous pre-release and tag
-      - name: Delete Previous Pre-release and Tag
-        run: gh release delete ${{ steps.prerelease-tag.outputs.PRERELEASE_TAG }} --cleanup-tag
-        if: steps.prerelease-tag.outputs.PRERELEASE_TAG != 'null'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # Make sure that an old CI run on main doesn't recreate a prerelease
       - name: Get Pullable Commit Count
         id: commit-count
         run: |
           git fetch
-          echo "COUNT=$(git rev-list HEAD..origin/main --count)" >> "$GITHUB_OUTPUT"
-
-      - name: Get last commit date
-        id: commit-date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:%Y%m%d --format=%cd HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Get last commit SHA
-        id: commit-sha
-        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> "$GITHUB_OUTPUT"
+          echo "COMMITS_AHEAD=$(git rev-list HEAD..origin/main --count)" >> "$GITHUB_OUTPUT"
 
       - name: Official Release?
         id: official-release
@@ -69,6 +42,23 @@ jobs:
             echo "OFFICIAL_RELEASE=true" >> "$GITHUB_OUTPUT"
           else
             echo "OFFICIAL_RELEASE=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute prerelease metadata
+        id: prerelease-metadata
+        env:
+          COMMITS_AHEAD: ${{ steps.commit-count.outputs.COMMITS_AHEAD }}
+          OFFICIAL_RELEASE: ${{ steps.official-release.outputs.OFFICIAL_RELEASE }}
+        run: |
+          COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)
+          COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)
+
+          if [[ "${{ github.ref_name }}" == 'main' && "$COMMITS_AHEAD" == '0' && "$OFFICIAL_RELEASE" == 'false' ]]; then
+            echo "release_name=DON dev-$COMMIT_DATE-$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+            echo "release_tag=DON-dev-$COMMIT_DATE-$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_name=" >> "$GITHUB_OUTPUT"
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
           fi
 
       # Get recent commits for release body
@@ -89,13 +79,28 @@ jobs:
           echo "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      # Create a new pre-release; upload_binary.yml will upload the binaries to it
-      - name: Create Prerelease
-        if: github.ref_name == 'main' && steps.commit-count.outputs.COUNT == '0' && steps.official-release.outputs.OFFICIAL_RELEASE == 'false'
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+      - name: Get Latest Prerelease Tag
+        id: latest-prerelease
+        if: steps.prerelease-metadata.outputs.release_tag != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST_RELEASE_TAG=$(gh release list --repo "${{ github.repository }}" --exclude-drafts --limit 100 --json tagName,isPrerelease | jq -r 'map(select(.isPrerelease)) | first | .tagName // "null"')
+          echo "LATEST_RELEASE_TAG=$LATEST_RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Delete Previous Prerelease
+        if: steps.prerelease-metadata.outputs.release_tag != '' && steps.latest-prerelease.outputs.LATEST_RELEASE_TAG != 'null'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "${{ steps.latest-prerelease.outputs.LATEST_RELEASE_TAG }}" --repo "${{ github.repository }}" --cleanup-tag
+
+      - name: Create Draft Prerelease
+        if: steps.prerelease-metadata.outputs.release_tag != ''
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
         with:
-          name: DON dev-${{ steps.commit-date.outputs.COMMIT_DATE }}-${{ steps.commit-sha.outputs.COMMIT_SHA }}
-          tag_name: DON-dev-${{ steps.commit-date.outputs.COMMIT_DATE }}-${{ steps.commit-sha.outputs.COMMIT_SHA }}
+          name: ${{ steps.prerelease-metadata.outputs.release_name }}
+          tag_name: ${{ steps.prerelease-metadata.outputs.release_tag }}
+          draft: true
           prerelease: true
           body: |
             Precompiled binaries of the latest DON development version, built automatically on every commit.
@@ -117,22 +122,22 @@ jobs:
 
   Matrix:
     name: Prepare Matrices
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     outputs:
-      android_matrix: ${{ steps.set-android-matrix.outputs.ANDROID_MATRIX }}
       universal_matrix: ${{ steps.set-universal-matrix.outputs.UNIVERSAL_MATRIX }}
+      android_matrix: ${{ steps.set-android-matrix.outputs.ANDROID_MATRIX }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - id: set-android-matrix
-        run: |
-          ANDROID_MATRIX=$(jq -c '.' .github/ci/android_matrix.json)
-          echo "ANDROID_MATRIX=$ANDROID_MATRIX" >> "$GITHUB_OUTPUT"
       - id: set-universal-matrix
         run: |
           UNIVERSAL_MATRIX=$(jq -c '.' .github/ci/universal_matrix.json)
           echo "UNIVERSAL_MATRIX=$UNIVERSAL_MATRIX" >> "$GITHUB_OUTPUT"
+      - id: set-android-matrix
+        run: |
+          ANDROID_MATRIX=$(jq -c '.' .github/ci/android_matrix.json)
+          echo "ANDROID_MATRIX=$ANDROID_MATRIX" >> "$GITHUB_OUTPUT"
   # Testing Jobs
   IWYU:
     name: IWYU
@@ -167,35 +172,51 @@ jobs:
     if: ${{ always() }}
     uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
+  BuildUniversal:
+    name: Build Universal
+    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    uses: ./.github/workflows/build_universal.yml
   BuildAndroid:
     name: Build Android
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_android.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}
-  BuildUniversal:
-    name: Build Universal
-    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
-    uses: ./.github/workflows/build_universal.yml
-  UploadAndroid:
-    name: Upload Android
-    if: github.repository == 'ehsanrashid/DON'
-    needs: [Matrix, Prerelease]
-    uses: ./.github/workflows/upload_binary.yml
-    with:
-      matrix: ${{ needs.Matrix.outputs.android_matrix }}
-    permissions:
-      contents: write # For deleting/creating a (pre)release
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
   UploadUniversal:
     name: Upload Universal
     if: github.repository == 'ehsanrashid/DON'
-    needs: [Matrix, Prerelease]
+    needs: [Prerelease, Matrix, BuildUniversal]
     uses: ./.github/workflows/upload_binary.yml
     with:
       matrix: ${{ needs.Matrix.outputs.universal_matrix }}
+      release_tag: ${{ needs.Prerelease.outputs.release_tag }}
+      release_prerelease: true
     permissions:
-      contents: write # For deleting/creating a (pre)release
+      contents: write # For uploading release assets
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+  UploadAndroid:
+    name: Upload Android
+    if: github.repository == 'ehsanrashid/DON'
+    needs: [Prerelease, Matrix, BuildAndroid]
+    uses: ./.github/workflows/upload_binary.yml
+    with:
+      matrix: ${{ needs.Matrix.outputs.android_matrix }}
+      release_tag: ${{ needs.Prerelease.outputs.release_tag }}
+      release_prerelease: true
+    permissions:
+      contents: write # For uploading release assets
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+  PublishPrerelease:
+    if: github.repository == 'ehsanrashid/DON' && needs.Prerelease.outputs.release_tag != ''
+    needs: [Prerelease, UploadUniversal, UploadAndroid]
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write # For publishing the draft prerelease
+    steps:
+      - name: Publish Draft Prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ needs.Prerelease.outputs.release_tag }}" --repo "${{ github.repository }}" --draft=false --prerelease
+

@@ -119,6 +119,9 @@ OBJS := $(notdir $(SRCS:.cpp=.o))
 
 VPATH := nnue:nnue/features:book:tablebase
 
+PGO_PROFILE_DIR  := profdir
+PGO_PROFILE_DATA := $(PGO_PROFILE_DIR)/$(NAME).profdata
+
 # ---------------------------------------------------------
 # Detect clang-format:
 # Use environment override; otherwise prefer newest version
@@ -395,7 +398,7 @@ ifeq ($(bits),32)
 bmi2 = no
 endif
 
-# all other architectures
+# All other architectures
 else
 
 ifneq ($(findstring general,$(ARCH)),)
@@ -538,7 +541,7 @@ ENTRY_FLAG  = $(strip $(ENV_ENTRY_FLAG))
 
 BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
-STRIP = strip
+STRIP := strip
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
@@ -550,15 +553,19 @@ endif
 # ----------------------------
 
 # Detect if the compiler is Clang/Apple Clang
-CXX_IS_CLANG       := no
+
+CXX_IS_CLANG := no
+
 CXX_IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
 CXX := $(or $(COMPCXX),g++)
+
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
 # Detect whether the selected compiler is actually Clang
-CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+CXX_IS_CLANG := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+
 CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
 CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
@@ -577,18 +584,19 @@ else
 CXXFLAGS += $(BITS_FLAG)
 LDFLAGS  += $(BITS_FLAG)
 endif
-ifeq ($(arch),wasm32)
-# Non-Darwin (Linux) specific compiler/linker flags
-else \
+# Non-WASM
+ifneq ($(arch),wasm32)
+# Non-Darwin: (Linux) specific compiler/linker flags
 ifneq ($(TARGET_KERNEL),Darwin)
 CXXFLAGS += -Wno-stringop-overflow
 # Detect whether GNU ld is being used
 LINKER_VERSION := $(shell $(CXX) -Wl,--version 2>/dev/null)
-GNU_LD         := $(findstring GNU ld,$(LINKER_VERSION))
+
+GNU_LD := $(findstring GNU ld,$(LINKER_VERSION))
 ifneq ($(GNU_LD),)
-LDFLAGS += -Wl,--no-as-needed
+LDFLAGS  += -Wl,--no-as-needed
 endif
-# Determine GCC major version for Linux Clang masquerading as GCC
+# Determine GCC-compatible major version for non-Apple Clang
 GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = 'yes' ] && [ "$(CXX_IS_APPLE_CLANG)" = 'no' ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
 # Link std::filesystem explicitly for Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
@@ -597,42 +605,47 @@ LDLIBS += -lstdc++fs
 endif
 endif
 endif
+endif
 # Configure compiler-specific flags and profile targets
 ifeq ($(CXX_IS_CLANG),yes)
-ifeq ($(CXX_IS_APPLE_CLANG),yes)
 # Apple Clang
+ifeq ($(CXX_IS_APPLE_CLANG),yes)
+# Non-Apple Clang
 else
-# LLVM Clang
 CXXFLAGS += -fconstexpr-steps=500000000
 endif
-
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
-else
 # GCC
+else
 CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-ifeq ($(TARGET_KERNEL),Darwin)
-EXTRA_PROFILE_FLAGS = -fvisibility=hidden
-endif
 
 # Profile-guided optimization for GCC
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
+ifeq ($(TARGET_KERNEL),Darwin)
+EXTRA_PROFILE_FLAGS := -fvisibility=hidden
 endif
+endif
+
 # Clang
 else \
 ifeq ($(COMP),clang)
 CXX := clang++
-
-CXX_IS_CLANG := yes
-
-CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
-
 ifeq ($(IS_WINDOWS),yes)
 MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
 CXX := $(MINGW_ARCH)-w64-mingw32-clang++
 endif
+
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+
+CXX_IS_CLANG := yes
+
+CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
+CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
+
 # Android ARM architectures require explicit bitness flags
 ifneq ($(filter armv8 armv7,$(arch)),)
 ifeq ($(OS),Android)
@@ -655,13 +668,10 @@ LDLIBS += -latomic
 endif
 endif
 endif
-ifeq ($(TARGET_KERNEL),Darwin)
-CXX_IS_APPLE_CLANG := yes
 # Link std::filesystem for Linux Clang
-else \
 ifeq ($(TARGET_KERNEL),Linux)
 # Determine Clang major version
-CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 # Link std::filesystem explicitly for Clang < 11
 ifneq ($(CLANG_MAJOR),)
 ifeq ($(shell expr $(CLANG_MAJOR) \< 11),1)
@@ -669,37 +679,52 @@ LDLIBS += -lstdc++fs
 endif
 endif
 endif
-
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
+
 # MinGW
 else \
 ifeq ($(COMP),mingw)
-MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
+MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
+
 MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
 MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
 
 # Prefer POSIX threading variant if available
 CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
 
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+
+CXX_IS_CLANG := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+
+CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
 CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
 
 # Profile-guided optimization for MinGW using GCC
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
+ifeq ($(TARGET_KERNEL),Darwin)
+EXTRA_PROFILE_FLAGS := -fvisibility=hidden
+endif
+
 # Intel ICX
 else \
 ifeq ($(COMP),icx)
 CXX := icpx
 
-CXX_IS_CLANG := yes
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+
+# ICX is LLVM-based
+CXX_IS_CLANG := $(if $(findstring intel,$(CXX_VERSION)),yes,no)
 
 CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
 
 # Profile-guided optimization for ICX
 PROFILE_MAKE := icx-profile-make
 PROFILE_USE  := icx-profile-use
+
 # Android NDK Clang: cross-compile for Android using NDK r27c or later
 else \
 ifeq ($(COMP),ndk)
@@ -745,8 +770,9 @@ CXX_IS_CLANG := yes
 CXXFLAGS += -stdlib=libc++
 LDFLAGS  += -static-libstdc++
 
+STRIP := llvm-strip
+
 OBJCOPY := llvm-objcopy
-STRIP   := llvm-strip
 
 # Profile-guided optimization for NDK/Clang
 PROFILE_MAKE := clang-profile-make
@@ -766,7 +792,7 @@ endif
 # Disable this with `STATIC=no`.
 ifeq ($(IS_WINDOWS),yes)
 ifneq ($(STATIC),no)
-LDFLAGS += -static
+LDFLAGS  += -static
 endif
 endif
 
@@ -1065,10 +1091,25 @@ endif
 ifneq ($(call FIND_EXE,$(GIT)),)
 GIT += -c core.filemode=false -c core.autocrlf=false
 
-NEW_GIT_DATE      := \
+ifeq ($(strip $(GIT_DATE)),)
+NEW_GIT_DATE := \
 $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-NEW_GIT_SHA       := \
+ifneq ($(NEW_GIT_DATE),)
+override GIT_DATE := $(NEW_GIT_DATE)
+export GIT_DATE
+endif
+endif
+
+ifeq ($(strip $(GIT_SHA)),)
+NEW_GIT_SHA := \
 $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
+ifneq ($(NEW_GIT_SHA),)
+override GIT_SHA := $(NEW_GIT_SHA)
+export GIT_SHA
+endif
+endif
+
+ifeq ($(strip $(GIT_DIFFINDEX)),)
 NEW_GIT_DIFFINDEX := \
 $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
     $(GIT) diff-index --quiet HEAD -- 2>/dev/null; \
@@ -1077,22 +1118,15 @@ $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
         $(GIT) diff HEAD --no-ext-diff | \
         $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
-
-ifneq ($(NEW_GIT_DATE),)
-override GIT_DATE := $(NEW_GIT_DATE)
-endif
-ifneq ($(NEW_GIT_SHA),)
-override GIT_SHA := $(NEW_GIT_SHA)
-endif
 ifneq ($(NEW_GIT_DIFFINDEX),)
 override GIT_DIFFINDEX := $(NEW_GIT_DIFFINDEX)
+export GIT_DIFFINDEX
 endif
-
-export GIT_DATE GIT_SHA GIT_DIFFINDEX
+endif
 endif
 
 # Cache Git metadata in files only when the values have changed
-define CACHE_FILE_IF_CHANGED
+define CACHE_IF_CHANGED
 $(shell \
     if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
         printf '%s\n' "$(2)" > "$(1)"; \
@@ -1100,12 +1134,12 @@ $(shell \
 endef
 # Update cached Git metadata when at least one non-excluded goal is requested
 ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-_ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
-_ := $(call CACHE_FILE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
-_ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
+_ := $(call CACHE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
+_ := $(call CACHE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
+_ := $(call CACHE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
-ifndef BUILD_INFO
+ifeq ($(strip $(BUILD_INFO)),)
 BUILD_INFO := $(shell LC_ALL=C date '+%Y %m %b %d %a %H %M %S')
 endif
 export BUILD_INFO
@@ -1134,13 +1168,13 @@ ifeq ($(debug),no)
 
 # Non-WASM
 ifneq ($(arch),wasm32)
-# Non-macOS
+# Non-Darwin
 ifneq ($(TARGET_KERNEL),Darwin)
 ifeq ($(CXX_IS_CLANG),yes)
 # Detect whether LLD (LLVM Linker) is available
 LLD_BIN := $(or $(call FIND_EXE,ld.lld),$(call FIND_EXE,lld))
 ifneq ($(LLD_BIN),)
-LDFLAGS += -fuse-ld=lld
+LDFLAGS  += -fuse-ld=lld
 endif
 endif
 endif
@@ -1160,8 +1194,10 @@ LTO_FLAGS   := -flto=full
 else
 LTO_FLAGS   := -flto -flto-partition=one
 LTO_LDFLAGS := -save-temps
-ifneq ($(TARGET_KERNEL),Darwin)
+ifneq ($(filter --jobserver-auth=%,$(MAKEFLAGS)),)
 LTO_LDFLAGS += -flto=jobserver
+else
+LTO_LDFLAGS += -flto=auto
 endif
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
@@ -1169,6 +1205,9 @@ else \
 ifeq ($(COMP),mingw)
 LTO_FLAGS   := -flto -flto-partition=one
 LTO_LDFLAGS := -save-temps
+# No -flto=jobserver (not used for MinGW)
+# No -flto=auto      (unreliable with MinGW's linker)
+# -flto in LTO_FLAGS is enough — single-threaded LTO is stable here
 endif
 
 ## Apply LTO flags
@@ -1359,6 +1398,15 @@ endif
 
 MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 
+universal-object-nopgo: obj-clean universal-clean
+	$(MAKE) all ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)'
+ifeq ($(USE_LTO_EMIT_ASM),yes)
+	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
+	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
+else
+	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
+endif
+
 universal-object-pgo: obj-clean profile-clean universal-clean
 	@echo; \
 	echo "Step 1/4. Building instrumented executable ..."
@@ -1383,15 +1431,6 @@ else
 	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
 endif
 
-universal-object-nopgo: obj-clean universal-clean
-	$(MAKE) all ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)'
-ifeq ($(USE_LTO_EMIT_ASM),yes)
-	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
-	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
-else
-	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
-endif
-
 # Evaluation network (nnue)
 net:
 	@$(SHELL) '../scripts/net.sh'
@@ -1411,13 +1450,13 @@ clean: obj-clean profile-clean universal-clean
 
 # Remove build metadata, object files, and binaries
 obj-clean:
-	@rm -f '$(GIT_DATE_FILE)' '$(GIT_SHA_FILE)' '$(GIT_DIFFINDEX_FILE)' './'*.o '$(EXE)'
+	@rm -f '$(GIT_DATE_FILE)' '$(GIT_SHA_FILE)' '$(GIT_DIFFINDEX_FILE)' './'*'.o' '$(NAME)' '$(NAME).exe' '$(NAME).js'
 
 # Remove profiling data and temporary profiling files
 profile-clean:
-	@rm -rf 'profdir'
-	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f '$(NAME).profdata' *.profraw
+	@rm -rf '$(PGO_PROFILE_DIR)'  # *'.gcda' *'.gcno' *'.profraw'
+	@rm -f '$(PGO_PROFILE_DATA)'
+	@rm -f 'PGOBENCH.out' *'.s'
 	@rm -f '$(NAME)'.*args*
 	@rm -f '$(NAME)'.*lt*
 	@rm -f '$(NAME).res'
@@ -1566,27 +1605,29 @@ misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 
 # Clang PGO
 clang-profile-make:
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' all
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"'
 
 clang-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\''' all
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(PGO_PROFILE_DATA)' '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
 
 # GCC PGO
 gcc-profile-make:
-	@mkdir -p 'profdir'
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate='\''profdir'\''' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
+	@mkdir -p '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
 
+# Ensure the profile directory exists before GCC searches it.
 gcc-profile-use:
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
+	@mkdir -p '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use="$(PGO_PROFILE_DIR)" -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DIR)" -fprofile-correction' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov'
 
 # ICC/ICX PGO
 icx-profile-make:
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' all
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"'
 
 icx-profile-use:
-	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
-	$(MAKE) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' all
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(PGO_PROFILE_DATA)' '$(PGO_PROFILE_DIR)'
+	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(PGO_PROFILE_DATA)"'
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
@@ -1661,6 +1702,7 @@ ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
 UNIVERSAL_LDFLAGS := -fno-exceptions -Os
+UNIVERSAL_LDLIBS  :=
 
 ifeq ($(TARGET_KERNEL),Darwin)
 UNIVERSAL_LDFLAGS += $(MACOS_VERSION_MIN_FLAG)
@@ -1688,6 +1730,8 @@ ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr
 # Mach-O initializer section: strip the "x86-64" prefix, replace '-' with '_',
 # and prefix with "_i_" to keep the section name within 16 characters.
 ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
+
+ARCH_MAIN_CXXFLAGS :=
 
 ifeq ($(TARGET_KERNEL),Darwin)
 ARCH_ENTRY_FLAG = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
@@ -1717,6 +1761,10 @@ UNIVERSAL_LDFLAGS += -arch x86_64
 endif
 
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS)
+
+# Include the normal link flags in the custom universal link flags.
+UNIVERSAL_LDFLAGS += $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
+UNIVERSAL_LDLIBS  += $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 
 UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1759,7 +1807,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' \
-		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_LDLIBS='$(ENV_LDLIBS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
+		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
 	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'
@@ -1780,8 +1828,8 @@ else
 endif
 endif
 
-$(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(strip $(CXX) $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS) $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS)) -o '$@'
+$(UNIVERSAL_EXE): $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ)
+	$(strip $(CXX) $(UNIVERSAL_LDFLAGS) $(ARCH_OBJS) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(UNIVERSAL_LDLIBS)) -o '$@'
 	@echo "$(OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

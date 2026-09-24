@@ -21,8 +21,6 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
-#include <cstddef>
-#include <cstring>
 #include <utility>
 
 #include "../misc.h"
@@ -70,14 +68,8 @@ struct AccumulatorCache final {
     struct alignas(CACHE_LINE_SIZE) Entry final {
        public:
         // To initialize a refresh entry, set all its bitboards empty,
-        // so put the biases in the accumulation, without any weights on top
-        void init(const Array<Bias, L1>& biases) noexcept {
-            // Initialize accumulation with given biases
-            accumulation          = biases;
-            constexpr auto offset = offsetof(Entry, psqtAccumulation);
-            static_assert(offset <= sizeof(Entry), "offset exceeds object size");
-            std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
-        }
+        // so put the biases in the accumulation, without any weights on top.
+        void init(const Array<Bias, L1>& biases) noexcept;
 
         Array<Bias, L1>                 accumulation;
         Array<PSQTWeight, PSQT_BUCKETS> psqtAccumulation;
@@ -97,8 +89,8 @@ struct AccumulatorCache final {
                 entry.init(network.featureTransformer.biases);
     }
 
-    const Array<Entry, COLOR_NB>& operator[](const Square s) const noexcept { return entries[s]; }
-    Array<Entry, COLOR_NB>&       operator[](const Square s) noexcept { return entries[s]; }
+    Array<Entry, COLOR_NB>&       operator[](Square s) noexcept;
+    const Array<Entry, COLOR_NB>& operator[](Square s) const noexcept;
 
    private:
     Array<Entry, SQUARE_NB, COLOR_NB> entries;
@@ -114,10 +106,10 @@ struct AccumulatorStack final {
 
     void pop() noexcept;
 
-    [[nodiscard]] usize size() const noexcept { return size_; }
+    [[nodiscard]] usize size() const noexcept;
 
-    [[nodiscard]] auto&       top() noexcept { return accumulators[size() - 1]; }
-    [[nodiscard]] const auto& top() const noexcept { return accumulators[size() - 1]; }
+    [[nodiscard]] Accumulator&       top() noexcept;
+    [[nodiscard]] const Accumulator& top() const noexcept;
 
 
     void evaluate(const Position&           pos,

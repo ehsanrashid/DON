@@ -19,7 +19,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <utility>
+#include <cstddef>  // for offsetof()
+#include <cstring>  // for memset()
+#include <utility>  // for move()
 
 #include "../bitboard.h"
 #include "../misc.h"
@@ -31,6 +33,47 @@
 #include "simd.h"
 
 namespace DON::NNUE {
+
+void AccumulatorCache::Entry::init(const Array<Bias, L1>& biases) noexcept {
+    // Initialize accumulation with given biases
+    accumulation          = biases;
+    constexpr auto offset = offsetof(Entry, psqtAccumulation);
+    static_assert(offset <= sizeof(Entry), "offset exceeds object size");
+    std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
+}
+
+Array<AccumulatorCache::Entry, COLOR_NB>&  //
+AccumulatorCache::operator[](const Square s) noexcept {
+    return entries[s];
+}
+
+const Array<AccumulatorCache::Entry, COLOR_NB>&  //
+AccumulatorCache::operator[](const Square s) const noexcept {
+    return entries[s];
+}
+
+void AccumulatorStack::reset() noexcept {
+    accumulators[0].set({});
+    size_ = 1;
+}
+
+void AccumulatorStack::push(Dirties&& dirties) noexcept {
+    assert(size() < Size);
+
+    accumulators[size_++].set(std::move(dirties));
+}
+
+void AccumulatorStack::pop() noexcept {
+    assert(size() > 1);
+
+    --size_;
+}
+
+usize AccumulatorStack::size() const noexcept { return size_; }
+
+Accumulator& AccumulatorStack::top() noexcept { return accumulators[size() - 1]; }
+
+const Accumulator& AccumulatorStack::top() const noexcept { return accumulators[size() - 1]; }
 
 namespace {
 
@@ -61,23 +104,6 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
                              Accumulator&              target);
 
 }  // namespace
-
-void AccumulatorStack::reset() noexcept {
-    accumulators[0].set({});
-    size_ = 1;
-}
-
-void AccumulatorStack::push(Dirties&& dirties) noexcept {
-    assert(size() < Size);
-
-    accumulators[size_++].set(std::move(dirties));
-}
-
-void AccumulatorStack::pop() noexcept {
-    assert(size() > 1);
-
-    --size_;
-}
 
 void AccumulatorStack::evaluate(const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
@@ -1057,8 +1083,8 @@ void update_incremental(const Color               perspective,
 }
 
 void update_incremental_both(const FeatureTransformer& featureTransformer,
-                             Square                    wKingSq,
-                             Square                    bKingSq,
+                             const Square              wKingSq,
+                             const Square              bKingSq,
                              const Accumulator&        source,
                              Accumulator&              target) {
     assert(source.computed[WHITE]);

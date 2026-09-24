@@ -162,10 +162,10 @@ class Position final {
     static void reset() noexcept;
 
     Position() noexcept                           = default;
+    Position(const Position&) noexcept            = default;
     Position& operator=(const Position&) noexcept = default;
 
    private:
-    Position(const Position&) noexcept       = delete;
     Position(Position&&) noexcept            = delete;
     Position& operator=(Position&&) noexcept = delete;
 

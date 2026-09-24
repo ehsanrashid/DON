@@ -15,18 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Android NDK ARMv8
-            os: ubuntu-22.04
-            compiler: aarch64-linux-android29-clang++
-            comp: ndk
-            run_armv8_tests: true
-            shell: bash
-          - name: Android NDK ARMv7
-            os: ubuntu-22.04
-            compiler: armv7a-linux-androideabi29-clang++
-            comp: ndk
-            run_armv7_tests: true
-            shell: bash
           - name: Ubuntu 22.04 GCC x86
             os: ubuntu-22.04
             compiler: g++
@@ -49,7 +37,7 @@ jobs:
             base_image: "loongarch64/alpine:3.21"
             platform: linux/loong64
             shell: bash
-          - name: Ubuntu 22.04 GCC PPC64LE
+          - name: Ubuntu 22.04 GCC PPC64
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -114,6 +102,18 @@ jobs:
             compiler: clang++
             comp: clang
             run_arm64_tests: true
+            shell: bash
+          - name: Android NDK ARMv8
+            os: ubuntu-22.04
+            compiler: aarch64-linux-android29-clang++
+            comp: ndk
+            run_armv8_tests: true
+            shell: bash
+          - name: Android NDK ARMv7
+            os: ubuntu-22.04
+            compiler: armv7a-linux-androideabi29-clang++
+            comp: ndk
+            run_armv7_tests: true
             shell: bash
     defaults:
       run:
@@ -407,6 +407,21 @@ jobs:
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh "$benchref"
 
+      # Apple Silicon tests
+      - name: Build and test Apple Silicon
+        if: matrix.config.run_arm64_tests
+        run: |
+          make clean
+          make -j4 build ARCH=apple-silicon
+          ../tests/signature.sh "$benchref"
+
+      - name: Build and test Apple Silicon with system g++ (macOS g++ == clang++)
+        if: matrix.config.run_arm64_tests
+        run: |
+          make clean
+          env -u COMPCXX make -j4 build ARCH=apple-silicon COMP=gcc
+          ../tests/signature.sh "$benchref"
+
       # armv8 tests
 
       - name: Build and test ARMv8 NEON DOTPROD
@@ -451,21 +466,6 @@ jobs:
           EXTRA_LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 build ARCH=armv7 EXTRA_LDFLAGS="$EXTRA_LDFLAGS"
-          ../tests/signature.sh "$benchref"
-
-      # Apple Silicon tests
-      - name: Build and test Apple Silicon
-        if: matrix.config.run_arm64_tests
-        run: |
-          make clean
-          make -j4 build ARCH=apple-silicon
-          ../tests/signature.sh "$benchref"
-
-      - name: Build and test Apple Silicon with system g++ (macOS g++ == clang++)
-        if: matrix.config.run_arm64_tests
-        run: |
-          make clean
-          env -u COMPCXX make -j4 build ARCH=apple-silicon COMP=gcc
           ../tests/signature.sh "$benchref"
 
       # Other tests

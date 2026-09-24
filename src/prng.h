@@ -24,9 +24,15 @@
 
 namespace DON {
 
-constexpr u64 rotl(const u64 x, const u8 k) noexcept { return (x << k) | (x >> ((64 - k) & 63)); }
+constexpr u64 rotl(const u64 x, const u8 k) noexcept {
+    const u8 shift = k & 63;
+    return (x << shift) | (x >> ((64 - shift) & 63));
+}
 
-constexpr u64 rotr(const u64 x, const u8 k) noexcept { return (x >> k) | (x << ((64 - k) & 63)); }
+constexpr u64 rotr(const u64 x, const u8 k) noexcept {
+    const u8 shift = k & 63;
+    return (x >> shift) | (x << ((64 - shift) & 63));
+}
 
 // SplitMix64 Pseudo-Random Number Generator
 //

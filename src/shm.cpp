@@ -648,6 +648,19 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
     return {};
 }
 
+namespace {
+// Poll Index
+enum class PI : u8 {
+    SERVER,
+    SHUTDOWN
+};
+
+constexpr usize PI_NB = 2;
+
+constexpr u8 operator+(const PI pi) noexcept { return u8(pi); }
+
+}  // namespace
+
 NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept {
     return create_native_thread([fd         = std::move(fd),          //
                                  shutdownFd = std::move(shutdownFd),  //

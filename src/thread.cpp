@@ -486,7 +486,7 @@ template const Thread* Threads::best_thread<false>() const noexcept;
 template const Thread* Threads::best_thread<true>() const noexcept;
 
 void Threads::start(const Position& pos,
-                    StateListPtr&   states,
+                    StateListPtr    states,
                     const Limit&    limit,
                     const Options&  options) const noexcept {
 
@@ -494,8 +494,15 @@ void Threads::start(const Position& pos,
 
     state.store(ThState::Active, std::memory_order_relaxed);
 
-    Position p;
-    p = pos;
+    Position p(pos);
+
+    // After ownership transfer, 'states' becomes null.
+    // If the search is stopped and 'go' is called again without
+    // setting a new position, 'states.get()' is nullptr.
+    assert(states.get() != nullptr || setupStates.get() != nullptr);
+
+    if (states.get() != nullptr)
+        setupStates = std::move(states);  // Ownership transfer, 'states' is now null
 
     RootMoves rootMoves;
 
@@ -559,13 +566,6 @@ void Threads::start(const Position& pos,
     };
 
     auto tbConfig = Tablebase::Syzygy::rank_root_moves(p, rootMoves, options, false, time_to_abort);
-
-    // After ownership transfer, 'states' becomes empty. If the search is stopped
-    // and 'go' is called again without setting a new position, 'states.get()' is nullptr.
-    assert(states.get() != nullptr || setupStates.get() != nullptr);
-
-    if (states.get() != nullptr)
-        setupStates = std::move(states);  // Ownership transfer, states is now empty
 
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapThreads;

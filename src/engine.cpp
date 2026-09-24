@@ -102,7 +102,7 @@ void Engine::start(const Limit& limit) const noexcept {
 
     verify_network();
 
-    threads.start(pos, states, limit, options());
+    threads.start(pos, std::move(states), limit, options());
 }
 
 void Engine::stop() const noexcept { threads.request_stop(); }
