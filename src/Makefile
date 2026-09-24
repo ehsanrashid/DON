@@ -1193,21 +1193,17 @@ LTO_FLAGS   := -flto=full
 # Native GCC
 else
 LTO_FLAGS   := -flto -flto-partition=one
-LTO_LDFLAGS := -save-temps
-ifneq ($(filter --jobserver-auth=%,$(MAKEFLAGS)),)
-LTO_LDFLAGS += -flto=jobserver
-else
-LTO_LDFLAGS += -flto=auto
-endif
+LTO_JOB_FLAG = $(if $(filter --jobserver-auth=%,$(MAKEFLAGS)),-flto=jobserver,-flto=auto)
+LTO_LDFLAGS  = -save-temps $(LTO_JOB_FLAG)
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
 else \
 ifeq ($(COMP),mingw)
 LTO_FLAGS   := -flto -flto-partition=one
-LTO_LDFLAGS := -save-temps
-# No -flto=jobserver (not used for MinGW)
-# No -flto=auto      (unreliable with MinGW's linker)
-# -flto in LTO_FLAGS is enough — single-threaded LTO is stable here
+# Use fixed parallel LTO; avoid the jobserver with MinGW.
+# -flto=auto      (unreliable with MinGW's linker)
+# -flto=jobserver (not supported for MinGW)
+LTO_LDFLAGS := -save-temps -flto=8
 endif
 
 ## Apply LTO flags
