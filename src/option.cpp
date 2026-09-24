@@ -23,6 +23,10 @@
 
 namespace DON {
 
+std::string_view Option::default_value() const noexcept { return defaultValue; }
+
+std::string_view Option::current_value() const noexcept { return currentValue; }
+
 void Option::on_change() noexcept {
     if (!onChange)
         return;
@@ -52,9 +56,9 @@ void ButtonOption::operator=(std::string) noexcept { on_change(); }
 
 std::string_view CheckOption::type() const noexcept { return "check"; }
 
-void CheckOption::print(std::ostream& os) const noexcept { os << " default " << defaultValue; }
+void CheckOption::print(std::ostream& os) const noexcept { os << " default " << default_value(); }
 
-CheckOption::operator int() const noexcept { return sv_to_bool(currentValue); }
+CheckOption::operator int() const noexcept { return sv_to_bool(current_value()); }
 
 void CheckOption::operator=(std::string value) noexcept {
     if (!value_is_bool(value))
@@ -68,10 +72,10 @@ void CheckOption::operator=(std::string value) noexcept {
 std::string_view StringOption::type() const noexcept { return "string"; }
 
 void StringOption::print(std::ostream& os) const noexcept {
-    os << " default " << is_whitespace(defaultValue) ? EMPTY_STRING : defaultValue;
+    os << " default " << (is_whitespace(default_value()) ? EMPTY_STRING : default_value());
 }
 
-StringOption::operator std::string_view() const noexcept { return currentValue; }
+StringOption::operator std::string_view() const noexcept { return current_value(); }
 
 void StringOption::operator=(std::string value) noexcept {
     currentValue = normalize(std::move(value));
@@ -82,10 +86,10 @@ void StringOption::operator=(std::string value) noexcept {
 std::string_view SpinOption::type() const noexcept { return "spin"; }
 
 void SpinOption::print(std::ostream& os) const noexcept {
-    os << " default " << defaultValue << " min " << minValue << " max " << maxValue;
+    os << " default " << default_value() << " min " << minValue << " max " << maxValue;
 }
 
-SpinOption::operator int() const noexcept { return sv_to_int(currentValue); }
+SpinOption::operator int() const noexcept { return sv_to_int(current_value()); }
 
 void SpinOption::operator=(std::string value) noexcept {
     if (!value_in_range(value, minValue, maxValue))
@@ -103,13 +107,13 @@ std::string StringOption::normalize(std::string value) noexcept {
 std::string_view ComboOption::type() const noexcept { return "combo"; }
 
 void ComboOption::print(std::ostream& os) const noexcept {
-    os << " default " << defaultValue;
+    os << " default " << default_value();
 
     for (const auto& var : comboValues)
         os << " var " << var;
 }
 
-ComboOption::operator std::string_view() const noexcept { return currentValue; }
+ComboOption::operator std::string_view() const noexcept { return current_value(); }
 
 void ComboOption::operator=(std::string value) noexcept {
     if (value.empty())

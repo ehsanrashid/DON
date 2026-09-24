@@ -18,6 +18,7 @@
 #ifndef OPTION_H_INCLUDED
 #define OPTION_H_INCLUDED
 
+#include <cassert>
 #include <functional>
 #include <iosfwd>
 #include <list>
@@ -42,6 +43,10 @@ class Option {
 
     virtual ~Option() = default;
 
+    std::string_view default_value() const noexcept;
+
+    std::string_view current_value() const noexcept;
+
     virtual std::string_view type() const noexcept = 0;
 
     virtual void print(std::ostream& os) const noexcept = 0;
@@ -57,10 +62,6 @@ class Option {
     }
 
     virtual void operator=(std::string value) noexcept = 0;
-
-    std::string_view default_value() const noexcept { return defaultValue; }
-
-    std::string_view current_value() const noexcept { return currentValue; }
 
    protected:
     explicit Option(std::string_view defValue, OnChange&& onCng = nullptr) noexcept :
