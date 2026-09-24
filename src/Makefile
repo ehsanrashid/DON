@@ -553,15 +553,19 @@ endif
 # ----------------------------
 
 # Detect if the compiler is Clang/Apple Clang
-CXX_IS_CLANG       := no
+
+CXX_IS_CLANG := no
+
 CXX_IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
 CXX := $(or $(COMPCXX),g++)
+
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
 # Detect whether the selected compiler is actually Clang
-CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+CXX_IS_CLANG := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+
 CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
 CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
@@ -615,27 +619,31 @@ PROFILE_USE  := clang-profile-use
 else
 # GCC
 CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-ifeq ($(TARGET_KERNEL),Darwin)
-EXTRA_PROFILE_FLAGS = -fvisibility=hidden
-endif
-
 # Profile-guided optimization for GCC
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
+ifeq ($(TARGET_KERNEL),Darwin)
+EXTRA_PROFILE_FLAGS := -fvisibility=hidden
 endif
+endif
+
 # Clang
 else \
 ifeq ($(COMP),clang)
 CXX := clang++
-
-CXX_IS_CLANG := yes
-
-CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
-
 ifeq ($(IS_WINDOWS),yes)
 MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
 CXX := $(MINGW_ARCH)-w64-mingw32-clang++
 endif
+
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+
+CXX_IS_CLANG := yes
+
+CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
+CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
+
 # Android ARM architectures require explicit bitness flags
 ifneq ($(filter armv8 armv7,$(arch)),)
 ifeq ($(OS),Android)
@@ -658,10 +666,7 @@ LDLIBS += -latomic
 endif
 endif
 endif
-ifeq ($(TARGET_KERNEL),Darwin)
-CXX_IS_APPLE_CLANG := yes
 # Link std::filesystem for Linux Clang
-else \
 ifeq ($(TARGET_KERNEL),Linux)
 # Determine Clang major version
 CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
@@ -676,33 +681,49 @@ endif
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
+
 # MinGW
 else \
 ifeq ($(COMP),mingw)
-MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
+MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
+
 MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
 MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
 
 # Prefer POSIX threading variant if available
 CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
 
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+
+CXX_IS_CLANG := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+
+CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
 CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
 
 # Profile-guided optimization for MinGW using GCC
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
+ifeq ($(TARGET_KERNEL),Darwin)
+EXTRA_PROFILE_FLAGS := -fvisibility=hidden
+endif
+
 # Intel ICX
 else \
 ifeq ($(COMP),icx)
 CXX := icpx
 
-CXX_IS_CLANG := yes
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+
+# ICX is LLVM-based
+CXX_IS_CLANG := $(if $(findstring intel,$(CXX_VERSION)),yes,no)
 
 CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
 
 # Profile-guided optimization for ICX
 PROFILE_MAKE := icx-profile-make
 PROFILE_USE  := icx-profile-use
+
 # Android NDK Clang: cross-compile for Android using NDK r27c or later
 else \
 ifeq ($(COMP),ndk)
@@ -1172,7 +1193,11 @@ else
 LTO_FLAGS   := -flto -flto-partition=one
 LTO_LDFLAGS := -save-temps
 ifneq ($(TARGET_KERNEL),Darwin)
+ifneq ($(filter --jobserver-auth=%,$(MAKEFLAGS)),)
 LTO_LDFLAGS += -flto=jobserver
+else
+LTO_LDFLAGS += -flto=auto
+endif
 endif
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
@@ -1180,6 +1205,9 @@ else \
 ifeq ($(COMP),mingw)
 LTO_FLAGS   := -flto -flto-partition=one
 LTO_LDFLAGS := -save-temps
+# No -flto=jobserver (not used for MinGW)
+# No -flto=auto      (unreliable with MinGW's linker)
+# -flto in LTO_FLAGS is enough — single-threaded LTO is stable here
 endif
 
 ## Apply LTO flags
