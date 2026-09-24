@@ -25,6 +25,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>  // atexit()
 #include <cstring>
 #include <filesystem>
 #include <fstream>

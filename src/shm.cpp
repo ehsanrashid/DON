@@ -27,8 +27,6 @@
     #include <sys/uio.h>   // iovec
 
     #include <algorithm>  // min()/max()
-    #include <cstdlib>    // atexit()
-    #include <list>
 
 #elif defined(__ANDROID__)
     #include <unistd.h>
