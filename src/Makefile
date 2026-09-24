@@ -1189,21 +1189,23 @@ CXXFLAGS += -fwhole-program-vtables
 endif
 # Clang-compatible compiler
 ifeq ($(CXX_IS_CLANG),yes)
-LTO_FLAGS   := -flto=full
+LTO_FLAGS    := -flto=full
 # Native GCC
 else
-LTO_FLAGS   := -flto -flto-partition=one
-LTO_JOB_FLAG = $(if $(filter --jobserver-auth=%,$(MAKEFLAGS)),-flto=jobserver,-flto=auto)
-LTO_LDFLAGS  = -save-temps $(LTO_JOB_FLAG)
+LTO_FLAGS    := -flto -flto-partition=one
+LTO_JOBSERVER_AUTH = --jobserver-auth=
+LTO_JOBSERVER = $(filter-out $(LTO_JOBSERVER_AUTH),$(filter $(LTO_JOBSERVER_AUTH)%,$(MAKEFLAGS)))
+LTO_JOB_FLAG  = $(if $(LTO_JOBSERVER),-flto=jobserver,-flto=auto)
+LTO_LDFLAGS   = $(LTO_JOB_FLAG) -save-temps
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
 else \
 ifeq ($(COMP),mingw)
-LTO_FLAGS   := -flto -flto-partition=one
+LTO_FLAGS    := -flto -flto-partition=one
 # Use fixed parallel LTO; avoid the jobserver with MinGW.
 # -flto=auto      (unreliable with MinGW's linker)
 # -flto=jobserver (not supported for MinGW)
-LTO_LDFLAGS := -save-temps -flto=8
+LTO_LDFLAGS  := -flto=8 -save-temps
 endif
 
 ## Apply LTO flags
