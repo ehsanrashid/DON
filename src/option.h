@@ -64,10 +64,7 @@ class Option {
     virtual void operator=(std::string value) noexcept = 0;
 
    protected:
-    explicit Option(std::string_view defValue, OnChange&& onCng = nullptr) noexcept :
-        defaultValue(defValue),
-        currentValue(defValue),
-        onChange(std::move(onCng)) {}
+    explicit Option(std::string_view str, OnChange&& onCng = nullptr) noexcept;
 
     void on_change() noexcept;
 
@@ -86,8 +83,7 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
 class ButtonOption final: public Option {
    public:
-    explicit ButtonOption(OnChange&& onCng = nullptr) noexcept :
-        Option{"", std::move(onCng)} {}
+    explicit ButtonOption(OnChange&& onCng = nullptr) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -98,8 +94,7 @@ class ButtonOption final: public Option {
 
 class CheckOption final: public Option {
    public:
-    explicit CheckOption(bool value, OnChange&& onCng = nullptr) noexcept :
-        Option{bool_to_string(value), std::move(onCng)} {}
+    explicit CheckOption(bool value, OnChange&& onCng = nullptr) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -112,8 +107,7 @@ class CheckOption final: public Option {
 
 class StringOption final: public Option {
    public:
-    explicit StringOption(std::string_view value, OnChange&& onCng = nullptr) noexcept :
-        Option{normalize(std::string{value}), std::move(onCng)} {}
+    explicit StringOption(std::string_view str, OnChange&& onCng = nullptr) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -129,10 +123,7 @@ class StringOption final: public Option {
 
 class SpinOption final: public Option {
    public:
-    SpinOption(int value, int minV, int maxV, OnChange&& onCng = nullptr) noexcept :
-        Option{std::to_string(value), std::move(onCng)},
-        minValue(minV),
-        maxValue(maxV) {}
+    SpinOption(int v, int minV, int maxV, OnChange&& onCng = nullptr) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -143,15 +134,13 @@ class SpinOption final: public Option {
     void operator=(std::string value) noexcept override;
 
    private:
-    int minValue;
-    int maxValue;
+    const int minValue;
+    const int maxValue;
 };
 
 class ComboOption final: public Option {
    public:
-    ComboOption(std::string_view value, StringViews&& comboV, OnChange&& onCng = nullptr) noexcept :
-        Option{value, std::move(onCng)},
-        comboValues(normalize(std::move(comboV))) {}
+    ComboOption(std::string_view str, StringViews&& vrs, OnChange&& onCng = nullptr) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -162,24 +151,23 @@ class ComboOption final: public Option {
     void operator=(std::string value) noexcept override;
 
    private:
-    static Strings normalize(StringViews comboValues) noexcept;
+    static Strings normalize(StringViews vars) noexcept;
 
-    Strings comboValues;
+    const Strings vars;
 };
 
 namespace OptionFactory {
 
 std::unique_ptr<Option> button(OnChange&& onCng = nullptr) noexcept;
 
-std::unique_ptr<Option> check(bool value, OnChange&& onCng = nullptr) noexcept;
+std::unique_ptr<Option> check(bool b, OnChange&& onCng = nullptr) noexcept;
 
-std::unique_ptr<Option> string(std::string_view value, OnChange&& onCng = nullptr) noexcept;
+std::unique_ptr<Option> string(std::string_view str, OnChange&& onCng = nullptr) noexcept;
+
+std::unique_ptr<Option> spin(int v, int minV, int maxV, OnChange&& onCng = nullptr) noexcept;
 
 std::unique_ptr<Option>
-spin(int value, int minValue, int maxValue, OnChange&& onCng = nullptr) noexcept;
-
-std::unique_ptr<Option>
-combo(std::string_view value, StringViews comboValues, OnChange&& onCng = nullptr) noexcept;
+combo(std::string_view str, StringViews vars, OnChange&& onCng = nullptr) noexcept;
 
 }  // namespace OptionFactory
 
@@ -232,7 +220,7 @@ class Options final {
 
     const Option& operator[](std::string_view name) const noexcept;
 
-    void set_on_info(OnInfo&& f) noexcept;
+    void set_on_info(OnInfo&& onInf) noexcept;
 
     void on_info(Info info) const noexcept;
 

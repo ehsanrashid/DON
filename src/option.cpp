@@ -23,6 +23,11 @@
 
 namespace DON {
 
+Option::Option(std::string_view str, OnChange&& onCng) noexcept :
+    defaultValue(str),
+    currentValue(str),
+    onChange(std::move(onCng)) {}
+
 std::string_view Option::default_value() const noexcept { return defaultValue; }
 
 std::string_view Option::current_value() const noexcept { return currentValue; }
@@ -36,8 +41,10 @@ void Option::on_change() noexcept {
     if (!info)
         return;
 
-    if (optionsPtr != nullptr)
-        optionsPtr->on_info(info);
+    if (optionsPtr == nullptr)
+        return;
+
+    optionsPtr->on_info(info);
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
@@ -48,11 +55,17 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
+ButtonOption::ButtonOption(OnChange&& onCng) noexcept :
+    Option{"", std::move(onCng)} {}
+
 std::string_view ButtonOption::type() const noexcept { return "button"; }
 
 void ButtonOption::print(std::ostream&) const noexcept {}
 
 void ButtonOption::operator=(std::string) noexcept { on_change(); }
+
+CheckOption::CheckOption(const bool b, OnChange&& onCng) noexcept :
+    Option{bool_to_string(b), std::move(onCng)} {}
 
 std::string_view CheckOption::type() const noexcept { return "check"; }
 
@@ -69,6 +82,9 @@ void CheckOption::operator=(std::string value) noexcept {
     on_change();
 }
 
+StringOption::StringOption(const std::string_view str, OnChange&& onCng) noexcept :
+    Option{normalize(std::string{str}), std::move(onCng)} {}
+
 std::string_view StringOption::type() const noexcept { return "string"; }
 
 void StringOption::print(std::ostream& os) const noexcept {
@@ -82,6 +98,15 @@ void StringOption::operator=(std::string value) noexcept {
 
     on_change();
 }
+
+std::string StringOption::normalize(std::string value) noexcept {
+    return is_whitespace(value) || lower_case(value) == EMPTY_STRING ? std::string{} : value;
+}
+
+SpinOption::SpinOption(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept :
+    Option{std::to_string(v), std::move(onCng)},
+    minValue(minV),
+    maxValue(maxV) {}
 
 std::string_view SpinOption::type() const noexcept { return "spin"; }
 
@@ -100,16 +125,16 @@ void SpinOption::operator=(std::string value) noexcept {
     on_change();
 }
 
-std::string StringOption::normalize(std::string value) noexcept {
-    return is_whitespace(value) || lower_case(value) == EMPTY_STRING ? std::string{} : value;
-}
+ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
+    Option{str, std::move(onCng)},
+    vars(normalize(std::move(vrs))) {}
 
 std::string_view ComboOption::type() const noexcept { return "combo"; }
 
 void ComboOption::print(std::ostream& os) const noexcept {
     os << " default " << default_value();
 
-    for (const auto& var : comboValues)
+    for (const auto& var : vars)
         os << " var " << var;
 }
 
@@ -121,7 +146,7 @@ void ComboOption::operator=(std::string value) noexcept {
 
     value = lower_case(std::move(value));
 
-    if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
+    if (std::find(vars.begin(), vars.end(), value) == vars.end())
         return;
 
     currentValue = std::move(value);
@@ -145,21 +170,20 @@ std::unique_ptr<Option> button(OnChange&& onCng) noexcept {
     return std::make_unique<ButtonOption>(std::move(onCng));
 }
 
-std::unique_ptr<Option> check(bool value, OnChange&& onCng) noexcept {
-    return std::make_unique<CheckOption>(value, std::move(onCng));
+std::unique_ptr<Option> check(const bool b, OnChange&& onCng) noexcept {
+    return std::make_unique<CheckOption>(b, std::move(onCng));
 }
 
-std::unique_ptr<Option> string(std::string_view value, OnChange&& onCng) noexcept {
-    return std::make_unique<StringOption>(value, std::move(onCng));
+std::unique_ptr<Option> string(const std::string_view str, OnChange&& onCng) noexcept {
+    return std::make_unique<StringOption>(str, std::move(onCng));
 }
 
-std::unique_ptr<Option> spin(int value, int minValue, int maxValue, OnChange&& onCng) noexcept {
-    return std::make_unique<SpinOption>(value, minValue, maxValue, std::move(onCng));
+std::unique_ptr<Option> spin(int v, int minV, int maxV, OnChange&& onCng) noexcept {
+    return std::make_unique<SpinOption>(v, minV, maxV, std::move(onCng));
 }
 
-std::unique_ptr<Option>
-combo(std::string_view value, StringViews comboValues, OnChange&& onCng) noexcept {
-    return std::make_unique<ComboOption>(value, std::move(comboValues), std::move(onCng));
+std::unique_ptr<Option> combo(std::string_view str, StringViews vars, OnChange&& onCng) noexcept {
+    return std::make_unique<ComboOption>(str, std::move(vars), std::move(onCng));
 }
 
 }  // namespace OptionFactory
@@ -197,6 +221,10 @@ bool Options::add(const std::string_view name, std::unique_ptr<Option> option) n
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
         return false;
     }
+
+    assert(option != nullptr);
+    if (option == nullptr)
+        return false;
 
     // Append the option in insertion order and obtain its iterator.
     const auto listItr = list.emplace(list.end(), name, std::move(option));
@@ -237,7 +265,7 @@ bool Options::remove(const std::string_view name) noexcept {
     const auto listItr = indexMapItr->second;
     // Verify the list node and its name.
     assert(listItr != list.end());
-    assert(lower_case(std::string{listItr->first}) == lower_case(std::string{name}));
+    assert(CaseInsensitiveEqual{}(listItr->first, name));
 
     // Remove the membership entry.
     set.erase(setItr);
@@ -267,7 +295,7 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
     return *indexMapItr->second->second;
 }
 
-void Options::set_on_info(OnInfo&& f) noexcept { onInfo = std::move(f); }
+void Options::set_on_info(OnInfo&& onInf) noexcept { onInfo = std::move(onInf); }
 
 void Options::on_info(const Info info) const noexcept {
     if (onInfo)
