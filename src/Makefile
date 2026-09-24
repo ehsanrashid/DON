@@ -584,10 +584,9 @@ else
 CXXFLAGS += $(BITS_FLAG)
 LDFLAGS  += $(BITS_FLAG)
 endif
-# WASM
-ifeq ($(arch),wasm32)
-# Non-Darwin (Linux) specific compiler/linker flags
-else \
+# Non-WASM
+ifneq ($(arch),wasm32)
+# Non-Darwin: (Linux) specific compiler/linker flags
 ifneq ($(TARGET_KERNEL),Darwin)
 CXXFLAGS += -Wno-stringop-overflow
 # Detect whether GNU ld is being used
@@ -597,7 +596,7 @@ GNU_LD := $(findstring GNU ld,$(LINKER_VERSION))
 ifneq ($(GNU_LD),)
 LDFLAGS  += -Wl,--no-as-needed
 endif
-# Determine GCC major version for Linux Clang masquerading as GCC
+# Determine GCC-compatible major version for non-Apple Clang
 GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = 'yes' ] && [ "$(CXX_IS_APPLE_CLANG)" = 'no' ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
 # Link std::filesystem explicitly for Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
@@ -606,11 +605,12 @@ LDLIBS += -lstdc++fs
 endif
 endif
 endif
+endif
 # Configure compiler-specific flags and profile targets
 ifeq ($(CXX_IS_CLANG),yes)
 # Apple Clang
 ifeq ($(CXX_IS_APPLE_CLANG),yes)
-# LLVM Clang
+# Non-Apple Clang
 else
 CXXFLAGS += -fconstexpr-steps=500000000
 endif
@@ -1168,7 +1168,7 @@ ifeq ($(debug),no)
 
 # Non-WASM
 ifneq ($(arch),wasm32)
-# Non-macOS
+# Non-Darwin
 ifneq ($(TARGET_KERNEL),Darwin)
 ifeq ($(CXX_IS_CLANG),yes)
 # Detect whether LLD (LLVM Linker) is available
