@@ -1329,10 +1329,6 @@ analyze: net config-sanity obj-clean
 
 ifeq ($(UNIVERSAL_BUILD),no)
 build: net config-sanity
-	$(info MAKELEVEL=$(MAKELEVEL))
-	$(info MAKEFLAGS=$(MAKEFLAGS))
-	$(info LTO_JOBSERVER=$(LTO_JOBSERVER))
-	$(info LTO_JOB_FLAG=$(LTO_JOB_FLAG))
 	$(MAKE) all
 
 profile-build: net config-sanity obj-clean profile-clean
@@ -1597,9 +1593,9 @@ config-sanity: net
 	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	@echo "MAKEFLAGS=$$MAKEFLAGS"
 	@echo "MAKELEVEL=$$MAKELEVEL"
-	$(strip $(CXX) $(LDFLAGS) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(LDLIBS)) -o '$@'
+	@echo "MAKEFLAGS=$$MAKEFLAGS"
+	+$(strip $(CXX) $(LDFLAGS) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(LDLIBS)) -o '$@'
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c '$<' -o '$@'
