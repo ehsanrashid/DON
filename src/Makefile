@@ -541,7 +541,7 @@ ENTRY_FLAG  = $(strip $(ENV_ENTRY_FLAG))
 
 BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
-STRIP = strip
+STRIP := strip
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
@@ -584,6 +584,7 @@ else
 CXXFLAGS += $(BITS_FLAG)
 LDFLAGS  += $(BITS_FLAG)
 endif
+# WASM
 ifeq ($(arch),wasm32)
 # Non-Darwin (Linux) specific compiler/linker flags
 else \
@@ -591,9 +592,10 @@ ifneq ($(TARGET_KERNEL),Darwin)
 CXXFLAGS += -Wno-stringop-overflow
 # Detect whether GNU ld is being used
 LINKER_VERSION := $(shell $(CXX) -Wl,--version 2>/dev/null)
-GNU_LD         := $(findstring GNU ld,$(LINKER_VERSION))
+
+GNU_LD := $(findstring GNU ld,$(LINKER_VERSION))
 ifneq ($(GNU_LD),)
-LDFLAGS += -Wl,--no-as-needed
+LDFLAGS  += -Wl,--no-as-needed
 endif
 # Determine GCC major version for Linux Clang masquerading as GCC
 GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = 'yes' ] && [ "$(CXX_IS_APPLE_CLANG)" = 'no' ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
@@ -606,19 +608,19 @@ endif
 endif
 # Configure compiler-specific flags and profile targets
 ifeq ($(CXX_IS_CLANG),yes)
-ifeq ($(CXX_IS_APPLE_CLANG),yes)
 # Apple Clang
-else
+ifeq ($(CXX_IS_APPLE_CLANG),yes)
 # LLVM Clang
+else
 CXXFLAGS += -fconstexpr-steps=500000000
 endif
-
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
-else
 # GCC
+else
 CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
+
 # Profile-guided optimization for GCC
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
@@ -669,7 +671,7 @@ endif
 # Link std::filesystem for Linux Clang
 ifeq ($(TARGET_KERNEL),Linux)
 # Determine Clang major version
-CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 # Link std::filesystem explicitly for Clang < 11
 ifneq ($(CLANG_MAJOR),)
 ifeq ($(shell expr $(CLANG_MAJOR) \< 11),1)
@@ -677,7 +679,6 @@ LDLIBS += -lstdc++fs
 endif
 endif
 endif
-
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
@@ -769,8 +770,9 @@ CXX_IS_CLANG := yes
 CXXFLAGS += -stdlib=libc++
 LDFLAGS  += -static-libstdc++
 
+STRIP := llvm-strip
+
 OBJCOPY := llvm-objcopy
-STRIP   := llvm-strip
 
 # Profile-guided optimization for NDK/Clang
 PROFILE_MAKE := clang-profile-make
@@ -790,7 +792,7 @@ endif
 # Disable this with `STATIC=no`.
 ifeq ($(IS_WINDOWS),yes)
 ifneq ($(STATIC),no)
-LDFLAGS += -static
+LDFLAGS  += -static
 endif
 endif
 
@@ -1172,7 +1174,7 @@ ifeq ($(CXX_IS_CLANG),yes)
 # Detect whether LLD (LLVM Linker) is available
 LLD_BIN := $(or $(call FIND_EXE,ld.lld),$(call FIND_EXE,lld))
 ifneq ($(LLD_BIN),)
-LDFLAGS += -fuse-ld=lld
+LDFLAGS  += -fuse-ld=lld
 endif
 endif
 endif
@@ -1192,12 +1194,10 @@ LTO_FLAGS   := -flto=full
 else
 LTO_FLAGS   := -flto -flto-partition=one
 LTO_LDFLAGS := -save-temps
-ifneq ($(TARGET_KERNEL),Darwin)
 ifneq ($(filter --jobserver-auth=%,$(MAKEFLAGS)),)
 LTO_LDFLAGS += -flto=jobserver
 else
 LTO_LDFLAGS += -flto=auto
-endif
 endif
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
