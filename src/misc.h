@@ -682,9 +682,10 @@ struct CallOnce final {
 template<typename Key, typename Value>
 class ConcurrentMap final {
    public:
-    explicit ConcurrentMap(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+    explicit ConcurrentMap(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFtr) {
+        maxLoadFactor(maxLoadFac) {
+        std::lock_guard writeLock(mutex);
         configure(map);
     }
 
@@ -692,6 +693,15 @@ class ConcurrentMap final {
     //
     // If the key is not present, a default-constructed value is inserted.
     Value& get(const Key& key) noexcept {
+        // Fast path: check for an existing value under a shared lock.
+        {
+            std::shared_lock readLock(mutex);
+
+            if (const auto itr = map.find(key); itr != map.end())
+                return itr->second;
+        }
+
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
         std::lock_guard writeLock(mutex);
 
         return map.try_emplace(key).first->second;
@@ -703,6 +713,15 @@ class ConcurrentMap final {
     // arguments and inserts it into the map.
     template<typename... Args>
     Value& get(const Key& key, Args&&... args) noexcept {
+        // Fast path: check for an existing value under a shared lock.
+        {
+            std::shared_lock readLock(mutex);
+
+            if (const auto itr = map.find(key); itr != map.end())
+                return itr->second;
+        }
+
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
         std::lock_guard writeLock(mutex);
 
         return map.try_emplace(key, std::forward<Args>(args)...).first->second;
@@ -759,13 +778,13 @@ class ConcurrentMap final {
     Map map;
 };
 
-// ConcurrentCache: thread-safe key-value cache with pre-reserved storage
+// ConcurrentCache: sharded thread-safe key-value cache with lazy value creation and pre-reserved storage.
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFtr) {
+        maxLoadFactor(maxLoadFac) {
         for (auto& shard : shards)
         {
             std::lock_guard writeLock(shard.mutex);
@@ -891,8 +910,10 @@ class ConcurrentCache final {
     ConcurrentCache(ConcurrentCache&&)                 = delete;
     ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
 
-    static constexpr usize ShardCount    = 32;
     static constexpr usize ThresholdSize = 128;
+
+    static constexpr usize ShardCount = 32;
+    static constexpr usize ShardMask  = ShardCount - 1;
     static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
 
     using StorageValue =
@@ -914,7 +935,7 @@ class ConcurrentCache final {
     static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
 
     // Select the shard associated with the key.
-    static usize shard_index(const Key& key) noexcept { return hash_key(key) & (ShardCount - 1); }
+    static usize shard_index(const Key& key) noexcept { return hash_key(key) & ShardMask; }
 
     // Set the stored value, using direct storage or heap allocation based on its size.
     template<typename... Args>
@@ -953,16 +974,17 @@ class ConcurrentCache final {
     Shards      shards;
 };
 
-// ConcurrentRegistry: thread-safe registry preserving true insertion order.
+// ConcurrentRegistry: thread-safe registry preserving true insertion order with pre-reserved storage.
 template<typename Value>
 class ConcurrentRegistry final {
    private:
     using List = std::list<Value>;
 
    public:
-    explicit ConcurrentRegistry(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+    explicit ConcurrentRegistry(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFtr) {
+        maxLoadFactor(maxLoadFac) {
+        std::lock_guard writeLock(mutex);
         configure(indexMap);
         configure(set);
     }
