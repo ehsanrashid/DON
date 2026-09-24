@@ -32,6 +32,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <limits>
+#include <list>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -41,6 +42,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -676,103 +678,549 @@ struct CallOnce final {
     std::atomic<bool> onceDone{false};
 };
 
-// OstreamMutexRegistry
-//
-// Provides a thread-safe registry that associates a unique mutex with each
-// std::ostream pointer.
-//
-// The registry allows multiple threads to synchronize access to the same
-// ostream without unnecessarily locking unrelated ostreams.
-//
-// Key Features:
-//  - Thread-safe: registry access is protected by a mutex.
-//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
-//  - Lazy initialization: mutexes are created when first requested.
-//  - Null-safe: nullptr is treated as a valid key and maps to a shared mutex.
-//
-// Usage:
-//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
-//    from multiple threads.
-//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
-//
-// Notes:
-//  - The registry does not own the std::ostream objects.
-//  - Mutexes remain in the registry for the lifetime of the process.
-namespace OstreamMutexRegistry {
-
-using OstreamMutexMap = std::unordered_map<std::ostream*, std::mutex>;
-
-// Returns the mutex associated with the given ostream pointer.
-//
-// A nullptr pointer is treated as a valid key and maps to a shared mutex.
-std::mutex& get(std::ostream* osPtr) noexcept;
-
-}  // namespace OstreamMutexRegistry
-
-// SyncOstream
-//
-// Provides RAII-based, thread-safe output synchronization for a std::ostream.
-//
-// Each SyncOstream acquires the mutex associated with the given ostream through
-// OstreamMutexRegistry and holds the lock for its lifetime.
-//
-// Key Features:
-//  - Thread-safe: synchronizes access to the associated ostream.
-//  - RAII-based: acquires the mutex on construction and releases it on destruction.
-//  - Move-constructible: allows SyncOstream objects to be returned by value.
-//  - Non-copyable and non-move-assignable: prevents accidental lock ownership changes.
-//  - Supports standard ostream operators and manipulators.
-//  - Asserts on use of a moved-from SyncOstream in debug builds.
-//
-// Usage:
-//   SyncOstream(std::cout) << "Thread-safe message " << value << std::endl;
-//
-// Notes:
-//  - The lock is held for the lifetime of the SyncOstream object.
-//  - Keep SyncOstream objects short-lived to minimize lock contention.
-//  - OstreamMutexRegistry ensures that the same ostream uses the same mutex.
-class [[nodiscard]] SyncOstream final {
+// ConcurrentMap: thread-safe key-value map with lazy value creation and pre-reserved storage.
+template<typename Key, typename Value>
+class ConcurrentMap final {
    public:
-    explicit SyncOstream(std::ostream& os) noexcept;
-
-    SyncOstream(const SyncOstream&) noexcept            = delete;
-    SyncOstream& operator=(const SyncOstream&) noexcept = delete;
-    // Move-constructible so SyncOstream objects can be returned by value
-    SyncOstream(SyncOstream&& syncOs) noexcept;
-    // Move-assignment is deleted to prevent changing lock ownership
-    SyncOstream& operator=(SyncOstream&&) noexcept = delete;
-
-    using IosManip = std::ios& (*) (std::ios&);
-
-    SyncOstream&  operator<<(IosManip manip) &;
-    SyncOstream&& operator<<(IosManip manip) &&;
-
-    using OstreamManip = std::ostream& (*) (std::ostream&);
-
-    SyncOstream&  operator<<(OstreamManip manip) &;
-    SyncOstream&& operator<<(OstreamManip manip) &&;
-
-    template<typename T>
-    SyncOstream& operator<<(T&& x) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        *osPtr << std::forward<T>(x);
-        return *this;
+    explicit ConcurrentMap(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFtr) {
+        configure(map);
     }
-    template<typename T>
-    SyncOstream&& operator<<(T&& x) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *osPtr << std::forward<T>(x);
-        return std::move(*this);
+    // Returns the value associated with the key.
+    //
+    // If the key is not present, a default-constructed value is inserted.
+    Value& get(const Key& key) noexcept {
+        std::lock_guard writeLock(mutex);
+
+        return map.try_emplace(key).first->second;
+    }
+
+    // Returns the value associated with the key.
+    //
+    // If the key is not present, constructs the value from the supplied
+    // arguments and inserts it into the map.
+    template<typename... Args>
+    Value& get(const Key& key, Args&&... args) noexcept {
+        std::lock_guard writeLock(mutex);
+
+        return map.try_emplace(key, std::forward<Args>(args)...).first->second;
+    }
+
+    // Returns true if the map contains the key.
+    bool contains(const Key& key) const noexcept {
+        std::shared_lock readLock(mutex);
+
+        return map.find(key) != map.end();
+    }
+
+    // Returns the number of entries in the map.
+    usize size() const noexcept {
+        std::shared_lock readLock(mutex);
+
+        return map.size();
+    }
+
+    // Returns true if the map contains no entries.
+    bool empty() const noexcept {
+        std::shared_lock readLock(mutex);
+
+        return map.empty();
+    }
+
+    // Removes all entries from the map.
+    void clear() noexcept {
+        std::lock_guard writeLock(mutex);
+
+        map.clear();
     }
 
    private:
-    std::ostream*                osPtr;
-    std::unique_lock<std::mutex> lock;
+    ConcurrentMap(const ConcurrentMap&)            = delete;
+    ConcurrentMap& operator=(const ConcurrentMap&) = delete;
+    ConcurrentMap(ConcurrentMap&&)                 = delete;
+    ConcurrentMap& operator=(ConcurrentMap&&)      = delete;
+
+    using Map = std::unordered_map<Key, Value>;
+
+    void configure(Map& valueMap) const noexcept {
+        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
+        valueMap.reserve(reserve_count(reserveCount));
+    }
+
+    const usize reserveCount;
+    const float maxLoadFactor;
+
+    // Protects access to the map.
+    mutable std::shared_mutex mutex;
+
+    // Stores the key-value associations.
+    Map map;
 };
 
-[[nodiscard]] SyncOstream sync_os(std::ostream& os = std::cout) noexcept;
+// ConcurrentCache: thread-safe key-value cache with pre-reserved storage
+template<typename Key, typename Value>
+class ConcurrentCache final {
+   public:
+    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFtr) {
+        for (auto& shard : shards)
+        {
+            std::lock_guard writeLock(shard.mutex);
+
+            configure(shard.valueMap);
+        }
+    }
+
+    template<typename... Args>
+    Value access_or_build(const Key& key, Args&&... args) noexcept {
+        auto& shard = get_shard(key);
+        // Fast path: check for an existing value under a shared lock.
+        {
+            std::shared_lock readLock(shard.mutex);
+
+            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
+                return get(itr->second);
+        }
+
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
+        std::lock_guard writeLock(shard.mutex);
+
+        // Look up and insert if missing.
+        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
+
+        // Construct the value if it was inserted.
+        if (inserted)
+            set(itr->second, std::forward<Args>(args)...);
+
+        return get(itr->second);
+    }
+
+    template<typename Builder, typename... Args>
+    Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        auto& shard = get_shard(key);
+        // Fast path: check for an existing value under a shared lock.
+        {
+            std::shared_lock readLock(shard.mutex);
+
+            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
+                return get(itr->second);
+        }
+
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
+        std::lock_guard writeLock(shard.mutex);
+
+        // Look up and insert if missing.
+        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
+
+        // Construct the value if it was inserted.
+        if (inserted)
+            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
+        return get(itr->second);
+    }
+
+    template<typename Transformer, typename... Args>
+    auto
+    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
+        auto& shard = get_shard(key);
+        // Fast path: check for an existing value under a shared lock.
+        {
+            std::shared_lock readLock(shard.mutex);
+
+            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
+                return std::forward<Transformer>(transformer)(get_ref(itr->second));
+        }
+
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
+        std::lock_guard writeLock(shard.mutex);
+
+        // Look up and insert if missing.
+        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
+
+        // Construct the value if it was inserted.
+        if (inserted)
+            set(itr->second, std::forward<Args>(args)...);
+
+        return std::forward<Transformer>(transformer)(get_ref(itr->second));
+    }
+
+    template<typename Transformer, typename Builder, typename... Args>
+    auto transform_access_or_build_with(const Key&    key,
+                                        Transformer&& transformer,
+                                        Builder&&     builder,
+                                        Args&&... args) noexcept {
+        auto& shard = get_shard(key);
+        // Fast path: check for an existing value under a shared lock.
+        {
+            std::shared_lock readLock(shard.mutex);
+
+            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
+                return std::forward<Transformer>(transformer)(get_ref(itr->second));
+        }
+
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
+        std::lock_guard writeLock(shard.mutex);
+
+        // Look up and insert if missing.
+        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
+
+        // Construct the value if it was inserted.
+        if (inserted)
+            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
+        return std::forward<Transformer>(transformer)(get_ref(itr->second));
+    }
+
+    void reset() noexcept {
+        for (auto& shard : shards)
+        {
+            std::lock_guard writeLock(shard.mutex);
+
+            shard.valueMap.clear();
+            shard.valueMap.rehash(0);
+            configure(shard.valueMap);
+        }
+    }
+
+   private:
+    ConcurrentCache(const ConcurrentCache&)            = delete;
+    ConcurrentCache& operator=(const ConcurrentCache&) = delete;
+    ConcurrentCache(ConcurrentCache&&)                 = delete;
+    ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
+
+    static constexpr usize ShardCount    = 32;
+    static constexpr usize ThresholdSize = 128;
+    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
+
+    using StorageValue =
+      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
+
+    using ValueMap = std::unordered_map<Key, StorageValue>;
+
+    struct alignas(64) Shard final {
+       public:
+        mutable std::shared_mutex mutex;
+        ValueMap                  valueMap;
+    };
+
+    using Shards = Array<Shard, ShardCount>;
+
+    // Helper functions for hashing, sharding, and value storage.
+
+    // General-purpose key hasher
+    static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
+
+    // Select the shard associated with the key.
+    static usize shard_index(const Key& key) noexcept { return hash_key(key) & (ShardCount - 1); }
+
+    // Set the stored value, using direct storage or heap allocation based on its size.
+    template<typename... Args>
+    static void set(StorageValue& value, Args&&... args) noexcept {
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            value = Value(std::forward<Args>(args)...);
+        else
+            value = std::make_unique<Value>(std::forward<Args>(args)...);
+    }
+
+    // Return a copy of the stored value, dereferencing heap storage when used.
+    static Value get(const StorageValue& value) noexcept {
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            return value;
+        else
+            return *value;
+    }
+
+    // Return a reference to the stored value, dereferencing heap storage when used.
+    static const Value& get_ref(const StorageValue& value) noexcept {
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            return value;
+        else
+            return *value;
+    }
+
+    void configure(ValueMap& valueMap) const noexcept {
+        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
+        valueMap.reserve(reserve_count(ceil_div(reserveCount, ShardCount)));
+    }
+
+    Shard& get_shard(const Key& key) noexcept { return shards[shard_index(key)]; }
+
+    const usize reserveCount;
+    const float maxLoadFactor;
+    Shards      shards;
+};
+
+// ConcurrentRegistry: thread-safe registry preserving true insertion order.
+template<typename Value>
+class ConcurrentRegistry final {
+   private:
+    using List = std::list<Value>;
+
+   public:
+    explicit ConcurrentRegistry(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFtr) {
+        configure(indexMap);
+        configure(set);
+    }
+
+    // Registers a value in the registry.
+    //
+    // Returns false if the value is already registered.
+    bool register_value(const Value& value) noexcept {
+        std::lock_guard writeLock(mutex);
+
+        return nolock_register_value(value);
+    }
+
+    // Unregisters a value from the registry.
+    //
+    // Returns false if the value is not registered.
+    bool unregister_value(const Value& value) noexcept {
+        std::lock_guard writeLock(mutex);
+
+        return nolock_unregister_value(value);
+    }
+
+    // Detaches all registered values from the registry.
+    //
+    // Returns the values in true insertion order.
+    //
+    // All registry containers are cleared before the returned list is
+    // processed, allowing callers to safely operate on the values without
+    // holding the registry lock.
+    List detach_values() noexcept {
+        std::lock_guard writeLock(mutex);
+
+        assert(nolock_is_consistent());
+
+        set.clear();
+        indexMap.clear();
+
+        List detachedList;
+        detachedList.swap(list);
+
+        assert(set.empty());
+        assert(indexMap.empty());
+        assert(list.empty());
+
+        return detachedList;
+    }
+
+    // Returns the number of currently registered values.
+    usize size() const noexcept {
+        std::shared_lock readLock(mutex);
+
+        assert(nolock_is_consistent());
+
+        return nolock_size();
+    }
+
+    // Returns true if the registry contains no values.
+    bool empty() const noexcept {
+        std::shared_lock readLock(mutex);
+
+        assert(nolock_is_consistent());
+
+        return nolock_empty();
+    }
+
+    // Prints all registered values in true insertion order.
+    void print() const noexcept {
+        std::shared_lock readLock(mutex);
+
+        assert(nolock_is_consistent());
+
+        std::cout << "Registered values [" << list.size() << "]:\n";
+
+        usize i = 0;
+        for (const auto& value : list)
+            std::cout << '[' << i++ << "] " << value << '\n';
+
+        std::cout << std::endl;
+    }
+
+   private:
+    ConcurrentRegistry(const ConcurrentRegistry&)            = delete;
+    ConcurrentRegistry& operator=(const ConcurrentRegistry&) = delete;
+    ConcurrentRegistry(ConcurrentRegistry&&)                 = delete;
+    ConcurrentRegistry& operator=(ConcurrentRegistry&&)      = delete;
+
+    using IndexMap = std::unordered_map<Value, typename List::iterator>;
+    using Set      = std::unordered_set<Value>;
+
+    usize nolock_size() const noexcept { return list.size(); }
+
+    bool nolock_empty() const noexcept { return list.empty(); }
+
+    // Checks whether a value is registered.
+    bool nolock_contains(const typename Set::const_iterator setItr) const noexcept {
+        return setItr != set.end();
+    }
+
+    bool nolock_contains(const Value& value) const noexcept {
+        return nolock_contains(set.find(value));
+    }
+
+    [[maybe_unused]] usize nolock_count(const Value& value) const noexcept {
+        return indexMap.count(value);
+    }
+
+    auto nolock_find(const Value& value) noexcept { return indexMap.find(value); }
+
+    auto nolock_find(const Value& value) const noexcept { return indexMap.find(value); }
+
+#if !defined(NDEBUG)
+    // Verifies the consistency of all registry containers.
+    // The caller must hold 'mutex' in shared or exclusive mode.
+    //
+    // Registry invariants:
+    //  - List, IndexMap, and Set contain the same number of values.
+    //  - Every value in List exists in IndexMap and Set.
+    //  - Every value in IndexMap exists in List and Set.
+    //  - Every value in Set exists in List and IndexMap.
+    //  - Every IndexMap entry points to the corresponding node in List.
+    bool nolock_is_consistent() const noexcept {
+        assert(list.size() == indexMap.size() && "List and IndexMap sizes differ");
+        assert(list.size() == set.size() && "List and Set sizes differ");
+
+        // Verify that every List entry is indexed and registered.
+        for (auto listItr = list.begin(); listItr != list.end(); ++listItr)
+        {
+            const Value& value = *listItr;
+
+            const auto indexMapItr = nolock_find(value);
+            assert(indexMapItr != indexMap.end() && "List value is missing from IndexMap");
+            assert(indexMapItr->second == listItr && "IndexMap points to the wrong List node");
+
+            assert(set.find(value) != set.end() && "List value is missing from Set");
+        }
+
+        // Verify that every IndexMap entry points to the correct List node
+        // and has a corresponding Set entry.
+        for (const auto& [value, listItr] : indexMap)
+        {
+            assert(listItr != list.end() && "IndexMap contains an invalid List iterator");
+            assert(*listItr == value && "IndexMap iterator points to the wrong value");
+
+            assert(set.find(value) != set.end() && "IndexMap value is missing from Set");
+        }
+
+        // Verify that every Set entry has a corresponding IndexMap entry
+        // whose iterator points to the correct List node.
+        for (const auto& value : set)
+        {
+            const auto indexMapItr = nolock_find(value);
+            assert(indexMapItr != indexMap.end() && "Set value is missing from IndexMap");
+
+            const auto listItr = indexMapItr->second;
+            assert(listItr != list.end() && "IndexMap contains an invalid List iterator");
+            assert(*listItr == value && "IndexMap iterator points to the wrong value");
+        }
+
+        return true;
+    }
+#endif
+
+    // Registers a value in all registry containers.
+    // The caller must hold 'mutex' exclusively.
+    //
+    // Set is checked first to reject duplicate values. The value is then
+    // appended to List, IndexMap records its corresponding List iterator,
+    // and Set establishes membership.
+    bool nolock_register_value(const Value& value) noexcept {
+        if (nolock_contains(value))
+            return false;
+
+        // Append to the ordered list and obtain its iterator.
+        const auto listItr = list.emplace(list.end(), value);
+        assert(listItr != list.end());
+
+        // Associate the value with its corresponding List node.
+        [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(value, listItr);
+
+        // Set was checked first, so IndexMap must not contain the value.
+        assert(inserted);
+        assert(indexMapItr->second == listItr);
+
+        // Establish membership after List and IndexMap are updated.
+        [[maybe_unused]] const auto [setItr, registered] = set.emplace(value);
+
+        // The initial membership check guarantees that this insertion succeeds.
+        assert(registered);
+        assert(setItr != set.end());
+
+        assert(nolock_is_consistent());
+
+        return true;
+    }
+
+    // Unregisters a value from all registry containers.
+    // The caller must hold 'mutex' exclusively.
+    //
+    // Set is checked first to reject unregistered values. IndexMap then
+    // provides the corresponding List iterator for constant-time removal.
+    bool nolock_unregister_value(const Value& value) noexcept {
+        const auto setItr = set.find(value);
+
+        // Not registered.
+        if (!nolock_contains(setItr))
+            return false;
+
+        const auto indexMapItr = nolock_find(value);
+
+        // Set guarantees that IndexMap contains the value.
+        assert(indexMapItr != indexMap.end());
+
+        // Retrieve the corresponding List node.
+        const auto listItr = indexMapItr->second;
+
+        assert(listItr != list.end());
+        assert(*listItr == value);
+
+        // Remove membership.
+        set.erase(setItr);
+
+        // Remove the index entry.
+        indexMap.erase(indexMapItr);
+
+        // Remove the ordered List node.
+        list.erase(listItr);
+
+        assert(nolock_is_consistent());
+
+        return true;
+    }
+
+    void configure(IndexMap& map) const noexcept {
+        map.max_load_factor(max_load_factor(maxLoadFactor));
+        map.reserve(reserve_count(reserveCount));
+    }
+
+    void configure(Set& valueSet) const noexcept {
+        valueSet.max_load_factor(max_load_factor(maxLoadFactor));
+        valueSet.reserve(reserve_count(reserveCount));
+    }
+
+    const usize reserveCount;
+    const float maxLoadFactor;
+
+    // Protects access to all registry containers.
+    mutable std::shared_mutex mutex;
+
+    // Preserves true insertion order for deterministic iteration.
+    List list;
+
+    // Provides average O(1) fast lookup and removal.
+    // Maps each value to its corresponding iterator in List.
+    IndexMap indexMap;
+
+    // Provides average O(1) fast uniqueness and membership checks.
+    Set set;
+};
 
 struct IndexRange final {
    public:
@@ -1153,6 +1601,95 @@ struct CommandLine final {
 #endif
 };
 
+// OsToMutexMap
+//
+// Provides a thread-safe process-wide map that associates a unique mutex
+// with each std::ostream pointer.
+//
+// The map allows multiple threads to synchronize access to the same ostream
+// without unnecessarily locking unrelated ostreams.
+//
+// Key Features:
+//  - Thread-safe: map access is protected by a mutex.
+//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
+//  - Lazy initialization: mutexes are created when first requested.
+//  - Null-safe: nullptr is a valid key and maps to its own mutex.
+//
+// Usage:
+//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
+//    from multiple threads.
+//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//
+// Lifetime:
+//  - The map does not own the std::ostream objects.
+//  - Mutexes remain in the map for the lifetime of the process.
+using OsToMutexMap = ConcurrentMap<std::ostream*, std::mutex>;
+
+// SyncOS
+//
+// Provides RAII-based, thread-safe output synchronization for a std::ostream.
+//
+// Each SyncOS acquires the mutex associated with the given ostream through
+// OstreamMutexRegistry and holds the lock for its lifetime.
+//
+// Key Features:
+//  - Thread-safe: synchronizes access to the associated ostream.
+//  - RAII-based: acquires the mutex on construction and releases it on destruction.
+//  - Move-constructible: allows SyncOS objects to be returned by value.
+//  - Non-copyable and non-move-assignable: prevents accidental lock ownership changes.
+//  - Supports standard ostream operators and manipulators.
+//  - Asserts on use of a moved-from SyncOS in debug builds.
+//
+// Usage:
+//   SyncOS(std::cout) << "Thread-safe message " << value << std::endl;
+//
+// Notes:
+//  - The lock is held for the lifetime of the SyncOS object.
+//  - Keep SyncOS objects short-lived to minimize lock contention.
+//  - OstreamMutexRegistry ensures that the same ostream uses the same mutex.
+class [[nodiscard]] SyncOS final {
+   public:
+    explicit SyncOS(std::ostream& os) noexcept;
+
+    SyncOS(const SyncOS&) noexcept            = delete;
+    SyncOS& operator=(const SyncOS&) noexcept = delete;
+    // Move-constructible so SyncOS objects can be returned by value
+    SyncOS(SyncOS&& syncOs) noexcept;
+    // Move-assignment is deleted to prevent changing lock ownership
+    SyncOS& operator=(SyncOS&&) noexcept = delete;
+
+    using IosManip = std::ios& (*) (std::ios&);
+
+    SyncOS&  operator<<(IosManip manip) &;
+    SyncOS&& operator<<(IosManip manip) &&;
+
+    using OstreamManip = std::ostream& (*) (std::ostream&);
+
+    SyncOS&  operator<<(OstreamManip manip) &;
+    SyncOS&& operator<<(OstreamManip manip) &&;
+
+    template<typename T>
+    SyncOS& operator<<(T&& x) & {
+        assert(osPtr != nullptr && "Use of moved-from SyncOS");
+
+        *osPtr << std::forward<T>(x);
+        return *this;
+    }
+    template<typename T>
+    SyncOS&& operator<<(T&& x) && {
+        assert(osPtr != nullptr && "Use of moved-from SyncOS");
+
+        *osPtr << std::forward<T>(x);
+        return std::move(*this);
+    }
+
+   private:
+    std::ostream*                osPtr;
+    std::unique_lock<std::mutex> lock;
+};
+
+[[nodiscard]] SyncOS sync_os(std::ostream& os = std::cout) noexcept;
+
 // Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
 // Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
 // and only non-tearing accesses are required for the updates, while ensuring we use relaxed accesses otherwise.
@@ -1347,200 +1884,6 @@ class AllocationSizes final {
     const FreeFunc                   freeFunc;
     mutable std::shared_mutex        mutex;
     std::unordered_map<void*, usize> sizesMap;
-};
-
-// ConcurrentCache: thread-safe key-value cache with pre-reserved storage
-template<typename Key, typename Value>
-class ConcurrentCache final {
-   public:
-    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
-        reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFtr) {
-        for (auto& shard : shards)
-        {
-            std::lock_guard writeLock(shard.mutex);
-
-            configure(shard.valueMap);
-        }
-    }
-
-    template<typename... Args>
-    Value access_or_build(const Key& key, Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock readLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return get(itr->second);
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Args>(args)...);
-
-        return get(itr->second);
-    }
-
-    template<typename Builder, typename... Args>
-    Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock readLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return get(itr->second);
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-
-        return get(itr->second);
-    }
-
-    template<typename Transformer, typename... Args>
-    auto
-    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock readLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return std::forward<Transformer>(transformer)(get_ref(itr->second));
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Args>(args)...);
-
-        return std::forward<Transformer>(transformer)(get_ref(itr->second));
-    }
-
-    template<typename Transformer, typename Builder, typename... Args>
-    auto transform_access_or_build_with(const Key&    key,
-                                        Transformer&& transformer,
-                                        Builder&&     builder,
-                                        Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock readLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return std::forward<Transformer>(transformer)(get_ref(itr->second));
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-
-        return std::forward<Transformer>(transformer)(get_ref(itr->second));
-    }
-
-    void reset() noexcept {
-        for (auto& shard : shards)
-        {
-            std::lock_guard writeLock(shard.mutex);
-
-            shard.valueMap.clear();
-            shard.valueMap.rehash(0);
-            configure(shard.valueMap);
-        }
-    }
-
-   private:
-    ConcurrentCache(const ConcurrentCache&)            = delete;
-    ConcurrentCache& operator=(const ConcurrentCache&) = delete;
-    ConcurrentCache(ConcurrentCache&&)                 = delete;
-    ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
-
-    static constexpr usize ShardCount    = 32;
-    static constexpr usize ThresholdSize = 128;
-    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
-
-    using StorageValue =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
-
-    using ValueMap = std::unordered_map<Key, StorageValue>;
-
-    struct alignas(64) Shard final {
-       public:
-        std::shared_mutex mutex;
-        ValueMap          valueMap;
-    };
-
-    using Shards = Array<Shard, ShardCount>;
-
-    // Helper functions for hashing, sharding, and value storage.
-
-    // General-purpose key hasher
-    static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
-
-    // Select the shard associated with the key.
-    static usize shard_index(const Key& key) noexcept { return hash_key(key) & (ShardCount - 1); }
-
-    // Set the stored value, using direct storage or heap allocation based on its size.
-    template<typename... Args>
-    static void set(StorageValue& value, Args&&... args) noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            value = Value(std::forward<Args>(args)...);
-        else
-            value = std::make_unique<Value>(std::forward<Args>(args)...);
-    }
-
-    // Return a copy of the stored value, dereferencing heap storage when used.
-    static Value get(const StorageValue& value) noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            return value;
-        else
-            return *value;
-    }
-
-    // Return a reference to the stored value, dereferencing heap storage when used.
-    static const Value& get_ref(const StorageValue& value) noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            return value;
-        else
-            return *value;
-    }
-
-    void configure(ValueMap& valueMap) const noexcept {
-        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
-        valueMap.reserve(reserve_count(ceil_div(reserveCount, ShardCount)));
-    }
-
-    Shard& get_shard(const Key& key) noexcept { return shards[shard_index(key)]; }
-
-    usize  reserveCount;
-    float  maxLoadFactor;
-    Shards shards;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.

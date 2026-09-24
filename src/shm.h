@@ -423,78 +423,29 @@ class BaseSharedMemory {
 
 // MemoryRegistry
 //
-// Provides a thread-safe process-wide registry for tracking registered memory
-// objects (BaseSharedMemory) without owning them.
+// Provides a thread-safe process-wide registry for tracking registered
+// BaseSharedMemory objects without owning them.
 //
 // The registry provides:
 //  - True insertion order through List
-//  - Average O(1) fast lookup, count and removal through IndexMap
-//  - Average O(1) fast membership validation through Set
-//  - Average O(1) fast registration and unregistration by maintaining all containers
+//  - Average O(1) lookup and removal through IndexMap
+//  - Average O(1) membership and uniqueness checks through Set
 //
-// Key Features:
-//  - Thread-safe registration and unregistration
-//  - Deterministic iteration order
-//  - Average O(1) fast lookup, count and removal
-//  - Lightweight: stores raw pointers only; lifetime is managed externally
-//
-// Implementation:
-//  - List preserves true insertion order for deterministic iteration
-//  - IndexMap provides average O(1) lookup and maps each memory to its
-//    corresponding iterator in List
-//  - Set provides uniqueness and membership validation
-//
-// Concurrency Model:
+// Concurrency:
 //  - Mutex protects all registry containers
-//  - Read-only access uses shared locking
-//  - Registration and unregistration use exclusive locking
+//  - Read-only operations use shared locking
+//  - Registration, unregistration, and detachment use exclusive locking
+//
+// Lifetime:
+//  - The registry stores raw pointers only and does not own the objects
+//  - Registered memory must remain valid until it is unregistered
 //
 // Usage:
-//  - Call 'register_memory()' after successful memory creation
-//  - Call 'unregister_memory()' before destruction
-//
-// Note:
-//  - The registry does not own or reset registered memory objects.
-namespace MemoryRegistry {
+//  - Register memory after successful creation
+//  - Unregister memory before destruction
+using MemoryRegistry = ConcurrentRegistry<BaseSharedMemory*>;
 
-using Memory         = BaseSharedMemory*;
-using MemoryList     = std::list<Memory>;
-using MemoryIndexMap = std::unordered_map<Memory, MemoryList::iterator>;
-using MemorySet      = std::unordered_set<Memory>;
-
-// Register a memory object in the registry.
-//
-// Returns false if:
-//  - memory is nullptr
-//  - the object is already registered
-bool register_memory(Memory memory) noexcept;
-
-// Unregister a memory object from the registry.
-//
-// Returns false if:
-//  - memory is nullptr
-//  - the object is not registered
-bool unregister_memory(Memory memory) noexcept;
-
-// Detach all registered memory objects from the registry.
-//
-// Returns the objects in true insertion order.
-//
-// All registry containers are cleared before the returned list is processed,
-// allowing callers to safely operate on the objects without holding 'Mutex'.
-MemoryList detach_memories() noexcept;
-
-// Returns the number of currently registered memory objects.
-usize size() noexcept;
-bool  empty() noexcept;
-
-// Prints the addresses and names of all registered memory objects
-// in true insertion order.
-//
-// The registry lock is held for the duration of the iteration and output.
-void print() noexcept;
-
-}  // namespace MemoryRegistry
+inline MemoryRegistry memoryRegistry(1 * KB, 0.75f);
 
 // MemoryCleanup
 //
@@ -648,7 +599,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMemory)
             return *this;
 
-        [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(this);
+        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(this);
         assert(unregistered);
 
         reset();
@@ -789,7 +740,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         // Register for cleanup at exit
-        [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
+        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
         assert(registered);
 
         return true;
@@ -814,7 +765,7 @@ class SharedMemory final: public BaseSharedMemory {
     //  - unregister the source object
     //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
-        [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(&sharedMemory);
+        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(&sharedMemory);
         assert(unregistered);
 
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
@@ -825,13 +776,13 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
+        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
         assert(registered);
     }
 
     // Unregister SharedMemory object and reset resources
     bool reset_with_registry() noexcept {
-        if (!MemoryRegistry::unregister_memory(this))
+        if (!memoryRegistry.unregister_value(this))
             return false;
 
         reset();
