@@ -1244,6 +1244,65 @@ class ConcurrentRegistry final {
     Set set;
 };
 
+// ConcurrentRegistryCleanup: detaches all values from a ConcurrentRegistry and resets each non-null value.
+template<typename ConcurrentRegistry>
+class ConcurrentRegistryCleanup final {
+   public:
+    explicit ConcurrentRegistryCleanup(ConcurrentRegistry& reg) noexcept :
+        registry(reg) {}
+
+    void cleanup() noexcept {
+        auto valueList = registry.detach_values();
+
+        for (auto* const value : valueList)
+            if (value != nullptr)
+                value->reset();
+    }
+
+   private:
+    ConcurrentRegistryCleanup(const ConcurrentRegistryCleanup&)            = delete;
+    ConcurrentRegistryCleanup& operator=(const ConcurrentRegistryCleanup&) = delete;
+    ConcurrentRegistryCleanup(ConcurrentRegistryCleanup&&)                 = delete;
+    ConcurrentRegistryCleanup& operator=(ConcurrentRegistryCleanup&&)      = delete;
+
+    ConcurrentRegistry& registry;
+};
+
+// ConcurrentRegistryCleanupHook: ensures a ConcurrentRegistryCleanup callback
+// is registered only once with std::atexit() and retries until successfully registered
+// for normal program termination.
+template<typename ConcurrentRegistryCleanup>
+class ConcurrentRegistryCleanupHook final {
+   public:
+    explicit ConcurrentRegistryCleanupHook(ConcurrentRegistryCleanup& regCleanup) noexcept :
+        registryCleanup(regCleanup) {}
+
+    void ensure_initialized() noexcept {
+        while (!hookCallOnce.once_done())
+        {
+            registryCleanupPtr = &registryCleanup;
+
+            hookCallOnce([]() noexcept -> void { std::atexit(cleanupFunction); });
+        }
+    }
+
+   private:
+    ConcurrentRegistryCleanupHook(const ConcurrentRegistryCleanupHook&)            = delete;
+    ConcurrentRegistryCleanupHook& operator=(const ConcurrentRegistryCleanupHook&) = delete;
+    ConcurrentRegistryCleanupHook(ConcurrentRegistryCleanupHook&&)                 = delete;
+    ConcurrentRegistryCleanupHook& operator=(ConcurrentRegistryCleanupHook&&)      = delete;
+
+    static void cleanupFunction() noexcept {
+        if (registryCleanupPtr != nullptr)
+            registryCleanupPtr->cleanup();
+    }
+
+    ConcurrentRegistryCleanup& registryCleanup;
+
+    static inline ConcurrentRegistryCleanup* registryCleanupPtr = nullptr;
+    static inline CallOnce                   hookCallOnce;
+};
+
 struct IndexRange final {
    public:
     usize beg;

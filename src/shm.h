@@ -440,53 +440,41 @@ class BaseSharedMemory {
 // Usage:
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
-using MemoryRegistry = ConcurrentRegistry<BaseSharedMemory*>;
+inline ConcurrentRegistry<BaseSharedMemory*> memoryRegistry(usize{256}, 0.75f);
 
-inline MemoryRegistry memoryRegistry(usize{256}, 0.75f);
-
-// MemoryCleanup
+// MemoryRegistryCleanup
 //
 // Provides cleanup of all currently registered memory objects.
 //
 // Responsibilities:
-//  - Detach all registered memory objects from the registry
-//  - Reset each detached memory object
+//  - Detach all registered memory objects from the registry.
+//  - Reset each detached memory object.
 //
 // Note:
 //  - Registry management is handled by MemoryRegistry.
-//  - Process-exit hook installation is handled by MemoryCleanupHook.
+//  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
-namespace MemoryCleanup {
+inline ConcurrentRegistryCleanup memoryRegistryCleanup(memoryRegistry);
 
-// Detaches and reset all currently registered memory objects in insertion order.
-void cleanup() noexcept;
-
-}  // namespace MemoryCleanup
-
-// MemoryCleanupHook
+// MemoryRegistryCleanupHook
 //
-// Provides one-time installation of the memory cleanup handler for normal
+// Provides one-time installation of the memory cleanup callback for normal
 // program termination.
 //
 // Usage:
-//   Call MemoryCleanupHook::ensure_initialized() early in main().
+//  Call 'ensure_initialized()' early during program startup.
 //
 // Key Features:
-//   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
-//   - Retries initialization until the cleanup handler is successfully registered.
-//   - Registers MemoryCleanup::cleanup() with std::atexit().
-//   - Does not manage the registry or perform cleanup itself.
+//  - Uses 'CallOnce' to ensure the cleanup callback is registered only once.
+//  - Retries initialization until the cleanup callback is successfully registered.
+//  - Registers the cleanup callback with std::atexit().
+//  - Does not own the cleanup object or perform cleanup itself.
 //
 // Note:
-//   - The atexit() handler is guaranteed to be called only during normal program termination.
-//     It is not called after SIGKILL, abort(), or other abnormal/forced program termination.
-namespace MemoryCleanupHook {
-
-// Ensures the memory cleanup handler is successfully registered with std::atexit().
-// Initialization is retried until successful; subsequent calls return immediately.
-void ensure_initialized() noexcept;
-
-}  // namespace MemoryCleanupHook
+//  - The referenced cleanup object must remain valid until program exit.
+//  - The atexit() handler is called only during normal program termination.
+//    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
+inline ConcurrentRegistryCleanupHook memoryRegistryCleanupHook(memoryRegistryCleanup);
 
 // TempRoot
 //
@@ -609,7 +597,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
                                                                const T&         value) noexcept {
-        MemoryCleanupHook::ensure_initialized();
+        memoryRegistryCleanupHook.ensure_initialized();
 
         const auto& tempRoot = TempRoot::temp_root();
 

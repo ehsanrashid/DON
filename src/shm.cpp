@@ -154,39 +154,6 @@ BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
 
 std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 
-namespace MemoryCleanup {
-
-void cleanup() noexcept {
-    auto memoryList = memoryRegistry.detach_values();
-
-    //DEBUG_LOG("Memory cleanup started (" << memoryList.size() << " object(s)).");
-    for (auto* const memory : memoryList)
-        if (memory != nullptr)
-            memory->reset();
-}
-
-}  // namespace MemoryCleanup
-
-namespace MemoryCleanupHook {
-
-namespace {
-
-CallOnce HookCallOnce;
-
-}  // namespace
-
-void ensure_initialized() noexcept {
-    while (!HookCallOnce.once_done())
-        HookCallOnce([]() noexcept -> void {
-            //DEBUG_LOG("Initializing MemoryCleanupHook.");
-
-            std::atexit(MemoryCleanup::cleanup);
-        });
-}
-
-}  // namespace MemoryCleanupHook
-
-
 TempRoot::TempRoot(std::string path) noexcept :
     path_(std::move(path)) {}
 
