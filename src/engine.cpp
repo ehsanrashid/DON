@@ -40,43 +40,43 @@ Engine::Engine(const fs::path& path) noexcept :
     networkFile{std::nullopt, {}},
     network(numaContext, default_network()) {
 
-    options().add("NumaPolicy",        Option("auto", OnChange([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
-    options().add("Threads",           Option(1, 1, int(THREAD_MAX), OnChange([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
-    options().add("Hash",              Option(16, 1, int(HASH_MAX), OnChange([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
-    options().add("Clear Hash",        Option(OnChange([this](const Option&) { reset(); return std::nullopt; })));
-    options().add("HashRetain",        Option(false));
-    options().add("HashFile",          Option(""));
-    options().add("Save Hash",         Option(OnChange([this](const Option&) { return save_hash(utf8_to_path(options()["HashFile"])) ? "Save succeeded" : "Save failed"; })));
-    options().add("Load Hash",         Option(OnChange([this](const Option&) { return load_hash(utf8_to_path(options()["HashFile"])) ? "Load succeeded" : "Load failed"; })));
-    options().add("Ponder",            Option(false));
-    options().add("MultiPV",           Option(1, 1, int(MOVE_MAX)));
-    options().add("UCI_Chess960",      Option(Position::Chess960, OnChange([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
-    options().add("UCI_LimitStrength", Option(false));
-    options().add("UCI_ELO",           Option(int(Skill::ELOMax), int(Skill::ELOMin), int(Skill::ELOMax)));
-    options().add("UCI_ShowWDL",       Option(false));
-    options().add("SkillLevel",        Option(int(Skill::LevelMax), int(Skill::LevelMin), int(Skill::LevelMax)));
-    options().add("OverheadTime",      Option(25,  0, 5000));  // Estimated overhead per move
-    options().add("MinMoveTime",       Option(20,  0, 5000));  // Minimum time allowed per move
-    options().add("MaxForcedMoveTime", Option(500, 0, 5000));  // Maximum time allowed for a forced move
-    options().add("BufferTime",        Option(10,  0, 5000));  // Safety reserve to prevent time trouble
-    options().add("TimePercent",       Option(80, 10, 1000));  // Percentage of remaining time to use
-    options().add("NodesTime",         Option(0, 0, 10000));
-    options().add("SleepOnStart",      Option(false));
-    options().add("HistoryLoadFactor", Option(75, 10, 100, OnChange([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
-    options().add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnChange([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
-    options().add("Book",              Option(false));
-    options().add("BookFile",          Option("", OnChange([](const Option& o) { return load_book(utf8_to_path(o)) ? "Load succeeded" : "Load failed"; })));
-    options().add("BookProbeDepth",    Option(100, 1, 256));
-    options().add("BookBestPick",      Option(true));
-    options().add("SyzygyPath",        Option("", OnChange([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
-    options().add("SyzygyProbeLimit",  Option(Tablebase::Syzygy::TB_PIECES_MAX, 0, Tablebase::Syzygy::TB_PIECES_MAX));
-    options().add("SyzygyProbeDepth",  Option(1, 1, 100));
-    options().add("Syzygy50MoveRule",  Option(true));
-    options().add("SyzygyPVExtend",    Option(true));
-    options().add("EvalFile",          Option(EvalFileDefaultName, OnChange([this](const Option& o) { load_network(utf8_to_path(o)); return std::nullopt; })));
-    options().add("MinimalInfo",       Option(false));
-    options().add("LogFile",           Option("", OnChange([](const Option& o) { return Logger::start(utf8_to_path(o)) ? "Logger started" : "Logger not started"; })));
-    options().add("Stop Logger",       Option(OnChange([](const Option&) { Logger::stop(); return std::nullopt; })));
+    options().add("NumaPolicy",        OptionFactory::string("auto", OnChange([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
+    options().add("Threads",           OptionFactory::spin(1, 1, int(THREAD_MAX), OnChange([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
+    options().add("Hash",              OptionFactory::spin(16, 1, int(HASH_MAX), OnChange([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
+    options().add("Clear Hash",        OptionFactory::button(OnChange([this](const Option&) { reset(); return std::nullopt; })));
+    options().add("HashRetain",        OptionFactory::check(false));
+    options().add("HashFile",          OptionFactory::string(""));
+    options().add("Save Hash",         OptionFactory::button(OnChange([this](const Option&) { return save_hash(utf8_to_path(options()["HashFile"])) ? "Save succeeded" : "Save failed"; })));
+    options().add("Load Hash",         OptionFactory::button(OnChange([this](const Option&) { return load_hash(utf8_to_path(options()["HashFile"])) ? "Load succeeded" : "Load failed"; })));
+    options().add("Ponder",            OptionFactory::check(false));
+    options().add("MultiPV",           OptionFactory::spin(1, 1, int(MOVE_MAX)));
+    options().add("UCI_Chess960",      OptionFactory::check(Position::Chess960, OnChange([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
+    options().add("UCI_LimitStrength", OptionFactory::check(false));
+    options().add("UCI_ELO",           OptionFactory::spin(int(Skill::ELOMax), int(Skill::ELOMin), int(Skill::ELOMax)));
+    options().add("UCI_ShowWDL",       OptionFactory::check(false));
+    options().add("SkillLevel",        OptionFactory::spin(int(Skill::LevelMax), int(Skill::LevelMin), int(Skill::LevelMax)));
+    options().add("OverheadTime",      OptionFactory::spin(25,  0, 5000));  // Estimated overhead per move
+    options().add("MinMoveTime",       OptionFactory::spin(20,  0, 5000));  // Minimum time allowed per move
+    options().add("MaxForcedMoveTime", OptionFactory::spin(500, 0, 5000));  // Maximum time allowed for a forced move
+    options().add("BufferTime",        OptionFactory::spin(10,  0, 5000));  // Safety reserve to prevent time trouble
+    options().add("TimePercent",       OptionFactory::spin(80, 10, 1000));  // Percentage of remaining time to use
+    options().add("NodesTime",         OptionFactory::spin(0, 0, 10000));
+    options().add("SleepOnStart",      OptionFactory::check(false));
+    options().add("HistoryLoadFactor", OptionFactory::spin(75, 10, 100, OnChange([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
+    options().add("DrawMoveCount",     OptionFactory::spin(Position::DrawMoveCount, 5, 50, OnChange([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
+    options().add("Book",              OptionFactory::check(false));
+    options().add("BookFile",          OptionFactory::string("", OnChange([](const Option& o) { return load_book(utf8_to_path(o)) ? "Load succeeded" : "Load failed"; })));
+    options().add("BookProbeDepth",    OptionFactory::spin(100, 1, 256));
+    options().add("BookBestPick",      OptionFactory::check(true));
+    options().add("SyzygyPath",        OptionFactory::string("", OnChange([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
+    options().add("SyzygyProbeLimit",  OptionFactory::spin(Tablebase::Syzygy::TB_PIECES_MAX, 0, Tablebase::Syzygy::TB_PIECES_MAX));
+    options().add("SyzygyProbeDepth",  OptionFactory::spin(1, 1, 100));
+    options().add("Syzygy50MoveRule",  OptionFactory::check(true));
+    options().add("SyzygyPVExtend",    OptionFactory::check(true));
+    options().add("EvalFile",          OptionFactory::string(EvalFileDefaultName, OnChange([this](const Option& o) { load_network(utf8_to_path(o)); return std::nullopt; })));
+    options().add("MinimalInfo",       OptionFactory::check(false));
+    options().add("LogFile",           OptionFactory::string("", OnChange([](const Option& o) { return Logger::start(utf8_to_path(o)) ? "Logger started" : "Logger not started"; })));
+    options().add("Stop Logger",       OptionFactory::button(OnChange([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
     set_history_max_load_factor();
