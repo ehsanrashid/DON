@@ -18,7 +18,8 @@
 #include "shm.h"
 
 #if defined(_WIN32)
-
+#elif defined(__ANDROID__)
+    #include <unistd.h>
 #elif defined(USE_UNIX_SHM)
     #include <dirent.h>    // closedir(), opendir(), readdir(), DIR, dirent
     #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
@@ -27,9 +28,6 @@
     #include <sys/uio.h>   // iovec
 
     #include <algorithm>  // min()/max()
-
-#elif defined(__ANDROID__)
-    #include <unistd.h>
 #endif
 
 namespace DON {

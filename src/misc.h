@@ -56,7 +56,7 @@
 #endif
 
 #if defined(USE_MM_PREFETCH)
-    #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
+    #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
 #endif
 
 #if defined(__i386__) || defined(_M_IX86)
@@ -1245,11 +1245,11 @@ class ConcurrentRegistry final {
     Set set;
 };
 
-// ConcurrentRegistryCleanup: detaches all values from a ConcurrentRegistry and resets each non-null value.
+// RegistryCleanup: detaches all values from a ConcurrentRegistry and resets each non-null value.
 template<typename ConcurrentRegistry>
-class ConcurrentRegistryCleanup final {
+class RegistryCleanup final {
    public:
-    explicit ConcurrentRegistryCleanup(ConcurrentRegistry& reg) noexcept :
+    explicit RegistryCleanup(ConcurrentRegistry& reg) noexcept :
         registry(reg) {}
 
     void cleanup() noexcept {
@@ -1261,21 +1261,21 @@ class ConcurrentRegistryCleanup final {
     }
 
    private:
-    ConcurrentRegistryCleanup(const ConcurrentRegistryCleanup&)            = delete;
-    ConcurrentRegistryCleanup& operator=(const ConcurrentRegistryCleanup&) = delete;
-    ConcurrentRegistryCleanup(ConcurrentRegistryCleanup&&)                 = delete;
-    ConcurrentRegistryCleanup& operator=(ConcurrentRegistryCleanup&&)      = delete;
+    RegistryCleanup(const RegistryCleanup&)            = delete;
+    RegistryCleanup& operator=(const RegistryCleanup&) = delete;
+    RegistryCleanup(RegistryCleanup&&)                 = delete;
+    RegistryCleanup& operator=(RegistryCleanup&&)      = delete;
 
     ConcurrentRegistry& registry;
 };
 
-// ConcurrentRegistryCleanupHook: ensures a ConcurrentRegistryCleanup callback
-// is registered only once with std::atexit() and retries until successfully registered
+// RegistryCleanupHook: ensures a RegistryCleanup callback is registered
+// only once with std::atexit() and retries until successfully registered
 // for normal program termination.
-template<typename ConcurrentRegistryCleanup>
-class ConcurrentRegistryCleanupHook final {
+template<typename RegistryCleanup>
+class RegistryCleanupHook final {
    public:
-    explicit ConcurrentRegistryCleanupHook(ConcurrentRegistryCleanup& regCleanup) noexcept :
+    explicit RegistryCleanupHook(RegistryCleanup& regCleanup) noexcept :
         registryCleanup(regCleanup) {}
 
     void ensure_initialized() noexcept {
@@ -1288,20 +1288,20 @@ class ConcurrentRegistryCleanupHook final {
     }
 
    private:
-    ConcurrentRegistryCleanupHook(const ConcurrentRegistryCleanupHook&)            = delete;
-    ConcurrentRegistryCleanupHook& operator=(const ConcurrentRegistryCleanupHook&) = delete;
-    ConcurrentRegistryCleanupHook(ConcurrentRegistryCleanupHook&&)                 = delete;
-    ConcurrentRegistryCleanupHook& operator=(ConcurrentRegistryCleanupHook&&)      = delete;
+    RegistryCleanupHook(const RegistryCleanupHook&)            = delete;
+    RegistryCleanupHook& operator=(const RegistryCleanupHook&) = delete;
+    RegistryCleanupHook(RegistryCleanupHook&&)                 = delete;
+    RegistryCleanupHook& operator=(RegistryCleanupHook&&)      = delete;
 
     static void cleanupFunction() noexcept {
         if (registryCleanupPtr != nullptr)
             registryCleanupPtr->cleanup();
     }
 
-    ConcurrentRegistryCleanup& registryCleanup;
+    RegistryCleanup& registryCleanup;
 
-    static inline ConcurrentRegistryCleanup* registryCleanupPtr = nullptr;
-    static inline CallOnce                   hookCallOnce;
+    static inline RegistryCleanup* registryCleanupPtr = nullptr;
+    static inline CallOnce         hookCallOnce;
 };
 
 struct IndexRange final {

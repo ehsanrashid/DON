@@ -50,7 +50,6 @@
     #endif
 
     #include "platform_win.h"
-
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC
     #include <limits.h>
@@ -91,16 +90,16 @@
     #endif
 
     #if !defined(ACCESSPERMS)
-        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO) /* 0777 */
+        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)  // 0777
     #endif
     #if !defined(ALLPERMS)
-        #define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO) /* 07777 */
+        #define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)  // 07777
     #endif
     #if !defined(DEFFILEMODE)
-        #define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666*/
+        #define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)  // 0666
     #endif
     #if !defined(S_BLKSIZE)
-        #define S_BLKSIZE 512 /* Block size for `st_blocks' */
+        #define S_BLKSIZE 512  // Block size for 'st_blocks'
     #endif
     #if (defined(__linux__))
         #if !defined(MADV_COLLAPSE)
@@ -454,7 +453,7 @@ inline ConcurrentRegistry<BaseSharedMemory*> memoryRegistry(usize{256}, 0.75f);
 //  - Registry management is handled by MemoryRegistry.
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
-inline ConcurrentRegistryCleanup memoryRegistryCleanup(memoryRegistry);
+inline RegistryCleanup memoryRegistryCleanup(memoryRegistry);
 
 // MemoryRegistryCleanupHook
 //
@@ -474,7 +473,7 @@ inline ConcurrentRegistryCleanup memoryRegistryCleanup(memoryRegistry);
 //  - The referenced cleanup object must remain valid until program exit.
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
-inline ConcurrentRegistryCleanupHook memoryRegistryCleanupHook(memoryRegistryCleanup);
+inline RegistryCleanupHook memoryRegistryCleanupHook(memoryRegistryCleanup);
 
 // TempRoot
 //
