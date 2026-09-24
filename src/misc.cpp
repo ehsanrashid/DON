@@ -591,7 +591,7 @@ const StringViews& CommandLine::arguments() const noexcept { return arguments_; 
 
 namespace {
 
-OsToMutexMap osToMutex(1 * KB, 0.75f);
+OsToMutexMap osToMutex(usize{32}, 0.75f);
 
 }  // namespace
 

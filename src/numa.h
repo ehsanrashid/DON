@@ -44,8 +44,8 @@
 #endif
 
 #include "misc.h"
-#include "shm.h"
 #include "native_thread.h"
+#include "shm.h"
 
 namespace DON {
 

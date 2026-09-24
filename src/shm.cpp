@@ -26,10 +26,9 @@
     #include <sys/time.h>  // timeval
     #include <sys/uio.h>   // iovec
 
-    #include <algorithm>     // min()/max()
-    #include <cstdlib>       // atexit()
-    #include <mutex>         // lock_guard
-    #include <shared_mutex>  // shared_lock, shared_mutex
+    #include <algorithm>  // min()/max()
+    #include <cstdlib>    // atexit()
+    #include <list>
 
 #elif defined(__ANDROID__)
     #include <unistd.h>

@@ -1329,6 +1329,10 @@ analyze: net config-sanity obj-clean
 
 ifeq ($(UNIVERSAL_BUILD),no)
 build: net config-sanity
+	$(info MAKELEVEL=$(MAKELEVEL))
+	$(info MAKEFLAGS=$(MAKEFLAGS))
+	$(info LTO_JOBSERVER=$(LTO_JOBSERVER))
+	$(info LTO_JOB_FLAG=$(LTO_JOB_FLAG))
 	$(MAKE) all
 
 profile-build: net config-sanity obj-clean profile-clean

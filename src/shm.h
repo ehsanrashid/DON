@@ -64,10 +64,7 @@
     #include <cassert>
     #include <cerrno>
     #include <cstring>  // strncpy
-    #include <list>
     #include <optional>
-    #include <unordered_map>
-    #include <unordered_set>
 
     // Linux (non-Android)
     #if defined(__linux__) && !defined(__ANDROID__)
@@ -445,7 +442,7 @@ class BaseSharedMemory {
 //  - Unregister memory before destruction
 using MemoryRegistry = ConcurrentRegistry<BaseSharedMemory*>;
 
-inline MemoryRegistry memoryRegistry(1 * KB, 0.75f);
+inline MemoryRegistry memoryRegistry(usize{256}, 0.75f);
 
 // MemoryCleanup
 //

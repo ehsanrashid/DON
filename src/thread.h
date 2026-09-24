@@ -34,8 +34,8 @@
 #include "native_thread.h"
 #include "numa.h"
 #include "position.h"
-#include "thread_context.h"
 #include "search.h"
+#include "thread_context.h"
 
 namespace DON {
 
