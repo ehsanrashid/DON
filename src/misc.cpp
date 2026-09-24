@@ -455,11 +455,13 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     std::tm tm{};
 #if defined(_WIN32)  // Windows
     localtime_s(&tm, &time);
-#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Linux / macOS)
+#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Unix-like systems / macOS)
     localtime_r(&time, &tm);
 #else
     // Fallback (not thread-safe)
-    tm = *std::localtime(&time);
+    const auto* const localTm = std::localtime(&time);
+    assert(localTm != nullptr);
+    tm = *localTm;
 #endif
 
     Array<char, 32> buffer{};
@@ -468,7 +470,7 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     // Format the date and time: YYYY.MM.DD-HH:MM:SS
     writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
     // Append microseconds
-    writtenSize += static_cast<usize>(
+    writtenSize += usize(
       std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec));
 
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};

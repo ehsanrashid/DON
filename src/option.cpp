@@ -28,9 +28,9 @@ Option::Option(std::string_view str, OnChange&& onCng) noexcept :
     currentValue(str),
     onChange(std::move(onCng)) {}
 
-std::string_view Option::default_value() const noexcept { return defaultValue; }
-
 std::string_view Option::current_value() const noexcept { return currentValue; }
+
+std::string_view Option::default_value() const noexcept { return defaultValue; }
 
 void Option::on_change() noexcept {
     if (!onChange)

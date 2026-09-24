@@ -43,9 +43,9 @@ class Option {
 
     virtual ~Option() = default;
 
-    std::string_view default_value() const noexcept;
-
     std::string_view current_value() const noexcept;
+
+    std::string_view default_value() const noexcept;
 
     virtual std::string_view type() const noexcept = 0;
 
@@ -68,9 +68,14 @@ class Option {
 
     void on_change() noexcept;
 
+   private:
     const std::string defaultValue;
-    std::string       currentValue;
-    OnChange          onChange;
+
+   protected:
+    std::string currentValue;
+
+   private:
+    OnChange onChange;
 
     const Options* optionsPtr = nullptr;
 
