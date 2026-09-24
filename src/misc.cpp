@@ -494,64 +494,6 @@ bool CaseInsensitiveLess::operator()(const std::string_view sv1,
       [](const char ch1, const char ch2) noexcept { return lower_case(ch1) < lower_case(ch2); });
 }
 
-namespace OstreamMutexRegistry {
-
-namespace {
-
-// Protects access to the mutex registry container.
-std::mutex Mutex;
-
-// Associates each ostream pointer with its mutex.
-OstreamMutexMap MutexMap;
-
-}  // namespace
-
-std::mutex& get(std::ostream* const osPtr) noexcept {
-    std::lock_guard writeLock(Mutex);
-
-    return MutexMap[osPtr];
-}
-
-}  // namespace OstreamMutexRegistry
-
-SyncOstream::SyncOstream(std::ostream& os) noexcept :
-    osPtr(&os),
-    lock(OstreamMutexRegistry::get(osPtr)) {}
-
-SyncOstream::SyncOstream(SyncOstream&& syncOs) noexcept :
-    osPtr(std::exchange(syncOs.osPtr, nullptr)),
-    lock(std::move(syncOs.lock)) {}
-
-SyncOstream& SyncOstream::operator<<(IosManip manip) & {
-    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-    manip(*osPtr);
-    return *this;
-}
-
-SyncOstream&& SyncOstream::operator<<(IosManip manip) && {
-    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-    manip(*osPtr);
-    return std::move(*this);
-}
-
-SyncOstream& SyncOstream::operator<<(OstreamManip manip) & {
-    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-    manip(*osPtr);
-    return *this;
-}
-
-SyncOstream&& SyncOstream::operator<<(OstreamManip manip) && {
-    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-    manip(*osPtr);
-    return std::move(*this);
-}
-
-SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
-
 FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
 FixedText& FixedText::write(const char ch) noexcept {
@@ -646,6 +588,51 @@ fs::path CommandLine::binary_directory(fs::path path) noexcept {
 fs::path CommandLine::working_directory() noexcept { return fs::current_path(); }
 
 const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
+
+namespace {
+
+OsToMutexMap osToMutex(usize{32}, 0.75f);
+
+}  // namespace
+
+SyncOS::SyncOS(std::ostream& os) noexcept :
+    osPtr(&os),
+    lock(osToMutex.get(osPtr)) {}
+
+SyncOS::SyncOS(SyncOS&& syncOs) noexcept :
+    osPtr(std::exchange(syncOs.osPtr, nullptr)),
+    lock(std::move(syncOs.lock)) {}
+
+SyncOS& SyncOS::operator<<(IosManip manip) & {
+    assert(osPtr != nullptr && "Use of moved-from SyncOS");
+
+    manip(*osPtr);
+    return *this;
+}
+
+SyncOS&& SyncOS::operator<<(IosManip manip) && {
+    assert(osPtr != nullptr && "Use of moved-from SyncOS");
+
+    manip(*osPtr);
+    return std::move(*this);
+}
+
+SyncOS& SyncOS::operator<<(OstreamManip manip) & {
+    assert(osPtr != nullptr && "Use of moved-from SyncOS");
+
+    manip(*osPtr);
+    return *this;
+}
+
+SyncOS&& SyncOS::operator<<(OstreamManip manip) && {
+    assert(osPtr != nullptr && "Use of moved-from SyncOS");
+
+    manip(*osPtr);
+    return std::move(*this);
+}
+
+SyncOS sync_os(std::ostream& os) noexcept { return SyncOS(os); }
+
 
 StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
     // std::streambuf requires char* for the get area.
@@ -1465,7 +1452,7 @@ std::string u64_to_hex_prefix(const u64 value) noexcept {
 
 void print_info_string(const std::string_view info) noexcept {
 
-    if (InfoStrStop)
+    if (infoStopped)
         return;
 
     for (const auto line : split(info, "\n", true))

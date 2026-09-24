@@ -50,7 +50,6 @@
     #endif
 
     #include "platform_win.h"
-
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC
     #include <limits.h>
@@ -64,10 +63,7 @@
     #include <cassert>
     #include <cerrno>
     #include <cstring>  // strncpy
-    #include <list>
     #include <optional>
-    #include <unordered_map>
-    #include <unordered_set>
 
     // Linux (non-Android)
     #if defined(__linux__) && !defined(__ANDROID__)
@@ -94,16 +90,16 @@
     #endif
 
     #if !defined(ACCESSPERMS)
-        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO) /* 0777 */
+        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)  // 0777
     #endif
     #if !defined(ALLPERMS)
-        #define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO) /* 07777 */
+        #define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)  // 07777
     #endif
     #if !defined(DEFFILEMODE)
-        #define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666*/
+        #define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)  // 0666
     #endif
     #if !defined(S_BLKSIZE)
-        #define S_BLKSIZE 512 /* Block size for `st_blocks' */
+        #define S_BLKSIZE 512  // Block size for 'st_blocks'
     #endif
     #if (defined(__linux__))
         #if !defined(MADV_COLLAPSE)
@@ -423,122 +419,61 @@ class BaseSharedMemory {
 
 // MemoryRegistry
 //
-// Provides a thread-safe process-wide registry for tracking registered memory
-// objects (BaseSharedMemory) without owning them.
+// Provides a thread-safe process-wide registry for tracking registered
+// BaseSharedMemory objects without owning them.
 //
 // The registry provides:
 //  - True insertion order through List
-//  - Average O(1) fast lookup, count and removal through IndexMap
-//  - Average O(1) fast membership validation through Set
-//  - Average O(1) fast registration and unregistration by maintaining all containers
+//  - Average O(1) lookup and removal through IndexMap
+//  - Average O(1) membership and uniqueness checks through Set
 //
-// Key Features:
-//  - Thread-safe registration and unregistration
-//  - Deterministic iteration order
-//  - Average O(1) fast lookup, count and removal
-//  - Lightweight: stores raw pointers only; lifetime is managed externally
-//
-// Implementation:
-//  - List preserves true insertion order for deterministic iteration
-//  - IndexMap provides average O(1) lookup and maps each memory to its
-//    corresponding iterator in List
-//  - Set provides uniqueness and membership validation
-//
-// Concurrency Model:
+// Concurrency:
 //  - Mutex protects all registry containers
-//  - Read-only access uses shared locking
-//  - Registration and unregistration use exclusive locking
+//  - Read-only operations use shared locking
+//  - Registration, unregistration, and detachment use exclusive locking
+//
+// Lifetime:
+//  - The registry stores raw pointers only and does not own the objects
+//  - Registered memory must remain valid until it is unregistered
 //
 // Usage:
-//  - Call 'register_memory()' after successful memory creation
-//  - Call 'unregister_memory()' before destruction
-//
-// Note:
-//  - The registry does not own or reset registered memory objects.
-namespace MemoryRegistry {
+//  - Register memory after successful creation
+//  - Unregister memory before destruction
+inline ConcurrentRegistry<BaseSharedMemory*> memoryRegistry(usize{256}, 0.75f);
 
-using Memory         = BaseSharedMemory*;
-using MemoryList     = std::list<Memory>;
-using MemoryIndexMap = std::unordered_map<Memory, MemoryList::iterator>;
-using MemorySet      = std::unordered_set<Memory>;
-
-// Register a memory object in the registry.
-//
-// Returns false if:
-//  - memory is nullptr
-//  - the object is already registered
-bool register_memory(Memory memory) noexcept;
-
-// Unregister a memory object from the registry.
-//
-// Returns false if:
-//  - memory is nullptr
-//  - the object is not registered
-bool unregister_memory(Memory memory) noexcept;
-
-// Detach all registered memory objects from the registry.
-//
-// Returns the objects in true insertion order.
-//
-// All registry containers are cleared before the returned list is processed,
-// allowing callers to safely operate on the objects without holding 'Mutex'.
-MemoryList detach_memories() noexcept;
-
-// Returns the number of currently registered memory objects.
-usize size() noexcept;
-bool  empty() noexcept;
-
-// Prints the addresses and names of all registered memory objects
-// in true insertion order.
-//
-// The registry lock is held for the duration of the iteration and output.
-void print() noexcept;
-
-}  // namespace MemoryRegistry
-
-// MemoryCleanup
+// MemoryRegistryCleanup
 //
 // Provides cleanup of all currently registered memory objects.
 //
 // Responsibilities:
-//  - Detach all registered memory objects from the registry
-//  - Reset each detached memory object
+//  - Detach all registered memory objects from the registry.
+//  - Reset each detached memory object.
 //
 // Note:
 //  - Registry management is handled by MemoryRegistry.
-//  - Process-exit hook installation is handled by MemoryCleanupHook.
+//  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
-namespace MemoryCleanup {
+inline RegistryCleanup memoryRegistryCleanup(memoryRegistry);
 
-// Detaches and reset all currently registered memory objects in insertion order.
-void cleanup() noexcept;
-
-}  // namespace MemoryCleanup
-
-// MemoryCleanupHook
+// MemoryRegistryCleanupHook
 //
-// Provides one-time installation of the memory cleanup handler for normal
+// Provides one-time installation of the memory cleanup callback for normal
 // program termination.
 //
 // Usage:
-//   Call MemoryCleanupHook::ensure_initialized() early in main().
+//  Call 'ensure_initialized()' early during program startup.
 //
 // Key Features:
-//   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
-//   - Retries initialization until the cleanup handler is successfully registered.
-//   - Registers MemoryCleanup::cleanup() with std::atexit().
-//   - Does not manage the registry or perform cleanup itself.
+//  - Uses 'CallOnce' to ensure the cleanup callback is registered only once.
+//  - Retries initialization until the cleanup callback is successfully registered.
+//  - Registers the cleanup callback with std::atexit().
+//  - Does not own the cleanup object or perform cleanup itself.
 //
 // Note:
-//   - The atexit() handler is guaranteed to be called only during normal program termination.
-//     It is not called after SIGKILL, abort(), or other abnormal/forced program termination.
-namespace MemoryCleanupHook {
-
-// Ensures the memory cleanup handler is successfully registered with std::atexit().
-// Initialization is retried until successful; subsequent calls return immediately.
-void ensure_initialized() noexcept;
-
-}  // namespace MemoryCleanupHook
+//  - The referenced cleanup object must remain valid until program exit.
+//  - The atexit() handler is called only during normal program termination.
+//    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
+inline RegistryCleanupHook memoryRegistryCleanupHook(memoryRegistryCleanup);
 
 // TempRoot
 //
@@ -648,7 +583,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMemory)
             return *this;
 
-        [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(this);
+        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(this);
         assert(unregistered);
 
         reset();
@@ -661,7 +596,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
                                                                const T&         value) noexcept {
-        MemoryCleanupHook::ensure_initialized();
+        memoryRegistryCleanupHook.ensure_initialized();
 
         const auto& tempRoot = TempRoot::temp_root();
 
@@ -789,7 +724,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         // Register for cleanup at exit
-        [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
+        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
         assert(registered);
 
         return true;
@@ -814,7 +749,7 @@ class SharedMemory final: public BaseSharedMemory {
     //  - unregister the source object
     //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
-        [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(&sharedMemory);
+        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(&sharedMemory);
         assert(unregistered);
 
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
@@ -825,13 +760,13 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
+        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
         assert(registered);
     }
 
     // Unregister SharedMemory object and reset resources
     bool reset_with_registry() noexcept {
-        if (!MemoryRegistry::unregister_memory(this))
+        if (!memoryRegistry.unregister_value(this))
             return false;
 
         reset();
