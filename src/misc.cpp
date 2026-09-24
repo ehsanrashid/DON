@@ -1452,7 +1452,7 @@ std::string u64_to_hex_prefix(const u64 value) noexcept {
 
 void print_info_string(const std::string_view info) noexcept {
 
-    if (InfoStrStop)
+    if (infoStopped)
         return;
 
     for (const auto line : split(info, "\n", true))

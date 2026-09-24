@@ -996,6 +996,9 @@ class ConcurrentRegistry final {
     bool register_value(const Value& value) noexcept {
         std::lock_guard writeLock(mutex);
 
+        if (regStopped)
+            return false;
+
         return nolock_register_value(value);
     }
 
@@ -1008,14 +1011,14 @@ class ConcurrentRegistry final {
         return nolock_unregister_value(value);
     }
 
-    // Detaches all registered values from the registry.
+    // Detaches the internal list from the registry.
     //
-    // Returns the values in true insertion order.
+    // Returns the list containing all registered values in true insertion order.
     //
     // All registry containers are cleared before the returned list is
     // processed, allowing callers to safely operate on the values without
     // holding the registry lock.
-    List detach_values() noexcept {
+    List detach_list() noexcept {
         std::lock_guard writeLock(mutex);
 
         assert(nolock_is_consistent());
@@ -1228,6 +1231,15 @@ class ConcurrentRegistry final {
         valueSet.reserve(reserve_count(reserveCount));
     }
 
+    // Stops accepting new values.
+    //
+    // Once stopped, register_value() rejects new values.
+    void stop_registering() noexcept {
+        std::lock_guard writeLock(mutex);
+
+        regStopped = true;
+    }
+
     const usize reserveCount;
     const float maxLoadFactor;
 
@@ -1243,6 +1255,11 @@ class ConcurrentRegistry final {
 
     // Provides average O(1) fast uniqueness and membership checks.
     Set set;
+
+    bool regStopped = false;
+
+    template<typename>
+    friend class RegistryCleanup;
 };
 
 // RegistryCleanup: detaches all values from a ConcurrentRegistry and resets each non-null value.
@@ -1253,7 +1270,9 @@ class RegistryCleanup final {
         registry(reg) {}
 
     void cleanup() noexcept {
-        auto valueList = registry.detach_values();
+        registry.stop_registering();
+
+        auto valueList = registry.detach_list();
 
         for (auto* const value : valueList)
             if (value != nullptr)
@@ -2582,7 +2601,7 @@ std::string u32_to_hex_prefix(u32 value) noexcept;
 
 std::string u64_to_hex_prefix(u64 value) noexcept;
 
-inline bool InfoStrStop = false;
+inline bool infoStopped = false;
 
 void print_info_string(std::string_view infos) noexcept;
 
