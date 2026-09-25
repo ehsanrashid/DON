@@ -32,6 +32,16 @@ std::string_view Option::current_value() const noexcept { return currentValue; }
 
 std::string_view Option::default_value() const noexcept { return defaultValue; }
 
+Option::operator int() const noexcept {
+    assert(false);
+    return 0;
+}
+
+Option::operator std::string_view() const noexcept {
+    assert(false);
+    return {};
+}
+
 void Option::on_change() noexcept {
     if (!onChange)
         return;
@@ -69,7 +79,9 @@ CheckOption::CheckOption(const bool b, OnChange&& onCng) noexcept :
 
 std::string_view CheckOption::type() const noexcept { return "check"; }
 
-void CheckOption::print(std::ostream& os) const noexcept { os << " default " << default_value(); }
+void CheckOption::print(std::ostream& os) const noexcept {  //
+    os << " default " << default_value();
+}
 
 CheckOption::operator int() const noexcept { return sv_to_bool(current_value()); }
 
@@ -77,10 +89,12 @@ void CheckOption::operator=(std::string value) noexcept {
     if (!value_is_bool(value))
         return;
 
-    currentValue = lower_case(value);
+    currentValue = normalize(std::move(value));
 
     on_change();
 }
+
+std::string CheckOption::normalize(std::string str) noexcept { return lower_case(std::move(str)); }
 
 StringOption::StringOption(const std::string_view str, OnChange&& onCng) noexcept :
     Option{normalize(std::string{str}), std::move(onCng)} {}
@@ -99,8 +113,11 @@ void StringOption::operator=(std::string value) noexcept {
     on_change();
 }
 
-std::string StringOption::normalize(std::string value) noexcept {
-    return is_whitespace(value) || lower_case(value) == EMPTY_STRING ? std::string{} : value;
+std::string StringOption::normalize(std::string str) noexcept {
+    if (is_whitespace(str) || lower_case(str) == EMPTY_STRING)
+        str.clear();
+
+    return str;
 }
 
 SpinOption::SpinOption(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept :
@@ -127,7 +144,9 @@ void SpinOption::operator=(std::string value) noexcept {
 
 ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
     Option{str, std::move(onCng)},
-    vars(normalize(std::move(vrs))) {}
+    vars(to_strings(vrs)) {
+    assert(contains(default_value()));
+}
 
 std::string_view ComboOption::type() const noexcept { return "combo"; }
 
@@ -141,12 +160,7 @@ void ComboOption::print(std::ostream& os) const noexcept {
 ComboOption::operator std::string_view() const noexcept { return current_value(); }
 
 void ComboOption::operator=(std::string value) noexcept {
-    if (value.empty())
-        return;
-
-    value = lower_case(std::move(value));
-
-    if (std::find(vars.begin(), vars.end(), value) == vars.end())
+    if (is_whitespace(value) || !contains(value))
         return;
 
     currentValue = std::move(value);
@@ -154,14 +168,10 @@ void ComboOption::operator=(std::string value) noexcept {
     on_change();
 }
 
-Strings ComboOption::normalize(StringViews comboValues) noexcept {
-    Strings values;
-    values.reserve(comboValues.size());
-
-    for (const auto value : comboValues)
-        values.emplace_back(lower_case(std::string{value}));
-
-    return values;
+bool ComboOption::contains(const std::string_view value) const noexcept {
+    return std::find_if(vars.begin(), vars.end(),
+                        [&](const auto& var) { return CaseInsensitiveEqual{}(var, value); })
+        != vars.end();
 }
 
 namespace OptionFactory {
@@ -298,8 +308,10 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
 void Options::set_on_info(OnInfo&& onInf) noexcept { onInfo = std::move(onInf); }
 
 void Options::on_info(const Info info) const noexcept {
-    if (onInfo)
-        onInfo(info);
+    if (!onInfo)
+        return;
+
+    onInfo(info);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {

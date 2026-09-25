@@ -1407,6 +1407,16 @@ split(const std::string_view sv, const std::string_view delimiter, bool trimPart
     return parts;
 }
 
+Strings to_strings(const StringViews& svs) noexcept {
+    Strings strs;
+    strs.reserve(svs.size());
+
+    for (const auto sv : svs)
+        strs.emplace_back(sv);
+
+    return strs;
+}
+
 std::string usize_to_hex(const usize value) noexcept {
     constexpr usize BufferSize = sizeof(usize) * 2 + 1;
 

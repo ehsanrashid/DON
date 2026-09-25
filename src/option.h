@@ -18,7 +18,6 @@
 #ifndef OPTION_H_INCLUDED
 #define OPTION_H_INCLUDED
 
-#include <cassert>
 #include <functional>
 #include <iosfwd>
 #include <list>
@@ -51,15 +50,9 @@ class Option {
 
     virtual void print(std::ostream& os) const noexcept = 0;
 
-    virtual operator int() const noexcept {
-        assert(false);
-        return 0;
-    }
+    virtual operator int() const noexcept;
 
-    virtual operator std::string_view() const noexcept {
-        assert(false);
-        return {};
-    }
+    virtual operator std::string_view() const noexcept;
 
     virtual void operator=(std::string value) noexcept = 0;
 
@@ -110,6 +103,9 @@ class CheckOption final: public Option {
     operator int() const noexcept override;
 
     void operator=(std::string value) noexcept override;
+
+   private:
+    static std::string normalize(std::string str) noexcept;
 };
 
 class StringOption final: public Option {
@@ -125,7 +121,7 @@ class StringOption final: public Option {
     void operator=(std::string value) noexcept override;
 
    private:
-    static std::string normalize(std::string value) noexcept;
+    static std::string normalize(std::string str) noexcept;
 };
 
 class SpinOption final: public Option {
@@ -158,7 +154,7 @@ class ComboOption final: public Option {
     void operator=(std::string value) noexcept override;
 
    private:
-    static Strings normalize(StringViews vars) noexcept;
+    bool contains(std::string_view value) const noexcept;
 
     const Strings vars;
 };
