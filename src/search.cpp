@@ -2785,6 +2785,14 @@ void Skill::init(const Options& options) noexcept {
     bestMove = Move::None;
 }
 
+constexpr bool Skill::enabled() const noexcept { return level < LevelMax; }
+
+constexpr bool Skill::time_to_pick(const Depth depth) const noexcept {
+    return depth == 1 + Depth(level);
+}
+
+constexpr Value Skill::weakness() const noexcept { return Value(2.0 * (3.0 * LevelMax - level)); }
+
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move Skill::pick_move(const RootMoves& rootMoves,

@@ -23,111 +23,180 @@
 
 namespace DON {
 
-Option::Option(OnChange&& f) noexcept :
-    type(Type::BUTTON),
-    onChange(std::move(f)) {}
+Option::Option(std::string_view str, OnChange&& onCng) noexcept :
+    defaultValue(str),
+    currentValue(str),
+    onChange(std::move(onCng)) {}
 
-Option::Option(bool v, OnChange&& f) noexcept :
-    type(Type::CHECK),
-    onChange(std::move(f)) {
-    defaultValue = currentValue = bool_to_string(v);
-}
+std::string_view Option::current_value() const noexcept { return currentValue; }
 
-Option::Option(std::string_view v, OnChange&& f) noexcept :
-    type(Type::STRING),
-    onChange(std::move(f)) {
-    defaultValue = currentValue =
-      is_whitespace(v) || lower_case(std::string{v}) == EMPTY_STRING ? "" : v;
-}
-
-Option::Option(int v, int minV, int maxV, OnChange&& f) noexcept :
-    type(Type::SPIN),
-    minValue(minV),
-    maxValue(maxV),
-    onChange(std::move(f)) {
-    defaultValue = currentValue = std::to_string(v);
-}
-
-Option::Option(std::string_view v, StringViews&& vSvs, OnChange&& f) noexcept :
-    type(Type::COMBO),
-    defaultValue(v),
-    currentValue(v),
-    varSvs(std::move(vSvs)),
-    onChange(std::move(f)) {}
+std::string_view Option::default_value() const noexcept { return defaultValue; }
 
 Option::operator int() const noexcept {
-    assert(type == Type::CHECK || type == Type::SPIN);
-
-    return type == Type::CHECK ? sv_to_bool(currentValue) : sv_to_int(currentValue);
+    assert(false);
+    return 0;
 }
 
 Option::operator std::string_view() const noexcept {
-    assert(type == Type::STRING || type == Type::COMBO);
-
-    return currentValue;
+    assert(false);
+    return {};
 }
 
-void Option::operator=(std::string value) noexcept {
-    assert(is_ok(type));
-
-    if ((type != Type::BUTTON && type != Type::STRING && value.empty())
-        || (type == Type::CHECK && !value_is_bool(value))
-        || (type == Type::SPIN && !value_in_range(value, minValue, maxValue)))
+void Option::on_change() noexcept {
+    if (!onChange)
         return;
 
-    if (type == Type::CHECK)
-        value = lower_case(value);
-    else if (type == Type::STRING && (is_whitespace(value) || lower_case(value) == EMPTY_STRING))
-        value.clear();
-    else if (type == Type::COMBO)
-    {
-        value = lower_case(value);
-        if (std::find(varSvs.begin(), varSvs.end(), value) == varSvs.end())
-            return;
-    }
+    const auto info = onChange(*this);
 
-    if (type != Type::BUTTON)
-        currentValue = value;
+    if (!info)
+        return;
 
-    if (onChange)
-    {
-        const auto info = onChange(*this);
+    if (optionsPtr == nullptr)
+        return;
 
-        if (!info)
-            return;
-
-        if (optionsPtr != nullptr)
-            optionsPtr->on_info(info);
-    }
+    optionsPtr->on_info(info);
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
-    os << "type " << Option::to_string(option.type);
+    os << "type " << option.type();
 
-    if (option.type == Option::Type::BUTTON)
-        return os;
-
-    os << " default ";
-    if (option.type == Option::Type::STRING && is_whitespace(option.defaultValue))
-        os << EMPTY_STRING;
-    else
-        os << option.defaultValue;
-
-    if (option.type == Option::Type::SPIN)
-        os << " min " << option.minValue << " max " << option.maxValue;
-    else if (option.type == Option::Type::COMBO)
-    {
-        std::string varStr;
-        varStr.reserve(16 * option.varSvs.size());
-
-        for (const auto var : option.varSvs)
-            varStr.append(" var ").append(var);
-
-        os << varStr;
-    }
+    option.print(os);
 
     return os;
 }
+
+ButtonOption::ButtonOption(OnChange&& onCng) noexcept :
+    Option{"", std::move(onCng)} {}
+
+std::string_view ButtonOption::type() const noexcept { return "button"; }
+
+void ButtonOption::print(std::ostream&) const noexcept {}
+
+void ButtonOption::operator=(std::string) noexcept { on_change(); }
+
+CheckOption::CheckOption(const bool b, OnChange&& onCng) noexcept :
+    Option{bool_to_string(b), std::move(onCng)} {}
+
+std::string_view CheckOption::type() const noexcept { return "check"; }
+
+void CheckOption::print(std::ostream& os) const noexcept {  //
+    os << " default " << default_value();
+}
+
+CheckOption::operator int() const noexcept { return sv_to_bool(current_value()); }
+
+void CheckOption::operator=(std::string value) noexcept {
+    if (!value_is_bool(value))
+        return;
+
+    currentValue = normalize(std::move(value));
+
+    on_change();
+}
+
+std::string CheckOption::normalize(std::string str) noexcept { return lower_case(std::move(str)); }
+
+StringOption::StringOption(const std::string_view str, OnChange&& onCng) noexcept :
+    Option{normalize(std::string{str}), std::move(onCng)} {}
+
+std::string_view StringOption::type() const noexcept { return "string"; }
+
+void StringOption::print(std::ostream& os) const noexcept {
+    os << " default " << (is_whitespace(default_value()) ? EMPTY_STRING : default_value());
+}
+
+StringOption::operator std::string_view() const noexcept { return current_value(); }
+
+void StringOption::operator=(std::string value) noexcept {
+    currentValue = normalize(std::move(value));
+
+    on_change();
+}
+
+std::string StringOption::normalize(std::string str) noexcept {
+    if (is_whitespace(str) || lower_case(str) == EMPTY_STRING)
+        str.clear();
+
+    return str;
+}
+
+SpinOption::SpinOption(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept :
+    Option{std::to_string(v), std::move(onCng)},
+    minValue(minV),
+    maxValue(maxV) {}
+
+std::string_view SpinOption::type() const noexcept { return "spin"; }
+
+void SpinOption::print(std::ostream& os) const noexcept {
+    os << " default " << default_value() << " min " << minValue << " max " << maxValue;
+}
+
+SpinOption::operator int() const noexcept { return sv_to_int(current_value()); }
+
+void SpinOption::operator=(std::string value) noexcept {
+    if (!value_in_range(value, minValue, maxValue))
+        return;
+
+    currentValue = value;
+
+    on_change();
+}
+
+ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
+    Option{str, std::move(onCng)},
+    vars(to_strings(vrs)) {
+    assert(contains(default_value()));
+}
+
+std::string_view ComboOption::type() const noexcept { return "combo"; }
+
+void ComboOption::print(std::ostream& os) const noexcept {
+    os << " default " << default_value();
+
+    for (const auto& var : vars)
+        os << " var " << var;
+}
+
+ComboOption::operator std::string_view() const noexcept { return current_value(); }
+
+void ComboOption::operator=(std::string value) noexcept {
+    if (is_whitespace(value) || !contains(value))
+        return;
+
+    currentValue = std::move(value);
+
+    on_change();
+}
+
+bool ComboOption::contains(const std::string_view value) const noexcept {
+    return std::find_if(vars.begin(), vars.end(),
+                        [&](const auto& var) { return CaseInsensitiveEqual{}(var, value); })
+        != vars.end();
+}
+
+namespace OptionFactory {
+
+OptionPtr button(OnChange&& onCng) noexcept {
+    return std::make_unique<ButtonOption>(std::move(onCng));
+}
+
+OptionPtr check(const bool b, OnChange&& onCng) noexcept {
+    return std::make_unique<CheckOption>(b, std::move(onCng));
+}
+
+OptionPtr string(const std::string_view str, OnChange&& onCng) noexcept {
+    return std::make_unique<StringOption>(str, std::move(onCng));
+}
+
+OptionPtr spin(int v, int minV, int maxV, OnChange&& onCng) noexcept {
+    return std::make_unique<SpinOption>(v, minV, maxV, std::move(onCng));
+}
+
+OptionPtr combo(std::string_view str, StringViews vars, OnChange&& onCng) noexcept {
+    return std::make_unique<ComboOption>(str, std::move(vars), std::move(onCng));
+}
+
+}  // namespace OptionFactory
 
 auto Options::begin() noexcept { return list.begin(); }
 
@@ -155,7 +224,7 @@ auto Options::find(const std::string_view name) noexcept { return indexMap.find(
 
 auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
 
-bool Options::add(const std::string_view name, const Option& option) noexcept {
+bool Options::add(const std::string_view name, OptionPtr option) noexcept {
     // Already a member.
     if (contains(name))
     {
@@ -163,12 +232,16 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
         return false;
     }
 
+    assert(option != nullptr);
+    if (option == nullptr)
+        return false;
+
     // Append the option in insertion order and obtain its iterator.
-    const auto listItr = list.emplace(list.end(), name, option);
+    const auto listItr = list.emplace(list.end(), name, std::move(option));
     assert(listItr != list.end());
 
     // Associate the option with its owning Options object.
-    listItr->second.optionsPtr = this;
+    listItr->second->optionsPtr = this;
 
     const std::string_view nameView = listItr->first;
 
@@ -202,7 +275,7 @@ bool Options::remove(const std::string_view name) noexcept {
     const auto listItr = indexMapItr->second;
     // Verify the list node and its name.
     assert(listItr != list.end());
-    assert(lower_case(std::string{listItr->first}) == lower_case(std::string{name}));
+    assert(CaseInsensitiveEqual{}(listItr->first, name));
 
     // Remove the membership entry.
     set.erase(setItr);
@@ -220,7 +293,7 @@ void Options::setoption(const std::string_view name, const std::string_view valu
     const auto indexMapItr = find(name);
 
     if (indexMapItr != indexMap.end())
-        indexMapItr->second->second = std::string{value};
+        *indexMapItr->second->second = std::string{value};
     else
         std::cerr << "No such option: '" << name << "'" << std::endl;
 }
@@ -229,19 +302,21 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
     const auto indexMapItr = find(name);
     assert(indexMapItr != indexMap.end());
 
-    return indexMapItr->second->second;
+    return *indexMapItr->second->second;
 }
 
-void Options::set_on_info(OnInfo&& f) noexcept { onInfo = std::move(f); }
+void Options::set_on_info(OnInfo&& onInf) noexcept { onInfo = std::move(onInf); }
 
 void Options::on_info(const Info info) const noexcept {
-    if (onInfo)
-        onInfo(info);
+    if (!onInfo)
+        return;
+
+    onInfo(info);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
     for (const auto& [name, option] : options)
-        os << "\noption name " << name << ' ' << option;
+        os << "\noption name " << name << ' ' << *option;
 
     return os;
 }

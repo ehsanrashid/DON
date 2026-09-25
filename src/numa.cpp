@@ -51,18 +51,35 @@ CpuIndex hardware_concurrency() noexcept {
 
 namespace {
 
-CpuSet intersect_cpus(const CpuSet& cpus1, const CpuSet& cpus2) noexcept {
-    const CpuSet& smalerCpus = cpus1.size() <= cpus2.size() ? cpus1 : cpus2;
-    const CpuSet& largerCpus = cpus1.size() <= cpus2.size() ? cpus2 : cpus1;
+template<typename Set>
+Set intersect_set(const Set& set1, const Set& set2) noexcept {
+    const Set& smalerSet = set1.size() <= set2.size() ? set1 : set2;
+    const Set& largerSet = set1.size() <= set2.size() ? set2 : set1;
 
-    CpuSet intersectCpus;
-    intersectCpus.reserve(smalerCpus.size());
+    Set intersectSet;
+    intersectSet.reserve(smalerSet.size());
 
-    for (const auto cpuId : smalerCpus)
-        if (largerCpus.find(cpuId) != largerCpus.end())
-            intersectCpus.insert(cpuId);
+    for (const auto& value : smalerSet)
+        if (largerSet.find(value) != largerSet.end())
+            intersectSet.insert(value);
 
-    return intersectCpus;
+    return intersectSet;
+}
+
+template<typename Set>
+[[maybe_unused]] Set union_set(const Set& set1, const Set& set2) noexcept {
+    const Set& smalerSet = set1.size() <= set2.size() ? set1 : set2;
+    const Set& largerSet = set1.size() <= set2.size() ? set2 : set1;
+
+    Set unionSet;
+    unionSet.reserve(largerSet.size() + smalerSet.size());
+
+    unionSet.insert(largerSet.begin(), largerSet.end());
+    //unionSet.insert(smalerSet.begin(), smalerSet.end());
+    for (const auto& value : smalerSet)
+        unionSet.insert(value);
+
+    return unionSet;
 }
 
 }  // namespace
@@ -79,7 +96,7 @@ std::optional<CpuSet> WindowsAffinity::combined_cpus() const noexcept {
         return cpus[0];
 
     // Both are non-empty -> compute intersection
-    return intersect_cpus(cpus[0], cpus[1]);
+    return intersect_set(cpus[0], cpus[1]);
 }
 
 bool WindowsAffinity::likely_use_cpus(const usize idx) const noexcept {
@@ -990,18 +1007,33 @@ void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId)
     maxCpuId = std::max(cpuId, maxCpuId);
 }
 
+namespace {
+
+template<typename Container, typename T>
+[[nodiscard]] bool insert_sorted_unique(Container& container, const T& value) noexcept {
+    if (container.empty() || container.back() < value)
+    {
+        container.push_back(value);
+        return true;
+    }
+
+    const auto itr = std::lower_bound(container.begin(), container.end(), value);
+    assert(itr == container.end() || *itr != value);
+    if (itr != container.end() && *itr == value)
+        return false;
+
+    container.insert(itr, value);
+    return true;
+}
+
+}  // namespace
+
 void NumaConfig::add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
     auto& cpus = node_cpus(numaId);
 
     // Keep CPU indices sorted and unique.
-    if (cpus.empty() || cpus.back() < cpuId)
-        cpus.push_back(cpuId);
-    else
-    {
-        const auto cpusItr = std::lower_bound(cpus.begin(), cpus.end(), cpuId);
-        assert(cpusItr == cpus.end() || *cpusItr != cpuId);
-        cpus.insert(cpusItr, cpuId);
-    }
+    [[maybe_unused]] const bool inserted = insert_sorted_unique(cpus, cpuId);
+    assert(inserted);
 
     add_numa_node_cpu(numaId, cpuId);
 }

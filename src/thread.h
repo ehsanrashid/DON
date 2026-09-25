@@ -267,6 +267,7 @@ class Threads final {
         threads.clear();
     }
 
+    // Destroy any existing thread(s).
     void destroy() noexcept;
 
     // Destroys/Creates threads to match the thread-count.
@@ -276,12 +277,15 @@ class Threads final {
              SharedState&                  sharedState,
              const Manager::UpdateContext& updateContext) noexcept;
 
+    // Sets data to initial values
     void reset() const noexcept;
 
+    // Get the main-thread pointer.
     Thread* main_thread() const noexcept;
-
+    // Get the manager pointer.
     Manager* manager() const noexcept;
 
+    // Get the best-thread pointer.
     template<bool Mate>
     const Thread* best_thread() const noexcept;
 
@@ -292,10 +296,15 @@ class Threads final {
                const Limit&    limit,
                const Options&  options) const noexcept;
 
+    // Start non-main-threads.
+    // Will be invoked by main-thread after it has started searching.
     void start_search() const noexcept;
 
+    // Wait for non-main-threads.
+    // Will be invoked by main-thread after it has finished searching.
     void wait_finish() const noexcept;
 
+    // Ensure that all threads have their network replicated.
     void ensure_network_replicated() const noexcept;
 
     void run_on_thread(usize threadId, JobFunc job) const noexcept;
@@ -306,23 +315,27 @@ class Threads final {
     std::vector<usize>     bound_thread_counts() const noexcept;
     NumaIndex              numa_nodes() const noexcept;
 
-    // --- queries ---
+    /* ---queries--- */
+
+    // Is reaserching
     bool is_researching() const noexcept {
         return state.load(std::memory_order_acquire) == ThState::Research;
     }
-
+    // Is stopped
     bool is_stopped() const noexcept {
         return state.load(std::memory_order_acquire) == ThState::Stopped;
     }
 
-    // --- actions ---
+    /* --- actions --- */
+
+    // Request research
     void request_research() const noexcept {
         auto expectedState = ThState::Active;
 
         state.compare_exchange_strong(expectedState, ThState::Research, std::memory_order_release,
                                       std::memory_order_relaxed);
     }
-
+    // Request stop
     void request_stop() const noexcept {
         // Always go to stopped state, even if currently researching or active
         state.store(ThState::Stopped, std::memory_order_release);
@@ -423,7 +436,6 @@ class Threads final {
 
 inline Threads::~Threads() noexcept { destroy(); }
 
-// Destroy any existing thread(s)
 inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main-thread
@@ -449,7 +461,6 @@ inline void Threads::destroy() noexcept {
     threadBoundNumaNodes.clear();
 }
 
-// Sets data to initial values
 inline void Threads::reset() const noexcept {
     if (empty())
         return;
@@ -463,37 +474,30 @@ inline void Threads::reset() const noexcept {
         manager->reset();
 }
 
-// Get pointer to the main-thread
 inline Thread* Threads::main_thread() const noexcept {
     std::shared_lock readLock(mutex);
 
     return !threads.empty() ? threads.front().get() : nullptr;
 }
 
-// Get pointer to the main search manager
 inline Manager* Threads::manager() const noexcept {
     std::shared_lock readLock(mutex);
 
-    // Avoid calling main_thread() here because it would try to lock mutex again.
+    // Access the main thread directly because main_thread() would lock mutex again.
     // Snapshot the main-thread pointer under the shared lock and return its manager.
     return !threads.empty() && threads.front()->worker != nullptr
            ? threads.front()->worker->manager()
            : nullptr;
 }
 
-// Start non-main-threads
-// Will be invoked by main-thread after it has started searching
 inline void Threads::start_search() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->start_search(); }, false);  // skip main
 }
 
-// Wait for non-main-threads
-// Will be invoked by main-thread after it has finished searching
 inline void Threads::wait_finish() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); }, false);  // skip main
 }
 
-// Ensure that all threads have their network replicated
 inline void Threads::ensure_network_replicated() const noexcept {
     for_each_thread([](const Thread* th) noexcept { th->ensure_network_replicated(); });
 }
