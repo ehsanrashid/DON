@@ -2121,10 +2121,45 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
     return h;
 }
 
-// Custom streambuf that wraps string_view
-class StringViewBuf final: public std::streambuf {
+// StringReader: small, allocation-free, read-only parser over std::string_view.
+class StringReader final {
    public:
-    explicit StringViewBuf(std::string_view sv) noexcept;
+    explicit StringReader(std::string_view sv) noexcept;
+
+    // Returns the current character without advancing the reader.
+    //
+    // Returns Null when the end of the input is reached.
+    char peek() const noexcept;
+
+    // Returns true if the current character exists and is not whitespace.
+    bool is_not_space() const noexcept;
+
+    // Advances the reader past all consecutive whitespace characters.
+    void skip_spaces() noexcept;
+
+    // Returns the current character and advances the reader.
+    //
+    // Returns Null when the end of the input is reached.
+    char get() noexcept;
+
+    // Reads a signed integer after skipping leading whitespace.
+    //
+    // Returns false if no integer is found; otherwise stores the parsed
+    // value in 'out' and returns true.
+    bool get_int(int& out) noexcept;
+
+   private:
+    static constexpr char Null = '\0';
+
+    const char* const beg;
+    const char*       cur;
+    const char* const end;
+};
+
+// Custom streambuf that wraps std::string_view
+class StringBuf final: public std::streambuf {
+   public:
+    explicit StringBuf(std::string_view sv) noexcept;
 };
 
 // Custom streambuf that wraps memory stream
@@ -2182,7 +2217,7 @@ class Logger final {
    public:
     // Starts logging to the specified file.
     // Returns true on success and false if the log file cannot be opened.
-    static bool start(const fs::path& logFile) noexcept;
+    static bool start(const fs::path& logPath) noexcept;
     // Stops logging, restores the original streams, and closes the log file.
     static void stop() noexcept;
 
@@ -2196,7 +2231,7 @@ class Logger final {
     static Logger& instance() noexcept;
     // Opens the specified log file and redirects the streams through TieBuf.
     // Caller must hold 'mutex'.
-    bool open(const fs::path& logFile) noexcept;
+    bool open(const fs::path& logPath) noexcept;
     // Restores the original streams and closes the log file.
     // Caller must hold 'mutex'.
     void close() noexcept;
@@ -2210,7 +2245,7 @@ class Logger final {
     std::istream&   is;
     std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-    TieBuf          itieBuf, otieBuf;
+    TieBuf          itBuf, otBuf;
     std::string     filename;
 };
 

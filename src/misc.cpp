@@ -636,7 +636,44 @@ SyncOS&& SyncOS::operator<<(OstreamManip manip) && {
 SyncOS sync_os(std::ostream& os) noexcept { return SyncOS(os); }
 
 
-StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
+StringReader::StringReader(const std::string_view sv) noexcept :
+    beg(sv.data()),
+    cur(beg),
+    end(beg + sv.size()) {}
+
+char StringReader::peek() const noexcept { return cur != end ? *cur : Null; }
+
+bool StringReader::is_not_space() const noexcept { return cur != end && !is_space(*cur); }
+
+void StringReader::skip_spaces() noexcept {
+    for (; cur != end && is_space(*cur); ++cur)
+    {}
+}
+
+char StringReader::get() noexcept { return cur != end ? *cur++ : Null; }
+
+bool StringReader::get_int(int& out) noexcept {
+    skip_spaces();
+
+    bool neg = false;
+
+    if (cur != end && (*cur == '+' || *cur == '-'))
+        neg = (*cur++ == '-');
+
+    int val = 0;
+
+    const auto p = cur;
+    for (; cur != end && is_cdigit(*cur); ++cur)
+        val = 10 * val + char_to_digit(*cur);
+
+    if (p == cur)
+        return false;
+
+    out = neg ? -val : val;
+    return true;
+}
+
+StringBuf::StringBuf(const std::string_view sv) noexcept {
     // std::streambuf requires char* for the get area.
     // The buffer is read-only; no characters are modified.
     auto* const p    = const_cast<char*>(sv.data());
@@ -738,10 +775,10 @@ TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
                                                            : traits_type::not_eof(ch);
 }
 
-bool Logger::start(const fs::path& logFile) noexcept {
+bool Logger::start(const fs::path& logPath) noexcept {
     std::lock_guard writeLock(instance().mutex);
 
-    return instance().open(logFile);
+    return instance().open(logPath);
 }
 
 void Logger::stop() noexcept {
@@ -755,8 +792,8 @@ Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
     os(osRef),
     isBuf(is.rdbuf()),
     osBuf(os.rdbuf()),
-    itieBuf(is.rdbuf(), ofs.rdbuf()),
-    otieBuf(os.rdbuf(), ofs.rdbuf()) {}
+    itBuf(is.rdbuf(), ofs.rdbuf()),
+    otBuf(os.rdbuf(), ofs.rdbuf()) {}
 
 Logger::~Logger() noexcept { close(); }
 
@@ -766,16 +803,16 @@ Logger& Logger::instance() noexcept {
     return logger;
 }
 
-bool Logger::open(const fs::path& logFile) noexcept {
-    if (filename == logFile.string() && is_open())
+bool Logger::open(const fs::path& logPath) noexcept {
+    if (filename == logPath.string() && is_open())
         return true;  // Already open
 
     close();
 
-    if (logFile.empty())
+    if (logPath.empty())
         return true;
 
-    filename = logFile.string();
+    filename = logPath.string();
 
     ofs.open(filename, std::ios::out | std::ios::app);
 
@@ -787,8 +824,8 @@ bool Logger::open(const fs::path& logFile) noexcept {
 
     write_timestamp("->");
 
-    is.rdbuf(&itieBuf);
-    os.rdbuf(&otieBuf);
+    is.rdbuf(&itBuf);
+    os.rdbuf(&otBuf);
 
     return true;
 }
