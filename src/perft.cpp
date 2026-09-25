@@ -452,9 +452,7 @@ u64 perft(const Position& pos,
           const Depth     depth,
           const bool      detail) noexcept {
 
-    State    st;
-    Position p;
-    p.set(pos, &st);
+    Position p{pos};
 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);

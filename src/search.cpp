@@ -857,10 +857,6 @@ Value Worker::search(Position&    pos,
             return alpha;
     }
 
-    const Key key = pos.key();
-
-    const bool seekMate = rootDepth >= 16 && constexpr_abs(rootMoves[pvIdx].value) >= 2000;
-
     assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
     (ss + 1)->cutoffCount = 0;
@@ -868,6 +864,10 @@ Value Worker::search(Position&    pos,
     const bool exclude = excludedMove != Move::None;
 
     const auto correctionValue = correction_value(pos, ss);
+
+    const bool seekMate = rootDepth >= 16 && constexpr_abs(rootMoves[pvIdx].value) >= 2000;
+
+    const Key key = pos.key();
 
     // Step 4. Transposition table lookup
     auto [ttd, ttw] = transpositionTable.probe(key);

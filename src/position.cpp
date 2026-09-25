@@ -2351,9 +2351,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     if (Tablebase::Syzygy::MaxCardinality >= pos.count() && !pos.has_castling_rights())
     {
-        State    st;
-        Position p;
-        p.set(pos, &st);
+        Position p{pos};
 
         Tablebase::Syzygy::ProbeState wdlPs, dtzPs;
 

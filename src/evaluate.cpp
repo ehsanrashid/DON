@@ -214,9 +214,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 }  // namespace
 
 std::string trace(const Position& pos, const NNUE::Network& network) noexcept {
-    State    st;
-    Position p;
-    p.set(pos, &st);
+    Position p{pos};
 
     if (p.checkers_bb() != 0)
         return "Final evaluation     : none (in check)";
