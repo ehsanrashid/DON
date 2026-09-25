@@ -306,52 +306,16 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     st = newSt;
 
-    // Fast, allocation-free parser over std::string_view (replacement for std::istringstream).
-    const auto*       p   = fens.data();
-    const auto* const end = p + fens.size();
-
-    // Returns '\0' when p == end (EOF sentinel)
-    auto peek        = [&p, end]() noexcept -> char { return p != end ? *p : '\0'; };
-    auto skip_spaces = [&p, end]() noexcept -> void {
-        for (; p != end && is_space(*p); ++p)
-        {}
-    };
-    auto not_space = [&p, end]() noexcept -> bool { return p != end && !is_space(*p); };
-    auto get       = [&p, end]() noexcept -> char { return p != end ? *p++ : '\0'; };
-    auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
-        skip_spaces();
-
-        bool neg = false;
-        if (p != end && (*p == '+' || *p == '-'))
-        {
-            neg = (*p == '-');
-            ++p;
-        }
-
-        int val = 0;
-
-        bool any = false;
-        for (; p != end && is_cdigit(*p); ++p)
-        {
-            any = true;
-            val = 10 * val + char_to_digit(*p);
-        }
-
-        if (!any)
-            return false;
-
-        out = neg ? -val : +val;
-        return true;
-    };
+    StringReader reader{fens};
 
     char token;
 
     File file = FILE_A;
     Rank rank = RANK_8;
     // 1. Piece placement
-    while (not_space())
+    while (reader.is_not_space())
     {
-        token = get();
+        token = reader.get();
 
         if (token == '/')
         {
@@ -417,10 +381,10 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
 
-    skip_spaces();
+    reader.skip_spaces();
 
     // 2. Active color
-    token = get();
+    token = reader.get();
 
     const char color = lower_case(token);
 
@@ -431,7 +395,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     else
         return Error{"Invalid FEN: invalid color to move: " + std::string(1, token) + "."};
 
-    skip_spaces();
+    reader.skip_spaces();
 
     // 3. Castling availability. Compatible with 3 standards:
     //   - Normal-FEN (standard): KQkq
@@ -442,9 +406,9 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // NOTE: Due to the prevalence of incorrect or missing castling rights, validation
     // is intentionally less strict. Invalid castling rights are nevertheless sanitized.
     usize castlingRightsCount = 0;
-    while (not_space())
+    while (reader.is_not_space())
     {
-        token = get();
+        token = reader.get();
 
         if (token == '-')
             continue;
@@ -497,7 +461,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         set_castling_rights(c, rookOrgSq);
     }
 
-    skip_spaces();
+    reader.skip_spaces();
 
     const Color ac = active_color();
 
@@ -505,33 +469,33 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // Ignore if square is invalid or not on side to move relative rank 6.
     Square enPassantSq = SQ_NONE;
 
-    if (p != end)
+    const char ep = reader.peek();
+
+    if (ep == StringReader::Null)
+        return Error{"Invalid FEN: invalid en-passant square."};
+
+    if (ep == '-')
+        reader.advance();
+    else
     {
-        if (peek() == '-')
-            ++p;
-        else
-        {
-            const char epFile = get();
+        const char epFile = reader.get();
 
-            if (p != end)
-            {
-                const char epRank = get();
+        if (reader.peek() == StringReader::Null)
+            return Error{"Invalid FEN: invalid en-passant " + std::string(1, epFile) + "."};
 
-                if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
-                    enPassantSq = make_square(to_file(epFile), to_rank(epRank));
-                else
-                    return Error{"Invalid FEN: invalid en-passant square."};
-            }
-            else
-                return Error{"Invalid FEN: invalid en-passant " + std::string(1, epFile) + "."};
-        }
+        const char epRank = reader.get();
+
+        if (!('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3')))
+            return Error{"Invalid FEN: invalid en-passant square."};
+
+        enPassantSq = make_square(to_file(epFile), to_rank(epRank));
     }
 
     // 5-6. Halfmove clock and fullmove number
     int rule50Count = 0;
     int moveNum     = 1;
-    get_int(rule50Count);
-    get_int(moveNum);
+    reader.get_int(rule50Count);
+    reader.get_int(moveNum);
 
     rule50Count = constexpr_abs(rule50Count);
     moveNum     = constexpr_abs(moveNum);

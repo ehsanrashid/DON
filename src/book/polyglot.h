@@ -65,7 +65,7 @@ class PolyGlot final {
     PolyGlot(PolyGlot&&) noexcept                 = delete;
     PolyGlot& operator=(PolyGlot&&) noexcept      = delete;
 
-    bool load(const fs::path& bookFilePath) noexcept;
+    bool load(const fs::path& bookPath) noexcept;
 
     [[nodiscard]] bool empty() const noexcept { return entries.empty(); }
 

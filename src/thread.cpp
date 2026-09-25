@@ -510,18 +510,17 @@ void Threads::start(const Position& pos,
 
     if (!limit.searchMoves.empty())
     {
-        bool emplace = true;
         for (const auto& move : limit.searchMoves)
         {
-            if (emplace && rootMoves.size() == legalMoveList.size())
+            if (rootMoves.size() == legalMoveList.size())
                 break;
 
             const Move m = mix_to_move(move, p, legalMoveList);
 
-            emplace = m != Move::None && !rootMoves.contains(m);
+            if (m == Move::None || rootMoves.contains(m))
+                continue;
 
-            if (emplace)
-                rootMoves.emplace_back(m);
+            rootMoves.emplace_back(m);
         }
     }
     else
@@ -532,18 +531,17 @@ void Threads::start(const Position& pos,
 
     if (!limit.ignoreMoves.empty())
     {
-        bool erase = true;
         for (const auto& move : limit.ignoreMoves)
         {
-            if (erase && rootMoves.empty())
+            if (rootMoves.empty())
                 break;
 
             const Move m = mix_to_move(move, p, legalMoveList);
 
-            erase = m != Move::None;
+            if (m == Move::None || !rootMoves.contains(m))
+                continue;
 
-            if (erase)
-                erase = rootMoves.erase(m);
+            rootMoves.erase(m);
         }
     }
 
