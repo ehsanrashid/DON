@@ -84,6 +84,8 @@ class Option {
 
 using OnChange = Option::OnChange;
 
+using OptionPtr = std::unique_ptr<Option>;
+
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
 class ButtonOption final: public Option {
@@ -163,16 +165,15 @@ class ComboOption final: public Option {
 
 namespace OptionFactory {
 
-std::unique_ptr<Option> button(OnChange&& onCng = nullptr) noexcept;
+OptionPtr button(OnChange&& onCng = nullptr) noexcept;
 
-std::unique_ptr<Option> check(bool b, OnChange&& onCng = nullptr) noexcept;
+OptionPtr check(bool b, OnChange&& onCng = nullptr) noexcept;
 
-std::unique_ptr<Option> string(std::string_view str, OnChange&& onCng = nullptr) noexcept;
+OptionPtr string(std::string_view str, OnChange&& onCng = nullptr) noexcept;
 
-std::unique_ptr<Option> spin(int v, int minV, int maxV, OnChange&& onCng = nullptr) noexcept;
+OptionPtr spin(int v, int minV, int maxV, OnChange&& onCng = nullptr) noexcept;
 
-std::unique_ptr<Option>
-combo(std::string_view str, StringViews vars, OnChange&& onCng = nullptr) noexcept;
+OptionPtr combo(std::string_view str, StringViews vars, OnChange&& onCng = nullptr) noexcept;
 
 }  // namespace OptionFactory
 
@@ -180,7 +181,7 @@ class Options final {
    public:
     // clang-format off
     // Stores the option name view and the polymorphic option, preserving the original name case.
-    using Entry    = std::pair<std::string_view, std::unique_ptr<Option>>;
+    using Entry    = std::pair<std::string_view, OptionPtr>;
     // Preserves insertion order and the original name case.
     using List     = std::list<Entry>;
     // Provides fast case-insensitive name lookup, count and removal.
@@ -214,7 +215,7 @@ class Options final {
     //
     // Options are stored in insertion order and indexed by name.
     // Returns false if an option with the specified name already exists.
-    bool add(std::string_view name, std::unique_ptr<Option> option) noexcept;
+    bool add(std::string_view name, OptionPtr option) noexcept;
 
     // Removes the option with the specified name from the Options.
     //

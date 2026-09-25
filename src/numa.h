@@ -593,12 +593,12 @@ template<typename T>
 class NumaReplicated final: public BaseNumaReplicated {
    public:
     explicit NumaReplicated(NumaReplicationContext& ctx) noexcept :
-        BaseNumaReplicated(ctx) {
+        BaseNumaReplicated{ctx} {
         replicate_from(T{});
     }
 
     NumaReplicated(NumaReplicationContext& ctx, T&& source) noexcept :
-        BaseNumaReplicated(ctx) {
+        BaseNumaReplicated{ctx} {
         replicate_from(std::move(source));
     }
 
@@ -680,12 +680,12 @@ template<typename T>
 class LazyNumaReplicated final: public BaseNumaReplicated {
    public:
     explicit LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
-        BaseNumaReplicated(ctx) {
+        BaseNumaReplicated{ctx} {
         prepare_replicate_from(T{});
     }
 
     LazyNumaReplicated(NumaReplicationContext& ctx, T&& source) noexcept :
-        BaseNumaReplicated(ctx) {
+        BaseNumaReplicated{ctx} {
         prepare_replicate_from(std::move(source));
     }
 
@@ -799,7 +799,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
    public:
     SystemWideLazyNumaReplicated(NumaReplicationContext& ctx, std::unique_ptr<T>&& source) noexcept
         :
-        BaseNumaReplicated(ctx) {
+        BaseNumaReplicated{ctx} {
         prepare_replicate_from(std::move(source));
     }
 

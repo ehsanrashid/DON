@@ -92,8 +92,9 @@ class Engine final {
     std::string thread_binding() const noexcept;
     std::string thread_allocation() const noexcept;
 
-    // Network related
+    /* Network related */
 
+    //
     std::unique_ptr<NNUE::Network> default_network() noexcept;
 
     void verify_network() const noexcept;
@@ -101,13 +102,15 @@ class Engine final {
     void load_network(const fs::path& networkFilePath) noexcept;
     void save_network(const fs::path& networkFilePath) const noexcept;
 
-    // Hash related
+    /* Hash related */
 
+    //
     bool load_hash(const fs::path& hashFilePath) noexcept;
     bool save_hash(const fs::path& hashFilePath) const noexcept;
 
-    // On update modifiers
+    /* On update modifiers */
 
+    //
     void set_on_update_start(Manager::OnUpdateStart&& f) noexcept;
     void set_on_update_short(Manager::OnUpdateShort&& f) noexcept;
     void set_on_update_full(Manager::OnUpdateFull&& f) noexcept;
