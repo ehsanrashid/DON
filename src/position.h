@@ -135,9 +135,8 @@ struct State final {
     template<typename T = Bitboard>
     void switch_to_prefix(const State* st, T State::* member = &State::checkersBB) noexcept {
         // Compute offset dynamically for this object
-        usize size = reinterpret_cast<const char*>(&(st->*member))  //
-                   - reinterpret_cast<const char*>(st);
-
+        const usize size = reinterpret_cast<const char*>(&(st->*member))  //
+                         - reinterpret_cast<const char*>(st);
         assert(size <= sizeof(*this) && "size exceeds object size");
 
         std::memcpy(this, st, size);
@@ -570,11 +569,11 @@ inline Color Position::active_color() const noexcept { return activeColor; }
 inline u16 Position::ply() const noexcept { return ply_; }
 
 inline i32 Position::move_num() const noexcept {
-    return 1 + (ply() - (active_color() == BLACK)) / 2;
+    return 1 + (ply() - int(active_color() == BLACK)) / 2;
 }
 
 inline CastlingRights Position::castling_rights_mask(const Square s) const noexcept {
-    auto sIdx = CastlingRightsIndices[s];
+    const auto sIdx = CastlingRightsIndices[s];
 
     return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx]
                                              : CastlingRights::NO_CASTLING;

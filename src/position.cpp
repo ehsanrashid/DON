@@ -365,7 +365,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         }
         else if (is_cdigit(token))
         {
-            int f = char_to_digit(token);
+            const int f = char_to_digit(token);
             if (1 > f || f + file > 8)
                 return Error{"Invalid FEN: too many squares skipped in rank: "
                              + std::string(1, to_char(rank)) + "."};
@@ -393,7 +393,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         return Error{"Invalid FEN: board encoding ended before the last rank."};
     if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0)
         return Error{"Invalid FEN: pawns on the first or eighth rank."};
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
         std::string side{to_string(c)};
 
@@ -422,14 +422,14 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // 2. Active color
     token = get();
 
-    const char side = lower_case(token);
+    const char color = lower_case(token);
 
-    if (side == 'w')
+    if (color == 'w')
         activeColor = WHITE;
-    else if (side == 'b')
+    else if (color == 'b')
         activeColor = BLACK;
     else
-        return Error{"Invalid FEN: invalid side to move: " + std::string(1, token) + "."};
+        return Error{"Invalid FEN: invalid color to move: " + std::string(1, token) + "."};
 
     skip_spaces();
 
@@ -546,7 +546,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     st->rule50Count = u16(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    ply_ = u16(2 * std::max(moveNum - 1, 0) + (ac == BLACK));
+    ply_ = u16(2 * std::max(moveNum - 1, 0) + int(ac == BLACK));
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
@@ -1936,11 +1936,13 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
     return ge;
 }
 
-bool Position::is_repetition(i16 ply) const noexcept {
+bool Position::is_repetition(const i16 ply) const noexcept {
     return repetition() != 0 && repetition() < ply;
 }
 
-bool Position::is_draw(i16 ply, bool useRule50, bool useStalemate) const noexcept {
+bool Position::is_draw(const i16  ply,
+                       const bool useRule50,
+                       const bool useStalemate) const noexcept {
     return
       // Draw by Repetition
       is_repetition(ply)
@@ -2006,7 +2008,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
         assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
 #endif
-        if (static_cast<i16>(i) < ply
+        if (i16(i) < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
             || preSt->repetition != 0)
@@ -2327,35 +2329,38 @@ bool Position::is_ok_() const noexcept {
 Position::operator std::string() const noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
-    std::string pos;
-    pos.reserve(768);
+    std::string str;
+    str.reserve(768);
 
-    pos.append(Sep);
+    str.append(Sep);
 
     for (Rank r = RANK_8;; --r)
     {
-        pos.push_back(to_char(r));
+        str.push_back(to_char(r));
 
         for (File f = FILE_A; f <= FILE_H; ++f)
-            pos
+        {
+            const auto pc = piece(make_square(f, r));
+            str
               .append(" | ")
-              //.push_back(to_char(piece(make_square(f, r))));
-              .append(to_figure(piece(make_square(f, r))));
+              //.push_back(to_char(pc));
+              .append(to_figure(pc));
+        }
 
-        pos.append(" |").append(Sep);
+        str.append(" |").append(Sep);
 
         if (r == RANK_1)
             break;
     }
 
-    pos.push_back(' ');
+    str.push_back(' ');
 
     for (File f = FILE_A; f <= FILE_H; ++f)
-        pos.append("   ").push_back(to_char<true>(f));
+        str.append("   ").push_back(to_char<true>(f));
 
-    pos.push_back('\n');
+    str.push_back('\n');
 
-    return pos;
+    return str;
 }
 
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
@@ -2405,98 +2410,94 @@ void State::dump(std::ostream& os) const noexcept {
     os << "Pawn Keys:\n";
     for (Color c : {WHITE, BLACK})
     {
-        os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_hex_prefix(pawnKeys[c]) << "\n";
+        os << (c == WHITE ? 'W' : 'B') << ": ";
+        os << u64_to_hex_prefix(pawnKeys[c]) << '\n';
     }
 
     os << "Non-Pawn Keys:\n";
     for (Color c : {WHITE, BLACK})
     {
-        os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_hex_prefix(nonPawnKeys[c][0]) << " ";
-        os << u64_to_hex_prefix(nonPawnKeys[c][1]) << "\n";
+        os << (c == WHITE ? 'W' : 'B') << ": ";
+        os << u64_to_hex_prefix(nonPawnKeys[c][0]) << ' ';
+        os << u64_to_hex_prefix(nonPawnKeys[c][1]) << '\n';
     }
 
     os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");
-    os << "\n";
+    os << '\n';
     os << "Captured Square: " << (is_ok(capturedSq) ? to_square(capturedSq) : "-");
-    os << "\n";
+    os << '\n';
 
     os << "Pinner Bitboards:\n";
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
-        os << (c == WHITE ? "W" : "B") << ":";
-        os << pretty(pinnersBB[c]);
-        os << "\n";
+        os << (c == WHITE ? 'W' : 'B') << ':';
+        os << pretty(pinnersBB[c]) << '\n';
     }
 
     os << "Blocker Bitboards:\n";
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
-        os << (c == WHITE ? "W" : "B") << ":";
-        os << pretty(blockersBB[c]);
-        os << "\n";
+        os << (c == WHITE ? 'W' : 'B') << ':';
+        os << pretty(blockersBB[c]) << '\n';
     }
 
     os << "Check Bitboards:\n";
-    for (PieceType pt : PIECE_TYPES)
+    for (const auto pt : PIECE_TYPES)
     {
-        os << to_char(pt) << ":";
-        os << pretty(checksBB[pt]);
-        os << "\n";
+        os << to_char(pt) << ':';
+        os << pretty(checksBB[pt]) << '\n';
     }
 
     os << "Attack Bitboards:\n";
     for (PieceType pt = PAWN; pt <= ALL; ++pt)
     {
-        os << to_char(pt) << ":";
-        os << pretty(accAttacksBB[pt]) << "\n";
+        os << to_char(pt) << ':';
+        os << pretty(accAttacksBB[pt]) << '\n';
     }
 
     os << "Repetition: " << repetition;
-    os << "\n";
+    os << '\n';
     os << "Captured Piece: " << (capturedPc != Piece::NO_PIECE ? to_char(capturedPc) : '-');
-    os << "\n";
+    os << '\n';
     os << "Promoted Piece: " << (promotedPc != Piece::NO_PIECE ? to_char(promotedPc) : '-');
-    os << "\n";
+    os << '\n';
 
     os.flush();
 }
 
 void Position::dump(std::ostream& os) const noexcept {
-    os << *this << "\n";
+    os << *this << '\n';
 
     os << "Color Bitboards:\n";
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
-        os << (c == WHITE ? "W" : "B") << ":";
-        os << pretty(pieces_bb(c));
-        os << "\n";
+        os << (c == WHITE ? 'W' : 'B') << ':';
+        os << pretty(pieces_bb(c)) << '\n';
     }
 
     os << "Piece Bitboards:\n";
-    for (PieceType pt : PIECE_TYPES)
+    for (const auto pt : PIECE_TYPES)
     {
-        os << to_char(pt) << ":";
-        os << pretty(pieces_bb(pt));
-        os << "\n";
+        os << to_char(pt) << ':';
+        os << pretty(pieces_bb(pt)) << '\n';
     }
 
     os << "Castlings:\n";
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
-        for (CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
+        for (const CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
         {
-            os << (c == WHITE ? "W|" : "B|") << (cs == CastlingSide::KING ? "O-O" : "O-O-O")
-               << ":\n";
+            os << (c == WHITE ? 'W' : 'B') << '|';
+            os << (cs == CastlingSide::KING ? "O-O" : "O-O-O") << ':';
+            os << '\n';
             os << pretty(castlings.fullPathBB[c][+cs]);
-            os << "\n";
+            os << '\n';
             os << pretty(castlings.kingPathBB[c][+cs]);
-            os << "\n";
+            os << '\n';
             os << (is_ok(castlings.rookSq[c][+cs]) ? to_square(castlings.rookSq[c][+cs]) : "-");
-            os << "\n";
+            os << '\n';
         }
-        os << "\n";
+        os << '\n';
     }
 
     st->dump(os);

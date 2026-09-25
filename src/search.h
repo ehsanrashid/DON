@@ -341,26 +341,28 @@ class RootMoves final {
         return std::find_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    [[nodiscard]] bool contains(size_type beg, size_type end, Move m) const noexcept {
+    [[nodiscard]] bool
+    contains(const size_type beg, const size_type end, const Move m) const noexcept {
         assert(beg <= end && end <= size());
 
-        auto fst = begin() + beg;
-        auto lst = begin() + end;
+        auto fstItr = begin() + beg;
+        auto lstItr = begin() + end;
 
-        return std::find(fst, lst, m) != lst;
+        return std::find(fstItr, lstItr, m) != lstItr;
     }
-    [[nodiscard]] bool contains(size_type beg, size_type end, const value_type& v) const noexcept {
+    [[nodiscard]] bool
+    contains(const size_type beg, const size_type end, const value_type& v) const noexcept {
         assert(beg <= end && end <= size());
 
         return v.pv.empty() || contains(beg, end, v.pv[0]);
     }
 
-    [[nodiscard]] bool contains(Move m) const noexcept { return find(m) != end(); }
+    [[nodiscard]] bool contains(const Move m) const noexcept { return find(m) != end(); }
     [[nodiscard]] bool contains(const value_type& v) const noexcept {
         return v.pv.empty() || contains(v.pv[0]);
     }
 
-    iterator remove(Move m) noexcept { return std::remove(begin(), end(), m); }
+    iterator remove(const Move m) noexcept { return std::remove(begin(), end(), m); }
     iterator remove(const value_type& v) noexcept { return std::remove(begin(), end(), v); }
 
     template<typename Predicate>
@@ -369,12 +371,12 @@ class RootMoves final {
         return std::remove_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    iterator erase(const_iterator where) noexcept { return rootMoves_.erase(where); }
-    iterator erase(const_iterator beg, const_iterator end) noexcept {
+    iterator erase(const const_iterator where) noexcept { return rootMoves_.erase(where); }
+    iterator erase(const const_iterator beg, const const_iterator end) noexcept {
         return rootMoves_.erase(beg, end);
     }
 
-    bool erase(Move m) noexcept {
+    bool erase(const Move m) noexcept {
         auto newEnd  = remove(m);
         bool removed = newEnd != end();
         erase(newEnd, end());
@@ -402,13 +404,14 @@ class RootMoves final {
         if (itr == end())
             return false;
 
-        if (itr != begin())
-            std::rotate(begin(), itr, itr + 1);
+        if (itr == begin())
+            return true;
 
+        std::rotate(begin(), itr, itr + 1);
         return true;
     }
 
-    bool swap_to_front(Move m) noexcept {
+    bool swap_to_front(const Move m) noexcept {
         auto itr = find(m);
         // Nothing to swap or already at front
         if (itr == begin() || itr == end())
@@ -418,12 +421,12 @@ class RootMoves final {
         return true;
     }
 
-    void sort(size_type beg, size_type end) noexcept {
+    void sort(const size_type beg, const size_type end) noexcept {
         assert(beg <= end && end <= size());
         std::stable_sort(begin() + beg, begin() + end);
     }
     template<typename Predicate>
-    void sort(size_type beg, size_type end, Predicate&& pred) noexcept {
+    void sort(const size_type beg, const size_type end, Predicate&& pred) noexcept {
         assert(beg <= end && end <= size());
         std::stable_sort(begin() + beg, begin() + end, std::forward<Predicate>(pred));
     }
@@ -432,17 +435,17 @@ class RootMoves final {
         std::stable_sort(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    [[nodiscard]] reference operator[](size_type idx) noexcept {
+    [[nodiscard]] reference operator[](const size_type idx) noexcept {
         assert(idx < size());
         return rootMoves_[idx];
     }
-    [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
+    [[nodiscard]] const_reference operator[](const size_type idx) const noexcept {
         assert(idx < size());
         return rootMoves_[idx];
     }
 
-    [[nodiscard]] reference       at(size_type idx) { return rootMoves_.at(idx); }
-    [[nodiscard]] const_reference at(size_type idx) const { return rootMoves_.at(idx); }
+    [[nodiscard]] reference       at(const size_type idx) { return rootMoves_.at(idx); }
+    [[nodiscard]] const_reference at(const size_type idx) const { return rootMoves_.at(idx); }
 
    private:
     container_type rootMoves_;
@@ -490,15 +493,11 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    [[nodiscard]] constexpr bool enabled() const noexcept { return level < LevelMax; }
+    [[nodiscard]] constexpr bool enabled() const noexcept;
 
-    [[nodiscard]] constexpr bool time_to_pick(const Depth depth) const noexcept {
-        return depth == 1 + static_cast<Depth>(level);
-    }
+    [[nodiscard]] constexpr bool time_to_pick(Depth depth) const noexcept;
 
-    [[nodiscard]] constexpr Value weakness() const noexcept {
-        return static_cast<Value>(2.0 * (3.0 * LevelMax - level));
-    }
+    [[nodiscard]] constexpr Value weakness() const noexcept;
 
     Move pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
 

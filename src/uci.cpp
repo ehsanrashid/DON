@@ -329,11 +329,11 @@ void UCI::execute(const std::string_view command) noexcept {
         std::cout << '\n' << engine.evaluation() << std::endl;
         break;
     case Command::FLIP :
-        if (auto err = engine.flip())
+        if (const auto err = engine.flip())
             terminate_on_critical_error(err->what());
         break;
     case Command::MIRROR :
-        if (auto err = engine.mirror())
+        if (const auto err = engine.mirror())
             terminate_on_critical_error(err->what());
         break;
     case Command::COMPILER :
@@ -469,12 +469,12 @@ void UCI::position(std::istream& is) noexcept {
     while (is >> token)
         moves.push_back(token);
 
-    if (auto err = engine.setup(fen, moves))
+    if (const auto err = engine.setup(fen, moves))
         terminate_on_critical_error(err->what());
 }
 
 void UCI::go(std::istream& is) noexcept {
-    auto limit = parse_limit(is);
+    const auto limit = parse_limit(is);
 
     if (limit.perft)
     {
@@ -566,7 +566,7 @@ void UCI::bench(std::istream& is) noexcept {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
 
-            auto limit = parse_limit(iss);
+            const auto limit = parse_limit(iss);
 
             if (limit.perft)
             {
@@ -661,7 +661,7 @@ void UCI::benchmark(std::istream& is) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
-            auto limit = parse_limit(iss);
+            const auto limit = parse_limit(iss);
 
             // Run with silenced network verification
             engine.start(limit);
@@ -742,7 +742,7 @@ void UCI::benchmark(std::istream& is) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rPosition " << ++cnt << '/' << num;
 
-            auto limit = parse_limit(iss);
+            const auto limit = parse_limit(iss);
 
             // Run with silenced network verification
             engine.start(limit);

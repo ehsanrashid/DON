@@ -55,9 +55,13 @@ class UCI final {
     void set_on_updates() noexcept;
 
     void position(std::istream& is) noexcept;
+
     void go(std::istream& is) noexcept;
+
     void setoption(std::istream& is) noexcept;
+
     void bench(std::istream& is) noexcept;
+
     void benchmark(std::istream& is) noexcept;
 
     Engine engine;

@@ -108,14 +108,12 @@ void Engine::start(const Limit& limit) const noexcept {
 void Engine::stop() const noexcept { threads.request_stop(); }
 
 void Engine::ponderhit() const noexcept {
-    auto* manager = threads.manager();
-    if (manager != nullptr)
+    if (auto* const manager = threads.manager(); manager != nullptr)
         manager->set_ponder(false);
 }
 
 void Engine::wait_finish() const noexcept {
-    auto* mainThread = threads.main_thread();
-    if (mainThread != nullptr)
+    if (auto* const mainThread = threads.main_thread(); mainThread != nullptr)
         mainThread->wait_finish();
 }
 
@@ -123,7 +121,7 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
 
-    if (auto err = pos.set(fen, &states->back()))
+    if (const auto err = pos.set(fen, &states->back()))
         return err;
 
     i16 ply = 1;
