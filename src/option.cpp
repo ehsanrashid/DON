@@ -188,11 +188,11 @@ OptionPtr string(const std::string_view str, OnChange&& onCng) noexcept {
     return std::make_unique<StringOption>(str, std::move(onCng));
 }
 
-OptionPtr spin(int v, int minV, int maxV, OnChange&& onCng) noexcept {
+OptionPtr spin(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept {
     return std::make_unique<SpinOption>(v, minV, maxV, std::move(onCng));
 }
 
-OptionPtr combo(std::string_view str, StringViews vars, OnChange&& onCng) noexcept {
+OptionPtr combo(const std::string_view str, StringViews vars, OnChange&& onCng) noexcept {
     return std::make_unique<ComboOption>(str, std::move(vars), std::move(onCng));
 }
 
