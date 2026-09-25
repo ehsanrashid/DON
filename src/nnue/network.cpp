@@ -135,12 +135,12 @@ void Network::load(const fs::path& rootDirectory, fs::path evalPath, EvalFile& e
                 2
 #endif
                 >
-      DirectoryPaths{fs::path{}  //
-                     ,
-                     rootDirectory
+      DirPaths{fs::path{}  //
+               ,
+               rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                     ,
-                     utf8_to_path(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
+               ,
+               utf8_to_path(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
 #endif
       };
 
@@ -157,7 +157,7 @@ void Network::load(const fs::path& rootDirectory, fs::path evalPath, EvalFile& e
             return;
     }
 
-    for (const auto& dirPath : DirectoryPaths)
+    for (const auto& dirPath : DirPaths)
         if (evalFile.currentPath != evalPath)
         {
             load_external(dirPath, evalPath, evalFile);
@@ -183,13 +183,13 @@ bool Network::save(const std::optional<fs::path>& evalPath,
         return false;
     }
 
-    fs::path evalFileName = evalPath.value_or(evalFile.DefaultName);
+    const fs::path evPath = evalPath.value_or(evalFile.DefaultName);
 
-    std::ofstream ofs{evalFileName, std::ios::binary};
+    std::ofstream ofs{evPath, std::ios::binary};
 
     bool saved = save(ofs, evalFile.netDescription);
 
-    print_info_string(saved ? "Network saved successfully to " + evalFileName.string() + "."
+    print_info_string(saved ? "Network saved successfully to " + evPath.string() + "."
                             : "Failed to export net.");
     return saved;
 }
@@ -207,7 +207,7 @@ void Network::verify(fs::path evalPath, const EvalFile& evalFile) const noexcept
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
           "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
-          + std::string{evalFile.DefaultName}};
+          + evalFile.DefaultName.string()};
         std::string msg5{"The engine will be terminated now."};
 
         std::cerr << "ERROR: " << msg1 << '\n'  //

@@ -40,6 +40,10 @@ constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
 constexpr std::string_view VERSION{"dev"};
 
+constexpr unsigned two_digits(const char* p) noexcept {
+    return 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
+}
+
 std::string compiler_version(const u32 major, const u32 minor, const u32 patch) noexcept {
     return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
 }
@@ -62,60 +66,39 @@ std::string format_date(const std::string_view date) noexcept {
     if (date.size() < 8)
         return std::string{NullDate};
 
-    // Parse month (first 3 chars), then skip space(s), then day, then space, then year
-    const auto*       p   = date.data();
-    const auto* const end = p + date.size();
+    StringReader reader{date};
 
-    // Parse month (first 3 chars)
-    if (end - p < 3)
-        return std::string{NullDate};
+    // Parse month (first 3 chars).
+    const Array<char, 3> monthChars{reader.get(), reader.get(), reader.get()};
+    const u32            month = to_month(std::string_view{monthChars.data(), monthChars.size()});
 
-    std::string_view m{p, 3};
-    p += 3;
-
-    // Find month index (1..12)
-    u32 month = to_month(m);
     if (month == 0)
         return std::string{NullDate};
 
-    // Skip spaces
-    for (; p != end && is_space(*p); ++p)
-    {}
+    // Parse day.
+    reader.skip_spaces();
 
-    // Parse day (1-2 digits)
-    if (end - p < 1 || !is_cdigit(*p))
+    int day;
+    if (!reader.get_int(day))
         return std::string{NullDate};
 
-    u32 day = 0;
-    for (; p != end && is_cdigit(*p); ++p)
-        day = 10 * day + char_to_digit(*p);
+    day = constexpr_abs(day);
 
-    // Validate day range
-    if (day < 1 || day > 31)
+    if (day < 1 || 31 < day)
         return std::string{NullDate};
 
-    // Skip spaces/comma
-    for (; p != end && (is_space(*p) || *p == ','); ++p)
-    {}
+    // Skip spaces and optional comma.
+    reader.skip_spaces();
 
-    // Parse year (4 digits)
-    if (end - p < 4)
+    if (reader.peek() == ',')
+        reader.advance();
+
+    // Parse year.
+    int year;
+    if (!reader.get_int(year))
         return std::string{NullDate};
 
-    u32 year = 0;
-    for (const auto* yEnd = p + 4; p != yEnd; ++p)
-    {
-        if (!is_cdigit(*p))
-            return std::string{NullDate};
-
-        year = 10 * year + char_to_digit(*p);
-    }
-
-    // Validate year range (reasonable bounds)
-    if (year < 1970)
-        return std::string{NullDate};
-
-    // Format YYYYMMDD manually (faster than snprintf)
+    // Format YYYYMMDD manually.
     Array<char, 8> buffer{
       digit_to_char(year / 1000 % 10),  //
       digit_to_char(year / 100 % 10),   //
@@ -144,9 +127,9 @@ std::string format_time(const std::string_view time) noexcept {
         || !is_cdigit(p[6]) || !is_cdigit(p[7]))
         return std::string{NullTime};
 
-    unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
-    unsigned min  = 10 * char_to_digit(p[3]) + char_to_digit(p[4]);
-    unsigned sec  = 10 * char_to_digit(p[6]) + char_to_digit(p[7]);
+    const auto hour = two_digits(p);
+    const auto min  = two_digits(p + 3);
+    const auto sec  = two_digits(p + 6);
 
     // Range validation (important)
     if (hour > 23 || min > 59 || sec > 59)
@@ -650,7 +633,10 @@ void StringReader::skip_spaces() noexcept {
     {}
 }
 
-void StringReader::advance() noexcept { ++cur; }
+void StringReader::advance() noexcept {
+    if (cur != end)
+        ++cur;
+}
 
 char StringReader::get() noexcept { return cur != end ? *cur++ : Null; }
 
