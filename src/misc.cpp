@@ -542,10 +542,7 @@ CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
         return;
     }
 #endif
-    set_arguments(argc, argv);
-}
 
-void CommandLine::set_arguments(const int argc, const char* const argv[]) noexcept {
     const usize u_argc = usize(argc);
 
     arguments_.reserve(u_argc);
@@ -643,14 +640,12 @@ char StringReader::get() noexcept { return cur != end ? *cur++ : Null; }
 bool StringReader::get_int(int& out) noexcept {
     skip_spaces();
 
-    bool neg = false;
-
+    const bool neg = cur != end && *cur == '-';
     if (cur != end && (*cur == '+' || *cur == '-'))
-        neg = (*cur++ == '-');
+        ++cur;
 
-    int val = 0;
-
-    const auto p = cur;
+    int        val = 0;
+    const auto p   = cur;
     for (; cur != end && is_cdigit(*cur); ++cur)
         val = 10 * val + char_to_digit(*cur);
 
@@ -1370,13 +1365,13 @@ void UniqueFd::reset(const int newFd) noexcept {
 
 #endif
 
-bool value_is_bool(const std::string_view sv) noexcept {
+bool str_is_bool(const std::string_view sv) noexcept {
     // Convert to lowercase for case-insensitive comparison
     const auto str = lower_case(std::string{sv});
-    return str == bool_to_string(false) || str == bool_to_string(true);
+    return str == bool_to_str(false) || str == bool_to_str(true);
 }
 
-bool value_in_range(const std::string_view sv, const int minValue, const int maxValue) noexcept {
+bool str_in_range(const std::string_view sv, const int minValue, const int maxValue) noexcept {
     constexpr int Base = 10;
 
     const char*       p   = sv.data();

@@ -54,7 +54,7 @@ class Option {
 
     virtual operator std::string_view() const noexcept;
 
-    virtual void operator=(std::string value) noexcept = 0;
+    virtual void operator=(std::string_view value) noexcept = 0;
 
    protected:
     explicit Option(std::string_view str, OnChange&& onCng = nullptr) noexcept;
@@ -89,7 +89,7 @@ class ButtonOption final: public Option {
 
     void print(std::ostream& os) const noexcept override;
 
-    void operator=(std::string value) noexcept override;
+    void operator=(std::string_view value) noexcept override;
 };
 
 class CheckOption final: public Option {
@@ -102,7 +102,7 @@ class CheckOption final: public Option {
 
     operator int() const noexcept override;
 
-    void operator=(std::string value) noexcept override;
+    void operator=(std::string_view value) noexcept override;
 
    private:
     static std::string normalize(std::string str) noexcept;
@@ -118,7 +118,7 @@ class StringOption final: public Option {
 
     operator std::string_view() const noexcept override;
 
-    void operator=(std::string value) noexcept override;
+    void operator=(std::string_view value) noexcept override;
 
    private:
     static std::string normalize(std::string str) noexcept;
@@ -134,7 +134,7 @@ class SpinOption final: public Option {
 
     operator int() const noexcept override;
 
-    void operator=(std::string value) noexcept override;
+    void operator=(std::string_view value) noexcept override;
 
    private:
     const int minValue;
@@ -151,7 +151,7 @@ class ComboOption final: public Option {
 
     operator std::string_view() const noexcept override;
 
-    void operator=(std::string value) noexcept override;
+    void operator=(std::string_view value) noexcept override;
 
    private:
     bool contains(std::string_view value) const noexcept;

@@ -72,10 +72,10 @@ std::string_view ButtonOption::type() const noexcept { return "button"; }
 
 void ButtonOption::print(std::ostream&) const noexcept {}
 
-void ButtonOption::operator=(std::string) noexcept { on_change(); }
+void ButtonOption::operator=(const std::string_view) noexcept { on_change(); }
 
 CheckOption::CheckOption(const bool b, OnChange&& onCng) noexcept :
-    Option{bool_to_string(b), std::move(onCng)} {}
+    Option{bool_to_str(b), std::move(onCng)} {}
 
 std::string_view CheckOption::type() const noexcept { return "check"; }
 
@@ -83,13 +83,13 @@ void CheckOption::print(std::ostream& os) const noexcept {  //
     os << " default " << default_value();
 }
 
-CheckOption::operator int() const noexcept { return sv_to_bool(current_value()); }
+CheckOption::operator int() const noexcept { return str_to_bool(current_value()); }
 
-void CheckOption::operator=(std::string value) noexcept {
-    if (!value_is_bool(value))
+void CheckOption::operator=(const std::string_view value) noexcept {
+    if (!str_is_bool(value))
         return;
 
-    currentValue = normalize(std::move(value));
+    currentValue = normalize(std::string{value});
 
     on_change();
 }
@@ -107,8 +107,8 @@ void StringOption::print(std::ostream& os) const noexcept {
 
 StringOption::operator std::string_view() const noexcept { return current_value(); }
 
-void StringOption::operator=(std::string value) noexcept {
-    currentValue = normalize(std::move(value));
+void StringOption::operator=(const std::string_view value) noexcept {
+    currentValue = normalize(std::string{value});
 
     on_change();
 }
@@ -131,10 +131,10 @@ void SpinOption::print(std::ostream& os) const noexcept {
     os << " default " << default_value() << " min " << minValue << " max " << maxValue;
 }
 
-SpinOption::operator int() const noexcept { return sv_to_int(current_value()); }
+SpinOption::operator int() const noexcept { return str_to_int(current_value()); }
 
-void SpinOption::operator=(std::string value) noexcept {
-    if (!value_in_range(value, minValue, maxValue))
+void SpinOption::operator=(const std::string_view value) noexcept {
+    if (!str_in_range(value, minValue, maxValue))
         return;
 
     currentValue = value;
@@ -159,11 +159,11 @@ void ComboOption::print(std::ostream& os) const noexcept {
 
 ComboOption::operator std::string_view() const noexcept { return current_value(); }
 
-void ComboOption::operator=(std::string value) noexcept {
+void ComboOption::operator=(const std::string_view value) noexcept {
     if (is_whitespace(value) || !contains(value))
         return;
 
-    currentValue = std::move(value);
+    currentValue = value;
 
     on_change();
 }
@@ -293,7 +293,7 @@ void Options::setoption(const std::string_view name, const std::string_view valu
     const auto indexMapItr = find(name);
 
     if (indexMapItr != indexMap.end())
-        *indexMapItr->second->second = std::string{value};
+        *indexMapItr->second->second = value;
     else
         std::cerr << "No such option: '" << name << "'" << std::endl;
 }

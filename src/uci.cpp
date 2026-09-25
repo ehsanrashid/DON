@@ -515,9 +515,9 @@ void UCI::setoption(std::istream& is) noexcept {
 
 void UCI::bench(std::istream& is) noexcept {
 
-    const auto MinimalInfo = bool_to_string(options()["MinimalInfo"]);
+    const auto MinimalInfo = bool_to_str(options()["MinimalInfo"]);
 
-    options().setoption("MinimalInfo", bool_to_string(true));
+    options().setoption("MinimalInfo", bool_to_str(true));
 
     const auto commands = Benchmark::bench(is, engine.fen());
 
@@ -635,7 +635,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     // Set options once at the start
     options().setoption("Threads", std::to_string(setup.threads));
     options().setoption("Hash", std::to_string(setup.ttSize));
-    options().setoption("UCI_Chess960", bool_to_string(false));
+    options().setoption("UCI_Chess960", bool_to_str(false));
 
     const usize num =
       std::count_if(setup.commands.begin(), setup.commands.end(),
@@ -779,7 +779,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     std::cerr << "\n==========================="
               << "\nVersion                    : " << version_info()
               << "\nCompiler                   : " << compiler_info()
-              << "\nLarge page                 : " << bool_to_string(has_large_page())
+              << "\nLarge page                 : " << bool_to_str(has_large_page())
               << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
               << "\nCurrent invocation         : " << "benchmark " << setup.currentInvocation
               << "\nAvailable processors       : " << engine.numa_config()
