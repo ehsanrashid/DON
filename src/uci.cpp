@@ -317,12 +317,12 @@ void UCI::execute(const std::string_view command) noexcept {
         break;
     case Command::DUMP : {
         std::string input;
-        fs::path    dumpFilePath;
+        fs::path    dumpPath;
 
         if (is >> input)
-            dumpFilePath = input;
+            dumpPath = utf8_to_path(input);
 
-        engine.dump(dumpFilePath);
+        engine.dump(dumpPath);
     }
     break;
     case Command::EVAL :
@@ -341,12 +341,12 @@ void UCI::execute(const std::string_view command) noexcept {
         break;
     case Command::EXPORT_NET : {
         std::string input;
-        fs::path    netFilePath;
+        fs::path    networkPath;
 
         if (is >> input)
-            netFilePath = utf8_to_path(input);
+            networkPath = utf8_to_path(input);
 
-        engine.save_network(netFilePath);
+        engine.save_network(networkPath);
     }
     break;
     case Command::HELP :

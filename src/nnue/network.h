@@ -52,10 +52,10 @@ class Network final {
     Network& operator=(const Network&)     = default;
     Network& operator=(Network&&) noexcept = default;
 
-    void load(const fs::path& rootDirectory, fs::path evalFilePath, EvalFile& evalFile) noexcept;
-    bool save(const std::optional<fs::path>& evalFilePath, const EvalFile& evalFile) const noexcept;
+    void load(const fs::path& rootDirectory, fs::path evalPath, EvalFile& evalFile) noexcept;
+    bool save(const std::optional<fs::path>& evalPath, const EvalFile& evalFile) const noexcept;
 
-    void verify(fs::path evalFilePath, const EvalFile& evalFile) const noexcept;
+    void verify(fs::path evalPath, const EvalFile& evalFile) const noexcept;
 
     usize content_hash() const noexcept;
 
@@ -70,7 +70,7 @@ class Network final {
    private:
     bool load_embedded(EvalFile& evalFile) noexcept;
     bool
-    load_external(const fs::path& dir, const fs::path& evalFilePath, EvalFile& evalFile) noexcept;
+    load_external(const fs::path& dirPath, const fs::path& evalPath, EvalFile& evalFile) noexcept;
 
     std::optional<std::string> load(std::istream& is) noexcept;
     bool save(std::ostream& os, std::string_view netDescription) const noexcept;

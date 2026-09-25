@@ -212,11 +212,11 @@ bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) n
 
 }  // namespace
 
-bool load_book(const fs::path& bookFilePath) noexcept {
-    if (bookFilePath.empty())
+bool load_book(const fs::path& bookPath) noexcept {
+    if (bookPath.empty())
         return false;
 
-    return pgBook.load(bookFilePath);
+    return pgBook.load(bookPath);
 }
 
 // Initialize the worker with its thread and NUMA information

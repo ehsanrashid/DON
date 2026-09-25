@@ -650,6 +650,8 @@ void StringReader::skip_spaces() noexcept {
     {}
 }
 
+void StringReader::advance() noexcept { ++cur; }
+
 char StringReader::get() noexcept { return cur != end ? *cur++ : Null; }
 
 bool StringReader::get_int(int& out) noexcept {

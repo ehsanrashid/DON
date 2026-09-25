@@ -63,7 +63,7 @@ using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
 
-bool load_book(const fs::path& bookFilePath) noexcept;
+bool load_book(const fs::path& bookPath) noexcept;
 
 // extend_tb_pv() may lead to PVs longer than PLY_MAX
 struct RootPVMoves final {

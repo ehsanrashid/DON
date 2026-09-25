@@ -2121,7 +2121,7 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
     return h;
 }
 
-// StringReader: small, allocation-free, read-only parser over std::string_view.
+// StringReader: Fast, Small, allocation-free, read-only parser over std::string_view.
 class StringReader final {
    public:
     explicit StringReader(std::string_view sv) noexcept;
@@ -2137,6 +2137,8 @@ class StringReader final {
     // Advances the reader past all consecutive whitespace characters.
     void skip_spaces() noexcept;
 
+    void advance() noexcept;
+
     // Returns the current character and advances the reader.
     //
     // Returns Null when the end of the input is reached.
@@ -2148,9 +2150,9 @@ class StringReader final {
     // value in 'out' and returns true.
     bool get_int(int& out) noexcept;
 
-   private:
     static constexpr char Null = '\0';
 
+   private:
     const char* const beg;
     const char*       cur;
     const char* const end;

@@ -195,11 +195,11 @@ std::string Engine::evaluation() const noexcept {
     return Evaluate::trace(pos, *network);
 }
 
-void Engine::dump(const fs::path& dumpFilePath) const noexcept {
+void Engine::dump(const fs::path& dumpPath) const noexcept {
 
-    if (!dumpFilePath.empty())
+    if (!dumpPath.empty())
     {
-        if (std::ofstream ofs{dumpFilePath, std::ios::binary})
+        if (std::ofstream ofs{dumpPath, std::ios::binary})
         {
             pos.dump(ofs);
 
@@ -208,7 +208,7 @@ void Engine::dump(const fs::path& dumpFilePath) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFilePath << "', writing to stdout instead");
+        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpPath << "', writing to stdout instead");
     }
 
     // Default: dump to console
@@ -314,9 +314,9 @@ std::unique_ptr<NNUE::Network> Engine::default_network() noexcept {
 
 void Engine::verify_network() const noexcept {
 
-    auto evalFilePath = utf8_to_path(options()["EvalFile"]);
+    auto evalPath = utf8_to_path(options()["EvalFile"]);
 
-    network->verify(evalFilePath, networkFile);
+    network->verify(evalPath, networkFile);
 
     auto statuses = network.get_status_and_errors();
 
@@ -339,10 +339,10 @@ void Engine::verify_network() const noexcept {
     }
 }
 
-void Engine::load_network(const fs::path& networkFilePath) noexcept {
+void Engine::load_network(const fs::path& networkPath) noexcept {
 
-    network.modify_and_replicate([this, &networkFilePath](NNUE::Network& net) noexcept {  //
-        net.load(binaryDirectory, networkFilePath, networkFile);
+    network.modify_and_replicate([this, &networkPath](NNUE::Network& net) noexcept {  //
+        net.load(binaryDirectory, networkPath, networkFile);
     });
 
     threads.reset();
@@ -350,16 +350,16 @@ void Engine::load_network(const fs::path& networkFilePath) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_network(const fs::path& networkFilePath) const noexcept {
-    network->save(networkFilePath, networkFile);
+void Engine::save_network(const fs::path& networkPath) const noexcept {
+    network->save(networkPath, networkFile);
 }
 
-bool Engine::load_hash(const fs::path& hashFilePath) noexcept {
-    return transpositionTable.load(hashFilePath, threads);
+bool Engine::load_hash(const fs::path& hashPath) noexcept {
+    return transpositionTable.load(hashPath, threads);
 }
 
-bool Engine::save_hash(const fs::path& hashFilePath) const noexcept {
-    return transpositionTable.save(hashFilePath);
+bool Engine::save_hash(const fs::path& hashPath) const noexcept {
+    return transpositionTable.save(hashPath);
 }
 
 void Engine::set_on_update_start(Manager::OnUpdateStart&& f) noexcept {

@@ -334,9 +334,9 @@ u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
     return u16(ceil_div(count * RequiredCount, ActualCount) / TTCluster::EntryCount);
 }
 
-bool TranspositionTable::load(const fs::path& hashFilePath, const Threads& threads) noexcept {
+bool TranspositionTable::load(const fs::path& hashPath, const Threads& threads) noexcept {
 
-    if (hashFilePath.empty())
+    if (hashPath.empty())
     {
         //DEBUG_LOG("No Hash file provided");
         return false;
@@ -344,25 +344,25 @@ bool TranspositionTable::load(const fs::path& hashFilePath, const Threads& threa
 
     std::error_code ec;
 
-    usize fileSize = fs::file_size(hashFilePath, ec);
+    usize fileSize = fs::file_size(hashPath, ec);
 
     if (ec)
     {
-        //DEBUG_LOG("Failed to stat Hash file " << hashFilePath << ": " << ec.message());
+        //DEBUG_LOG("Failed to stat Hash file " << hashPath << ": " << ec.message());
         return false;
     }
 
     if (fileSize == 0)
     {
-        //DEBUG_LOG("Warning: Empty Hash file " << hashFilePath);
+        //DEBUG_LOG("Warning: Empty Hash file " << hashPath);
         return true;
     }
 
-    std::ifstream ifs{hashFilePath, std::ios::binary};
+    std::ifstream ifs{hashPath, std::ios::binary};
 
     if (!ifs)
     {
-        //DEBUG_LOG("Failed to open Hash file " << hashFilePath);
+        //DEBUG_LOG("Failed to open Hash file " << hashPath);
         return false;
     }
 
@@ -411,19 +411,19 @@ bool TranspositionTable::load(const fs::path& hashFilePath, const Threads& threa
     return readedSize == DataSize && ifs.good();
 }
 
-bool TranspositionTable::save(const fs::path& hashFilePath) const noexcept {
+bool TranspositionTable::save(const fs::path& hashPath) const noexcept {
 
-    if (hashFilePath.empty())
+    if (hashPath.empty())
     {
         //DEBUG_LOG("No Hash file provided");
         return false;
     }
 
-    std::ofstream ofs{hashFilePath, std::ios::binary};
+    std::ofstream ofs{hashPath, std::ios::binary};
 
     if (!ofs)
     {
-        //DEBUG_LOG("Failed to open Hash file " << hashFilePath);
+        //DEBUG_LOG("Failed to open Hash file " << hashPath);
         return false;
     }
 

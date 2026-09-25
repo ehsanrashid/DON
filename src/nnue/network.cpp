@@ -126,34 +126,30 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 }  // namespace
 
-void Network::load(const fs::path& rootDirectory,
-                   fs::path        evalFilePath,
-                   EvalFile&       evalFile) noexcept {
+void Network::load(const fs::path& rootDirectory, fs::path evalPath, EvalFile& evalFile) noexcept {
 
-    constexpr usize DirectorySize =
+    const Array<fs::path,
 #if defined(DEFAULT_NNUE_DIRECTORY)
-      3
+                3
 #else
-      2
+                2
 #endif
-      ;
-
-    const Array<fs::path, DirectorySize> Directories{
-      // --------------------------------------------------------
-      fs::path{},  //
-      rootDirectory
+                >
+      DirectoryPaths{fs::path{}  //
+                     ,
+                     rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
-      ,
-      utf8_to_path(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
+                     ,
+                     utf8_to_path(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
 #endif
-    };
+      };
 
-    if (evalFilePath.empty())
-        evalFilePath = evalFile.DefaultName;
+    if (evalPath.empty())
+        evalPath = evalFile.DefaultName;
 
     initialized = false;
 
-    if (evalFile.currentPath != evalFilePath && evalFilePath == evalFile.DefaultName)
+    if (evalFile.currentPath != evalPath && evalPath == evalFile.DefaultName)
     {
         load_embedded(evalFile);
 
@@ -161,17 +157,17 @@ void Network::load(const fs::path& rootDirectory,
             return;
     }
 
-    for (const auto& dir : Directories)
-        if (evalFile.currentPath != evalFilePath)
+    for (const auto& dirPath : DirectoryPaths)
+        if (evalFile.currentPath != evalPath)
         {
-            load_external(dir, evalFilePath, evalFile);
+            load_external(dirPath, evalPath, evalFile);
 
             if (initialized)
                 return;
         }
 }
 
-bool Network::save(const std::optional<fs::path>& evalFilePath,
+bool Network::save(const std::optional<fs::path>& evalPath,
                    const EvalFile&                evalFile) const noexcept {
     if (!evalFile.currentPath)
     {
@@ -180,14 +176,14 @@ bool Network::save(const std::optional<fs::path>& evalFilePath,
         return false;
     }
 
-    if (!evalFilePath && evalFile.currentPath != evalFile.DefaultName)
+    if (!evalPath && evalFile.currentPath != evalFile.DefaultName)
     {
         print_info_string(
           "Failed to export a net. A non-embedded net can only be saved if the filename is specified.");
         return false;
     }
 
-    fs::path evalFileName = evalFilePath.value_or(evalFile.DefaultName);
+    fs::path evalFileName = evalPath.value_or(evalFile.DefaultName);
 
     std::ofstream ofs{evalFileName, std::ios::binary};
 
@@ -198,16 +194,15 @@ bool Network::save(const std::optional<fs::path>& evalFilePath,
     return saved;
 }
 
-void Network::verify(fs::path evalFilePath, const EvalFile& evalFile) const noexcept {
-    if (evalFilePath.empty())
-        evalFilePath = evalFile.DefaultName;
+void Network::verify(fs::path evalPath, const EvalFile& evalFile) const noexcept {
+    if (evalPath.empty())
+        evalPath = evalFile.DefaultName;
 
-    if (evalFile.currentPath != evalFilePath)
+    if (evalFile.currentPath != evalPath)
     {
         std::string msg1{
           "Network evaluation parameters compatible with the engine must be available."};
-        std::string msg2{"The network file " + evalFilePath.string()
-                         + " was not loaded successfully."};
+        std::string msg2{"The network file " + evalPath.string() + " was not loaded successfully."};
         std::string msg3{
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
@@ -227,7 +222,7 @@ void Network::verify(fs::path evalFilePath, const EvalFile& evalFile) const noex
     constexpr usize TotalSize =
       sizeof(featureTransformer) + LAYER_STACKS * sizeof(NetworkArchitecture);
 
-    std::string msg{"NNUE evaluation using " + evalFilePath.string() + " ("
+    std::string msg{"NNUE evaluation using " + evalPath.string() + " ("
                     + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.InputDimensions) + ", "
                     + std::to_string(networkArchitectures[0].TransformedFeatureDimensions) + ", "
@@ -320,11 +315,11 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
     return false;
 }
 
-bool Network::load_external(const fs::path& dir,
-                            const fs::path& evalFilePath,
+bool Network::load_external(const fs::path& dirPath,
+                            const fs::path& evalPath,
                             EvalFile&       evalFile) noexcept {
 
-    fs::path path = dir / evalFilePath;
+    fs::path path = dirPath / evalPath;
 
     std::ifstream ifs{path, std::ios::binary};
 
@@ -332,7 +327,7 @@ bool Network::load_external(const fs::path& dir,
 
     if (netDescription)
     {
-        evalFile.currentPath    = evalFilePath;
+        evalFile.currentPath    = evalPath;
         evalFile.netDescription = *netDescription;
         return true;
     }
