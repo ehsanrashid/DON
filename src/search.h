@@ -309,23 +309,23 @@ class RootMoves final {
 
     void clear() noexcept { rootMoves_.clear(); }
 
-    void resize(size_type newSize) noexcept { rootMoves_.resize(newSize); }
-    void reserve(size_type newCapacity) noexcept { rootMoves_.reserve(newCapacity); }
+    void resize(const size_type newSize) noexcept { rootMoves_.resize(newSize); }
+    void reserve(const size_type newCapacity) noexcept { rootMoves_.reserve(newCapacity); }
 
-    [[nodiscard]] const_iterator  //
-    find(size_type beg, size_type end, Move m) const noexcept {
+    [[nodiscard]] const_iterator
+    find(const size_type beg, const size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
         return std::find(begin() + beg, begin() + end, m);
     }
-    [[nodiscard]] const_iterator  //
-    find(size_type beg, size_type end, const value_type& v) const noexcept {
+    [[nodiscard]] const_iterator
+    find(const size_type beg, const size_type end, const value_type& v) const noexcept {
         return !v.pv.empty() ? find(beg, end, v.pv[0]) : begin() + end;
     }
 
-    iterator find(Move m) noexcept { return std::find(begin(), end(), m); }
+    iterator find(const Move m) noexcept { return std::find(begin(), end(), m); }
     iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
 
-    [[nodiscard]] const_iterator find(Move m) const noexcept {
+    [[nodiscard]] const_iterator find(const Move m) const noexcept {
         return std::find(begin(), end(), m);
     }
     [[nodiscard]] const_iterator find(const value_type& v) const noexcept {

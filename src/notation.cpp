@@ -154,8 +154,8 @@ Move can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMoveList)
     return Move::None;
 }
 
-Move can_to_move(const std::string& can, const Position& pos) noexcept {
-    return can_to_move(can, MoveList<GenType::LEGAL>(pos));
+Move can_to_move(std::string can, const Position& pos) noexcept {
+    return can_to_move(std::move(can), MoveList<GenType::LEGAL>(pos));
 }
 
 namespace {
@@ -307,31 +307,29 @@ Move san_to_move(std::string                     san,
     return Move::None;
 }
 
-Move san_to_move(const std::string& san, Position& pos) noexcept {
-    return san_to_move(san, pos, MoveList<GenType::LEGAL>(pos));
+Move san_to_move(std::string san, Position& pos) noexcept {
+    return san_to_move(std::move(san), pos, MoveList<GenType::LEGAL>(pos));
 }
 
-Move mix_to_move(const std::string&              mix,
+Move mix_to_move(std::string                     mix,
                  Position&                       pos,
                  const MoveList<GenType::LEGAL>& legalMoveList) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
 
-    if (!legalMoveList.empty())
+    if (legalMoveList.empty())
+        return Move::None;
+
+    if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || lower_case(mix[0]) == 'o')))
+        return san_to_move(std::move(mix), pos, legalMoveList);
+
+    if (mix.size() <= 5)
     {
-        if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || lower_case(mix[0]) == 'o')))
-            return san_to_move(mix, pos, legalMoveList);
-
-        if (mix.size() <= 5)
-        {
-            Move m = can_to_move(mix, legalMoveList);
-            if (m != Move::None)
-                return m;
-        }
-
-        return san_to_move(mix, pos, legalMoveList);
+        const Move m = can_to_move(mix, legalMoveList);
+        if (m != Move::None)
+            return m;
     }
 
-    return Move::None;
+    return san_to_move(std::move(mix), pos, legalMoveList);
 }
 
 }  // namespace DON

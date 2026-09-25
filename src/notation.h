@@ -83,15 +83,16 @@ class Score final {
 // (g1f3, a7a8q) to the corresponding legal move, if any.
 [[nodiscard]] Move can_to_move(std::string                     can,
                                const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
-[[nodiscard]] Move can_to_move(const std::string& can, const Position& pos) noexcept;
+[[nodiscard]] Move can_to_move(std::string can, const Position& pos) noexcept;
 
 [[nodiscard]] std::string move_to_san(Move m, Position& pos) noexcept;
 
-[[nodiscard]] Move
-san_to_move(std::string san, Position& pos, const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
-[[nodiscard]] Move san_to_move(const std::string& san, Position& pos) noexcept;
+[[nodiscard]] Move san_to_move(std::string                     san,  //
+                               Position&                       pos,
+                               const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
+[[nodiscard]] Move san_to_move(std::string san, Position& pos) noexcept;
 
-[[nodiscard]] Move mix_to_move(const std::string&              mix,
+[[nodiscard]] Move mix_to_move(std::string                     mix,  //
                                Position&                       pos,
                                const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
 
