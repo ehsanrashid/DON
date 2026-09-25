@@ -516,11 +516,17 @@ neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b
 //     #endif
 #endif  // USE_NEON
 
+#if defined(USE_RVV)
+struct Tiling final {
+   public:
+    static constexpr Index RegCount     = 1;
+    static constexpr Index PSQTRegCount = 1;
+
+#elif defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation
 template<Index TransformedFeatureWidth, Index HalfDimensions, Index PSQTBuckets>
-class Tiling final {
+struct Tiling final {
    private:
-#if defined(VECTOR)
     // Use __m* types as template arguments, which causes GCC to emit warnings about losing some attribute information.
     // This is irrelevant to us as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
@@ -567,6 +573,27 @@ class Tiling final {
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
+
+#else
+
+using vec_t      = i16;
+using vec_i8_t   = i8;
+using psqt_vec_t = i32;
+
+    #define vec_add_16(a, b) ((a) + (b))
+    #define vec_sub_16(a, b) ((a) - (b))
+    #define vec_add_psqt_32(a, b) ((a) + (b))
+    #define vec_sub_psqt_32(a, b) ((a) - (b))
+    #define vec_convert_8_16(a) (i16(a))
+
+// Treat scalar impl as degenerate size-1 vector
+struct Tiling final {
+   public:
+    static constexpr Index RegCount       = 1;
+    static constexpr Index PSQTRegCount   = 1;
+    static constexpr Index TileHeight     = 1;
+    static constexpr Index PSQTTileHeight = 1;
+
 #endif
 
    private:
