@@ -494,7 +494,7 @@ void Threads::start(const Position& pos,
 
     state.store(ThState::Active, std::memory_order_relaxed);
 
-    Position p(pos);
+    Position p{pos};
 
     // After ownership transfer, 'states' becomes null.
     // If the search is stopped and 'go' is called again without
