@@ -24,6 +24,7 @@
 
 #include "attacks.h"
 #include "bitboard.h"
+#include "debug.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
@@ -2582,7 +2583,6 @@ void Manager::check_time(Worker& worker) noexcept {
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 
-#if !defined(NDEBUG)
     static TimePoint infoTime = now();
 
     if (const TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
@@ -2590,7 +2590,6 @@ void Manager::check_time(Worker& worker) noexcept {
         infoTime = curTime;
         Debug::print();
     }
-#endif
 
     // Should not stop pondering until told so by the GUI
     if (ponder)

@@ -493,7 +493,7 @@ void Threads::start(const Position& pos,
 
     main_thread()->wait_finish();
 
-    state.store(ThState::Active, std::memory_order_relaxed);
+    state.store(Status::Active, std::memory_order_relaxed);
 
     Position p{pos};
 

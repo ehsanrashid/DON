@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "benchmark.h"
+#include "debug.h"
 #include "memory.h"
 #include "misc.h"
 #include "option.h"
@@ -526,9 +527,7 @@ void UCI::bench(std::istream& is) noexcept {
           return starts_with(command, "go ") || starts_with(command, "eval");
       });
 
-#if !defined(NDEBUG)
     Debug::clear();
-#endif
 
     SteadyClock::time_point startTime;
     SteadyClock::duration   totalDuration{0};
@@ -606,9 +605,7 @@ void UCI::bench(std::istream& is) noexcept {
     const auto totalTimeMs =
       std::max(std::chrono::duration_cast<Ms>(totalDuration).count(), TimePoint{1});
 
-#if !defined(NDEBUG)
     Debug::print();
-#endif
 
     std::cerr << "\n================"                   //
               << "\nTotal time [ms] : " << totalTimeMs  //
@@ -641,9 +638,7 @@ void UCI::benchmark(std::istream& is) noexcept {
       std::count_if(setup.commands.begin(), setup.commands.end(),
                     [](const std::string_view command) { return starts_with(command, "go "); });
 
-#if !defined(NDEBUG)
     Debug::clear();
-#endif
 
     usize cnt = 0;
     // Warmup
@@ -765,9 +760,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     const auto totalTimeMs =
       std::max(std::chrono::duration_cast<Ms>(totalDuration).count(), TimePoint{1});
 
-#if !defined(NDEBUG)
     Debug::print();
-#endif
 
     std::cerr << '\n';
 

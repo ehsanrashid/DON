@@ -2249,23 +2249,6 @@ class Logger final {
     std::string     filename;
 };
 
-#if !defined(NDEBUG)
-// Debug functions used mainly to collect run-time statistics
-namespace Debug {
-
-void clear() noexcept;
-void hit_on(bool cond, usize slot = 0) noexcept;
-void min_of(i64 value, usize slot = 0) noexcept;
-void max_of(i64 value, usize slot = 0) noexcept;
-void extreme_of(i64 value, usize slot = 0) noexcept;
-void mean_of(i64 value, usize slot = 0) noexcept;
-void stdev_of(i64 value, usize slot = 0) noexcept;
-void correl_of(i64 value1, i64 value2, usize slot = 0) noexcept;
-
-void print() noexcept;
-}  // namespace Debug
-#endif
-
 #if defined(_WIN32)
 // Get the error message string, if any
 std::string error_to_string(DWORD errorId) noexcept;

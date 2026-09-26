@@ -229,6 +229,16 @@ class Position;
 // All the access to threads is done through this class.
 class Threads final {
    public:
+    // Status transition diagram:
+    // Active -> Research
+    //   |          |
+    //   >---------->Stopped (terminal, no exit)
+    enum class Status : u8 {
+        Active,
+        Research,
+        Stopped
+    };
+
     Threads() noexcept = default;
     ~Threads() noexcept;
 
@@ -312,26 +322,26 @@ class Threads final {
 
     // Is reaserching
     bool is_researching() const noexcept {
-        return state.load(std::memory_order_acquire) == ThState::Research;
+        return state.load(std::memory_order_acquire) == Status::Research;
     }
     // Is stopped
     bool is_stopped() const noexcept {
-        return state.load(std::memory_order_acquire) == ThState::Stopped;
+        return state.load(std::memory_order_acquire) == Status::Stopped;
     }
 
     /* --- actions --- */
 
     // Request research
     void request_research() const noexcept {
-        auto expectedState = ThState::Active;
+        auto expectedState = Status::Active;
 
-        state.compare_exchange_strong(expectedState, ThState::Research, std::memory_order_release,
+        state.compare_exchange_strong(expectedState, Status::Research, std::memory_order_release,
                                       std::memory_order_relaxed);
     }
     // Request stop
     void request_stop() const noexcept {
         // Always go to stopped state, even if currently researching or active
-        state.store(ThState::Stopped, std::memory_order_release);
+        state.store(Status::Stopped, std::memory_order_release);
 
         notify_manager();
     }
@@ -403,23 +413,13 @@ class Threads final {
     }
 
    private:
-    // State transition diagram:
-    // Active -> Research
-    //   |          |
-    //   >---------->Stopped (terminal, no exit)
-    enum class ThState : u8 {
-        Active,
-        Research,
-        Stopped
-    };
-
     Threads(const Threads&) noexcept            = delete;
     Threads& operator=(const Threads&) noexcept = delete;
     Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(Threads&&) noexcept      = delete;
 
-    mutable std::atomic<ThState> state{ThState::Active};
-    mutable State::ListPtr       setupStates;
+    mutable std::atomic<Status> state{Status::Active};
+    mutable State::ListPtr      setupStates;
     // Protects concurrent access to the threads vector for short snapshots.
     // Use shared lock for readers and lock guard for writers when mutating threads.
     mutable std::shared_mutex mutex;
