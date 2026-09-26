@@ -554,7 +554,7 @@ void Threads::start(const Position& pos,
     // If time manager is active, don't use more than 5% of clock time
     const auto startTime = SteadyClock::now();
 
-    const auto time_to_abort = [&limit, &options, &clock, &startTime]() noexcept -> bool {
+    const auto should_abort = [&limit, &options, &clock, &startTime]() noexcept -> bool {
         const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
@@ -563,7 +563,7 @@ void Threads::start(const Position& pos,
                          * clock.time);
     };
 
-    auto tbConfig = Tablebase::Syzygy::rank_root_moves(p, rootMoves, options, false, time_to_abort);
+    auto tbConfig = Tablebase::Syzygy::rank_root_moves(p, rootMoves, options, false, should_abort);
 
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapThreads;

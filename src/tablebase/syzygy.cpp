@@ -68,10 +68,13 @@ int probe_dtz(Position&, ProbeState* const ps) noexcept {
     return 0;
 }
 
-bool rank_root_moves_wdl(Position&, RootMoves&, bool) noexcept { return false; }
-bool rank_root_moves_dtz(Position&, RootMoves&, bool, bool, TimeFunc) noexcept { return false; }
+bool rank_root_moves_wdl(Position&, RootMoves&, const bool) noexcept { return false; }
+bool rank_root_moves_dtz(Position&, RootMoves&, const bool, const bool, const AbortFunc) noexcept {
+    return false;
+}
 
-Config rank_root_moves(Position&, RootMoves&, const Options&, bool, TimeFunc) noexcept {
+Config
+rank_root_moves(Position&, RootMoves&, const Options&, const bool, const AbortFunc) noexcept {
     return Config{};
 }
 
@@ -2120,11 +2123,11 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
     return true;
 }
 
-bool rank_root_moves_dtz(Position&      pos,
-                         RootMoves&     rootMoves,
-                         const bool     useRule50,
-                         const bool     rankDTZ,
-                         const TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position&       pos,
+                         RootMoves&      rootMoves,
+                         const bool      useRule50,
+                         const bool      rankDTZ,
+                         const AbortFunc should_abort) noexcept {
     // Obtain 50-move counter for the root position
     i16 rule50Count = pos.rule50_count();
 
@@ -2171,7 +2174,7 @@ bool rank_root_moves_dtz(Position&      pos,
 
         if (ps == PS_FAIL)
             return false;
-        if (time_to_abort())
+        if (should_abort())
         {
             print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
             return false;
@@ -2202,11 +2205,11 @@ bool rank_root_moves_dtz(Position&      pos,
     return true;
 }
 
-Config rank_root_moves(Position&      pos,
-                       RootMoves&     rootMoves,
-                       const Options& options,
-                       bool           rankDTZ,
-                       const TimeFunc time_to_abort) noexcept {
+Config rank_root_moves(Position&       pos,
+                       RootMoves&      rootMoves,
+                       const Options&  options,
+                       bool            rankDTZ,
+                       const AbortFunc should_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
@@ -2231,9 +2234,9 @@ Config rank_root_moves(Position&      pos,
         // Use DTZ to rank the moves if checkmate is the only zeroing move
         rankDTZ = rankDTZ || pos.dtz_is_dtm();
 
-        // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
+        // Rank moves using DTZ-tables, Exit early if the should_abort() returns true
         config.rootInTB =
-          rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+          rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, should_abort);
 
         if (!config.rootInTB)
         {

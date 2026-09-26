@@ -18,8 +18,10 @@
 #include "zobrist.h"
 
 #include <algorithm>  // min()/max(), generate()
+#include <array>
 #include <cassert>
 #include <cstring>
+#include <initializer_list>
 
 #include "prng.h"
 

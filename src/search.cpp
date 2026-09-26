@@ -2427,7 +2427,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
     // If time manager is active, don't use more than 50% of OverheadTime time
     const auto startTime = SteadyClock::now();
 
-    const auto time_to_abort = [&]() noexcept -> bool {
+    const auto should_abort = [&]() noexcept -> bool {
         const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
@@ -2457,7 +2457,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
             rms.emplace_back(m);
 
         const auto tbCfg =
-          Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, false, time_to_abort);
+          Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, false, should_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2476,7 +2476,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
 
         // Full PV shown will thus be validated and end in TB.
         // If can not validate the full PV in time, do not show it.
-        if (tbCfg.rootInTB && time_to_abort())
+        if (tbCfg.rootInTB && should_abort())
         {
             aborted = true;
             break;
@@ -2492,7 +2492,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
     {
         if (aborted)
             break;
-        if (time_to_abort())
+        if (should_abort())
         {
             aborted = true;
             break;
@@ -2524,7 +2524,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
         const auto tbCfg =
-          Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, true, time_to_abort);
+          Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, true, should_abort);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbCfg.rootInTB || tbCfg.cardinality != 0)
