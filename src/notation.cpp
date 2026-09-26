@@ -134,10 +134,10 @@ std::string move_to_can(const Move m) noexcept {
     can.reserve(5);
 
     can  //
-      .append(to_square(orgSq))
-      .append(to_square(dstSq));
+      .append(to_string(orgSq))
+      .append(to_string(dstSq));
     if (m.type() == MT::PROMOTION)
-        can.push_back(lower_case(to_char(m.promotion_type())));
+        can.push_back(lower_case(m.promotion_char()));
 
     return can;
 }
@@ -252,7 +252,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
                     san.push_back(to_char(rank_of(orgSq)));
                     break;
                 case Ambiguity::SQUARE :
-                    san.append(to_square(orgSq));
+                    san.append(to_string(orgSq));
                     break;
                 default :;
                 }
@@ -267,12 +267,12 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
             san.push_back('x');
         }
 
-        san.append(to_square(dstSq));
+        san.append(to_string(dstSq));
 
         if (m.type() == MT::PROMOTION)
         {
             san.push_back('=');
-            san.push_back(upper_case(to_char(m.promotion_type())));
+            san.push_back(upper_case(m.promotion_char()));
         }
     }
 

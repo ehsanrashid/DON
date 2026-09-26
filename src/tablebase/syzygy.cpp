@@ -68,10 +68,13 @@ int probe_dtz(Position&, ProbeState* const ps) noexcept {
     return 0;
 }
 
-bool rank_root_moves_wdl(Position&, RootMoves&, bool) noexcept { return false; }
-bool rank_root_moves_dtz(Position&, RootMoves&, bool, bool, TimeFunc) noexcept { return false; }
+bool rank_root_moves_wdl(Position&, RootMoves&, const bool) noexcept { return false; }
+bool rank_root_moves_dtz(Position&, RootMoves&, const bool, const bool, const AbortFunc) noexcept {
+    return false;
+}
 
-Config rank_root_moves(Position&, RootMoves&, const Options&, bool, TimeFunc) noexcept {
+Config
+rank_root_moves(Position&, RootMoves&, const Options&, const bool, const AbortFunc) noexcept {
     return Config{};
 }
 
@@ -117,13 +120,25 @@ constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
 
+constexpr WDLScore WDL_SCORE_OFFSET = -WDL_LOSS;
+
+constexpr usize WDL_INDEX(const WDLScore wdlScore) noexcept {
+    return usize(wdlScore + WDL_SCORE_OFFSET);
+}
+
 // clang-format off
 
-constexpr Array<int  , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
-constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
-constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr Array<int  , WDL_SCORE_NB> WDL_MAP           {        1,              3,          0,              2,        0 };
+constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK          {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
+constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE         {-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr Array<int  , WDL_SCORE_NB> BEFORE_ZEROING_DTZ{       -1,           -101,          0,           +101,       +1 };
 
-constexpr usize wdl_index(const WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
+// DTZ-tables don't store valid scores for moves that reset the rule50 counter
+// like captures and pawn moves but can easily recover the correct DTZ-score of the
+// previous move if know the position's WDL-score.
+constexpr int before_zeroing_dtz(const WDLScore wdlScore) noexcept {
+    return BEFORE_ZEROING_DTZ[WDL_INDEX(wdlScore)];
+}
 
 [[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 [[maybe_unused]] constexpr int off_A8H1(const Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
@@ -142,25 +157,8 @@ Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE
 constexpr int NO_DTZ_SCORE = std::numeric_limits<int>::max();
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
-constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
-
-// DTZ-tables don't store valid scores for moves that reset the rule50 counter
-// like captures and pawn moves but can easily recover the correct DTZ-score of the
-// previous move if know the position's WDL-score.
-constexpr int before_zeroing_dtz(WDLScore wdlScore) noexcept {
-    switch (wdlScore)
-    {
-    case WDL_BLESSED_LOSS :
-        return -101;
-    case WDL_LOSS :
-        return -1;
-    case WDL_WIN :
-        return +1;
-    case WDL_CURSED_WIN :
-        return +101;
-    default :
-        return 0;
-    }
+constexpr bool pawn_ascending(const Square s1, const Square s2) noexcept {
+    return PawnsMap[s1] < PawnsMap[s2];
 }
 
 template<typename T>
@@ -177,7 +175,7 @@ void swap_endian(T& x) noexcept {
 }
 
 template<typename T, Endian E>
-T number(const void* addr) noexcept {
+T number(const void* const addr) noexcept {
     T v;
 
     // Use memcpy for unaligned access, otherwise direct read
@@ -1309,7 +1307,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     insert({keyTable->key[BLACK], wdlTable, dtzTable});
 }
 
-TBTables tbTables;
+TBTables TBTables_;
 
 // TB-tables are compressed with canonical Huffman code. The compressed data is divided into
 // blocks of size d->blockSize, and each block stores a variable number of symbols.
@@ -1478,7 +1476,7 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int va
         auto* mapPtr = table->map_ptr();
         auto* mapIdx = pd->mapIdx.data();
 
-        auto idx = mapIdx[WDL_MAP[wdl_index(wdlScore)]] + value;
+        auto idx = mapIdx[WDL_MAP[WDL_INDEX(wdlScore)]] + value;
 
         value = (flags & WIDE) != 0 ? ((u16*) mapPtr)[idx] : mapPtr[idx];
     }
@@ -1562,8 +1560,11 @@ Ret do_probe_table(T*                table,
         leadPawnCnt = size;
 
         if (leadPawnCnt != 0)
-            std::swap(squares[0], *std::max_element(squares.begin(), squares.begin() + leadPawnCnt,
-                                                    pawns_comp));
+        {
+            const auto maxItr =
+              std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawn_ascending);
+            std::swap(squares[0], *maxItr);
+        }
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -1621,7 +1622,7 @@ Ret do_probe_table(T*                table,
     {
         idx = LeadPawnIdx[leadPawnCnt][squares[0]];
 
-        std::stable_sort(squares.begin() + 1, squares.begin() + leadPawnCnt, pawns_comp);
+        std::stable_sort(squares.begin() + 1, squares.begin() + leadPawnCnt, pawn_ascending);
 
         for (usize i = 1; i < leadPawnCnt; ++i)
             idx += Binomial[i][PawnsMap[squares[i]]];
@@ -1764,7 +1765,7 @@ Ret probe_table(const Position&   pos,
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    TBTable<T>* table = tbTables.get<T>(materialKey);
+    TBTable<T>* table = TBTables_.get<T>(materialKey);
 
     if (table == nullptr || table->init(pos) == nullptr)
     {
@@ -1969,7 +1970,7 @@ void init(const std::string_view paths) noexcept {
 
     MaxCardinality = 0;
 
-    tbTables.clear();
+    TBTables_.clear();
 
     if (!TBPaths::init(paths))
         return;
@@ -1977,49 +1978,49 @@ void init(const std::string_view paths) noexcept {
     // Add entries in TB-tables if the corresponding WDL file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
     {
-        tbTables.add({KING, p1, KING});
+        TBTables_.add({KING, p1, KING});
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2)
         {
-            tbTables.add({KING, p1, p2, KING});
-            tbTables.add({KING, p1, KING, p2});
+            TBTables_.add({KING, p1, p2, KING});
+            TBTables_.add({KING, p1, KING, p2});
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                tbTables.add({KING, p1, p2, KING, p3});
+                TBTables_.add({KING, p1, p2, KING, p3});
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3)
             {
-                tbTables.add({KING, p1, p2, p3, KING});
+                TBTables_.add({KING, p1, p2, p3, KING});
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
                 {
-                    tbTables.add({KING, p1, p2, p3, p4, KING});
+                    TBTables_.add({KING, p1, p2, p3, p4, KING});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        tbTables.add({KING, p1, p2, p3, p4, p5, KING});
+                        TBTables_.add({KING, p1, p2, p3, p4, p5, KING});
 
                     for (PieceType p5 = PAWN; p5 < KING; ++p5)
-                        tbTables.add({KING, p1, p2, p3, p4, KING, p5});
+                        TBTables_.add({KING, p1, p2, p3, p4, KING, p5});
                 }
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
                 {
-                    tbTables.add({KING, p1, p2, p3, KING, p4});
+                    TBTables_.add({KING, p1, p2, p3, KING, p4});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        tbTables.add({KING, p1, p2, p3, KING, p4, p5});
+                        TBTables_.add({KING, p1, p2, p3, KING, p4, p5});
                 }
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    tbTables.add({KING, p1, p2, KING, p3, p4});
+                    TBTables_.add({KING, p1, p2, KING, p3, p4});
         }
     }
 
-    print_info_string(tbTables.info());
+    print_info_string(TBTables_.info());
 
-    DEBUG_LOG("max-distance: " << tbTables.max_distance());
+    DEBUG_LOG("max-distance: " << TBTables_.max_distance());
 }
 
 WDLScore probe_wdl(Position& pos, ProbeState* const ps) noexcept {
@@ -2109,22 +2110,22 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
         if (ps == PS_FAIL)
             return false;
 
-        rm.tbRank = WDL_RANK[wdl_index(wdlScore)];
+        rm.tbRank = WDL_RANK[WDL_INDEX(wdlScore)];
 
         if (!useRule50)
             wdlScore = normalize_wdl(wdlScore);
 
-        rm.tbValue = WDL_VALUE[wdl_index(wdlScore)];
+        rm.tbValue = WDL_VALUE[WDL_INDEX(wdlScore)];
     }
 
     return true;
 }
 
-bool rank_root_moves_dtz(Position&      pos,
-                         RootMoves&     rootMoves,
-                         const bool     useRule50,
-                         const bool     rankDTZ,
-                         const TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position&       pos,
+                         RootMoves&      rootMoves,
+                         const bool      useRule50,
+                         const bool      rankDTZ,
+                         const AbortFunc should_abort) noexcept {
     // Obtain 50-move counter for the root position
     i16 rule50Count = pos.rule50_count();
 
@@ -2171,7 +2172,7 @@ bool rank_root_moves_dtz(Position&      pos,
 
         if (ps == PS_FAIL)
             return false;
-        if (time_to_abort())
+        if (should_abort())
         {
             print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
             return false;
@@ -2202,11 +2203,11 @@ bool rank_root_moves_dtz(Position&      pos,
     return true;
 }
 
-Config rank_root_moves(Position&      pos,
-                       RootMoves&     rootMoves,
-                       const Options& options,
-                       bool           rankDTZ,
-                       const TimeFunc time_to_abort) noexcept {
+Config rank_root_moves(Position&       pos,
+                       RootMoves&      rootMoves,
+                       const Options&  options,
+                       bool            rankDTZ,
+                       const AbortFunc should_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
@@ -2231,9 +2232,9 @@ Config rank_root_moves(Position&      pos,
         // Use DTZ to rank the moves if checkmate is the only zeroing move
         rankDTZ = rankDTZ || pos.dtz_is_dtm();
 
-        // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
+        // Rank moves using DTZ-tables, Exit early if the should_abort() returns true
         config.rootInTB =
-          rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+          rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, should_abort);
 
         if (!config.rootInTB)
         {

@@ -20,7 +20,7 @@
 
 #include <cstddef>     // nullptr_t
 #include <functional>  // hash<>
-#include <iostream>    // IWYU pragma: keep: cout, cerr
+#include <iostream>    // IWYU pragma: keep
 #include <new>         // launder()
 #include <string>
 #include <string_view>

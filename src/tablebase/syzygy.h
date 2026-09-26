@@ -32,7 +32,7 @@ class RootMoves;
 
 namespace Tablebase::Syzygy {
 
-using TimeFunc = std::function<bool()>;
+using AbortFunc = std::function<bool()>;
 
 // Max number of supported piece
 inline constexpr usize TB_PIECES_MAX = 7;
@@ -160,15 +160,15 @@ bool rank_root_moves_dtz(
   Position&  pos,
   RootMoves& rootMoves,
   bool       useRule50,
-  bool       rankDTZ       = false,
-  TimeFunc   time_to_abort = []() { return false; }) noexcept;
+  bool       rankDTZ      = false,
+  AbortFunc  should_abort = []() { return false; }) noexcept;
 
 Config rank_root_moves(
   Position&      pos,
   RootMoves&     rootMoves,
   const Options& options,
-  bool           rankDTZ       = false,
-  TimeFunc       time_to_abort = []() { return false; }) noexcept;
+  bool           rankDTZ      = false,
+  AbortFunc      should_abort = []() { return false; }) noexcept;
 
 }  // namespace Tablebase::Syzygy
 }  // namespace DON

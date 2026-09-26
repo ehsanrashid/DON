@@ -17,100 +17,21 @@
 
 #include "position.h"
 
-#include <algorithm>  // min/max, generate
+#include <algorithm>  // min()/max(), reverse(), count()
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>
 #include <utility>  // for swap()
 
+#include "cuckoo.h"
 #include "history.h"
 #include "movegen.h"
-#include "prng.h"
 #include "search.h"
 #include "tablebase/syzygy.h"
 #include "tt.h"
+#include "zobrist.h"
 
 namespace DON {
-
-namespace Zobrist {
-
-namespace {
-
-// Zobrist keys.
-Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
-Array<Key, CASTLING_RIGHTS_NB>                      Castling;
-Array<Key, FILE_NB>                                 Enpassant;
-Key                                                 Turn;
-Array<Key, 64>                                      MR50;
-
-constexpr u8 PAWN_OFFSET = u8{8};
-
-constexpr u8 R50_OFFSET = u8{14};
-constexpr u8 R50_FACTOR = u8{8};
-
-}  // namespace
-
-void init() noexcept {
-    Xoshiro256ss prng(0x105524);
-
-    const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
-
-    for (const Color c : {WHITE, BLACK})
-    {
-        for (const auto pt : PIECE_TYPES)
-            std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
-
-        std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));
-        std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PAWN_OFFSET * sizeof(Key));
-    }
-
-    std::generate(Castling.begin(), Castling.end(), prng_rand);
-
-    std::generate(Enpassant.begin(), Enpassant.end(), prng_rand);
-
-    Turn = prng_rand();
-
-    std::generate(MR50.begin(), MR50.end(), prng_rand);
-}
-
-Key piece_square(const Color c, const PieceType pt, const Square s) noexcept {
-    assert(is_ok(c) && is_ok(s));
-
-    return PieceSquare[c][pt][s];
-}
-
-Key piece_square(const Piece pc, const Square s) noexcept {
-    assert(is_ok(s));
-
-    return piece_square(color_of(pc), type_of(pc), s);
-}
-
-Key piece_count(const Color c, const PieceType pt, const u8 cnt) noexcept {
-    const Square s = Square(PAWN_OFFSET + cnt);
-    assert(is_ok(s));
-
-    return Zobrist::piece_square(c, pt, s);
-}
-
-Key castling(const CastlingRights cr) noexcept {
-    assert(+cr < Castling.size());
-
-    return Castling[+cr];
-}
-
-Key enpassant(const Square enPassantSq) noexcept {
-    return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
-}
-
-Key turn() noexcept { return Turn; }
-
-Key mr50(const i16 rule50Count) noexcept {
-    return rule50Count < R50_OFFSET
-           ? 0
-           : MR50[std::min(usize((rule50Count - R50_OFFSET) / R50_FACTOR), MR50.size() - 1)];
-}
-
-}  // namespace Zobrist
 
 void State::clear() noexcept {
     std::memset(this, 0, sizeof(*this));
@@ -120,116 +41,9 @@ void State::clear() noexcept {
 
 namespace {
 
-// Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
-// The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
-// For details see:
-// http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+Zobrist Zobrist_;
 
-// Cuckoo Entry: stores a Zobrist hash key and the associated move
-struct Cuckoo final {
-
-    constexpr bool empty() const noexcept { return key == 0; }
-
-    Key  key;
-    Move move;
-};
-
-// Cuckoo Table: fixed-size hash table with two hash functions and cuckoo eviction,
-// contains Zobrist hashes of valid reversible moves, and the moves themselves
-template<usize Size>
-class CuckooTable final {
-    static_assert(is_power_of_2(Size), "Size has to be power of 2");
-
-   public:
-    constexpr CuckooTable() noexcept                    = default;
-    CuckooTable(const CuckooTable&) noexcept            = delete;
-    CuckooTable& operator=(const CuckooTable&) noexcept = delete;
-    CuckooTable(CuckooTable&&) noexcept                 = delete;
-    CuckooTable& operator=(CuckooTable&&) noexcept      = delete;
-
-    [[nodiscard]] constexpr auto begin() noexcept { return cuckoos.begin(); }
-    [[nodiscard]] constexpr auto end() noexcept { return cuckoos.end(); }
-    [[nodiscard]] constexpr auto begin() const noexcept { return cuckoos.begin(); }
-    [[nodiscard]] constexpr auto end() const noexcept { return cuckoos.end(); }
-
-    [[nodiscard]] constexpr auto size() const noexcept { return cuckoos.size(); }
-    [[nodiscard]] constexpr bool empty() const noexcept { return cuckoos.empty(); }
-
-    [[nodiscard]] constexpr decltype(auto) operator[](usize idx) const noexcept {
-        return cuckoos[idx];
-    }
-    [[nodiscard]] constexpr decltype(auto) operator[](usize idx) noexcept { return cuckoos[idx]; }
-
-    // Hash function for indexing the cuckoo table
-    template<usize Part>
-    constexpr usize H(Key key) const noexcept {
-        return (key >> (16 * Part)) & (size() - 1);
-    }
-
-    void insert(Cuckoo newCuckoo) noexcept {
-        assert(!newCuckoo.empty());
-
-        usize index = H<0>(newCuckoo.key);
-        while (true)
-        {
-            std::swap(newCuckoo, cuckoos[index]);
-            // Arrived at empty slot?
-            if (newCuckoo.empty())
-                break;
-            // Push victim to alternative slot
-            index ^= H<0>(newCuckoo.key) ^ H<1>(newCuckoo.key);
-        }
-
-        ++count;
-    }
-
-    void clear() noexcept {
-        std::memset(cuckoos.data(), 0, sizeof(cuckoos));
-
-        count = 0;
-    }
-
-    // Prepare the cuckoo tables
-    void init() noexcept {
-        clear();
-
-        for (Color c : {WHITE, BLACK})
-            for (PieceType pt : PIECE_TYPES)
-            {
-                if (pt == PAWN)
-                    continue;
-                for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
-                    for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                    {
-                        if ((Attacks::pseudo_attacks_bb(s1, pt) & s2) != 0)
-                        {
-                            const Key  key = Zobrist::turn()  //
-                                           ^ Zobrist::piece_square(c, pt, s1)
-                                           ^ Zobrist::piece_square(c, pt, s2);
-                            const Move move{s1, s2};
-                            insert({key, move});
-                        }
-                    }
-            }
-
-        assert(count == 3668);
-    }
-
-    [[nodiscard]] usize find_key(Key key) const noexcept {
-        if (usize index;  //
-            (index = H<0>(key), cuckoos[index].key == key)
-            || (index = H<1>(key), cuckoos[index].key == key))
-            return index;
-
-        return size();
-    }
-
-   private:
-    Array<Cuckoo, Size> cuckoos;
-    usize               count;
-};
-
-CuckooTable<0x2000> Cuckoos;
+Cuckoos<0x2000> Cuckoos_;
 
 ConcurrentCache<Key, Value> NonPawnValueCache(32 * KB, 0.75f);
 ConcurrentCache<Key, Value> MaterialValueCache(16 * KB, 0.75f);
@@ -238,9 +52,9 @@ ConcurrentCache<Key, Value> MaterialValueCache(16 * KB, 0.75f);
 
 void Position::init() noexcept {
 
-    Zobrist::init();
+    Zobrist_.init(0x105524);
 
-    Cuckoos.init();
+    Cuckoos_.init(Zobrist_);
 }
 
 void Position::reset() noexcept {
@@ -341,7 +155,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
             if (file > FILE_H)
                 return Error{"Invalid FEN: too many files in rank."};
 
-            const Piece pc = to_piece(token);
+            const Piece pc = char_to_pc(token);
             if (pc == Piece::NO_PIECE)
                 return Error{"Invalid FEN: invalid piece: " + std::string(1, token) + "."};
 
@@ -449,7 +263,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         }
         else if ('a' <= token && token <= 'h')
         {
-            rookOrgSq = make_square(to_file(token), relative_rank(c, RANK_1));
+            rookOrgSq = make_square(char_to_file(token), relative_rank(c, RANK_1));
         }
         else
             return Error{"Invalid FEN: expected castling rights, found '" + std::string(1, token)
@@ -488,7 +302,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         if (!('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3')))
             return Error{"Invalid FEN: invalid en-passant square."};
 
-        enPassantSq = make_square(to_file(epFile), to_rank(epRank));
+        enPassantSq = make_square(char_to_file(epFile), char_to_rank(epRank));
     }
 
     // 5-6. Halfmove clock and fullmove number
@@ -627,22 +441,20 @@ std::string Position::fen(const bool complete) const noexcept {
 
     if (has_castling_rights())
     {
-        if (has_castling_rights(WHITE, CastlingSide::KING))
-            fens.push_back(Chess960  //
-                             ? to_char<true>(file_of(castling_rook_sq(WHITE, CastlingSide::KING)))
-                             : 'K');
-        if (has_castling_rights(WHITE, CastlingSide::QUEEN))
-            fens.push_back(Chess960  //
-                             ? to_char<true>(file_of(castling_rook_sq(WHITE, CastlingSide::QUEEN)))
-                             : 'Q');
-        if (has_castling_rights(BLACK, CastlingSide::KING))
-            fens.push_back(Chess960  //
-                             ? to_char<false>(file_of(castling_rook_sq(BLACK, CastlingSide::KING)))
-                             : 'k');
-        if (has_castling_rights(BLACK, CastlingSide::QUEEN))
-            fens.push_back(Chess960  //
-                             ? to_char<false>(file_of(castling_rook_sq(BLACK, CastlingSide::QUEEN)))
-                             : 'q');
+        const auto append_castling = [this, &fens](const Color        c,
+                                                   const CastlingSide cs) noexcept -> void {
+            if (has_castling_rights(c, cs))
+            {
+                const auto castlingCh =
+                  Chess960 ? to_char(c, castling_rook_sq(c, cs)) : to_char(c, cs);
+                fens.push_back(castlingCh);
+            }
+        };
+
+        append_castling(WHITE, CastlingSide::KING);
+        append_castling(WHITE, CastlingSide::QUEEN);
+        append_castling(BLACK, CastlingSide::KING);
+        append_castling(BLACK, CastlingSide::QUEEN);
     }
     else
         fens.push_back('-');
@@ -650,7 +462,7 @@ std::string Position::fen(const bool complete) const noexcept {
     fens.push_back(' ');
 
     if (is_ok(en_passant_sq()))
-        fens.append(to_square(en_passant_sq()));
+        fens.append(to_string(en_passant_sq()));
     else
         fens.push_back('-');
 
@@ -674,10 +486,10 @@ void Position::set_castling_rights(const Color c, const Square rookOrgSq) noexce
     assert(relative_rank(c, kingOrgSq) == RANK_1);
     assert((pieces_bb(c, KING) & kingOrgSq) != 0);
 
-    const CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
+    const auto cs = make_cs(kingOrgSq, rookOrgSq);
     assert(!is_ok(castling_rook_sq(c, cs)));
 
-    const CastlingRights cr = make_cr(c, cs);
+    const auto cr = make_cr(c, cs);
 
     st->castlingRights |= cr;
     castlingRightsMasks[CastlingRightsIndices[kingOrgSq]] |= cr;
@@ -710,7 +522,7 @@ void Position::set_state() noexcept {
             {
                 const Square s = pop_lsq(bb);
 
-                const Key key = Zobrist::piece_square(c, pt, s);
+                const Key key = Zobrist_.piece_square(c, pt, s);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -725,12 +537,12 @@ void Position::set_state() noexcept {
         st->materialKeys[c] ^= compute_material_key(c);
     }
 
-    st->key ^= Zobrist::castling(castling_rights());
+    st->key ^= Zobrist_.castling(castling_rights());
 
-    st->key ^= Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist_.enpassant(en_passant_sq());
 
     if (active_color() == BLACK)
-        st->key ^= Zobrist::turn();
+        st->key ^= Zobrist_.turn();
 }
 
 void Position::set_pinner_blocker() noexcept {
@@ -940,7 +752,7 @@ Dirties Position::do_move(const Move          m,
     dPps->before[WHITE] = pieces_bb(WHITE, PAWN);
     dPps->before[BLACK] = pieces_bb(BLACK, PAWN);
 
-    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist_.turn() ^ Zobrist_.enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
@@ -969,10 +781,10 @@ Dirties Position::do_move(const Move          m,
         do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, &dirties);
         assert(rookOrgSq == m.dst_sq());
 
-        movedKey          = Zobrist::piece_square(ac, movedPt, orgSq)  //
-                          ^ Zobrist::piece_square(ac, movedPt, dstSq);
-        const Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
-                          ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
+        movedKey          = Zobrist_.piece_square(ac, movedPt, orgSq)  //
+                          ^ Zobrist_.piece_square(ac, movedPt, dstSq);
+        const Key rookKey = Zobrist_.piece_square(ac, ROOK, rookOrgSq)  //
+                          ^ Zobrist_.piece_square(ac, ROOK, rookDstSq);
 
         st->key ^= rookKey;
         st->nonPawnKeys[ac][1] ^= rookKey;
@@ -983,15 +795,15 @@ Dirties Position::do_move(const Move          m,
     castling = false;
     capture  = capturedPc != Piece::NO_PIECE;
 
-    movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
-             ^ Zobrist::piece_square(ac, movedPt, dstSq);
+    movedKey = Zobrist_.piece_square(ac, movedPt, orgSq)  //
+             ^ Zobrist_.piece_square(ac, movedPt, dstSq);
 
     if (capture)
     {
         auto capturedPt = type_of(capturedPc);
         assert(capturedPt != KING);
 
-        Key capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
+        Key capturedKey = Zobrist_.piece_square(~ac, capturedPt, capturedSq);
 
         // If the captured piece is a pawn, update pawn hash key,
         // otherwise update non-pawn material.
@@ -1013,7 +825,7 @@ Dirties Position::do_move(const Move          m,
                 capturedSq -= pawn_spush(ac);
                 assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
-                capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
+                capturedKey = Zobrist_.piece_square(~ac, capturedPt, capturedSq);
             }
 
             st->pawnKeys[~ac] ^= capturedKey;
@@ -1031,7 +843,7 @@ Dirties Position::do_move(const Move          m,
         // Update hash key
         st->key ^= capturedKey;
 
-        st->materialKeys[~ac] ^= Zobrist::piece_count(~ac, capturedPt, count(~ac, capturedPt) - 1);
+        st->materialKeys[~ac] ^= Zobrist_.piece_count(~ac, capturedPt, count(~ac, capturedPt) - 1);
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
@@ -1044,7 +856,7 @@ Dirties Position::do_move(const Move          m,
             assert(relative_rank(ac, orgSq) == RANK_7);
             assert(relative_rank(ac, dstSq) == RANK_8);
             assert(count(ac, PAWN) != 0);
-            assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
+            assert(Zobrist_.piece_square(ac, PAWN, dstSq) == 0);
 
             promotion = true;
 
@@ -1059,13 +871,13 @@ Dirties Position::do_move(const Move          m,
             dP->addedSq = dstSq;
             dP->addedPc = promotedPc;
 
-            const Key promotedKey = Zobrist::piece_square(ac, promotedPt, dstSq);
+            const Key promotedKey = Zobrist_.piece_square(ac, promotedPt, dstSq);
 
             // Update hash keys
             st->key ^= promotedKey;
             st->nonPawnKeys[ac][is_major(promotedPt)] ^= promotedKey;
-            st->materialKeys[ac] ^= Zobrist::piece_count(ac, PAWN, count(ac, PAWN) - 1)
-                                  ^ Zobrist::piece_count(ac, promotedPt, count(ac, promotedPt));
+            st->materialKeys[ac] ^= Zobrist_.piece_count(ac, PAWN, count(ac, PAWN) - 1)
+                                  ^ Zobrist_.piece_count(ac, promotedPt, count(ac, promotedPt));
         }
         // Set en-passant square if the moved pawn can be captured
         else if ((int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2)
@@ -1094,9 +906,9 @@ Dirties Position::do_move(const Move          m,
     st->key ^= movedKey;
 
     // Update castling rights
-    st->key ^= Zobrist::castling(castling_rights());
+    st->key ^= Zobrist_.castling(castling_rights());
     st->castlingRights &= ~castling_rights_mask(orgSq, dstSq);
-    st->key ^= Zobrist::castling(castling_rights());
+    st->key ^= Zobrist_.castling(castling_rights());
 
     if (worker != nullptr)
     {
@@ -1161,7 +973,7 @@ Dirties Position::do_move(const Move          m,
         if (enpassant_possible(active_color(), enPassantSq))
         {
             st->enPassantSq = enPassantSq;
-            st->key ^= Zobrist::enpassant(enPassantSq);
+            st->key ^= Zobrist_.enpassant(enPassantSq);
         }
 
         if (worker != nullptr)
@@ -1292,7 +1104,7 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st->nullPly = 0;
 
-    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist_.turn() ^ Zobrist_.enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
@@ -1553,8 +1365,14 @@ Value Position::material() const noexcept {
       material_key(), [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
 }
 
+Key Position::key() const noexcept { return raw_key() ^ Zobrist_.mr50(rule50_count()); }
+
+Key Position::non_pawn_key(const Color c) const noexcept {
+    return minor_key(c) ^ major_key(c) ^ Zobrist_.piece_square(c, KING, square<KING>(c));
+}
+
 Key Position::move_key(const Move m) const noexcept {
-    Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
+    Key moveKey = st->key ^ Zobrist_.turn() ^ Zobrist_.enpassant(en_passant_sq());
 
     //if (m == Move::Null)
     //    return moveKey;
@@ -1575,11 +1393,11 @@ Key Position::move_key(const Move m) const noexcept {
 
     const auto movedPt = type_of(movedPc);
 
-    moveKey ^= Zobrist::piece_square(ac, movedPt, orgSq)
-             ^ Zobrist::piece_square(ac, mt != MT::PROMOTION ? movedPt : m.promotion_type(),
+    moveKey ^= Zobrist_.piece_square(ac, movedPt, orgSq)
+             ^ Zobrist_.piece_square(ac, mt != MT::PROMOTION ? movedPt : m.promotion_type(),
                                      mt != MT::CASTLING ? dstSq : king_castle_sq(orgSq, dstSq))
-             ^ Zobrist::castling(castling_rights())
-             ^ Zobrist::castling(castling_rights() & ~castling_rights_mask(orgSq, dstSq));
+             ^ Zobrist_.castling(castling_rights())
+             ^ Zobrist_.castling(castling_rights() & ~castling_rights_mask(orgSq, dstSq));
 
     if (mt == MT::CASTLING)
     {
@@ -1587,9 +1405,9 @@ Key Position::move_key(const Move m) const noexcept {
         assert(capturedPc == make_piece(ac, ROOK));
 
         return moveKey  //
-             ^ Zobrist::piece_square(ac, ROOK, dstSq)
-             ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(orgSq, dstSq))
-             ^ Zobrist::mr50(rule50_count() + 1);
+             ^ Zobrist_.piece_square(ac, ROOK, dstSq)
+             ^ Zobrist_.piece_square(ac, ROOK, rook_castle_sq(orgSq, dstSq))
+             ^ Zobrist_.mr50(rule50_count() + 1);
     }
 
     if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2
@@ -1598,12 +1416,12 @@ Key Position::move_key(const Move m) const noexcept {
         assert(relative_rank(ac, orgSq) == RANK_2);
         assert(relative_rank(ac, dstSq) == RANK_4);
 
-        return moveKey ^ Zobrist::enpassant(dstSq);
+        return moveKey ^ Zobrist_.enpassant(dstSq);
     }
 
     return moveKey  //
-         ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ Zobrist::mr50(movedPt == PAWN || is_ok(capturedPc) ? 0 : rule50_count() + 1);
+         ^ Zobrist_.piece_square(~ac, type_of(capturedPc), capturedSq)
+         ^ Zobrist_.mr50(movedPt == PAWN || is_ok(capturedPc) ? 0 : rule50_count() + 1);
 }
 
 bool Position::see_ge(const Move m, const int threshold) const noexcept {
@@ -1939,11 +1757,11 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
     const Key    baseKey = st->key;
     const State* preSt   = st->preSt;
-    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
+    Key          iterKey = baseKey ^ preSt->key ^ Zobrist_.turn();
 
     for (u16 i = 3; i <= end; i += 2)
     {
-        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
+        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist_.turn();
 
         preSt = preSt->preSt->preSt;
 
@@ -1953,12 +1771,12 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
         const Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
-        const usize index = Cuckoos.find_key(moveKey);
+        const usize index = Cuckoos_.find_key(moveKey);
 
-        if (index >= Cuckoos.size())
+        if (index >= Cuckoos_.size())
             continue;
 
-        Move m = Cuckoos[index].move;
+        Move m = Cuckoos_[index].move;
         assert(m != Move::None);
 
         // Move path is obstructed
@@ -2087,7 +1905,7 @@ Key Position::compute_material_key(const Color c) const noexcept {
 
     for (const auto pt : EX_KING_PIECE_TYPES)
         for (u8 cnt = 0; cnt < count(c, pt); ++cnt)
-            materialKey ^= Zobrist::piece_count(c, pt, cnt);
+            materialKey ^= Zobrist_.piece_count(c, pt, cnt);
 
     return materialKey;
 }
@@ -2103,15 +1921,15 @@ Key Position::compute_key() const noexcept {
         const Square s  = pop_lsq(bb);
         const Piece  pc = piece(s);
 
-        key ^= Zobrist::piece_square(pc, s);
+        key ^= Zobrist_.piece_square(pc, s);
     }
 
-    key ^= Zobrist::castling(castling_rights());
+    key ^= Zobrist_.castling(castling_rights());
 
-    key ^= Zobrist::enpassant(en_passant_sq());
+    key ^= Zobrist_.enpassant(en_passant_sq());
 
     if (active_color() == BLACK)
-        key ^= Zobrist::turn();
+        key ^= Zobrist_.turn();
 
     return key;
 }
@@ -2129,7 +1947,7 @@ Key Position::compute_pawn_key() const noexcept {
         if (pt != PAWN)
             continue;
 
-        pawnKey ^= Zobrist::piece_square(pc, s);
+        pawnKey ^= Zobrist_.piece_square(pc, s);
     }
 
     return pawnKey;
@@ -2148,7 +1966,7 @@ Key Position::compute_minor_key() const noexcept {
         if (pt == PAWN || pt == KING || is_major(pt))
             continue;
 
-        minorKey ^= Zobrist::piece_square(pc, s);
+        minorKey ^= Zobrist_.piece_square(pc, s);
     }
 
     return minorKey;
@@ -2167,7 +1985,7 @@ Key Position::compute_major_key() const noexcept {
         if (pt == PAWN || pt == KING || !is_major(pt))
             continue;
 
-        majorKey ^= Zobrist::piece_square(pc, s);
+        majorKey ^= Zobrist_.piece_square(pc, s);
     }
 
     return majorKey;
@@ -2186,7 +2004,7 @@ Key Position::compute_non_pawn_key() const noexcept {
         if (pt == PAWN)
             continue;
 
-        nonPawnKey ^= Zobrist::piece_square(pc, s);
+        nonPawnKey ^= Zobrist_.piece_square(pc, s);
     }
 
     return nonPawnKey;
@@ -2273,7 +2091,7 @@ bool Position::is_ok_() const noexcept {
             if (!has_castling_rights(c, cs))
                 continue;
 
-            const CastlingRights cr = make_cr(c, cs);
+            const auto cr = make_cr(c, cs);
 
             if (!is_ok(castling_rook_sq(c, cs))
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0
@@ -2308,7 +2126,7 @@ Position::operator std::string() const noexcept {
             str
               .append(" | ")
               //.push_back(to_char(pc));
-              .append(to_figure(pc));
+              .append(to_utf8(pc));
         }
 
         str.append(" |").append(Sep);
@@ -2337,13 +2155,13 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     os << "\nKey: " << u64_to_hex_prefix(pos.key());
 
     os << "\nKings: ";
-    os << to_square(pos.square<KING>(pos.active_color())) << ", "
-       << to_square(pos.square<KING>(~pos.active_color()));
+    os << to_string(pos.square<KING>(pos.active_color())) << ", "
+       << to_string(pos.square<KING>(~pos.active_color()));
 
     os << "\nCheckers: ";
     if (Bitboard checkersBB = pos.checkers_bb(); checkersBB != 0)
         while (checkersBB != 0)
-            os << to_square(pop_lsq(checkersBB)) << " ";
+            os << to_string(pop_lsq(checkersBB)) << " ";
     else
         os << "-";
 
@@ -2384,9 +2202,9 @@ void State::dump(std::ostream& os) const noexcept {
         os << u64_to_hex_prefix(nonPawnKeys[c][1]) << '\n';
     }
 
-    os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");
+    os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_string(enPassantSq) : "-");
     os << '\n';
-    os << "Captured Square: " << (is_ok(capturedSq) ? to_square(capturedSq) : "-");
+    os << "Captured Square: " << (is_ok(capturedSq) ? to_string(capturedSq) : "-");
     os << '\n';
 
     os << "Pinner Bitboards:\n";
@@ -2456,7 +2274,7 @@ void Position::dump(std::ostream& os) const noexcept {
             os << '\n';
             os << pretty(castlings.kingPathBB[c][+cs]);
             os << '\n';
-            os << (is_ok(castlings.rookSq[c][+cs]) ? to_square(castlings.rookSq[c][+cs]) : "-");
+            os << (is_ok(castlings.rookSq[c][+cs]) ? to_string(castlings.rookSq[c][+cs]) : "-");
             os << '\n';
         }
         os << '\n';

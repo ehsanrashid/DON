@@ -24,7 +24,10 @@ namespace DON {
 
 struct ThreadContext final {
    public:
-    constexpr ThreadContext(u16 threadIdx, u16 threadCnt, u16 numaIdx, u16 numaThreadCnt) noexcept :
+    constexpr ThreadContext(const u16 threadIdx,
+                            const u16 threadCnt,
+                            const u16 numaIdx,
+                            const u16 numaThreadCnt) noexcept :
         threadId(threadIdx),
         threadCount(threadCnt),
         numaId(numaIdx),
