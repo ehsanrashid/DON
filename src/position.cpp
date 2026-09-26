@@ -33,12 +33,6 @@
 
 namespace DON {
 
-void State::clear() noexcept {
-    std::memset(this, 0, sizeof(*this));
-
-    enPassantSq = capturedSq = SQ_NONE;
-}
-
 namespace {
 
 Zobrist Zobrist_;
@@ -2186,66 +2180,6 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     }
 
     return os;
-}
-
-void State::dump(std::ostream& os) const noexcept {
-
-    os << "Pawn Keys:\n";
-    for (Color c : {WHITE, BLACK})
-    {
-        os << (c == WHITE ? 'W' : 'B') << ": ";
-        os << u64_to_hex_prefix(pawnKeys[c]) << '\n';
-    }
-
-    os << "Non-Pawn Keys:\n";
-    for (Color c : {WHITE, BLACK})
-    {
-        os << (c == WHITE ? 'W' : 'B') << ": ";
-        os << u64_to_hex_prefix(nonPawnKeys[c][0]) << ' ';
-        os << u64_to_hex_prefix(nonPawnKeys[c][1]) << '\n';
-    }
-
-    os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_string(enPassantSq) : "-");
-    os << '\n';
-    os << "Captured Square: " << (is_ok(capturedSq) ? to_string(capturedSq) : "-");
-    os << '\n';
-
-    os << "Pinner Bitboards:\n";
-    for (const Color c : {WHITE, BLACK})
-    {
-        os << (c == WHITE ? 'W' : 'B') << ':';
-        os << pretty(pinnersBB[c]) << '\n';
-    }
-
-    os << "Blocker Bitboards:\n";
-    for (const Color c : {WHITE, BLACK})
-    {
-        os << (c == WHITE ? 'W' : 'B') << ':';
-        os << pretty(blockersBB[c]) << '\n';
-    }
-
-    os << "Check Bitboards:\n";
-    for (const auto pt : PIECE_TYPES)
-    {
-        os << to_char(pt) << ':';
-        os << pretty(checksBB[pt]) << '\n';
-    }
-
-    os << "Attack Bitboards:\n";
-    for (PieceType pt = PAWN; pt <= ALL; ++pt)
-    {
-        os << to_char(pt) << ':';
-        os << pretty(accAttacksBB[pt]) << '\n';
-    }
-
-    os << "Repetition: " << repetition;
-    os << '\n';
-    os << "Captured Piece: " << (capturedPc != Piece::NO_PIECE ? to_char(capturedPc) : '-');
-    os << '\n';
-    os << "Promoted Piece: " << (promotedPc != Piece::NO_PIECE ? to_char(promotedPc) : '-');
-    os << '\n';
-
-    os.flush();
 }
 
 void Position::dump(std::ostream& os) const noexcept {

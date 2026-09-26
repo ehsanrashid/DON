@@ -46,7 +46,7 @@ void Option::on_change() noexcept {
     if (!onChange)
         return;
 
-    const auto changeInfo = onChange(*this);
+    auto changeInfo = onChange(*this);
 
     if (!changeInfo)
         return;
@@ -54,7 +54,7 @@ void Option::on_change() noexcept {
     if (optionsPtr == nullptr)
         return;
 
-    optionsPtr->on_info(changeInfo);
+    optionsPtr->on_info(std::move(changeInfo));
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {

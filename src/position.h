@@ -34,67 +34,10 @@
 #include "attacks.h"
 #include "bitboard.h"
 #include "misc.h"
+#include "state.h"
 #include "types.h"
 
 namespace DON {
-
-// State struct stores information needed to restore Position object
-// to its previous state when retract any move. (Size = 272)
-struct State final {
-   public:
-    State() noexcept                           = default;
-    State(const State&) noexcept               = default;
-    State& operator=(const State& st) noexcept = default;
-    State(State&&) noexcept                    = delete;
-    State& operator=(State&&) noexcept         = delete;
-
-    void clear() noexcept;
-
-    void dump(std::ostream& os = std::cout) const noexcept;
-
-    // --- Copied when making a move
-    Key                     key;
-    Array<Key, COLOR_NB>    pawnKeys;
-    Array<Key, COLOR_NB, 2> nonPawnKeys;
-    Array<Key, COLOR_NB>    materialKeys;
-    Array<bool, COLOR_NB>   hasCastleds;
-
-    u16            rule50Count;
-    u16            nullPly;  // Plies from Null-Move
-    Square         enPassantSq;
-    Square         capturedSq;
-    CastlingRights castlingRights;
-    bool           hasRule50High;
-
-    // --- Not copied when making a move (will be recomputed anyhow)
-    Bitboard                       checkersBB;
-    Array<Bitboard, COLOR_NB>      pinnersBB;
-    Array<Bitboard, COLOR_NB>      blockersBB;
-    Array<Bitboard, PIECE_TYPE_NB> checksBB;
-    Array<Bitboard, PIECE_TYPE_NB> accAttacksBB;
-    i16                            repetition;
-    Piece                          capturedPc;
-    Piece                          promotedPc;
-    const State*                   preSt;
-
-    // Copy relevant fields from the state.
-    // excluding those that will recomputed from scratch anyway and
-    // then switch the state pointer to point to the new state.
-    template<typename T = Bitboard>
-    void switch_to_prefix(const State* st, T State::* member = &State::checkersBB) noexcept {
-        // Compute offset dynamically for this object
-        const usize size = reinterpret_cast<const char*>(&(st->*member))  //
-                         - reinterpret_cast<const char*>(st);
-        assert(size <= sizeof(*this) && "size exceeds object size");
-
-        std::memcpy(this, st, size);
-
-        preSt = st;
-    }
-};
-
-static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,
-              "State must be standard-layout and trivially copyable");
 
 class Worker;
 
