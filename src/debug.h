@@ -25,8 +25,6 @@ namespace DON {
 // Debug functions used mainly to collect run-time statistics
 namespace Debug {
 
-void clear() noexcept;
-
 void hit_on(bool cond, usize slot = 0) noexcept;
 
 void min_of(i64 value, usize slot = 0) noexcept;
@@ -42,6 +40,8 @@ void stdev_of(i64 value, usize slot = 0) noexcept;
 void correl_of(i64 value1, i64 value2, usize slot = 0) noexcept;
 
 void print() noexcept;
+
+void reset() noexcept;
 
 }  // namespace Debug
 

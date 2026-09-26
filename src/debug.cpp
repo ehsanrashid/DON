@@ -19,7 +19,7 @@
 
 #include <array>
 #include <atomic>
-#include <cmath>
+#include <cmath>  // sqrt()
 #include <limits>
 
 namespace DON {
@@ -107,16 +107,6 @@ Array<Info<3>, SLOT_MAX>     stdev;
 Array<Info<6>, SLOT_MAX>     correl;
 
 }  // namespace
-
-void clear() noexcept {
-    hit.fill({});
-    min.fill({});
-    max.fill({});
-    extreme.fill({});
-    mean.fill({});
-    stdev.fill({});
-    correl.fill({});
-}
 
 void hit_on(const bool cond, const usize slot) noexcept {
     assert(slot < hit.size());
@@ -332,6 +322,16 @@ void print() noexcept {
         std::cerr << "Correl #" << i << ": Count=" << n  //
                   << " Correl=" << r << std::endl;
     }
+}
+
+void reset() noexcept {
+    hit.fill({});
+    min.fill({});
+    max.fill({});
+    extreme.fill({});
+    mean.fill({});
+    stdev.fill({});
+    correl.fill({});
 }
 
 }  // namespace Debug

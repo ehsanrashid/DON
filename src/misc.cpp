@@ -19,7 +19,6 @@
 
 #include <charconv>      // from_chars()
 #include <cinttypes>     // PRIX32, PRIX64, PRIu64
-#include <cmath>         // sqrt()
 #include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
 #include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
@@ -28,8 +27,8 @@
 #if defined(_WIN32)
     #include <shellapi.h>  // CommandLineToArgvW()
 #else
+    #include <unistd.h>    // close()
     #include <sys/mman.h>  // munmap()
-    #include <unistd.h>    // close(), read()/write(), unlink(), sleep(), getpid()
 #endif
 
 namespace DON {
@@ -1050,6 +1049,32 @@ void UniqueFd::reset(const int newFd) noexcept {
 }
 
 #endif
+
+std::string lower_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](const char ch) noexcept -> char { return lower_case(ch); });
+    return str;
+}
+
+std::string upper_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](const char ch) noexcept -> char { return upper_case(ch); });
+    return str;
+}
+
+std::string toggle_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](const char ch) noexcept -> char {
+        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
+    });
+    return str;
+}
+
+std::string remove_whitespace(std::string str) noexcept {
+    str.erase(std::remove_if(str.begin(), str.end(),
+                             [](const char ch) noexcept -> bool { return is_space(ch); }),
+              str.end());
+    return str;
+}
 
 bool str_is_bool(const std::string_view sv) noexcept {
     // Convert to lowercase for case-insensitive comparison

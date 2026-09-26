@@ -2580,31 +2580,13 @@ struct UniqueFd final {
     return neg ? -val : val;
 }
 
-inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](const char ch) noexcept -> char { return lower_case(ch); });
-    return str;
-}
+std::string lower_case(std::string str) noexcept;
 
-inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](const char ch) noexcept -> char { return upper_case(ch); });
-    return str;
-}
+std::string upper_case(std::string str) noexcept;
 
-inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](const char ch) noexcept -> char {
-        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
-    });
-    return str;
-}
+std::string toggle_case(std::string str) noexcept;
 
-inline std::string remove_whitespace(std::string str) noexcept {
-    str.erase(std::remove_if(str.begin(), str.end(),
-                             [](const char ch) noexcept -> bool { return is_space(ch); }),
-              str.end());
-    return str;
-}
+std::string remove_whitespace(std::string str) noexcept;
 
 // Validate boolean string (case-insensitive)
 bool str_is_bool(std::string_view sv) noexcept;

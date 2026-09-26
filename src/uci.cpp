@@ -527,7 +527,7 @@ void UCI::bench(std::istream& is) noexcept {
           return starts_with(command, "go ") || starts_with(command, "eval");
       });
 
-    Debug::clear();
+    Debug::reset();
 
     SteadyClock::time_point startTime;
     SteadyClock::duration   totalDuration{0};
@@ -638,7 +638,7 @@ void UCI::benchmark(std::istream& is) noexcept {
       std::count_if(setup.commands.begin(), setup.commands.end(),
                     [](const std::string_view command) { return starts_with(command, "go "); });
 
-    Debug::clear();
+    Debug::reset();
 
     usize cnt = 0;
     // Warmup
