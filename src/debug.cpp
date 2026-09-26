@@ -17,10 +17,11 @@
 
 #include "debug.h"
 
-#include <array>
 #include <atomic>
 #include <cmath>  // sqrt()
-#include <limits>
+#include <iostream>
+#include <limits>   // numeric_limits<>
+#include <utility>  // as_const()
 
 namespace DON {
 
