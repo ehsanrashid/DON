@@ -37,10 +37,12 @@ class Options;
 
 class Option {
    public:
+    using Ptr = std::unique_ptr<Option>;
+
     using ChangeInfo = std::optional<std::string>;
     using OnChange   = std::function<ChangeInfo(const Option&)>;
 
-    virtual ~Option() = default;
+    virtual ~Option() noexcept = default;
 
     std::string_view current_value() const noexcept;
 
@@ -57,7 +59,7 @@ class Option {
     virtual void operator=(std::string_view value) noexcept = 0;
 
    protected:
-    explicit Option(std::string_view str, OnChange&& onCng = nullptr) noexcept;
+    explicit Option(std::string_view str, OnChange&& onCng = {}) noexcept;
 
     void on_change() noexcept;
 
@@ -68,6 +70,12 @@ class Option {
     std::string currentValue;
 
    private:
+    Option() noexcept                         = delete;
+    Option(const Option&) noexcept            = delete;
+    Option& operator=(const Option&) noexcept = delete;
+    Option(Option&&) noexcept                 = delete;
+    Option& operator=(Option&&) noexcept      = delete;
+
     OnChange onChange;
 
     const Options* optionsPtr = nullptr;
@@ -75,15 +83,11 @@ class Option {
     friend class Options;
 };
 
-using OnChange = Option::OnChange;
-
-using OptionPtr = std::unique_ptr<Option>;
-
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
 class ButtonOption final: public Option {
    public:
-    explicit ButtonOption(OnChange&& onCng = nullptr) noexcept;
+    explicit ButtonOption(OnChange&& onCng = {}) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -94,7 +98,7 @@ class ButtonOption final: public Option {
 
 class CheckOption final: public Option {
    public:
-    explicit CheckOption(bool value, OnChange&& onCng = nullptr) noexcept;
+    explicit CheckOption(bool value, OnChange&& onCng = {}) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -110,7 +114,7 @@ class CheckOption final: public Option {
 
 class StringOption final: public Option {
    public:
-    explicit StringOption(std::string_view str, OnChange&& onCng = nullptr) noexcept;
+    explicit StringOption(std::string_view str, OnChange&& onCng = {}) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -126,7 +130,7 @@ class StringOption final: public Option {
 
 class SpinOption final: public Option {
    public:
-    SpinOption(int v, int minV, int maxV, OnChange&& onCng = nullptr) noexcept;
+    SpinOption(int v, int minV, int maxV, OnChange&& onCng = {}) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -143,7 +147,7 @@ class SpinOption final: public Option {
 
 class ComboOption final: public Option {
    public:
-    ComboOption(std::string_view str, StringViews&& vrs, OnChange&& onCng = nullptr) noexcept;
+    ComboOption(std::string_view str, StringViews&& vrs, OnChange&& onCng = {}) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -156,20 +160,20 @@ class ComboOption final: public Option {
    private:
     bool contains(std::string_view value) const noexcept;
 
-    const Strings vars;
+    const StringViews vars;
 };
 
 namespace OptionFactory {
 
-OptionPtr button(OnChange&& onCng = nullptr) noexcept;
+Option::Ptr button(Option::OnChange onCng = {}) noexcept;
 
-OptionPtr check(bool b, OnChange&& onCng = nullptr) noexcept;
+Option::Ptr check(bool b, Option::OnChange onCng = {}) noexcept;
 
-OptionPtr string(std::string_view str, OnChange&& onCng = nullptr) noexcept;
+Option::Ptr string(std::string_view str, Option::OnChange onCng = {}) noexcept;
 
-OptionPtr spin(int v, int minV, int maxV, OnChange&& onCng = nullptr) noexcept;
+Option::Ptr spin(int v, int minV, int maxV, Option::OnChange onCng = {}) noexcept;
 
-OptionPtr combo(std::string_view str, StringViews vars, OnChange&& onCng = nullptr) noexcept;
+Option::Ptr combo(std::string_view str, StringViews vars, Option::OnChange onCng = {}) noexcept;
 
 }  // namespace OptionFactory
 
@@ -177,7 +181,7 @@ class Options final {
    public:
     // clang-format off
     // Stores the option name view and the polymorphic option, preserving the original name case.
-    using Entry    = std::pair<std::string_view, OptionPtr>;
+    using Entry    = std::pair<std::string_view, Option::Ptr>;
     // Preserves insertion order and the original name case.
     using List     = std::list<Entry>;
     // Provides fast case-insensitive name lookup, count and removal.
@@ -211,7 +215,7 @@ class Options final {
     //
     // Options are stored in insertion order and indexed by name.
     // Returns false if an option with the specified name already exists.
-    bool add(std::string_view name, OptionPtr option) noexcept;
+    bool add(std::string_view name, Option::Ptr option) noexcept;
 
     // Removes the option with the specified name from the Options.
     //

@@ -74,6 +74,8 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
+    using Ptr = std::unique_ptr<Thread>;
+
     // Constructor for a worker thread.
     //
     // Responsibilities:
@@ -93,7 +95,7 @@ class Thread final {
     Thread(ThreadContext                 threadCxt,
            const ThreadToNumaNodeBinder& nodeBinder,
            const SharedState&            sharedState,
-           ManagerPtr                    manager) noexcept;
+           Manager::Ptr                  manager = {}) noexcept;
 
     // Destructor: ensures the thread is safely terminated and joined.
     // The thread should not be running a job.
@@ -170,8 +172,6 @@ class Thread final {
 
     JobFunc jobFunc;
 };
-
-using ThreadPtr = std::unique_ptr<Thread>;
 
 // Schedule a job to be executed by this thread.
 // This function blocks only until the thread is ready to accept a new job.
@@ -353,7 +353,7 @@ class Threads final {
         // Only proceed if main-thread exists
         assert(mainThread != nullptr);
 
-        auto* manager = mainThread->worker->manager();
+        auto* const manager = mainThread->worker->manager();
         // Only proceed if main-manager exists
         assert(manager != nullptr);
 
@@ -430,7 +430,7 @@ class Threads final {
     // Protects concurrent access to the threads vector for short snapshots.
     // Use shared lock for readers and lock guard for writers when mutating threads.
     mutable std::shared_mutex mutex;
-    std::vector<ThreadPtr>    threads;
+    std::vector<Thread::Ptr>  threads;
     std::vector<NumaIndex>    threadBoundNumaNodes;
 };
 
@@ -470,7 +470,7 @@ inline void Threads::reset() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
     // Initialize main-manager
-    if (auto manager = this->manager(); manager != nullptr)
+    if (auto* const manager = this->manager(); manager != nullptr)
         manager->reset();
 }
 

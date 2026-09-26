@@ -790,8 +790,8 @@ inline bool Position::capture(const Move m) const noexcept {
 
     const auto mt = m.type();
 
-    return (mt == MT::EN_PASSANT)
-        || ((mt == MT::NORMAL || mt == MT::PROMOTION) && !empty(m.dst_sq()));
+    return (mt == Move::Type::EN_PASSANT)
+        || ((mt == Move::Type::NORMAL || mt == Move::Type::PROMOTION) && !empty(m.dst_sq()));
 }
 
 inline bool Position::capture_promo(const Move m) const noexcept {
@@ -799,7 +799,7 @@ inline bool Position::capture_promo(const Move m) const noexcept {
     if (capture(m))
         return true;
 
-    if (m.type() != MT::PROMOTION)
+    if (m.type() != Move::Type::PROMOTION)
         return false;
 
     const auto promotedPt = m.promotion_type();
@@ -815,9 +815,10 @@ inline Piece Position::moved_pc(const Move m) const noexcept {
 
 inline Piece Position::captured_pc(const Move m) const noexcept {
     assert(legal(m));
-    assert(m.type() != MT::CASTLING);
+    assert(m.type() != Move::Type::CASTLING);
 
-    return piece(m.type() != MT::EN_PASSANT ? m.dst_sq() : m.dst_sq() - pawn_spush(active_color()));
+    return piece(m.type() != Move::Type::EN_PASSANT ? m.dst_sq()
+                                                    : m.dst_sq() - pawn_spush(active_color()));
 }
 
 inline auto Position::captured_pt(const Move m) const noexcept { return type_of(captured_pc(m)); }

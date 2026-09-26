@@ -44,7 +44,7 @@ namespace DON {
 Thread::Thread(ThreadContext                 threadCxt,
                const ThreadToNumaNodeBinder& nodeBinder,
                const SharedState&            sharedState,
-               ManagerPtr                    manager) noexcept :
+               Manager::Ptr                  manager) noexcept :
     context(std::move(threadCxt)) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
     //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());

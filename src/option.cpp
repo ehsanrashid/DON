@@ -144,7 +144,7 @@ void SpinOption::operator=(const std::string_view value) noexcept {
 
 ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
     Option{str, std::move(onCng)},
-    vars(to_strings(vrs)) {
+    vars(std::move(vrs)) {
     assert(contains(default_value()));
 }
 
@@ -176,23 +176,23 @@ bool ComboOption::contains(const std::string_view value) const noexcept {
 
 namespace OptionFactory {
 
-OptionPtr button(OnChange&& onCng) noexcept {
+Option::Ptr button(Option::OnChange onCng) noexcept {
     return std::make_unique<ButtonOption>(std::move(onCng));
 }
 
-OptionPtr check(const bool b, OnChange&& onCng) noexcept {
+Option::Ptr check(const bool b, Option::OnChange onCng) noexcept {
     return std::make_unique<CheckOption>(b, std::move(onCng));
 }
 
-OptionPtr string(const std::string_view str, OnChange&& onCng) noexcept {
+Option::Ptr string(const std::string_view str, Option::OnChange onCng) noexcept {
     return std::make_unique<StringOption>(str, std::move(onCng));
 }
 
-OptionPtr spin(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept {
+Option::Ptr spin(const int v, const int minV, const int maxV, Option::OnChange onCng) noexcept {
     return std::make_unique<SpinOption>(v, minV, maxV, std::move(onCng));
 }
 
-OptionPtr combo(const std::string_view str, StringViews vars, OnChange&& onCng) noexcept {
+Option::Ptr combo(const std::string_view str, StringViews vars, Option::OnChange onCng) noexcept {
     return std::make_unique<ComboOption>(str, std::move(vars), std::move(onCng));
 }
 
@@ -224,7 +224,7 @@ auto Options::find(const std::string_view name) noexcept { return indexMap.find(
 
 auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
 
-bool Options::add(const std::string_view name, OptionPtr option) noexcept {
+bool Options::add(const std::string_view name, Option::Ptr option) noexcept {
     // Already a member.
     if (contains(name))
     {

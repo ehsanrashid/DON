@@ -559,6 +559,9 @@ struct MoveInfo final {
 // and storing data strictly related to the main thread.
 class Manager final {
    public:
+    // Define a unique pointer type for Manager
+    using Ptr = std::unique_ptr<Manager>;
+
     using OnUpdateStart = std::function<void()>;
     using OnUpdateShort = std::function<void(const ShortInfo&)>;
     using OnUpdateFull  = std::function<void(const FullInfo&)>;
@@ -610,9 +613,6 @@ class Manager final {
     std::condition_variable condVar;
 };
 
-// Define a unique pointer type for Manager
-using ManagerPtr = std::unique_ptr<Manager>;
-
 // NT indicates the type of node in the search tree
 enum class NT : u8 {
     ALL  = 0,
@@ -653,7 +653,7 @@ class Worker final {
     Worker(const ThreadContext&      threadCxt,
            NumaReplicatedAccessToken accessToken,
            const SharedState&        sharedState,
-           ManagerPtr                manager) noexcept;
+           Manager::Ptr              manager = {}) noexcept;
 
     void reset() noexcept;
 
@@ -762,7 +762,7 @@ class Worker final {
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
     AtomicHistories&                                   atomicHistories;
-    ManagerPtr                                         manager_;
+    Manager::Ptr                                       manager_;
 
     // Used by NNUE
     NNUE::AccumulatorCache accCache;
