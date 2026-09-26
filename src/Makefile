@@ -106,7 +106,7 @@ UNIVERSAL_SRCS := \
     universal/nnue_embed.cpp
 
 HEADERS := \
-    attacks.h benchmark.h bitboard.h cuckoo.h debug.h engine.h evaluate.h history.h memory.h misc.h \
+    attacks.h benchmark.h bitboard.h color.h cuckoo.h debug.h engine.h evaluate.h history.h memory.h misc.h \
     movegen.h movepick.h native_thread.h notation.h numa.h option.h perft.h platform_win.h position.h \
     prng.h search.h shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \

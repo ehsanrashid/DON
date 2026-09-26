@@ -18,9 +18,7 @@
 #ifndef COLOR_H_INCLUDED
 #define COLOR_H_INCLUDED
 
-namespace DON {
-
-namespace Color {
+namespace DON::Color {
 
 // Reset
 inline constexpr const char* RESET = "\033[0m";
@@ -64,8 +62,6 @@ inline constexpr const char* BG_MAGENTA = "\033[45m";
 inline constexpr const char* BG_CYAN    = "\033[46m";
 inline constexpr const char* BG_WHITE   = "\033[47m";
 
-}  // namespace Color
-
-}  // namespace DON
+}  // namespace DON::Color
 
 #endif  // COLOR_H_INCLUDED

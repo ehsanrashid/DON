@@ -20,10 +20,8 @@
 
 #include "misc.h"
 
-namespace DON {
-
 // Debug functions used mainly to collect run-time statistics
-namespace Debug {
+namespace DON::Debug {
 
 void hit_on(bool cond, usize slot = 0) noexcept;
 
@@ -43,8 +41,6 @@ void print() noexcept;
 
 void reset() noexcept;
 
-}  // namespace Debug
-
-}  // namespace DON
+}  // namespace DON::Debug
 
 #endif  // DEBUG_H_INCLUDED

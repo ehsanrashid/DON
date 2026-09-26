@@ -18,14 +18,13 @@
 #include "debug.h"
 
 #include <atomic>
+#include <cassert>
 #include <cmath>  // sqrt()
 #include <iostream>
 #include <limits>   // numeric_limits<>
 #include <utility>  // as_const()
 
-namespace DON {
-
-namespace Debug {
+namespace DON::Debug {
 
 namespace {
 
@@ -335,6 +334,4 @@ void reset() noexcept {
     correl.fill({});
 }
 
-}  // namespace Debug
-
-}  // namespace DON
+}  // namespace DON::Debug
