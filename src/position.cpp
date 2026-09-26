@@ -24,6 +24,7 @@
 #include <sstream>
 #include <utility>  // for swap()
 
+#include "concurrent.h"  // ConcurrentCache<>
 #include "cuckoo.h"
 #include "history.h"
 #include "movegen.h"

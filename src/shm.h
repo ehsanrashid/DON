@@ -65,6 +65,8 @@
     #include <cstring>  // strncpy
     #include <optional>
 
+    #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
+
     // Linux (non-Android)
     #if defined(__linux__) && !defined(__ANDROID__)
     // macOS / iOS

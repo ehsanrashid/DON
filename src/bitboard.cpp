@@ -19,6 +19,8 @@
 
 #include <memory>
 
+#include "concurrent.h"  // ConcurrentCache<>
+
 namespace DON {
 
 std::string pretty_str(const Bitboard b) noexcept {

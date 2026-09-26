@@ -32,6 +32,7 @@
 #endif
 
 #include "color.h"
+#include "concurrent.h"  // ConcurrentMap<>
 
 namespace DON {
 
@@ -573,6 +574,30 @@ fs::path CommandLine::working_directory() noexcept { return fs::current_path(); 
 const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
 
 namespace {
+
+// OsToMutexMap
+//
+// Provides a thread-safe process-wide map that associates a unique mutex
+// with each std::ostream pointer.
+//
+// The map allows multiple threads to synchronize access to the same ostream
+// without unnecessarily locking unrelated ostreams.
+//
+// Key Features:
+//  - Thread-safe: map access is protected by a mutex.
+//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
+//  - Lazy initialization: mutexes are created when first requested.
+//  - Null-safe: nullptr is a valid key and maps to its own mutex.
+//
+// Usage:
+//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
+//    from multiple threads.
+//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//
+// Lifetime:
+//  - The map does not own the std::ostream objects.
+//  - Mutexes remain in the map for the lifetime of the process.
+using OsToMutexMap = ConcurrentMap<std::ostream*, std::mutex>;
 
 OsToMutexMap osToMutex(usize{32}, 0.75f);
 

@@ -53,6 +53,7 @@
     #define USE_POSIX_ALIGNED_ALLOC
 #endif
 
+#include "concurrent.h"  // ConcurrentAllocationTracker<>
 #include "misc.h"
 
 namespace DON {
@@ -151,7 +152,8 @@ bool free_aligned_huge_page(void* const mem, const usize allocSize) noexcept {
     return true;
 }
 
-AllocationSizes HugePageSizes(alloc_aligned_huge_page, free_aligned_huge_page);
+ConcurrentAllocationTracker HugePageAllocationTracker(alloc_aligned_huge_page,
+                                                      free_aligned_huge_page);
 
     #endif
 
@@ -191,7 +193,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     {
         const usize roundedAllocSize = round_up_to_multiple(allocSize, HUGE_PAGE_SIZE);
         // Allocate memory
-        mem = HugePageSizes.alloc(roundedAllocSize);
+        mem = HugePageAllocationTracker.alloc(roundedAllocSize);
         if (mem != nullptr)
             return mem;
 
@@ -244,7 +246,7 @@ bool free_aligned_large_page(void* const mem) noexcept {
     }
 #else
     #if defined(USE_POSIX_X86_64_HUGE_PAGES)
-    if (HugePageSizes.free(mem))
+    if (HugePageAllocationTracker.free(mem))
         return true;
     #endif
     free_aligned_std(mem);
