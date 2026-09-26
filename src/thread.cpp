@@ -486,7 +486,7 @@ template const Thread* Threads::best_thread<false>() const noexcept;
 template const Thread* Threads::best_thread<true>() const noexcept;
 
 void Threads::start(const Position& pos,
-                    StateListPtr    states,
+                    State::ListPtr  states,
                     const Limit&    limit,
                     const Options&  options) const noexcept {
 

@@ -137,8 +137,8 @@ class Engine final {
 
     SharedState sharedState{network, options(), transpositionTable, threads, atomicHistoriesMap};
 
-    mutable StateListPtr states;
-    Position             pos;
+    mutable State::ListPtr states;
+    Position               pos;
 
     Manager::UpdateContext updateContext;
 };

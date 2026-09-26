@@ -29,6 +29,7 @@
 #include "notation.h"
 #include "perft.h"
 #include "shm.h"
+#include "state.h"
 #include "tablebase/syzygy.h"
 
 namespace DON {
@@ -119,7 +120,7 @@ void Engine::wait_finish() const noexcept {
 
 std::optional<Error> Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
-    states = std::make_unique<StateList>(1);
+    states = std::make_unique<State::List>(1);
 
     if (const auto err = pos.set(fen, &states->back()))
         return err;

@@ -24,6 +24,7 @@
 #include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
+#include "state.h"
 
 namespace DON {
 

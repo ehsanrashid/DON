@@ -18,6 +18,9 @@
 #ifndef STATE_H_INCLUDED
 #define STATE_H_INCLUDED
 
+#include <deque>
+#include <memory>
+
 #include "misc.h"
 #include "types.h"
 
@@ -27,6 +30,13 @@ namespace DON {
 // to its previous state when retract any move. (Size = 272)
 struct State final {
    public:
+    // A list to keep track of the position states along the setup moves
+    // (from the start position to the position just before the search starts).
+    // Needed by 'draw by repetition' detection.
+    // Use std::deque because pointers and references to existing elements remain valid when appending.
+    using List    = std::deque<State>;
+    using ListPtr = std::unique_ptr<List>;
+
     State() noexcept                           = default;
     State(const State&) noexcept               = default;
     State& operator=(const State& st) noexcept = default;

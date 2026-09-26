@@ -21,7 +21,6 @@
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>         // mutex, unique_lock, lock_guard
@@ -224,13 +223,6 @@ inline void Thread::wait_finish() noexcept {
 
 class Options;
 
-// A list to keep track of the position states along the setup moves
-// (from the start position to the position just before the search starts).
-// Needed by 'draw by repetition' detection.
-// Use std::deque because pointers and references to existing elements remain valid when appending.
-using StateList    = std::deque<State>;
-using StateListPtr = std::unique_ptr<StateList>;
-
 // Threads handles all the threads-related stuff like
 // launching, initializing, starting and parking a thread.
 // All the access to threads is done through this class.
@@ -292,7 +284,7 @@ class Threads final {
     // Wakes up main thread waiting in idle_func() and returns immediately.
     // Main thread will wake up other threads and start the search.
     void start(const Position& pos,
-               StateListPtr    states,
+               State::ListPtr  states,
                const Limit&    limit,
                const Options&  options) const noexcept;
 
@@ -426,7 +418,7 @@ class Threads final {
     Threads& operator=(Threads&&) noexcept      = delete;
 
     mutable std::atomic<ThState> state{ThState::Active};
-    mutable StateListPtr         setupStates;
+    mutable State::ListPtr       setupStates;
     // Protects concurrent access to the threads vector for short snapshots.
     // Use shared lock for readers and lock guard for writers when mutating threads.
     mutable std::shared_mutex mutex;
