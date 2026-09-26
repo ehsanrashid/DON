@@ -21,7 +21,6 @@
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>         // mutex, unique_lock, lock_guard
@@ -33,8 +32,8 @@
 #include "misc.h"
 #include "native_thread.h"
 #include "numa.h"
-#include "position.h"
 #include "search.h"
+#include "state.h"
 #include "thread_context.h"
 
 namespace DON {
@@ -74,6 +73,8 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
+    using Ptr = std::unique_ptr<Thread>;
+
     // Constructor for a worker thread.
     //
     // Responsibilities:
@@ -93,7 +94,7 @@ class Thread final {
     Thread(ThreadContext                 threadCxt,
            const ThreadToNumaNodeBinder& nodeBinder,
            const SharedState&            sharedState,
-           ManagerPtr                    manager) noexcept;
+           Manager::Ptr                  manager = {}) noexcept;
 
     // Destructor: ensures the thread is safely terminated and joined.
     // The thread should not be running a job.
@@ -171,8 +172,6 @@ class Thread final {
     JobFunc jobFunc;
 };
 
-using ThreadPtr = std::unique_ptr<Thread>;
-
 // Schedule a job to be executed by this thread.
 // This function blocks only until the thread is ready to accept a new job.
 // The actual job execution happens asynchronously in idle_func().
@@ -223,19 +222,23 @@ inline void Thread::wait_finish() noexcept {
 }
 
 class Options;
-
-// A list to keep track of the position states along the setup moves
-// (from the start position to the position just before the search starts).
-// Needed by 'draw by repetition' detection.
-// Use std::deque because pointers and references to existing elements remain valid when appending.
-using StateList    = std::deque<State>;
-using StateListPtr = std::unique_ptr<StateList>;
+class Position;
 
 // Threads handles all the threads-related stuff like
 // launching, initializing, starting and parking a thread.
 // All the access to threads is done through this class.
 class Threads final {
    public:
+    // Status transition diagram:
+    // Active -> Research
+    //   |          |
+    //   >---------->Stopped (terminal, no exit)
+    enum class Status : u8 {
+        Active,
+        Research,
+        Stopped
+    };
+
     Threads() noexcept = default;
     ~Threads() noexcept;
 
@@ -292,7 +295,7 @@ class Threads final {
     // Wakes up main thread waiting in idle_func() and returns immediately.
     // Main thread will wake up other threads and start the search.
     void start(const Position& pos,
-               StateListPtr    states,
+               State::ListPtr  states,
                const Limit&    limit,
                const Options&  options) const noexcept;
 
@@ -319,26 +322,26 @@ class Threads final {
 
     // Is reaserching
     bool is_researching() const noexcept {
-        return state.load(std::memory_order_acquire) == ThState::Research;
+        return state.load(std::memory_order_acquire) == Status::Research;
     }
     // Is stopped
     bool is_stopped() const noexcept {
-        return state.load(std::memory_order_acquire) == ThState::Stopped;
+        return state.load(std::memory_order_acquire) == Status::Stopped;
     }
 
     /* --- actions --- */
 
     // Request research
     void request_research() const noexcept {
-        auto expectedState = ThState::Active;
+        auto expectedState = Status::Active;
 
-        state.compare_exchange_strong(expectedState, ThState::Research, std::memory_order_release,
+        state.compare_exchange_strong(expectedState, Status::Research, std::memory_order_release,
                                       std::memory_order_relaxed);
     }
     // Request stop
     void request_stop() const noexcept {
         // Always go to stopped state, even if currently researching or active
-        state.store(ThState::Stopped, std::memory_order_release);
+        state.store(Status::Stopped, std::memory_order_release);
 
         notify_manager();
     }
@@ -353,7 +356,7 @@ class Threads final {
         // Only proceed if main-thread exists
         assert(mainThread != nullptr);
 
-        auto* manager = mainThread->worker->manager();
+        auto* const manager = mainThread->worker->manager();
         // Only proceed if main-manager exists
         assert(manager != nullptr);
 
@@ -410,27 +413,17 @@ class Threads final {
     }
 
    private:
-    // State transition diagram:
-    // Active -> Research
-    //   |          |
-    //   >---------->Stopped (terminal, no exit)
-    enum class ThState : u8 {
-        Active,
-        Research,
-        Stopped
-    };
-
     Threads(const Threads&) noexcept            = delete;
     Threads& operator=(const Threads&) noexcept = delete;
     Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(Threads&&) noexcept      = delete;
 
-    mutable std::atomic<ThState> state{ThState::Active};
-    mutable StateListPtr         setupStates;
+    mutable std::atomic<Status> state{Status::Active};
+    mutable State::ListPtr      setupStates;
     // Protects concurrent access to the threads vector for short snapshots.
     // Use shared lock for readers and lock guard for writers when mutating threads.
     mutable std::shared_mutex mutex;
-    std::vector<ThreadPtr>    threads;
+    std::vector<Thread::Ptr>  threads;
     std::vector<NumaIndex>    threadBoundNumaNodes;
 };
 
@@ -470,7 +463,7 @@ inline void Threads::reset() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
     // Initialize main-manager
-    if (auto manager = this->manager(); manager != nullptr)
+    if (auto* const manager = this->manager(); manager != nullptr)
         manager->reset();
 }
 

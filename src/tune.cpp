@@ -86,8 +86,7 @@ void Tune::make_option(Options* const         optionsPtr,
     if (const auto itr = TuneResults.find(name); itr != TuneResults.end())
         value = itr->second;
 
-    optionsPtr->add(name,
-                    OptionFactory::spin(value, range(value).first, range(value).second, on_tune));
+    optionsPtr->add(name, Option::spin(value, range(value).first, range(value).second, on_tune));
 
     LastOption = &(*optionsPtr)[name];
 

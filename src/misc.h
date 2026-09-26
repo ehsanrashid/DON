@@ -436,52 +436,6 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     return is_cdigit(ch) ? ch - '0' : 0;
 }
 
-namespace ConsoleColor {
-
-// Reset
-inline constexpr const char* RESET = "\033[0m";
-
-// Regular colors
-inline constexpr const char* BLACK   = "\033[30m";
-inline constexpr const char* RED     = "\033[31m";
-inline constexpr const char* GREEN   = "\033[32m";
-inline constexpr const char* YELLOW  = "\033[33m";
-inline constexpr const char* BLUE    = "\033[34m";
-inline constexpr const char* MAGENTA = "\033[35m";
-inline constexpr const char* CYAN    = "\033[36m";
-inline constexpr const char* WHITE   = "\033[37m";
-
-// Bright/intense colors
-inline constexpr const char* BRIGHT_BLACK   = "\033[90m";  // Dark gray
-inline constexpr const char* BRIGHT_RED     = "\033[91m";
-inline constexpr const char* BRIGHT_GREEN   = "\033[92m";
-inline constexpr const char* BRIGHT_YELLOW  = "\033[93m";
-inline constexpr const char* BRIGHT_BLUE    = "\033[94m";
-inline constexpr const char* BRIGHT_MAGENTA = "\033[95m";
-inline constexpr const char* BRIGHT_CYAN    = "\033[96m";
-inline constexpr const char* BRIGHT_WHITE   = "\033[97m";
-
-// Text styles
-inline constexpr const char* BOLD          = "\033[1m";
-inline constexpr const char* DIM           = "\033[2m";
-inline constexpr const char* ITALIC        = "\033[3m";
-inline constexpr const char* UNDERLINE     = "\033[4m";
-inline constexpr const char* BLINK         = "\033[5m";
-inline constexpr const char* REVERSE       = "\033[7m";
-inline constexpr const char* STRIKETHROUGH = "\033[9m";
-
-// Background colors
-inline constexpr const char* BG_BLACK   = "\033[40m";
-inline constexpr const char* BG_RED     = "\033[41m";
-inline constexpr const char* BG_GREEN   = "\033[42m";
-inline constexpr const char* BG_YELLOW  = "\033[43m";
-inline constexpr const char* BG_BLUE    = "\033[44m";
-inline constexpr const char* BG_MAGENTA = "\033[45m";
-inline constexpr const char* BG_CYAN    = "\033[46m";
-inline constexpr const char* BG_WHITE   = "\033[47m";
-
-}  // namespace ConsoleColor
-
 void set_console_utf8() noexcept;
 
 constexpr u32 to_month(const std::string_view mon) noexcept {
@@ -2249,23 +2203,6 @@ class Logger final {
     std::string     filename;
 };
 
-#if !defined(NDEBUG)
-// Debug functions used mainly to collect run-time statistics
-namespace Debug {
-
-void clear() noexcept;
-void hit_on(bool cond, usize slot = 0) noexcept;
-void min_of(i64 value, usize slot = 0) noexcept;
-void max_of(i64 value, usize slot = 0) noexcept;
-void extreme_of(i64 value, usize slot = 0) noexcept;
-void mean_of(i64 value, usize slot = 0) noexcept;
-void stdev_of(i64 value, usize slot = 0) noexcept;
-void correl_of(i64 value1, i64 value2, usize slot = 0) noexcept;
-
-void print() noexcept;
-}  // namespace Debug
-#endif
-
 #if defined(_WIN32)
 // Get the error message string, if any
 std::string error_to_string(DWORD errorId) noexcept;
@@ -2597,31 +2534,13 @@ struct UniqueFd final {
     return neg ? -val : val;
 }
 
-inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](const char ch) noexcept -> char { return lower_case(ch); });
-    return str;
-}
+std::string lower_case(std::string str) noexcept;
 
-inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](const char ch) noexcept -> char { return upper_case(ch); });
-    return str;
-}
+std::string upper_case(std::string str) noexcept;
 
-inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](const char ch) noexcept -> char {
-        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
-    });
-    return str;
-}
+std::string toggle_case(std::string str) noexcept;
 
-inline std::string remove_whitespace(std::string str) noexcept {
-    str.erase(std::remove_if(str.begin(), str.end(),
-                             [](const char ch) noexcept -> bool { return is_space(ch); }),
-              str.end());
-    return str;
-}
+std::string remove_whitespace(std::string str) noexcept;
 
 // Validate boolean string (case-insensitive)
 bool str_is_bool(std::string_view sv) noexcept;

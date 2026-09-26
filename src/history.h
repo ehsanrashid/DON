@@ -184,9 +184,7 @@ class AtomicHistories final {
         nonPawnCorrectionHistory(correction_history_size()),
         pawnHistory(pawn_history_size()),
         continuationHistory(make_unique_aligned_large_page<ContinuationHistory>()) {
-#if !defined(NDEBUG)
         assert(is_power_of_2(threadCount));
-#endif
     }
 
     constexpr usize correction_history_size() const noexcept { return correctionHistorySize; }

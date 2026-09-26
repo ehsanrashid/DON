@@ -443,7 +443,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(const MoveList<GenType::EVA_CAPTURE>& mo
     for (const Move m : moveList)
     {
         assert(pos.capture_promo(m));
-        assert(m.type() != MT::CASTLING);
+        assert(m.type() != Move::Type::CASTLING);
 
         const auto capturedPt = pos.captured_pt(m);
 
@@ -469,7 +469,7 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
     for (const Move m : moveList)
     {
         assert(!pos.capture_promo(m));
-        assert(m.type() != MT::CASTLING);
+        assert(m.type() != Move::Type::CASTLING);
 
         const Square dstSq   = m.dst_sq();
         const Piece  movedPc = pos.moved_pc(m);

@@ -50,6 +50,7 @@
 #include "../option.h"
 #include "../position.h"
 #include "../search.h"
+#include "../state.h"
 #include "../types.h"
 
 namespace DON::Tablebase::Syzygy {
@@ -2020,7 +2021,7 @@ void init(const std::string_view paths) noexcept {
 
     print_info_string(TBTables_.info());
 
-    DEBUG_LOG("max-distance: " << TBTables_.max_distance());
+    //DEBUG_LOG("max-distance: " << TBTables_.max_distance());
 }
 
 WDLScore probe_wdl(Position& pos, ProbeState* const ps) noexcept {

@@ -32,6 +32,7 @@
 #include "movegen.h"
 #include "notation.h"
 #include "option.h"
+#include "position.h"
 #include "types.h"
 #include "tablebase/syzygy.h"
 
@@ -44,7 +45,7 @@ namespace DON {
 Thread::Thread(ThreadContext                 threadCxt,
                const ThreadToNumaNodeBinder& nodeBinder,
                const SharedState&            sharedState,
-               ManagerPtr                    manager) noexcept :
+               Manager::Ptr                  manager) noexcept :
     context(std::move(threadCxt)) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
     //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());
@@ -486,13 +487,13 @@ template const Thread* Threads::best_thread<false>() const noexcept;
 template const Thread* Threads::best_thread<true>() const noexcept;
 
 void Threads::start(const Position& pos,
-                    StateListPtr    states,
+                    State::ListPtr  states,
                     const Limit&    limit,
                     const Options&  options) const noexcept {
 
     main_thread()->wait_finish();
 
-    state.store(ThState::Active, std::memory_order_relaxed);
+    state.store(Status::Active, std::memory_order_relaxed);
 
     Position p{pos};
 
