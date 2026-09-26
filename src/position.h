@@ -38,58 +38,6 @@
 
 namespace DON {
 
-// Zobrist - Hash key generator
-//
-// This provides access to precomputed Zobrist keys for all relevant
-// aspects of a chess position. It is used to efficiently compute a unique
-// hash for a given board state, which is essential for transposition tables,
-// move ordering, repetition detection, and other chess engine optimizations.
-//
-// Key features:
-//  - Provides keys for piece positions, castling rights, en passant squares,
-//    turn (side to move), and the 50-move rule counter (MR50).
-//  - All members and functions are static; no instances of this class can
-//    be created, copied, or moved.
-//  - Designed for fast access; all keys are stored in statically allocated arrays.
-//
-// Interface summary:
-//  - init() - Initializes all Zobrist keys; must be called before use.
-//  - piece_square(Color, PieceType, Square) / piece_square(Piece, Square)
-//      Returns the Zobrist key for a piece on a specific square.
-//  - castling(CastlingRights) - Returns the Zobrist key for a given castling right.
-//  - enpassant(Square) - Returns the Zobrist key for an en passant square.
-//  - turn() - Returns the Zobrist key for the side to move.
-//  - mr50(int) - Returns the Zobrist key for the 50-move rule counter.
-//
-// Notes:
-//  - All data is stored in 'inline-static' arrays for fast, constant-time access.
-//  - Ensure 'init()' is called before using any other function.
-//  - Accessors perform debug-time assertions to validate input values.
-//  - MR50 array handles the 50-move rule with offset and factor constants.
-//
-// Example usage:
-//   Zobrist::init();
-//   Key key = Zobrist::piece_square(Piece::WHITE_KNIGHT, Square::G1);
-//   key ^= Zobrist::turn();
-namespace Zobrist {
-
-void init() noexcept;
-
-Key piece_square(Color c, PieceType pt, Square s) noexcept;
-Key piece_square(Piece pc, Square s) noexcept;
-
-Key piece_count(Color c, const PieceType pt, const u8 cnt) noexcept;
-
-Key castling(CastlingRights cr) noexcept;
-
-Key enpassant(Square enPassantSq) noexcept;
-
-Key turn() noexcept;
-
-Key mr50(i16 rule50Count) noexcept;
-
-}  // namespace Zobrist
-
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move. (Size = 272)
 struct State final {
@@ -763,8 +711,6 @@ inline Bitboard Position::threats_bb() const noexcept {
 
 inline Key Position::raw_key() const noexcept { return st->key; }
 
-inline Key Position::key() const noexcept { return raw_key() ^ Zobrist::mr50(rule50_count()); }
-
 inline Key Position::pawn_key(const Color c) const noexcept { return st->pawnKeys[c]; }
 
 inline Key Position::pawn_key() const noexcept { return pawn_key(WHITE) ^ pawn_key(BLACK); }
@@ -776,10 +722,6 @@ inline Key Position::minor_key() const noexcept { return minor_key(WHITE) ^ mino
 inline Key Position::major_key(const Color c) const noexcept { return st->nonPawnKeys[c][1]; }
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
-
-inline Key Position::non_pawn_key(const Color c) const noexcept {
-    return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(c, KING, square<KING>(c));
-}
 
 inline Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);

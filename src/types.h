@@ -23,7 +23,6 @@
 #include <cassert>
 #include <functional>  // hash<>
 #include <limits>
-#include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
@@ -98,14 +97,16 @@ inline constexpr u16 RULE50_COUNT_MAX = std::numeric_limits<i16>::max();
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
 
-inline constexpr std::string_view            PIECE_UNI{".PNBRQK..pnbrqk."};
-inline constexpr Array<std::string_view, 16> PIECE_UTF8{
+inline constexpr std::string_view START_FEN{
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+
+inline constexpr std::string_view            PIECE_CHARS{".PNBRQK..pnbrqk."};
+inline constexpr Array<std::string_view, 16> PIECE_UTF8S{
   ".", "♙", "♘", "♗", "♖", "♕", "♔", ".",  //
   ".", "♟", "♞", "♝", "♜", "♛", "♚", "."   //
 };
 
-inline constexpr std::string_view START_FEN{
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+inline constexpr std::string_view CASTLING_CHARS{"KQkq"};
 
 // clang-format off
 enum File : u8 {
@@ -371,23 +372,9 @@ using PieceMap = Array<Piece, SQUARE_NB>;
     return c == WHITE ? Direction::NORTH_2 : Direction::SOUTH_2;
 }
 
-[[nodiscard]] constexpr char to_char(const PieceType pt) noexcept {  //
-    return is_ok(pt) ? PIECE_UNI[pt] : ' ';
-}
+[[nodiscard]] constexpr File char_to_file(const char f) noexcept { return File(f - 'a'); }
 
-[[nodiscard]] constexpr char to_char(const Piece pc) noexcept {  //
-    return is_ok(pc) ? PIECE_UNI[+pc] : ' ';
-}
-
-[[nodiscard]] constexpr Piece to_piece(const char pc) noexcept {
-    usize pos = PIECE_UNI.find(pc);
-
-    return pos != std::string_view::npos ? Piece(pos) : Piece::NO_PIECE;
-}
-
-[[nodiscard]] constexpr std::string_view to_figure(const Piece pc) noexcept {  //
-    return is_ok(pc) ? PIECE_UTF8[+pc] : " ";
-}
+[[nodiscard]] constexpr Rank char_to_rank(const char r) noexcept { return Rank(r - '1'); }
 
 template<bool Upper = false>
 [[nodiscard]] constexpr char to_char(const File f) noexcept {
@@ -395,10 +382,6 @@ template<bool Upper = false>
 }
 
 [[nodiscard]] constexpr char to_char(const Rank r) noexcept { return '1' + r; }
-
-[[nodiscard]] constexpr File to_file(const char f) noexcept { return File(f - 'a'); }
-
-[[nodiscard]] constexpr Rank to_rank(const char r) noexcept { return Rank(r - '1'); }
 
 // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
 [[nodiscard]] constexpr char flip_file(const char f) noexcept {
@@ -410,23 +393,41 @@ template<bool Upper = false>
 }
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
-alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARES = []() constexpr noexcept {
-    Array<char, SQUARE_NB, 3> squares{};
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_STRS = []() constexpr noexcept {
+    Array<char, SQUARE_NB, 3> squareStrs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        squares[s] = {to_char(file_of(s)), to_char(rank_of(s)), '\0'};
+        squareStrs[s] = {to_char(file_of(s)), to_char(rank_of(s)), '\0'};
 
-    return squares;
+    return squareStrs;
 }();
 
-[[nodiscard]] constexpr std::string_view to_square(const Square s) noexcept {
+[[nodiscard]] constexpr std::string_view to_string(const Square s) noexcept {
     assert(is_ok(s));
 
-    return {SQUARES[s].data(), SQUARES[s].size() - 1};
+    return {SQUARE_STRS[s].data(), SQUARE_STRS[s].size() - 1};
 }
 
-static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
-              "to_square(): broken, expected 'a1' & 'h8'");
+static_assert(to_string(SQ_A1) == "a1" && to_string(SQ_H8) == "h8",
+              "to_string(): broken, expected 'a1' & 'h8'");
+
+[[nodiscard]] constexpr char to_char(const PieceType pt) noexcept {
+    return is_ok(pt) ? PIECE_CHARS[pt] : ' ';
+}
+
+[[nodiscard]] constexpr Piece char_to_pc(const char pc) noexcept {
+    usize pos = PIECE_CHARS.find(pc);
+
+    return pos != std::string_view::npos ? Piece(pos) : Piece::NO_PIECE;
+}
+
+[[nodiscard]] constexpr char to_char(const Piece pc) noexcept {
+    return is_ok(pc) ? PIECE_CHARS[+pc] : ' ';
+}
+
+[[nodiscard]] constexpr std::string_view to_utf8(const Piece pc) noexcept {
+    return is_ok(pc) ? PIECE_UTF8S[+pc] : " ";
+}
 
 // Value is used as an alias for i16.
 // This is done to differentiate between a search value and any other integer value.
@@ -636,6 +637,15 @@ constexpr CastlingRights make_cr(const Color c, const CastlingSide cs) noexcept 
     return CastlingRights(+cr << (c << 1));
 }
 
+// Standard castling
+[[nodiscard]] constexpr char to_char(const Color c, const CastlingSide cs) noexcept {
+    return CASTLING_CHARS[u8(c << 1) + +cs];
+}
+// Chess960 castling
+[[nodiscard]] constexpr char to_char(const Color c, const Square s) noexcept {
+    return c == WHITE ? to_char<true>(file_of(s)) : to_char<false>(file_of(s));
+}
+
 // Move representation (16 bits).
 //
 // Each move is compactly encoded in a 16-bit unsigned integer.
@@ -678,7 +688,7 @@ class Move {
     static constexpr u16 TypeMask  = ((1u << 2) - 1) << TypeShift;
 
     Move() noexcept = default;
-    constexpr explicit Move(const u16 d) noexcept :
+    explicit constexpr Move(const u16 d) noexcept :
         data(d) {}
     constexpr Move(const Square orgSq, const Square dstSq, const Type mt = Type::NORMAL) noexcept :
         data((u16(mt) << TypeShift)        //
@@ -720,6 +730,12 @@ class Move {
         return type() == Type::PROMOTION  //
                ? piece_value(promotion_type()) - VALUE_PAWN
                : VALUE_ZERO;
+    }
+
+    [[nodiscard]] constexpr char promotion_char() const noexcept {
+        assert(type() == Type::PROMOTION);
+
+        return to_char(promotion_type());
     }
 
     [[nodiscard]] constexpr u16 raw() const noexcept { return data; }
@@ -780,7 +796,7 @@ struct DirtyThreats final {
         static constexpr u16 AddMask = (1u << 1) - 1;
 
         Threat() noexcept = default;
-        constexpr explicit Threat(const u32 d) noexcept :
+        explicit constexpr Threat(const u32 d) noexcept :
             data(d) {}
         constexpr Threat(const bool   add,
                          const Piece  threatenedPc,
