@@ -22,6 +22,7 @@
 #include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
 #include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
+#include <memory>        // allocator()
 #include <system_error>  // errc
 
 #if defined(_WIN32)

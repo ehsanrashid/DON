@@ -18,13 +18,19 @@
 #ifndef CONCURRENT_H_INCLUDED
 #define CONCURRENT_H_INCLUDED
 
-#include <cassert>
-#include <cstdlib>  // atexit()
-#include <list>
-#include <mutex>
-#include <shared_mutex>
-#include <unordered_map>
-#include <unordered_set>
+#include <cassert>        // assert()
+#include <cstdlib>        // atexit()
+#include <functional>     // hash<>
+#include <iostream>       // basic_ostream<>
+#include <list>           // list<>
+#include <memory>         // make_unique<>, unique_ptr<>
+#include <mutex>          // lock_guard<>
+#include <optional>       // optional<>, nullopt
+#include <shared_mutex>   // shared_lock<>, shared_mutex<>
+#include <type_traits>    // conditional_t<>
+#include <unordered_map>  // unordered_map<>
+#include <unordered_set>  // unordered_set<>
+#include <utility>        // forward, std::pair
 
 #include "misc.h"
 
