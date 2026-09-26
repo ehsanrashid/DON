@@ -18,12 +18,7 @@
 #ifndef ZOBRIST_H_INCLUDED
 #define ZOBRIST_H_INCLUDED
 
-#include <algorithm>  // min()/max(), generate()
-#include <cassert>
-#include <cstring>
-
 #include "misc.h"
-#include "prng.h"
 #include "types.h"
 
 namespace DON {
@@ -67,75 +62,34 @@ class Zobrist final {
    public:
     Zobrist() noexcept = default;
 
-    void init(u64 seed) noexcept {
-        Xoshiro256ss prng(seed);
+    void init(u64 seed) noexcept;
 
-        const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
+    [[nodiscard]] Key piece_square(Color c, PieceType pt, Square s) const noexcept;
 
-        for (const Color c : {WHITE, BLACK})
-        {
-            for (const auto pt : PIECE_TYPES)
-                std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
+    [[nodiscard]] Key piece_square(Piece pc, Square s) const noexcept;
 
-            std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));
-            std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PAWN_OFFSET * sizeof(Key));
-        }
+    [[nodiscard]] Key piece_count(Color c, PieceType pt, u8 cnt) const noexcept;
 
-        std::generate(Castling.begin(), Castling.end(), prng_rand);
+    [[nodiscard]] Key castling(CastlingRights cr) const noexcept;
 
-        std::generate(Enpassant.begin(), Enpassant.end(), prng_rand);
+    [[nodiscard]] Key enpassant(Square enPassantSq) const noexcept;
 
-        Turn = prng_rand();
+    [[nodiscard]] Key turn() const noexcept;
 
-        std::generate(MR50.begin(), MR50.end(), prng_rand);
-    }
-
-    [[nodiscard]] constexpr Key
-    piece_square(const Color c, const PieceType pt, const Square s) const noexcept {
-        assert(is_ok(c) && is_ok(s));
-
-        return PieceSquare[c][pt][s];
-    }
-    [[nodiscard]] constexpr Key  //
-    piece_square(const Piece pc, const Square s) const noexcept {
-        assert(is_ok(s));
-
-        return piece_square(color_of(pc), type_of(pc), s);
-    }
-
-    [[nodiscard]] constexpr Key
-    piece_count(const Color c, const PieceType pt, const u8 cnt) noexcept {
-        const Square s = Square(PAWN_OFFSET + cnt);
-        assert(is_ok(s));
-
-        return piece_square(c, pt, s);
-    }
-
-    [[nodiscard]] constexpr Key castling(const CastlingRights cr) noexcept {
-        assert(+cr < Castling.size());
-
-        return Castling[+cr];
-    }
-
-    [[nodiscard]] constexpr Key enpassant(const Square enPassantSq) noexcept {
-        return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
-    }
-
-    [[nodiscard]] constexpr Key turn() const noexcept { return Turn; }
-
-    [[nodiscard]] constexpr Key mr50(const i16 rule50Count) noexcept {
-        return rule50Count < R50_OFFSET
-               ? 0
-               : MR50[std::min(usize((rule50Count - R50_OFFSET) / R50_FACTOR), MR50.size() - 1)];
-    }
+    [[nodiscard]] Key mr50(i16 rule50Count) const noexcept;
 
    private:
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
+
     static constexpr u8 PAWN_OFFSET = u8{8};
 
     static constexpr u8 R50_OFFSET = u8{14};
     static constexpr u8 R50_FACTOR = u8{8};
 
-    Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
+    Array<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
     Array<Key, CASTLING_RIGHTS_NB>                      Castling;
     Array<Key, FILE_NB>                                 Enpassant;
     Key                                                 Turn;

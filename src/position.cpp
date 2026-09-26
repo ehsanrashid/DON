@@ -17,7 +17,7 @@
 
 #include "position.h"
 
-#include <algorithm>  // min/max, generate
+#include <algorithm>  // min()/max(), reverse(), count()
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>
@@ -25,7 +25,6 @@
 
 #include "history.h"
 #include "movegen.h"
-#include "prng.h"
 #include "search.h"
 #include "tablebase/syzygy.h"
 #include "tt.h"

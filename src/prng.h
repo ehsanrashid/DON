@@ -50,28 +50,14 @@ constexpr u64 rotr(const u64 x, const u8 k) noexcept {
 // (including the Java 8 SplittableRandom and the standard initialization routines by Vigna)
 class SplitMix64 final {
    public:
-    explicit constexpr SplitMix64(u64 seed) noexcept :
-        state(seed) {}
+    explicit SplitMix64(u64 seed) noexcept;
 
-    constexpr u64 next() noexcept {
-        update();
-
-        return mix();
-    }
+    u64 next() noexcept;
 
    private:
-    constexpr void update() noexcept {
-        state += u64{0x9E3779B97F4A7C15};  // Derived from the Golden Ratio
-    }
+    void update() noexcept;
 
-    constexpr u64 mix() const noexcept {
-        u64 tmp = state;
-        tmp     = (tmp ^ (tmp >> 30)) * u64{0xBF58476D1CE4E5B9};
-        tmp     = (tmp ^ (tmp >> 27)) * u64{0x94D049BB133111EB};
-        tmp     = (tmp ^ (tmp >> 31));
-
-        return tmp;
-    }
+    u64 mix() const noexcept;
 
     u64 state;
 };
@@ -98,104 +84,42 @@ class SplitMix64 final {
 // See:
 //   <https://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class Xorshift64s final {
-   private:
-    static constexpr usize StateSize = 1;
-
-    using State = Array<u64, StateSize>;
-
    public:
-    explicit /*constexpr*/ Xorshift64s(u64 seed) noexcept {
-        SplitMix64 seeder(seed);
-
-        // Initialize the state with a mixed SplitMix64 output.
-        std::generate(state.begin(), state.end(),
-                      [&seeder]() noexcept -> u64 { return seeder.next(); });
-
-        // The all-zero state is not valid for xorshift64*.
-        // If SplitMix64 produces zero for state,
-        // fall back to a non-zero state.
-        if (UNLIKELY(
-              std::all_of(state.begin(), state.end(), [](const u64 s) noexcept { return s == 0; })))
-            state = DefaultState;
-    }
+    explicit Xorshift64s(u64 seed) noexcept;
 
     template<typename T>
-    constexpr T rand() noexcept {
+    T rand() noexcept {
         return T(rand64());
     }
 
     // Sparse random (1/8 bits set on average).
     template<typename T>
-    constexpr T sparse_rand() noexcept {
+    T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
 
     // Jump ahead by 2^32 steps.
     //
     // This can be used to create independent streams for parallel computations.
-    constexpr void jump() noexcept {
-        constexpr State Jump = {u64{0xDD97D02513476FA5}};
-
-        State tmpState = {0};
-
-        for (const u64 jump : Jump)
-        {
-            for (u8 b = 0; b < 64; ++b)
-            {
-                if ((jump & bit(b)) != 0)
-                {
-                    tmpState[0] ^= state[0];
-                }
-
-                // Advance the state through the underlying linear recurrence.
-                update();
-            }
-        }
-
-        state = tmpState;
-    }
+    void jump() noexcept;
 
     // Jump ahead by 2^48 steps.
     //
     // This can be used to create distant independent streams for parallel computations.
-    constexpr void long_jump() noexcept {
-        constexpr State LongJump = {u64{0xAE82CA9F848EBC6D}};
-
-        State tmpState = {0};
-
-        for (const u64 longJump : LongJump)
-        {
-            for (u8 b = 0; b < 64; ++b)
-            {
-                if ((longJump & bit(b)) != 0)
-                {
-                    tmpState[0] ^= state[0];
-                }
-
-                // Advance the state through the underlying linear recurrence.
-                update();
-            }
-        }
-
-        state = tmpState;
-    }
+    void long_jump() noexcept;
 
    private:
     // Advance the xorshift64* state using the (12, 25, 27) shift parameters.
-    constexpr void update() noexcept {
-        state[0] ^= state[0] >> 12;
-        state[0] ^= state[0] << 25;
-        state[0] ^= state[0] >> 27;
-    }
+    void update() noexcept;
 
     // Apply the xorshift64* output scrambler.
-    constexpr u64 mix() const noexcept { return u64{0x2545F4914F6CDD1D} * state[0]; }
+    u64 mix() const noexcept;
 
-    constexpr u64 rand64() noexcept {
-        update();
+    u64 rand64() noexcept;
 
-        return mix();
-    }
+    static constexpr usize StateSize = 1;
+
+    using State = Array<u64, StateSize>;
 
     static constexpr State DefaultState = {1};
 
@@ -226,110 +150,42 @@ class Xorshift64s final {
 // Reference implementation:
 //   <https://prng.di.unimi.it/xoroshiro128starstar.c>
 class Xoroshiro128ss final {
-   private:
-    static constexpr usize StateSize = 2;
-
-    using State = Array<u64, StateSize>;
-
    public:
-    explicit /*constexpr*/ Xoroshiro128ss(u64 seed) noexcept {
-        SplitMix64 seeder(seed);
-
-        // Initialize the state with two SplitMix64 outputs.
-        std::generate(state.begin(), state.end(),
-                      [&seeder]() noexcept -> u64 { return seeder.next(); });
-
-        // The all-zero state is not valid for xoroshiro128**.
-        // If SplitMix64 produces zero for both state words,
-        // fall back to a non-zero state.
-        if (UNLIKELY(
-              std::all_of(state.begin(), state.end(), [](const u64 s) noexcept { return s == 0; })))
-            state = DefaultState;
-    }
+    explicit Xoroshiro128ss(u64 seed) noexcept;
 
     template<typename T>
-    constexpr T rand() noexcept {
+    T rand() noexcept {
         return T(rand64());
     }
 
     // Sparse random (1/8 bits set on average).
     template<typename T>
-    constexpr T sparse_rand() noexcept {
+    T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
 
     // Jump ahead by 2^64 steps.
     //
     // This can be used to create independent streams for parallel computations.
-    constexpr void jump() noexcept {
-        constexpr State Jump = {u64{0xDF900294D8F554A5}, u64{0x170865DF4B3201FC}};
-
-        State tmpState = {0, 0};
-
-        for (const u64 jump : Jump)
-        {
-            for (u8 b = 0; b < 64; ++b)
-            {
-                if ((jump & bit(b)) != 0)
-                {
-                    tmpState[0] ^= state[0];
-                    tmpState[1] ^= state[1];
-                }
-
-                // Advance the state through the underlying linear recurrence.
-                update();
-            }
-        }
-
-        state = tmpState;
-    }
+    void jump() noexcept;
 
     // Jump ahead by 2^96 steps.
     //
     // This can be used to create distant independent streams for parallel computations.
-    constexpr void long_jump() noexcept {
-        constexpr State LongJump = {u64{0xD2A98B26625EEE7B}, u64{0xDDDF9B1090AA7AC1}};
-
-        State tmpState = {0, 0};
-
-        for (const u64 longJump : LongJump)
-        {
-            for (u8 b = 0; b < 64; ++b)
-            {
-                if ((longJump & bit(b)) != 0)
-                {
-                    tmpState[0] ^= state[0];
-                    tmpState[1] ^= state[1];
-                }
-
-                // Advance the state through the underlying linear recurrence.
-                update();
-            }
-        }
-
-        state = tmpState;
-    }
+    void long_jump() noexcept;
 
    private:
     // Advance the xoroshiro128** state using its linear recurrence.
-    constexpr void update() noexcept {
-        state[1] ^= state[0];
-
-        state[0] = rotl(state[0], 24) ^ state[1] ^ (state[1] << 16);
-        state[1] = rotl(state[1], 37);
-    }
+    void update() noexcept;
 
     // Apply the xoroshiro128** output scrambler.
-    constexpr u64 mix() const noexcept { return rotl(state[0] * 5, 7) * 9; }
+    u64 mix() const noexcept;
 
-    constexpr u64 rand64() noexcept {
-        // Generate the output before advancing the state.
-        const u64 rand = mix();
+    u64 rand64() noexcept;
 
-        update();
+    static constexpr usize StateSize = 2;
 
-        return rand;
-    }
+    using State = Array<u64, StateSize>;
 
     static constexpr State DefaultState = {1, 0};
 
@@ -360,122 +216,42 @@ class Xoroshiro128ss final {
 // Reference implementation:
 //   <https://prng.di.unimi.it/xoshiro256starstar.c>
 class Xoshiro256ss final {
-   private:
-    static constexpr usize StateSize = 4;
-
-    using State = Array<u64, StateSize>;
-
    public:
-    explicit /*constexpr*/ Xoshiro256ss(u64 seed) noexcept {
-        SplitMix64 seeder(seed);
-
-        // Initialize the state with four SplitMix64 outputs.
-        std::generate(state.begin(), state.end(),
-                      [&seeder]() noexcept -> u64 { return seeder.next(); });
-
-        // The all-zero state is not valid for xoshiro256**.
-        // If SplitMix64 produces zero for all state words,
-        // fall back to a non-zero state.
-        if (UNLIKELY(
-              std::all_of(state.begin(), state.end(), [](const u64 s) noexcept { return s == 0; })))
-            state = DefaultState;
-    }
+    explicit Xoshiro256ss(u64 seed) noexcept;
 
     template<typename T>
-    constexpr T rand() noexcept {
+    T rand() noexcept {
         return T(rand64());
     }
 
     // Sparse random (1/8 bits set on average).
     template<typename T>
-    constexpr T sparse_rand() noexcept {
+    T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
 
     // Jump ahead by 2^128 steps.
     //
     // This can be used to create independent streams for parallel computations.
-    constexpr void jump() noexcept {
-        constexpr State Jump = {u64{0x180EC6D33CFD0ABA}, u64{0xD5A61266F0C9392C},
-                                u64{0xA9582618E03FC9AA}, u64{0x39ABDC4529B1661C}};
-
-        State tmpState = {0, 0, 0, 0};
-
-        for (const u64 jump : Jump)
-        {
-            for (u8 b = 0; b < 64; ++b)
-            {
-                if ((jump & bit(b)) != 0)
-                {
-                    tmpState[0] ^= state[0];
-                    tmpState[1] ^= state[1];
-                    tmpState[2] ^= state[2];
-                    tmpState[3] ^= state[3];
-                }
-
-                // Advance the state through the underlying linear recurrence.
-                update();
-            }
-        }
-
-        state = tmpState;
-    }
+    void jump() noexcept;
 
     // Long-jump ahead by 2^192 steps.
     //
     // This can be used to create distant independent streams for parallel computations.
-    constexpr void long_jump() noexcept {
-        constexpr State LongJump = {u64{0x76E15D3EFEFDCBBF}, u64{0xC5004E441C522FB3},
-                                    u64{0x77710069854EE241}, u64{0x39109BB02ACBE635}};
-
-        State tmpState = {0, 0, 0, 0};
-
-        for (const u64 longJump : LongJump)
-        {
-            for (u8 b = 0; b < 64; ++b)
-            {
-                if ((longJump & bit(b)) != 0)
-                {
-                    tmpState[0] ^= state[0];
-                    tmpState[1] ^= state[1];
-                    tmpState[2] ^= state[2];
-                    tmpState[3] ^= state[3];
-                }
-
-                // Advance the state through the underlying linear recurrence.
-                update();
-            }
-        }
-
-        state = tmpState;
-    }
+    void long_jump() noexcept;
 
    private:
     // Advance the xoshiro256** state using its linear recurrence.
-    constexpr void update() noexcept {
-        const u64 tmp = state[1] << 17;
-
-        state[2] ^= state[0];
-        state[3] ^= state[1];
-        state[1] ^= state[2];
-        state[0] ^= state[3];
-
-        state[2] ^= tmp;
-
-        state[3] = rotl(state[3], 45);
-    }
+    void update() noexcept;
 
     // Apply the xoshiro256** output scrambler.
-    constexpr u64 mix() const noexcept { return rotl(state[1] * 5, 7) * 9; }
+    u64 mix() const noexcept;
 
-    constexpr u64 rand64() noexcept {
-        // Generate the output before advancing the state.
-        const u64 rand = mix();
+    u64 rand64() noexcept;
 
-        update();
+    static constexpr usize StateSize = 4;
 
-        return rand;
-    }
+    using State = Array<u64, StateSize>;
 
     static constexpr State DefaultState = {1, 0, 0, 0};
 
