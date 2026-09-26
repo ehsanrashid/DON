@@ -1312,7 +1312,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     insert({keyTable->key[BLACK], wdlTable, dtzTable});
 }
 
-TBTables tbTables;
+TBTables TBTables_;
 
 // TB-tables are compressed with canonical Huffman code. The compressed data is divided into
 // blocks of size d->blockSize, and each block stores a variable number of symbols.
@@ -1767,7 +1767,7 @@ Ret probe_table(const Position&   pos,
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    TBTable<T>* table = tbTables.get<T>(materialKey);
+    TBTable<T>* table = TBTables_.get<T>(materialKey);
 
     if (table == nullptr || table->init(pos) == nullptr)
     {
@@ -1972,7 +1972,7 @@ void init(const std::string_view paths) noexcept {
 
     MaxCardinality = 0;
 
-    tbTables.clear();
+    TBTables_.clear();
 
     if (!TBPaths::init(paths))
         return;
@@ -1980,49 +1980,49 @@ void init(const std::string_view paths) noexcept {
     // Add entries in TB-tables if the corresponding WDL file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
     {
-        tbTables.add({KING, p1, KING});
+        TBTables_.add({KING, p1, KING});
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2)
         {
-            tbTables.add({KING, p1, p2, KING});
-            tbTables.add({KING, p1, KING, p2});
+            TBTables_.add({KING, p1, p2, KING});
+            TBTables_.add({KING, p1, KING, p2});
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                tbTables.add({KING, p1, p2, KING, p3});
+                TBTables_.add({KING, p1, p2, KING, p3});
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3)
             {
-                tbTables.add({KING, p1, p2, p3, KING});
+                TBTables_.add({KING, p1, p2, p3, KING});
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
                 {
-                    tbTables.add({KING, p1, p2, p3, p4, KING});
+                    TBTables_.add({KING, p1, p2, p3, p4, KING});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        tbTables.add({KING, p1, p2, p3, p4, p5, KING});
+                        TBTables_.add({KING, p1, p2, p3, p4, p5, KING});
 
                     for (PieceType p5 = PAWN; p5 < KING; ++p5)
-                        tbTables.add({KING, p1, p2, p3, p4, KING, p5});
+                        TBTables_.add({KING, p1, p2, p3, p4, KING, p5});
                 }
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
                 {
-                    tbTables.add({KING, p1, p2, p3, KING, p4});
+                    TBTables_.add({KING, p1, p2, p3, KING, p4});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        tbTables.add({KING, p1, p2, p3, KING, p4, p5});
+                        TBTables_.add({KING, p1, p2, p3, KING, p4, p5});
                 }
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    tbTables.add({KING, p1, p2, KING, p3, p4});
+                    TBTables_.add({KING, p1, p2, KING, p3, p4});
         }
     }
 
-    print_info_string(tbTables.info());
+    print_info_string(TBTables_.info());
 
-    DEBUG_LOG("max-distance: " << tbTables.max_distance());
+    DEBUG_LOG("max-distance: " << TBTables_.max_distance());
 }
 
 WDLScore probe_wdl(Position& pos, ProbeState* const ps) noexcept {

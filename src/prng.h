@@ -23,13 +23,13 @@
 namespace DON {
 
 constexpr u64 rotl(const u64 x, const u8 k) noexcept {
-    const u8 shift = k & 63;
-    return (x << shift) | (x >> ((64 - shift) & 63));
+    const u8 kk = k & 63;
+    return (x << kk) | (x >> ((64 - kk) & 63));
 }
 
 constexpr u64 rotr(const u64 x, const u8 k) noexcept {
-    const u8 shift = k & 63;
-    return (x >> shift) | (x << ((64 - shift) & 63));
+    const u8 kk = k & 63;
+    return (x >> kk) | (x << ((64 - kk) & 63));
 }
 
 // SplitMix64 Pseudo-Random Number Generator

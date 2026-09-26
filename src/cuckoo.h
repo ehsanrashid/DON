@@ -49,11 +49,11 @@ inline bool Cuckoo::empty() const noexcept { return key == 0; }
 // Cuckoo Table: fixed-size hash table with two hash functions and cuckoo eviction,
 // contains Zobrist hashes of valid reversible moves, and the moves themselves
 template<usize Size>
-class CuckooTable final {
+class Cuckoos final {
     static_assert(is_power_of_2(Size), "Size has to be power of 2");
 
    public:
-    CuckooTable() noexcept = default;
+    Cuckoos() noexcept = default;
 
     [[nodiscard]] auto begin() noexcept { return cuckoos.begin(); }
     [[nodiscard]] auto end() noexcept { return cuckoos.end(); }
@@ -131,10 +131,10 @@ class CuckooTable final {
     }
 
    private:
-    CuckooTable(const CuckooTable&) noexcept            = delete;
-    CuckooTable& operator=(const CuckooTable&) noexcept = delete;
-    CuckooTable(CuckooTable&&) noexcept                 = delete;
-    CuckooTable& operator=(CuckooTable&&) noexcept      = delete;
+    Cuckoos(const Cuckoos&) noexcept            = delete;
+    Cuckoos& operator=(const Cuckoos&) noexcept = delete;
+    Cuckoos(Cuckoos&&) noexcept                 = delete;
+    Cuckoos& operator=(Cuckoos&&) noexcept      = delete;
 
     Array<Cuckoo, Size> cuckoos;
     usize               count;
