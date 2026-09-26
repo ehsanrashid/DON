@@ -46,15 +46,15 @@ void Option::on_change() noexcept {
     if (!onChange)
         return;
 
-    const auto info = onChange(*this);
+    const auto changeInfo = onChange(*this);
 
-    if (!info)
+    if (!changeInfo)
         return;
 
     if (optionsPtr == nullptr)
         return;
 
-    optionsPtr->on_info(info);
+    optionsPtr->on_info(changeInfo);
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
@@ -65,6 +65,19 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
+namespace {
+
+class ButtonOption final: public Option {
+   public:
+    explicit ButtonOption(OnChange&& onCng = {}) noexcept;
+
+    std::string_view type() const noexcept override;
+
+    void print(std::ostream& os) const noexcept override;
+
+    void operator=(std::string_view value) noexcept override;
+};
+
 ButtonOption::ButtonOption(OnChange&& onCng) noexcept :
     Option{"", std::move(onCng)} {}
 
@@ -73,6 +86,22 @@ std::string_view ButtonOption::type() const noexcept { return "button"; }
 void ButtonOption::print(std::ostream&) const noexcept {}
 
 void ButtonOption::operator=(const std::string_view) noexcept { on_change(); }
+
+class CheckOption final: public Option {
+   public:
+    explicit CheckOption(bool value, OnChange&& onCng = {}) noexcept;
+
+    std::string_view type() const noexcept override;
+
+    void print(std::ostream& os) const noexcept override;
+
+    operator int() const noexcept override;
+
+    void operator=(std::string_view value) noexcept override;
+
+   private:
+    static std::string normalize(std::string str) noexcept;
+};
 
 CheckOption::CheckOption(const bool b, OnChange&& onCng) noexcept :
     Option{bool_to_str(b), std::move(onCng)} {}
@@ -95,6 +124,22 @@ void CheckOption::operator=(const std::string_view value) noexcept {
 }
 
 std::string CheckOption::normalize(std::string str) noexcept { return lower_case(std::move(str)); }
+
+class StringOption final: public Option {
+   public:
+    explicit StringOption(std::string_view str, OnChange&& onCng = {}) noexcept;
+
+    std::string_view type() const noexcept override;
+
+    void print(std::ostream& os) const noexcept override;
+
+    operator std::string_view() const noexcept override;
+
+    void operator=(std::string_view value) noexcept override;
+
+   private:
+    static std::string normalize(std::string str) noexcept;
+};
 
 StringOption::StringOption(const std::string_view str, OnChange&& onCng) noexcept :
     Option{normalize(std::string{str}), std::move(onCng)} {}
@@ -120,6 +165,23 @@ std::string StringOption::normalize(std::string str) noexcept {
     return str;
 }
 
+class SpinOption final: public Option {
+   public:
+    SpinOption(int v, int minV, int maxV, OnChange&& onCng = {}) noexcept;
+
+    std::string_view type() const noexcept override;
+
+    void print(std::ostream& os) const noexcept override;
+
+    operator int() const noexcept override;
+
+    void operator=(std::string_view value) noexcept override;
+
+   private:
+    const int minValue;
+    const int maxValue;
+};
+
 SpinOption::SpinOption(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept :
     Option{std::to_string(v), std::move(onCng)},
     minValue(minV),
@@ -141,6 +203,24 @@ void SpinOption::operator=(const std::string_view value) noexcept {
 
     on_change();
 }
+
+class ComboOption final: public Option {
+   public:
+    ComboOption(std::string_view str, StringViews&& vrs, OnChange&& onCng = {}) noexcept;
+
+    std::string_view type() const noexcept override;
+
+    void print(std::ostream& os) const noexcept override;
+
+    operator std::string_view() const noexcept override;
+
+    void operator=(std::string_view value) noexcept override;
+
+   private:
+    bool contains(std::string_view value) const noexcept;
+
+    const StringViews vars;
+};
 
 ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
     Option{str, std::move(onCng)},
@@ -174,29 +254,27 @@ bool ComboOption::contains(const std::string_view value) const noexcept {
         != vars.end();
 }
 
-namespace OptionFactory {
+}  // namespace
 
-Option::Ptr button(Option::OnChange onCng) noexcept {
+Option::Ptr Option::button(OnChange onCng) noexcept {
     return std::make_unique<ButtonOption>(std::move(onCng));
 }
 
-Option::Ptr check(const bool b, Option::OnChange onCng) noexcept {
+Option::Ptr Option::check(const bool b, OnChange onCng) noexcept {
     return std::make_unique<CheckOption>(b, std::move(onCng));
 }
 
-Option::Ptr string(const std::string_view str, Option::OnChange onCng) noexcept {
+Option::Ptr Option::string(const std::string_view str, OnChange onCng) noexcept {
     return std::make_unique<StringOption>(str, std::move(onCng));
 }
 
-Option::Ptr spin(const int v, const int minV, const int maxV, Option::OnChange onCng) noexcept {
+Option::Ptr Option::spin(const int v, const int minV, const int maxV, OnChange onCng) noexcept {
     return std::make_unique<SpinOption>(v, minV, maxV, std::move(onCng));
 }
 
-Option::Ptr combo(const std::string_view str, StringViews vars, Option::OnChange onCng) noexcept {
+Option::Ptr Option::combo(const std::string_view str, StringViews vars, OnChange onCng) noexcept {
     return std::make_unique<ComboOption>(str, std::move(vars), std::move(onCng));
 }
-
-}  // namespace OptionFactory
 
 auto Options::begin() noexcept { return list.begin(); }
 
@@ -307,11 +385,11 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
 
 void Options::set_on_info(OnInfo&& onInf) noexcept { onInfo = std::move(onInf); }
 
-void Options::on_info(const Info info) const noexcept {
+void Options::on_info(ChangeInfo changeInfo) const noexcept {
     if (!onInfo)
         return;
 
-    onInfo(info);
+    onInfo(changeInfo);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
