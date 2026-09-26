@@ -18,8 +18,12 @@
 #ifndef STATE_H_INCLUDED
 #define STATE_H_INCLUDED
 
+#include <cassert>
+#include <cstring>  // memcpy()/memset()
 #include <deque>
-#include <memory>
+#include <iostream>
+#include <memory>       // unique_ptr<>
+#include <type_traits>  // is_standard_layout_v<>
 
 #include "misc.h"
 #include "types.h"

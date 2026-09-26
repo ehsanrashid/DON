@@ -17,6 +17,9 @@
 
 #include "state.h"
 
+#include <array>
+#include <initializer_list>
+
 #include "bitboard.h"
 
 namespace DON {

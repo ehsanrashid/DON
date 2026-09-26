@@ -39,6 +39,7 @@
 #include "notation.h"
 #include "numa.h"
 #include "position.h"
+#include "state.h"
 #include "thread_context.h"
 #include "timeman.h"
 #include "types.h"

@@ -32,6 +32,7 @@
 #include "movegen.h"
 #include "notation.h"
 #include "position.h"
+#include "state.h"
 #include "thread.h"
 
 namespace DON::Perft {
