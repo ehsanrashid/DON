@@ -18,7 +18,12 @@
 #ifndef CUCKOO_H_INCLUDED
 #define CUCKOO_H_INCLUDED
 
+#include <cassert>
+#include <cstring>  // memset()
+#include <initializer_list>
+
 #include "attacks.h"
+#include "bitboard.h"
 #include "misc.h"
 #include "types.h"
 #include "zobrist.h"
@@ -48,28 +53,22 @@ class CuckooTable final {
     static_assert(is_power_of_2(Size), "Size has to be power of 2");
 
    public:
-    constexpr CuckooTable() noexcept                    = default;
-    CuckooTable(const CuckooTable&) noexcept            = delete;
-    CuckooTable& operator=(const CuckooTable&) noexcept = delete;
-    CuckooTable(CuckooTable&&) noexcept                 = delete;
-    CuckooTable& operator=(CuckooTable&&) noexcept      = delete;
+    CuckooTable() noexcept = default;
 
-    [[nodiscard]] constexpr auto begin() noexcept { return cuckoos.begin(); }
-    [[nodiscard]] constexpr auto end() noexcept { return cuckoos.end(); }
-    [[nodiscard]] constexpr auto begin() const noexcept { return cuckoos.begin(); }
-    [[nodiscard]] constexpr auto end() const noexcept { return cuckoos.end(); }
+    [[nodiscard]] auto begin() noexcept { return cuckoos.begin(); }
+    [[nodiscard]] auto end() noexcept { return cuckoos.end(); }
+    [[nodiscard]] auto begin() const noexcept { return cuckoos.begin(); }
+    [[nodiscard]] auto end() const noexcept { return cuckoos.end(); }
 
-    [[nodiscard]] constexpr auto size() const noexcept { return cuckoos.size(); }
-    [[nodiscard]] constexpr bool empty() const noexcept { return cuckoos.empty(); }
+    [[nodiscard]] auto size() const noexcept { return cuckoos.size(); }
+    [[nodiscard]] bool empty() const noexcept { return cuckoos.empty(); }
 
-    [[nodiscard]] constexpr decltype(auto) operator[](usize idx) const noexcept {
-        return cuckoos[idx];
-    }
-    [[nodiscard]] constexpr decltype(auto) operator[](usize idx) noexcept { return cuckoos[idx]; }
+    [[nodiscard]] decltype(auto) operator[](const usize idx) const noexcept { return cuckoos[idx]; }
+    [[nodiscard]] decltype(auto) operator[](const usize idx) noexcept { return cuckoos[idx]; }
 
     // Hash function for indexing the cuckoo table
     template<usize Part>
-    constexpr usize H(Key key) const noexcept {
+    usize H(Key key) const noexcept {
         return (key >> (16 * Part)) & (size() - 1);
     }
 
@@ -132,11 +131,14 @@ class CuckooTable final {
     }
 
    private:
+    CuckooTable(const CuckooTable&) noexcept            = delete;
+    CuckooTable& operator=(const CuckooTable&) noexcept = delete;
+    CuckooTable(CuckooTable&&) noexcept                 = delete;
+    CuckooTable& operator=(CuckooTable&&) noexcept      = delete;
+
     Array<Cuckoo, Size> cuckoos;
     usize               count;
 };
-
-int loop();
 
 }  // namespace DON
 

@@ -97,7 +97,7 @@ SRCS := \
     movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp prng.cpp \
     search.cpp shm.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
-    nnue/accumulator.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp cuckoo.cpp
+    nnue/accumulator.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
