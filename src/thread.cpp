@@ -32,6 +32,7 @@
 #include "movegen.h"
 #include "notation.h"
 #include "option.h"
+#include "position.h"
 #include "types.h"
 #include "tablebase/syzygy.h"
 

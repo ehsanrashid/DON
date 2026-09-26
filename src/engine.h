@@ -32,6 +32,7 @@
 #include "option.h"
 #include "position.h"
 #include "search.h"
+#include "state.h"
 #include "thread.h"
 #include "tt.h"
 #include "types.h"

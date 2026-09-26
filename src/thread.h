@@ -32,8 +32,8 @@
 #include "misc.h"
 #include "native_thread.h"
 #include "numa.h"
-#include "position.h"
 #include "search.h"
+#include "state.h"
 #include "thread_context.h"
 
 namespace DON {
@@ -222,6 +222,7 @@ inline void Thread::wait_finish() noexcept {
 }
 
 class Options;
+class Position;
 
 // Threads handles all the threads-related stuff like
 // launching, initializing, starting and parking a thread.
