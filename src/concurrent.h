@@ -163,7 +163,9 @@ class ConcurrentAllocationTracker final {
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
-            if (!std::forward<FreeFunc>(freeFn)(mem, itr->second))
+            const usize allocSize = itr->second;
+
+            if (!std::forward<FreeFunc>(freeFn)(mem, allocSize))
             {
                 //std::exit(EXIT_FAILURE);
                 return false;

@@ -206,7 +206,7 @@ void* alloc_aligned_huge(const usize allocSize) noexcept {
     #endif
 
     #if defined(USE_POSIX_X86_64_HUGE_PAGES) || (defined(__linux__) && !defined(__ANDROID__))
-bool free_aligned_huge(void* const mem, const usize allocSize) noexcept {
+[[maybe_unused]] bool free_aligned_huge(void* const mem, const usize allocSize) noexcept {
     if (::munmap(mem, allocSize) != 0)
     {
         std::cerr << "::munmap() failed: error = " << std::strerror(errno) << std::endl;
