@@ -463,7 +463,7 @@ inline ConcurrentRegistry<BaseSharedMemory*>  //
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
 inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
-  MemoryRegistryCleanup(MemoryRegistry);
+  MemoryRegistryCleanup{MemoryRegistry};
 
 // MemoryRegistryCleanupHook
 //
@@ -484,7 +484,7 @@ inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
 inline RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
-  MemoryRegistryCleanupHook(MemoryRegistryCleanup);
+  MemoryRegistryCleanupHook{MemoryRegistryCleanup};
 
 // TempRoot
 //
