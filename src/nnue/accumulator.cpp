@@ -277,34 +277,32 @@ ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept {
 }
 
 template<Op op>
-ALWAYS_INLINE Tile apply(const i16* data, Index j, Tile acc) noexcept {
+ALWAYS_INLINE void apply(const i16* src, Index j, Tile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize      vl      = __riscv_vsetvl_e16m8(Dimensions - j);
-    vint16m8_t dataVec = __riscv_vle16_v_i16m8(data + j, vl);
+    vint16m8_t dataVec = __riscv_vle16_v_i16m8(src + j, vl);
     if constexpr (op == Op::Add)
         acc = __riscv_vadd_vv_i16m8(acc, dataVec, vl);
     else
         acc = __riscv_vsub_vv_i16m8(acc, dataVec, vl);
-    return acc;
 }
 
 template<Op op>
-ALWAYS_INLINE PsqtTile apply(const i32* data, Index j, PsqtTile acc) noexcept {
+ALWAYS_INLINE void apply(const i32* src, Index j, PsqtTile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize      vl      = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    vint32m1_t dataVec = __riscv_vle32_v_i32m1(data + j, vl);
+    vint32m1_t dataVec = __riscv_vle32_v_i32m1(src + j, vl);
     if constexpr (op == Op::Add)
         acc = __riscv_vadd_vv_i32m1(acc, dataVec, vl);
     else
         acc = __riscv_vsub_vv_i32m1(acc, dataVec, vl);
-    return acc;
 }
 
 template<Op op>
-ALWAYS_INLINE Tile apply_threat_features(const ThreatFeature::IndexList& in,
+ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
                                          const FeatureTransformer&       ft,
                                          const Index                     j,
-                                         Tile                            acc) noexcept {
+                                         Tile&                           acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
     for (Index i = 0; i < in.size(); ++i)
@@ -317,15 +315,14 @@ ALWAYS_INLINE Tile apply_threat_features(const ThreatFeature::IndexList& in,
         else
             acc = __riscv_vwsub_wv_i16m8(acc, weightVec, vl);
     }
-    return acc;
 }
 
 #else
 
 struct Tile final {
    public:
-    auto&       operator[](int i) noexcept { return inner[i]; }
-    const auto& operator[](int i) const noexcept { return inner[i]; }
+    auto&       operator[](Index i) noexcept { return inner[i]; }
+    const auto& operator[](Index i) const noexcept { return inner[i]; }
 
    private:
     SIMD::vec_t inner[Tiling::RegCount];
@@ -333,8 +330,8 @@ struct Tile final {
 
 struct PsqtTile final {
    public:
-    auto&       operator[](int i) noexcept { return inner[i]; }
-    const auto& operator[](int i) const noexcept { return inner[i]; }
+    auto&       operator[](Index i) noexcept { return inner[i]; }
+    const auto& operator[](Index i) const noexcept { return inner[i]; }
 
    private:
     SIMD::psqt_vec_t inner[Tiling::PSQTRegCount];
@@ -373,34 +370,32 @@ ALWAYS_INLINE void increment_index(Index& j) noexcept { j += Tiling::TileHeight;
 ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept { j += Tiling::PSQTTileHeight; }
 
 template<Op op>
-ALWAYS_INLINE Tile apply(const i16* data, Index j, Tile acc) noexcept {
+ALWAYS_INLINE void apply(const i16* src, Index j, Tile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    const auto* column = reinterpret_cast<const SIMD::vec_t*>(data + j);
+    const auto* column = reinterpret_cast<const SIMD::vec_t*>(src + j);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         if constexpr (op == Op::Add)
             acc[k] = vec_add_16(acc[k], column[k]);
         else
             acc[k] = vec_sub_16(acc[k], column[k]);
-    return acc;
 }
 
 template<Op op>
-ALWAYS_INLINE PsqtTile apply(const i32* data, Index j, PsqtTile acc) noexcept {
+ALWAYS_INLINE void apply(const i32* src, Index j, PsqtTile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    const auto* column = reinterpret_cast<const SIMD::psqt_vec_t*>(data + j);
+    const auto* column = reinterpret_cast<const SIMD::psqt_vec_t*>(src + j);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
         if constexpr (op == Op::Add)
             acc[k] = vec_add_psqt_32(acc[k], column[k]);
         else
             acc[k] = vec_sub_psqt_32(acc[k], column[k]);
-    return acc;
 }
 
 template<Op op>
-ALWAYS_INLINE Tile apply_threat_features(const ThreatFeature::IndexList& in,
+ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
                                          const FeatureTransformer&       ft,
                                          const Index                     j,
-                                         Tile                            acc) noexcept {
+                                         Tile&                           acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     // clang-format off
     for (Index i = 0; i < in.size(); ++i)
@@ -450,31 +445,28 @@ ALWAYS_INLINE Tile apply_threat_features(const ThreatFeature::IndexList& in,
     #endif
     }
     // clang-format on
-    return acc;
 }
 
 #endif
 
 template<Op op>
-ALWAYS_INLINE Tile apply_psq_features(const PSQFeature::IndexList& in,
+ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
                                       const FeatureTransformer&    ft,
                                       const Index                  j,
-                                      Tile                         acc) noexcept {
+                                      Tile&                        acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     for (Index i = 0; i < in.size(); ++i)
-        acc = apply<op>(&ft.weights[in[i] * Dimensions], j, acc);
-    return acc;
+        apply<op>(&ft.weights[in[i] * Dimensions], j, acc);
 }
 
 template<Op op, typename IdxType, usize Size>
-ALWAYS_INLINE PsqtTile apply_psqt(const FixedVector<IdxType, Size, IdxType>& in,
-                                  const PSQTWeight*                          weights,
-                                  const Index                                j,
-                                  PsqtTile                                   acc) noexcept {
+ALWAYS_INLINE void apply_psqt(const FixedVector<IdxType, Size, IdxType>& in,
+                              const PSQTWeight*                          weights,
+                              const Index                                j,
+                              PsqtTile&                                  acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     for (Index i = 0; i < in.size(); ++i)
-        acc = apply<op>(&weights[in[i] * PSQT_BUCKETS], j, acc);
-    return acc;
+        apply<op>(&weights[in[i] * PSQT_BUCKETS], j, acc);
 }
 
 }  // namespace
@@ -681,23 +673,23 @@ void update_hybrid(const Color               perspective,
     {
         acc = load_tile(newEntry.accumulation.data(), j);
 
-        acc = apply_psq_features<Op::Sub>(newRemove, featureTransformer, j, acc);
-        acc = apply_psq_features<Op::Add>(newAdd, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub>(newRemove, featureTransformer, j, acc);
+        apply_psq_features<Op::Add>(newAdd, featureTransformer, j, acc);
 
         store_tile(newEntry.accumulation.data(), j, acc);
 
         // adding the old accumulator adds (most of) the threats and pp weights that needed
-        acc = apply<Op::Add>(srcAccm.data(), j, acc);
+        apply<Op::Add>(srcAccm.data(), j, acc);
         // But have added a whole bunch of psq weights for the wrong king bucket which
         // need to remove first remove the cached psq accumulation for the old king position...
-        acc = apply<Op::Sub>(oldEntry.accumulation.data(), j, acc);
+        apply<Op::Sub>(oldEntry.accumulation.data(), j, acc);
 
         // ... then adjust
-        acc = apply_psq_features<Op::Add>(oldRemove, featureTransformer, j, acc);
-        acc = apply_psq_features<Op::Sub>(oldAdd, featureTransformer, j, acc);
+        apply_psq_features<Op::Add>(oldRemove, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub>(oldAdd, featureTransformer, j, acc);
 
-        acc = apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
-        acc = apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
+        apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
+        apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
 
         store_tile(dstAccm.data(), j, acc);
     }
@@ -706,20 +698,20 @@ void update_hybrid(const Color               perspective,
     {
         psqt = load_psqt(newEntry.psqtAccumulation.data(), j);
 
-        psqt = apply_psqt<Op::Sub>(newRemove, featureTransformer.psqtWeights.data(), j, psqt);
-        psqt = apply_psqt<Op::Add>(newAdd, featureTransformer.psqtWeights.data(), j, psqt);
+        apply_psqt<Op::Sub>(newRemove, featureTransformer.psqtWeights.data(), j, psqt);
+        apply_psqt<Op::Add>(newAdd, featureTransformer.psqtWeights.data(), j, psqt);
 
         store_psqt(newEntry.psqtAccumulation.data(), j, psqt);
 
-        psqt = apply<Op::Add>(srcPsqtAccm.data(), j, psqt);
-        psqt = apply<Op::Sub>(oldEntry.psqtAccumulation.data(), j, psqt);
-        // clang-format off
-        psqt = apply_psqt<Op::Add>(oldRemove, featureTransformer.psqtWeights.data(), j, psqt);
-        psqt = apply_psqt<Op::Sub>(oldAdd, featureTransformer.psqtWeights.data(), j, psqt);
+        apply<Op::Add>(srcPsqtAccm.data(), j, psqt);
+        apply<Op::Sub>(oldEntry.psqtAccumulation.data(), j, psqt);
 
-        psqt = apply_psqt<Op::Sub>(thrRemoved, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        psqt = apply_psqt<Op::Add>(thrAdded, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        // clang-format on
+        apply_psqt<Op::Add>(oldRemove, featureTransformer.psqtWeights.data(), j, psqt);
+        apply_psqt<Op::Sub>(oldAdd, featureTransformer.psqtWeights.data(), j, psqt);
+
+        apply_psqt<Op::Sub>(thrRemoved, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
+        apply_psqt<Op::Add>(thrAdded, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
+
         store_psqt(dstPsqtAccm.data(), j, psqt);
     }
 
@@ -768,12 +760,12 @@ void update_refresh_cache(const Color               perspective,
     {
         acc = load_tile(entry.accumulation.data(), j);
 
-        acc = apply_psq_features<Op::Sub>(removed, featureTransformer, j, acc);
-        acc = apply_psq_features<Op::Add>(added, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub>(removed, featureTransformer, j, acc);
+        apply_psq_features<Op::Add>(added, featureTransformer, j, acc);
 
         store_tile(entry.accumulation.data(), j, acc);
 
-        acc = apply_threat_features<Op::Add>(active, featureTransformer, j, acc);
+        apply_threat_features<Op::Add>(active, featureTransformer, j, acc);
 
         store_tile(dstAcc.accumulation[perspective].data(), j, acc);
     }
@@ -781,14 +773,14 @@ void update_refresh_cache(const Color               perspective,
     for (Index j = 0; j < PSQT_BUCKETS; increment_psqt_index(j))
     {
         psqt = load_psqt(entry.psqtAccumulation.data(), j);
-        // clang-format off
-        psqt = apply_psqt<Op::Sub>(removed, featureTransformer.psqtWeights.data(), j, psqt);
-        psqt = apply_psqt<Op::Add>(added, featureTransformer.psqtWeights.data(), j, psqt);
+
+        apply_psqt<Op::Sub>(removed, featureTransformer.psqtWeights.data(), j, psqt);
+        apply_psqt<Op::Add>(added, featureTransformer.psqtWeights.data(), j, psqt);
 
         store_psqt(entry.psqtAccumulation.data(), j, psqt);
 
-        psqt = apply_psqt<Op::Add>(active, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        // clang-format on
+        apply_psqt<Op::Add>(active, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
+
         store_psqt(dstAcc.psqtAccumulation[perspective].data(), j, psqt);
     }
 }
@@ -814,11 +806,11 @@ void apply_combined(Color                           perspective,
     {
         acc = load_tile(srcAccm.data(), j);
 
-        acc = apply_psq_features<Op::Sub>(psqRemoved, featureTransformer, j, acc);
-        acc = apply_psq_features<Op::Add>(psqAdded, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub>(psqRemoved, featureTransformer, j, acc);
+        apply_psq_features<Op::Add>(psqAdded, featureTransformer, j, acc);
 
-        acc = apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
-        acc = apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
+        apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
+        apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
 
         store_tile(dstAccm.data(), j, acc);
     }
@@ -826,13 +818,13 @@ void apply_combined(Color                           perspective,
     for (Index j = 0; j < PSQT_BUCKETS; increment_psqt_index(j))
     {
         psqt = load_psqt(srcPsqtAccm.data(), j);
-        // clang-format off
-        psqt = apply_psqt<Op::Sub>(psqRemoved, featureTransformer.psqtWeights.data(), j, psqt);
-        psqt = apply_psqt<Op::Add>(psqAdded, featureTransformer.psqtWeights.data(), j, psqt);
 
-        psqt = apply_psqt<Op::Sub>(thrRemoved, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        psqt = apply_psqt<Op::Add>(thrAdded, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        // clang-format on
+        apply_psqt<Op::Sub>(psqRemoved, featureTransformer.psqtWeights.data(), j, psqt);
+        apply_psqt<Op::Add>(psqAdded, featureTransformer.psqtWeights.data(), j, psqt);
+
+        apply_psqt<Op::Sub>(thrRemoved, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
+        apply_psqt<Op::Add>(thrAdded, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
+
         store_psqt(dstPsqtAccm.data(), j, psqt);
     }
 }
