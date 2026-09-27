@@ -41,8 +41,8 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-ConcurrentCache<Key, Value> NonPawnValueCache(32 * KB, 0.75f);
-ConcurrentCache<Key, Value> MaterialValueCache(16 * KB, 0.75f);
+ConcurrentCache<Key, Value> NonPawnValueCache{32 * KB, 0.75f};
+ConcurrentCache<Key, Value> MaterialValueCache{16 * KB, 0.75f};
 
 }  // namespace
 

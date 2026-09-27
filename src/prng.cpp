@@ -48,7 +48,7 @@ u64 SplitMix64::mix() const noexcept {
 // ------------------
 
 Xorshift64s::Xorshift64s(const u64 seed) noexcept {
-    SplitMix64 seeder(seed);
+    SplitMix64 seeder{seed};
 
     // Initialize the state with a mixed SplitMix64 output.
     std::generate(state.begin(), state.end(),
@@ -123,7 +123,7 @@ u64 Xorshift64s::rand64() noexcept {
 // ------------------
 
 Xoroshiro128ss::Xoroshiro128ss(const u64 seed) noexcept {
-    SplitMix64 seeder(seed);
+    SplitMix64 seeder{seed};
 
     // Initialize the state with two SplitMix64 outputs.
     std::generate(state.begin(), state.end(),
@@ -204,7 +204,7 @@ u64 Xoroshiro128ss::rand64() noexcept {
 // ------------------
 
 Xoshiro256ss::Xoshiro256ss(const u64 seed) noexcept {
-    SplitMix64 seeder(seed);
+    SplitMix64 seeder{seed};
 
     // Initialize the state with four SplitMix64 outputs.
     std::generate(state.begin(), state.end(),

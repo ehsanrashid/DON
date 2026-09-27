@@ -260,14 +260,6 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
 // • Re-initialization replaces the previous path set.
 namespace TBPaths {
 
-bool init(std::string_view paths) noexcept;
-
-const auto& paths() noexcept;
-
-}  // namespace TBPaths
-
-namespace TBPaths {
-
 namespace {
 
 // Platform-specific directory separator.
