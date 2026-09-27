@@ -165,7 +165,10 @@ class ConcurrentAllocationTracker final {
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
             if (!freeFunc(mem, itr->second))
+            {
+                std::exit(EXIT_FAILURE);
                 return false;
+            }
 
             sizesMap.erase(itr);
             return true;
