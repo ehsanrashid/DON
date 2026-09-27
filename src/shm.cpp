@@ -25,7 +25,6 @@
     #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
     #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
     #include <sys/time.h>  // timeval
-    #include <sys/uio.h>   // iovec
 
     #include <algorithm>  // min()/max()
     #include <memory>     // make_unique<>

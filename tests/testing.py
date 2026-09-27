@@ -86,8 +86,8 @@ class Syzygy:
             with tempfile.TemporaryDirectory() as tmpDirName:
                 tarballPath = os.path.join(tmpDirName, f"{file}.tar.gz")
 
-                with open(tarballPath, "wb") as f:
-                    with urllib.request.urlopen(url) as response:
+                with urllib.request.urlopen(url) as response:
+                    with open(tarballPath, "wb") as f:
                         shutil.copyfileobj(response, f)
 
                 with tarfile.open(tarballPath, "r:gz") as tar:
