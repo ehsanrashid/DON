@@ -27,6 +27,10 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    #include <sys/types.h>  // off_t
+#endif
+
 #include "misc.h"
 #include "types.h"
 

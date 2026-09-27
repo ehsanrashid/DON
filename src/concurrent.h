@@ -142,7 +142,7 @@ class ConcurrentMap final {
 class ConcurrentAllocationTracker final {
    public:
     ConcurrentAllocationTracker() noexcept = default;
-    
+
     template<typename AllocFunc>
     [[nodiscard]] void* alloc(const usize allocSize, AllocFunc&& allocFn) noexcept {
         void* mem = std::forward<AllocFunc>(allocFn)(allocSize);

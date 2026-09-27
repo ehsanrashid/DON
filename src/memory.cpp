@@ -177,20 +177,19 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 
 #else
 
-#if defined(USE_POSIX_X86_64_HUGE_PAGES)
-
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES)
 void* alloc_aligned_huge_page(const usize allocSize) noexcept {
     void* mem = ::mmap(
       nullptr, allocSize, PROT_READ | PROT_WRITE,
       MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | (u64{HUGE_PAGE_SHIFT} << MAP_HUGE_SHIFT), -1, 0);
     if (mem == MAP_FAILED)
         return nullptr;
-    
+
     return mem;
 }
-#endif
+    #endif
 
-#if defined(__linux__) && !defined(__ANDROID__)
+    #if defined(__linux__) && !defined(__ANDROID__)
 void* alloc_aligned_huge(const usize allocSize) noexcept {
     void* mem = mmap_huge_aligned(allocSize, MAP_PRIVATE | MAP_ANONYMOUS);
     if (mem == MAP_FAILED)
@@ -202,8 +201,9 @@ void* alloc_aligned_huge(const usize allocSize) noexcept {
 
     return mem;
 }
-#endif
+    #endif
 
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES) || (defined(__linux__) && !defined(__ANDROID__))
 bool free_aligned_page(void* const mem, const usize allocSize) noexcept {
     if (::munmap(mem, allocSize) != 0)
     {
@@ -215,6 +215,7 @@ bool free_aligned_page(void* const mem, const usize allocSize) noexcept {
 }
 
 ConcurrentAllocationTracker HugePageAllocationTracker;
+    #endif
 
 #endif
 
