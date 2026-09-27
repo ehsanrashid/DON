@@ -406,26 +406,10 @@ inline Square msq(const Bitboard b) noexcept {
 }
 
 // Returns and clears the least significant bit in the non-zero bitboard
-inline Square pop_lsq(Bitboard& b) noexcept {
-    assert(b != 0);
-
-    const Square s = lsq(b);
-
-    b &= b - 1;
-
-    return s;
-}
+Square pop_lsq(Bitboard& b) noexcept;
 
 // Returns and clears the most significant bit in the non-zero bitboard
-inline Square pop_msq(Bitboard& b) noexcept {
-    assert(b != 0);
-
-    const Square s = msq(b);
-
-    b ^= s;
-
-    return s;
-}
+Square pop_msq(Bitboard& b) noexcept;
 
 // Returns an ASCII representation of bitboard suitable
 // to be printed to standard output. Useful for debugging.

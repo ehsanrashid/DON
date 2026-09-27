@@ -139,11 +139,6 @@ class Position final {
     attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
     [[nodiscard]] bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
-    [[nodiscard]] Bitboard blockers_bb(Square    s,
-                                       Bitboard  attackersBB,
-                                       Bitboard& ownPinnersBB,
-                                       Bitboard& oppPinnersBB) const noexcept;
-
     // Attacks from a piece type
     template<PieceType PT>
     [[nodiscard]] Bitboard attacks_by_bb(Color c) const noexcept;
@@ -331,7 +326,15 @@ class Position final {
     // that once computed is updated incrementally as moves are made.
     // The function is only used when a new position is set up.
     void set_state() noexcept;
+
+    void reset_pinner_blocker(Color c) noexcept;
+    // Computes the blockers that are pinned pieces to 's' from a set of attackers.
+    // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
+    // Pinners are also returned via the ownPinners and oppPinners reference.
+    void compute_pinner_blocker(Color c) noexcept;
+
     void set_pinner_blocker() noexcept;
+
     // Set extra state, used for fast check detection
     void set_ext_state() noexcept;
 
@@ -568,38 +571,6 @@ inline bool Position::attackers_exists(const Square s, const Bitboard attackersB
 }
 
 // clang-format on
-
-// Computes the blockers that are pinned pieces to 's' from a set of attackers.
-// Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
-// Pinners are also returned via the ownPinners and oppPinners reference.
-inline Bitboard Position::blockers_bb(const Square   s,
-                                      const Bitboard attackersBB,
-                                      Bitboard&      ownPinnersBB,
-                                      Bitboard&      oppPinnersBB) const noexcept {
-    Bitboard blockersBB = 0;
-
-    // xSnipers are x-ray attackers that attack 's' when blockers are removed
-    Bitboard       xSnipersBB  = xslide_attackers_bb(s) & attackersBB;
-    const Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
-
-    while (xSnipersBB != 0)
-    {
-        const Square xSniperSq = pop_lsq(xSnipersBB);
-
-        if (const Bitboard blockerBB = Attacks::between_bb(s, xSniperSq) & occupancyBB;
-            exactly_one(blockerBB))
-        {
-            blockersBB |= blockerBB;
-
-            if ((blockerBB & attackersBB) != 0)
-                ownPinnersBB |= xSniperSq;
-            else
-                oppPinnersBB |= xSniperSq;
-        }
-    }
-
-    return blockersBB;
-}
 
 // Computes attacks from a piece type for a given color.
 template<PieceType PT>

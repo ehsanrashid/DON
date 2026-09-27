@@ -40,10 +40,9 @@ constexpr i64 TIME_NODES_INIT = i64{-1};
 i64 time_nodes(const i64 time, const u64 nodesTime) noexcept {
     assert(nodesTime != 0);
 
-    u64 timeNodes = u64(time) <= u64(TimeManager::TimeMax) / nodesTime  //
-                    ? time * nodesTime
-                    : TimeManager::TimeMax;
-    return i64(timeNodes);
+    return u64(time) <= u64(TimeManager::TimeMax) / nodesTime  //
+           ? i64(u64(time) * nodesTime)
+           : TimeManager::TimeMax;
 }
 
 }  // namespace
@@ -77,7 +76,7 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     if (use_nodes_time())
     {
         // Convert from milliseconds to nodes
-        limit.moveTime *= NodesTime;
+        limit.moveTime = time_nodes(limit.moveTime, NodesTime);
     }
 
     if (clock.time == 0)

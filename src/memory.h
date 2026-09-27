@@ -27,6 +27,10 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    #include <sys/types.h>  // off_t
+#endif
+
 #include "misc.h"
 #include "types.h"
 
@@ -241,6 +245,13 @@ template<typename T, typename ByteT>
 
     return value;
 }
+
+#if defined(__linux__) && !defined(__ANDROID__)
+// Allocate size bytes aligned to a 2 MB boundary using mmap.
+// On success the returned pointer can be freed with munmap(ptr, size).
+void* mmap_huge_aligned(usize size, int flags, int fd = -1, off_t offset = 0) noexcept;
+
+#endif
 
 }  // namespace DON
 

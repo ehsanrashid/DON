@@ -25,9 +25,9 @@
     #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
     #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
     #include <sys/time.h>  // timeval
-    #include <sys/uio.h>   // iovec
 
     #include <algorithm>  // min()/max()
+    #include <memory>     // make_unique<>
 #endif
 
 namespace DON {
@@ -214,47 +214,28 @@ void InitLock::unlock() noexcept {
     lockFd.reset();
 }
 
-void* map_shared(const int fd, const usize size) noexcept {
-    #if defined(__linux__)
-    constexpr usize Alignment = 2 * MB;
-    const long      pageSize  = ::sysconf(_SC_PAGESIZE);
+ScmRightsMessage::ScmRightsMessage() noexcept :
+    controlStorage(std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + alignof(cmsghdr))) {
+    constexpr usize Alignment = alignof(cmsghdr);
+    const usize     space     = CMSG_SPACE(sizeof(int));
 
-    if (size >= Alignment && pageSize > 0)
-    {
-        // Align the mapping to 2 MiB for huge-page-friendly virtual addressing.
-        // File-backed huge pages require matching virtual-address and file-offset alignment.
-        const usize mappingSize  = ceil_to_multiple(size, usize(pageSize));
-        const usize reservedSize = mappingSize + Alignment;
-        void*       reservedAddress =
-          ::mmap(nullptr, reservedSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    std::byte* msgControlBuf = align_ptr_up<Alignment>(controlStorage.get());
 
-        if (reservedAddress != MAP_FAILED)
-        {
-            char* const reservationBase = static_cast<char*>(reservedAddress);
-            char* const mappingAddress  = align_ptr_up<Alignment>(reservationBase);
-            void*       mappedAddress = ::mmap(mappingAddress, mappingSize, PROT_READ | PROT_WRITE,
-                                               MAP_SHARED | MAP_FIXED, fd, 0);
+    iov[0].iov_base = buf;
+    iov[0].iov_len  = 1;
 
-            if (mappedAddress != MAP_FAILED)
-            {
-                const usize prefixSize = usize(mappingAddress - reservationBase);
-                const usize suffixSize = reservedSize - prefixSize - mappingSize;
+    msg.msg_iov        = iov;
+    msg.msg_iovlen     = 1;
+    msg.msg_control    = msgControlBuf;
+    msg.msg_controllen = space;
+}
 
-                if (prefixSize != 0)
-                    ::munmap(reservedAddress, prefixSize);
-
-                if (suffixSize != 0)
-                    ::munmap(mappingAddress + mappingSize, suffixSize);
-
-                return mappedAddress;
-            }
-
-            ::munmap(reservedAddress, reservedSize);
-        }
-    }
-    #endif
-
+void* map_shared(const usize size, const int fd) noexcept {
+    #if defined(__linux__) && !defined(__ANDROID__)
+    return mmap_huge_aligned(size, MAP_SHARED, fd);
+    #else
     return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    #endif
 }
 
 std::string make_sentinel_base(const std::string_view name) noexcept {
@@ -330,33 +311,22 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
 
     if (ret == 0)
     {
-        msghdr msg{};
+        ScmRightsMessage message;
 
-        char         buf[1];
-        struct iovec iov[1];
-        iov[0].iov_base = buf;
-        iov[0].iov_len  = 1;
-        msg.msg_iov     = iov;
-        msg.msg_iovlen  = 1;
-
-        ControlMsg controlMsg{};
-
-        msg.msg_control    = controlMsg.buf;
-        msg.msg_controllen = sizeof(controlMsg.buf);
+        ssize_t bytesRecv;
 
         int flags = 0;
     #if defined(MSG_CMSG_CLOEXEC)
         flags |= MSG_CMSG_CLOEXEC;
     #endif
 
-        ssize_t bytesRecv;
         do
-            bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
+            bytesRecv = ::recvmsg(peerFd.get(), &message.msg, flags);
         while (bytesRecv == -1 && errno == EINTR);
 
         if (bytesRecv > 0)
         {
-            cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+            cmsghdr* cmsg = CMSG_FIRSTHDR(&message.msg);
             // Receive rights to the memFd from the peer; see make_server_thread
             if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
             {
@@ -431,25 +401,14 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
                 if (!clientFd.is_valid())
                     continue;
 
-                msghdr msg{};
-                char   buf[1] = {};
-                iovec  iov[1];
-                iov[0].iov_base = buf;
-                iov[0].iov_len  = 1;
-                msg.msg_iov     = iov;
-                msg.msg_iovlen  = 1;
-
-                ControlMsg controlMsg{};
-
-                msg.msg_control    = controlMsg.buf;
-                msg.msg_controllen = sizeof(controlMsg.buf);
+                ScmRightsMessage message;
 
                 // Send over rights to the memFd (SCM_RIGHTS). The fd may be given a different number, but
                 // will refer to the same underlying file. Once it's mmapped then it will share physical memory
                 // between the processes.
                 // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
                 int             rawFd = fd.get();
-                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&msg);
+                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&message.msg);
                 cmsg->cmsg_level      = SOL_SOCKET;
                 cmsg->cmsg_type       = SCM_RIGHTS;
                 cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
@@ -464,7 +423,7 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
     #if defined(MSG_NOSIGNAL)
                 flags |= MSG_NOSIGNAL;
     #endif
-                while (::sendmsg(clientFd.get(), &msg, flags) == -1)
+                while (::sendmsg(clientFd.get(), &message.msg, flags) == -1)
                 {
                     if (errno == EINTR)
                         continue;

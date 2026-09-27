@@ -57,12 +57,14 @@
     #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
     #include <sys/types.h>  // IWYU pragma: keep
+    #include <sys/uio.h>    // iovec
     #include <sys/un.h>     // sockaddr_un
     #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid(), pipe()/pipe2(), fsync()
 
     #include <cassert>
     #include <cerrno>
     #include <cstring>  // strncpy
+    #include <memory>   // unique_ptr<>, make_unique<>
     #include <optional>
 
     #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
@@ -539,12 +541,23 @@ struct InitLock final {
     UniqueFd lockFd;
 };
 
-union ControlMsg final {
-    char           buf[CMSG_SPACE(sizeof(int))];
-    struct cmsghdr align;
+struct ScmRightsMessage final {
+    ScmRightsMessage() noexcept;
+
+    msghdr msg    = {};
+    char   buf[1] = {};
+    iovec  iov[1] = {};
+
+   private:
+    ScmRightsMessage(const ScmRightsMessage&)            = delete;
+    ScmRightsMessage& operator=(const ScmRightsMessage&) = delete;
+    ScmRightsMessage(ScmRightsMessage&&)                 = delete;
+    ScmRightsMessage& operator=(ScmRightsMessage&&)      = delete;
+
+    std::unique_ptr<std::byte[]> controlStorage;
 };
 
-void* map_shared(int fd, usize size) noexcept;
+void* map_shared(usize size, int fd) noexcept;
 
 std::string make_sentinel_base(std::string_view name) noexcept;
 
@@ -664,7 +677,7 @@ class SharedMemory final: public BaseSharedMemory {
         assert(memFd.is_valid());
 
         // Try to map the memFd
-        T* mappedMem = static_cast<T*>(map_shared(memFd.get(), sizeof(T)));
+        T* mappedMem = static_cast<T*>(map_shared(sizeof(T), memFd.get()));
         if (mappedMem == MAP_FAILED)
             return false;
 

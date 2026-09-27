@@ -2426,16 +2426,18 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
     const TimePoint OverheadTime = options["OverheadTime"];
     const bool      UseRule50    = options["Syzygy50MoveRule"];
 
-    // If time manager is active, don't use more than 50% of OverheadTime time
     const auto startTime = SteadyClock::now();
-
+    // If time manager is active, don't use more than 50% of OverheadTime time
+    // Under 'nodestime' the pos.do_move() calls come for free.
     const auto should_abort = [&]() noexcept -> bool {
         const auto endTime = SteadyClock::now();
-        return limit.use_time_manager()
-            && (options["NodesTime"] != 0
-                || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > 0.5000 * OverheadTime);
+        return options["NodesTime"] == 0 && limit.use_time_manager()
+            && 2 * multiPV * std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                 >= OverheadTime;
     };
+
+    if (should_abort())
+        return;
 
     bool aborted = false;
 
