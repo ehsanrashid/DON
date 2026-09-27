@@ -127,8 +127,8 @@ void* mmap_huge_aligned(usize size, int flags, int fd, off_t offset) noexcept {
         {
             char* const reservationBase = static_cast<char*>(reservedAddress);
             char* const mappingAddress  = align_ptr_up<Alignment>(reservationBase);
-            void*       mappedAddress = ::mmap(mappingAddress, mappingSize, PROT_READ | PROT_WRITE,
-                                               flags | MAP_FIXED, fd, offset);
+            void*       mappedAddress =
+              ::mmap(mappingAddress, size, PROT_READ | PROT_WRITE, flags | MAP_FIXED, fd, offset);
 
             if (mappedAddress != MAP_FAILED)
             {
@@ -305,7 +305,7 @@ bool free_aligned_large_page(void* const mem) noexcept {
         return false;
     }
 #else
-    #if defined(__linux__) && !defined(__ANDROID__)
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES) || (defined(__linux__) && !defined(__ANDROID__))
     if (HugePageAllocationTracker.free(mem, free_aligned_page))
         return true;
     #endif
