@@ -177,6 +177,8 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 
 #else
 
+    #define HUGE_DISABLED
+
     #if defined(USE_POSIX_X86_64_HUGE_PAGES)
 void* alloc_aligned_huge_page(const usize allocSize) noexcept {
     void* mem = ::mmap(
@@ -189,7 +191,7 @@ void* alloc_aligned_huge_page(const usize allocSize) noexcept {
 }
     #endif
 
-    #if defined(__linux__) && !defined(__ANDROID__)
+    #if defined(__linux__) && !defined(__ANDROID__) && !defined(HUGE_DISABLED)
 void* alloc_aligned_huge(const usize allocSize) noexcept {
     void* mem = mmap_huge_aligned(allocSize, MAP_PRIVATE | MAP_ANONYMOUS);
     if (mem == MAP_FAILED)
@@ -252,47 +254,39 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     if (hugePageHint && allocSize >= HUGE_PAGE_SIZE)
     {
         const usize roundedAllocSize = round_up_to_multiple(allocSize, HUGE_PAGE_SIZE);
-        // Allocate memory
         mem = HugePageAllocationTracker.alloc(roundedAllocSize, alloc_aligned_huge_page);
         if (mem != nullptr)
             return mem;
-
-        //std::cerr << "Failed to allocate memory for " << roundedAllocSize / MB
-        //          << "MB, error = " << std::strerror(errno) << std::endl;
     }
     #endif
 
-    // #if defined(__linux__) && !defined(__ANDROID__)
-    // constexpr usize Alignment = 2 * MB;  // Assume 2MB page-size
+    #if defined(__linux__) && !defined(__ANDROID__) && !defined(HUGE_DISABLED)
+    constexpr usize Alignment = 2 * MB;  // Assume 2MB page-size
 
-    // const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
-    // // Allocate memory
-    // mem = HugePageAllocationTracker.alloc(roundedAllocSize, alloc_aligned_huge);
-    // if (mem != nullptr)
-    //     return mem;
+    const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
+    mem = HugePageAllocationTracker.alloc(roundedAllocSize, alloc_aligned_huge);
+    if (mem != nullptr)
+        return mem;
 
-    // //std::cerr << "Failed to allocate memory for " << roundedAllocSize / MB
-    // //          << "MB, error = " << std::strerror(errno) << std::endl;
-    // #else
+    #else
 
     // Choose a heuristic alignment for huge pages / fallback
     constexpr usize Alignment =
-    #if defined(__linux__)
+        #if defined(__linux__)
       2 * MB  // Assume 2MB page-size
-    #else
+        #else
       4 * KB  // Assume small page-size
-    #endif
+        #endif
       ;
 
     const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
-    // Allocate memory
-    mem = alloc_aligned_std(roundedAllocSize, Alignment);
-    // Prefer huge pages where supported
-    #if defined(MADV_HUGEPAGE)
+    mem                          = alloc_aligned_std(roundedAllocSize, Alignment);
+        // Prefer huge pages where supported
+        #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
         ::madvise(mem, roundedAllocSize, MADV_HUGEPAGE);
+        #endif
     #endif
-    //#endif
 #endif
     return mem;
 }
@@ -312,7 +306,8 @@ bool free_aligned_large_page(void* const mem) noexcept {
         return false;
     }
 #else
-    #if defined(USE_POSIX_X86_64_HUGE_PAGES) || (defined(__linux__) && !defined(__ANDROID__))
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES) \
+      || (defined(__linux__) && !defined(__ANDROID__) && !defined(HUGE_DISABLED))
     if (HugePageAllocationTracker.free(mem, free_aligned_huge))
         return true;
     #endif
