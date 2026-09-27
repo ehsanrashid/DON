@@ -441,7 +441,8 @@ class BaseSharedMemory {
 // Usage:
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
-inline ConcurrentRegistry<BaseSharedMemory*> memoryRegistry(usize{256}, 0.75f);
+inline ConcurrentRegistry<BaseSharedMemory*>  //
+  memoryRegistry(usize{256}, 0.75f);
 
 // MemoryRegistryCleanup
 //
@@ -455,7 +456,8 @@ inline ConcurrentRegistry<BaseSharedMemory*> memoryRegistry(usize{256}, 0.75f);
 //  - Registry management is handled by MemoryRegistry.
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
-inline RegistryCleanup memoryRegistryCleanup(memoryRegistry);
+inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
+  memoryRegistryCleanup(memoryRegistry);
 
 // MemoryRegistryCleanupHook
 //
@@ -475,7 +477,8 @@ inline RegistryCleanup memoryRegistryCleanup(memoryRegistry);
 //  - The referenced cleanup object must remain valid until program exit.
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
-inline RegistryCleanupHook memoryRegistryCleanupHook(memoryRegistryCleanup);
+inline RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
+  memoryRegistryCleanupHook(memoryRegistryCleanup);
 
 // TempRoot
 //

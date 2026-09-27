@@ -22,7 +22,6 @@
 #include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
 #include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
-#include <memory>        // allocator()
 #include <system_error>  // errc
 
 #if defined(_WIN32)
@@ -598,9 +597,7 @@ namespace {
 // Lifetime:
 //  - The map does not own the std::ostream objects.
 //  - Mutexes remain in the map for the lifetime of the process.
-using OsToMutexMap = ConcurrentMap<std::ostream*, std::mutex>;
-
-OsToMutexMap osToMutex(usize{32}, 0.75f);
+ConcurrentMap<std::ostream*, std::mutex> osToMutex(usize{16}, 0.75f);
 
 }  // namespace
 

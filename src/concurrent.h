@@ -50,6 +50,8 @@ class ConcurrentMap final {
     // Returns the value associated with the key.
     //
     // If the key is not present, a default-constructed value is inserted.
+    // The returned reference remains valid while the associated element
+    // remains in the map and is not invalidated by a modifying operation.
     Value& get(const Key& key) noexcept {
         // Fast path: check for an existing value under a shared lock.
         {
