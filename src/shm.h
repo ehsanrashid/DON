@@ -28,16 +28,16 @@
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
 
-#if !defined(_WIN32)                                /* Non-Windows */ \
-  && ((defined(__linux__) && !defined(__ANDROID__)) /* Linux (Non-Android) */ \
-      || defined(__APPLE__)                         /* macOS / iOS */ \
-      || defined(__sun)                             /* Solaris */ \
-      || defined(__FreeBSD__)                       /* FreeBSD */ \
-      || defined(__OpenBSD__)                       /* OpenBSD */ \
-      || defined(__NetBSD__)                        /* NetBSD */ \
-      || defined(__DragonFly__)                     /* DragonFly BSD */ \
-      || defined(__e2k__)                           /* Elbrus 2000 */ \
-      || defined(_AIX))                             /* IBM AIX */
+#if !defined(_WIN32)             /* Non-Windows */ \
+  && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
+      || defined(__APPLE__)      /* macOS / iOS */ \
+      || defined(__sun)          /* Solaris */ \
+      || defined(__FreeBSD__)    /* FreeBSD */ \
+      || defined(__OpenBSD__)    /* OpenBSD */ \
+      || defined(__NetBSD__)     /* NetBSD */ \
+      || defined(__DragonFly__)  /* DragonFly BSD */ \
+      || defined(__e2k__)        /* Elbrus 2000 */ \
+      || defined(_AIX))          /* IBM AIX */
     #define USE_UNIX_SHM
 #endif
 
@@ -70,7 +70,7 @@
     #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
 
     // Linux (non-Android)
-    #if defined(__linux__) && !defined(__ANDROID__)
+    #if defined(LINUX_NON_ANDROID)
     // macOS / iOS
     #elif defined(__APPLE__)
         #include <mach-o/dyld.h>

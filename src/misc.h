@@ -43,6 +43,8 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"  // GetCommandLineW()
+#elif defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
 #endif
 
 #if defined(USE_PREFETCH) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))

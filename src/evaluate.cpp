@@ -51,7 +51,7 @@ Value evaluate(const Position&         pos,
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
     nnue     = constexpr_round(nnue * std::max(1.0 - complexity / 18236.0, 0.0));
 
-    const auto v =
+    const i32 v =
       // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
       constexpr_round((nnue + (nnue * pos.material() + optimism * 7675.0) / 91000.0)
                       // Damp evaluation linearly based on the 50-move rule

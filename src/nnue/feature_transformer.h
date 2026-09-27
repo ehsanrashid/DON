@@ -290,21 +290,21 @@ class FeatureTransformer final {
         auto*       out = reinterpret_cast<SIMD::vec_t*>(&output[offset]);
 
         // Per the NNUE architecture, here want to multiply pairs of
-        // clipped elements and divide the product by 128. To do this,
+        // clipped elements and divide the product by 512. To do this,
         // can naively perform min/max operation to clip each of the
         // four int16 vectors, mullo pairs together, then pack them into
         // one int8 vector. However, there exists a faster way.
 
         // The idea here is to use the implicit clipping from packus to
-        // save two vec_max_16 instructions. This clipping works due to the
-        // fact that any int16 integer below zero will be zeroed on packus.
+        // save two vec_max_16 instructions. This clipping works due to
+        // the fact that any int16 integer below zero will be zeroed on packus.
 
         // Consider the case where the second element is negative.
         // If do standard clipping, that element will be zero, which
-        // means pairwise product is zero. If perform packus and remove
-        // the lower-side clip for the second element, then product
-        // before packus will be negative, and is zeroed on pack.
-        // The two operation produce equivalent results, but the second
+        // means our pairwise product is zero. If perform packus and
+        // remove the lower-side clip for the second element, then
+        // product before packus will be negative, and is zeroed on pack.
+        // The two operations produce equivalent results, but the second
         // one (using packus) saves one max operation per pair.
 
         // But here run into a problem: mullo does not preserve the
@@ -313,24 +313,11 @@ class FeatureTransformer final {
 
         // mulhi cuts off the last 16 bits of the resulting product,
         // which is the same as performing a rightward shift of 16 bits.
-        // Recall that want to divide the final product by 128,
-        // which is equivalent to a 7-bit right shift.
-        // Intuitively, if shift the clipped value left by 9,
-        // and perform mulhi, which shifts the product right by 16 bits,
-        // then will net a right shift of 7 bits.
-        // However, this won't work as intended. Since clip the values to
-        // have a maximum value of 127, shifting it by 9 bits might occupy
-        // the signed bit, resulting in some positive values being
-        // interpreted as negative after the shift.
-
-        // There is a way, however, to get around this limitation. When loading
-        // the network, scale accumulator weights and biases by 2.
-        // To get the same pairwise multiplication result as before,
-        // need to divide the product by 128 * 2 * 2 = 512, which amounts
-        // to a right shift of 9 bits. So now only have to shift left by 7 bits,
-        // perform mulhi (shifts right by 16 bits) and net a 9 bit right shift.
-        // Since we scaled everything by two, the values are clipped at 127 * 2 = 254,
-        // which occupies 8 bits. Shifting it by 7 bits left will no longer occupy the signed bit.
+        // Can use this to advantage. Recall that want to divide the final
+        // product by 512, which is equivalent to a 9-bit right shift.
+        // Intuitively, if we shift the clipped value left by 7, and
+        // perform mulhi, which shifts the product right by 16 bits,
+        // then will net a right shift of 9 bits.
 
         for (Index i = 0; i + 1 < OutputChunkCount; i += 2)
         {
