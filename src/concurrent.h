@@ -30,7 +30,7 @@
 #include <type_traits>    // conditional_t<>
 #include <unordered_map>  // unordered_map<>
 #include <unordered_set>  // unordered_set<>
-#include <utility>        // forward, std::pair
+#include <utility>        // forward<>, pair<>
 
 #include "misc.h"
 
@@ -116,10 +116,10 @@ class ConcurrentMap final {
     }
 
    private:
-    ConcurrentMap(const ConcurrentMap&)            = delete;
-    ConcurrentMap& operator=(const ConcurrentMap&) = delete;
-    ConcurrentMap(ConcurrentMap&&)                 = delete;
-    ConcurrentMap& operator=(ConcurrentMap&&)      = delete;
+    ConcurrentMap(const ConcurrentMap&) noexcept            = delete;
+    ConcurrentMap& operator=(const ConcurrentMap&) noexcept = delete;
+    ConcurrentMap(ConcurrentMap&&) noexcept                 = delete;
+    ConcurrentMap& operator=(ConcurrentMap&&) noexcept      = delete;
 
     using Map = std::unordered_map<Key, Value>;
 
@@ -196,6 +196,11 @@ class ConcurrentAllocationTracker final {
     }
 
    private:
+    ConcurrentAllocationTracker(const ConcurrentAllocationTracker&) noexcept            = delete;
+    ConcurrentAllocationTracker& operator=(const ConcurrentAllocationTracker&) noexcept = delete;
+    ConcurrentAllocationTracker(ConcurrentAllocationTracker&&) noexcept                 = delete;
+    ConcurrentAllocationTracker& operator=(ConcurrentAllocationTracker&&) noexcept      = delete;
+
     const AllocFunc                  allocFunc;
     const FreeFunc                   freeFunc;
     mutable std::shared_mutex        mutex;
@@ -329,10 +334,10 @@ class ConcurrentCache final {
     }
 
    private:
-    ConcurrentCache(const ConcurrentCache&)            = delete;
-    ConcurrentCache& operator=(const ConcurrentCache&) = delete;
-    ConcurrentCache(ConcurrentCache&&)                 = delete;
-    ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
+    ConcurrentCache(const ConcurrentCache&) noexcept            = delete;
+    ConcurrentCache& operator=(const ConcurrentCache&) noexcept = delete;
+    ConcurrentCache(ConcurrentCache&&) noexcept                 = delete;
+    ConcurrentCache& operator=(ConcurrentCache&&) noexcept      = delete;
 
     static constexpr usize ThresholdSize = 128;
 
@@ -493,10 +498,10 @@ class ConcurrentRegistry final {
     }
 
    private:
-    ConcurrentRegistry(const ConcurrentRegistry&)            = delete;
-    ConcurrentRegistry& operator=(const ConcurrentRegistry&) = delete;
-    ConcurrentRegistry(ConcurrentRegistry&&)                 = delete;
-    ConcurrentRegistry& operator=(ConcurrentRegistry&&)      = delete;
+    ConcurrentRegistry(const ConcurrentRegistry&) noexcept            = delete;
+    ConcurrentRegistry& operator=(const ConcurrentRegistry&) noexcept = delete;
+    ConcurrentRegistry(ConcurrentRegistry&&) noexcept                 = delete;
+    ConcurrentRegistry& operator=(ConcurrentRegistry&&) noexcept      = delete;
 
     using IndexMap = std::unordered_map<Value, typename List::iterator>;
     using Set      = std::unordered_set<Value>;
@@ -703,17 +708,16 @@ class RegistryCleanup final {
     }
 
    private:
-    RegistryCleanup(const RegistryCleanup&)            = delete;
-    RegistryCleanup& operator=(const RegistryCleanup&) = delete;
-    RegistryCleanup(RegistryCleanup&&)                 = delete;
-    RegistryCleanup& operator=(RegistryCleanup&&)      = delete;
+    RegistryCleanup(const RegistryCleanup&) noexcept            = delete;
+    RegistryCleanup& operator=(const RegistryCleanup&) noexcept = delete;
+    RegistryCleanup(RegistryCleanup&&) noexcept                 = delete;
+    RegistryCleanup& operator=(RegistryCleanup&&) noexcept      = delete;
 
     ConcurrentRegistry& registry;
 };
 
-// RegistryCleanupHook: ensures a RegistryCleanup callback is registered
-// only once with std::atexit() and retries until successfully registered
-// for normal program termination.
+// RegistryCleanupHook: ensures a RegistryCleanup callback is registered only once with atexit()
+// and retries until successfully registered for normal program termination.
 template<typename RegistryCleanup>
 class RegistryCleanupHook final {
    public:
@@ -730,10 +734,10 @@ class RegistryCleanupHook final {
     }
 
    private:
-    RegistryCleanupHook(const RegistryCleanupHook&)            = delete;
-    RegistryCleanupHook& operator=(const RegistryCleanupHook&) = delete;
-    RegistryCleanupHook(RegistryCleanupHook&&)                 = delete;
-    RegistryCleanupHook& operator=(RegistryCleanupHook&&)      = delete;
+    RegistryCleanupHook(const RegistryCleanupHook&) noexcept            = delete;
+    RegistryCleanupHook& operator=(const RegistryCleanupHook&) noexcept = delete;
+    RegistryCleanupHook(RegistryCleanupHook&&) noexcept                 = delete;
+    RegistryCleanupHook& operator=(RegistryCleanupHook&&) noexcept      = delete;
 
     static void cleanupFunction() noexcept {
         if (registryCleanupPtr != nullptr)
@@ -745,8 +749,6 @@ class RegistryCleanupHook final {
     static inline RegistryCleanup* registryCleanupPtr = nullptr;
     static inline CallOnce         hookCallOnce;
 };
-
-int looop2();
 
 }  // namespace DON
 

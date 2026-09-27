@@ -394,6 +394,7 @@ using psqt_vec_t = i32;
     #define vec_add_psqt_32(a, b) ((a) + (b))
     #define vec_sub_psqt_32(a, b) ((a) - (b))
     #define vec_convert_8_16(a) (i16(a))
+
 #endif
 // clang-format on
 
@@ -580,23 +581,6 @@ struct Tiling final {
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
 
-#elif defined(USE_RVV)
-struct Tiling final {
-   public:
-    static constexpr Index RegCount     = 1;
-    static constexpr Index PSQTRegCount = 1;
-
-#else
-// Treat scalar impl as degenerate size-1 vector
-struct Tiling final {
-   public:
-    static constexpr Index RegCount       = 1;
-    static constexpr Index PSQTRegCount   = 1;
-    static constexpr Index TileHeight     = 1;
-    static constexpr Index PSQTTileHeight = 1;
-
-#endif
-
    private:
     Tiling() noexcept                         = delete;
     ~Tiling() noexcept                        = delete;
@@ -605,6 +589,19 @@ struct Tiling final {
     Tiling(Tiling&&) noexcept                 = delete;
     Tiling& operator=(Tiling&&) noexcept      = delete;
 };
+
+#else
+// Treat scalar impl as degenerate size-1 vector
+namespace Tiling {
+static constexpr Index RegCount     = 1;
+static constexpr Index PSQTRegCount = 1;
+    #if !defined(USE_RVV)
+static constexpr Index TileHeight     = 1;
+static constexpr Index PSQTTileHeight = 1;
+    #endif
+}  // namespace Tiling
+
+#endif
 
 }  // namespace DON::NNUE::SIMD
 
