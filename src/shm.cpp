@@ -330,26 +330,29 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
 
     if (ret == 0)
     {
-        msghdr msg{};
+        struct msghdr   msg            = {};
+        const usize     space          = CMSG_SPACE(sizeof(int));
+        constexpr usize Alignment      = alignof(struct cmsghdr);
+        auto            controlStorage = std::make_unique<std::byte[]>(space + Alignment);
+        std::byte*      msgControlBuf  = align_ptr_up<Alignment>(controlStorage.get());
 
-        char         buf[1];
+        char         buf[1] = {};
         struct iovec iov[1];
         iov[0].iov_base = buf;
         iov[0].iov_len  = 1;
-        msg.msg_iov     = iov;
-        msg.msg_iovlen  = 1;
 
-        ControlMsg controlMsg{};
+        msg.msg_iov        = iov;
+        msg.msg_iovlen     = 1;
+        msg.msg_control    = msgControlBuf;
+        msg.msg_controllen = space;
 
-        msg.msg_control    = controlMsg.buf;
-        msg.msg_controllen = sizeof(controlMsg.buf);
+        ssize_t bytesRecv;
 
         int flags = 0;
     #if defined(MSG_CMSG_CLOEXEC)
         flags |= MSG_CMSG_CLOEXEC;
     #endif
 
-        ssize_t bytesRecv;
         do
             bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
         while (bytesRecv == -1 && errno == EINTR);
@@ -431,18 +434,21 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
                 if (!clientFd.is_valid())
                     continue;
 
-                msghdr msg{};
-                char   buf[1] = {};
-                iovec  iov[1];
+                struct msghdr   msg            = {};
+                const usize     space          = CMSG_SPACE(sizeof(int));
+                constexpr usize Alignment      = alignof(struct cmsghdr);
+                auto            controlStorage = std::make_unique<std::byte[]>(space + Alignment);
+                std::byte*      msgControlBuf  = align_ptr_up<Alignment>(controlStorage.get());
+
+                char  buf[1] = {};
+                iovec iov[1];
                 iov[0].iov_base = buf;
                 iov[0].iov_len  = 1;
-                msg.msg_iov     = iov;
-                msg.msg_iovlen  = 1;
 
-                ControlMsg controlMsg{};
-
-                msg.msg_control    = controlMsg.buf;
-                msg.msg_controllen = sizeof(controlMsg.buf);
+                msg.msg_iov        = iov;
+                msg.msg_iovlen     = 1;
+                msg.msg_control    = msgControlBuf;
+                msg.msg_controllen = space;
 
                 // Send over rights to the memFd (SCM_RIGHTS). The fd may be given a different number, but
                 // will refer to the same underlying file. Once it's mmapped then it will share physical memory

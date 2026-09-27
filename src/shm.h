@@ -539,11 +539,6 @@ struct InitLock final {
     UniqueFd lockFd;
 };
 
-union ControlMsg final {
-    char           buf[CMSG_SPACE(sizeof(int))];
-    struct cmsghdr align;
-};
-
 void* map_shared(int fd, usize size) noexcept;
 
 std::string make_sentinel_base(std::string_view name) noexcept;
