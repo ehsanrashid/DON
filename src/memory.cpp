@@ -245,6 +245,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     if (hugePageHint && allocSize >= HUGE_PAGE_SIZE)
     {
         const usize roundedAllocSize = round_up_to_multiple(allocSize, HUGE_PAGE_SIZE);
+
         mem = HugePageAllocationTracker.alloc(roundedAllocSize, alloc_aligned_huge_page);
 
         if (mem != nullptr)
@@ -253,21 +254,24 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     #endif
 
     #if defined(LINUX_NON_ANDROID)
-    constexpr usize Alignment = 2 * MB;  // Assume 2MB page-size
+    constexpr usize Alignment = 2 * MB;  // Assume 2 MB page size
 
     const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
+
     mem = HugePageAllocationTracker.alloc(roundedAllocSize, alloc_aligned_huge);
 
     #else
-    constexpr usize Alignment = 4 * KB;  // Assume small page-size
+    constexpr usize Alignment = 4 * KB;  // Assume 4 KB page size
 
     const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
-    mem                          = alloc_aligned_std(roundedAllocSize, Alignment);
+
+    mem = alloc_aligned_std(roundedAllocSize, Alignment);
 
         #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
         ::madvise(mem, roundedAllocSize, MADV_HUGEPAGE);
         #endif
+
     #endif
 #endif
 

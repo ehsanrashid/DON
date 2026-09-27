@@ -459,7 +459,7 @@ constexpr std::string_view week_day(const u32 year, const u32 month, const u32 d
     };
 
     // Precomputed weekday offsets for each month.
-    constexpr Array<u32, 12> MonthWeekdays{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    constexpr Array<u16, 12> MonthWeekdays{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
 
     // Treat January and February as part of the previous year.
     const u32 yr = year - u32(month < 3);

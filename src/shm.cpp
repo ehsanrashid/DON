@@ -273,17 +273,17 @@ UniqueFd create_unix_socket() noexcept {
 Strings get_peer_sockets(const std::string& sharedDir) noexcept {
     Strings peerSockets;
 
-    DIR* dirPtr = ::opendir(sharedDir.c_str());
-    if (dirPtr != nullptr)
+    if (DIR* dir = ::opendir(sharedDir.c_str()))
     {
-        const struct dirent* dirEntryPtr;
-        while ((dirEntryPtr = ::readdir(dirPtr)) != nullptr)
+        while (const struct dirent* entry = ::readdir(dir))
         {
-            std::string dName{dirEntryPtr->d_name};
+            const std::string_view dName = entry->d_name;
+
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
-                peerSockets.push_back(sharedDir + "/" + dName);
+                peerSockets.push_back(sharedDir + "/" + std::string{dName});
         }
-        ::closedir(dirPtr);
+
+        ::closedir(dir);
     }
 
     return peerSockets;
@@ -327,14 +327,18 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
         if (bytesRecv > 0)
         {
             cmsghdr* cmsg = CMSG_FIRSTHDR(&message.msg);
+
             // Receive rights to the memFd from the peer; see make_server_thread
-            if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS
+                && cmsg->cmsg_len >= CMSG_LEN(sizeof(int)))
             {
                 int receivedFd;
                 std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
+
     #if !defined(MSG_CMSG_CLOEXEC)
                 set_cloexec(receivedFd);
     #endif
+
                 return UniqueFd{receivedFd};
             }
         }
