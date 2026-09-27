@@ -328,7 +328,6 @@ inline int lsx_vec_nnz(const __m128i a) noexcept {
 }
         #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
-
         #define vec_mulhi_8 __lsx_vmuh_bu
         #define vec_srli_8 __lsx_vsrli_b
 
@@ -397,6 +396,10 @@ using psqt_vec_t = i32;
 
 #endif
 // clang-format on
+
+#if defined(VECTOR)
+static_assert(CHUNK_SIZE_MAX == sizeof(vec_t), "CHUNK_SIZE_MAX must equal one vector.");
+#endif
 
 #if defined(USE_SSSE3)
     #if defined(USE_AVX512)
