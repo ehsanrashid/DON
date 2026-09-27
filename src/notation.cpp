@@ -24,6 +24,7 @@
 #include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
+#include "state.h"
 
 namespace DON {
 
@@ -124,7 +125,7 @@ std::string move_to_can(const Move m) noexcept {
     const Square orgSq = m.org_sq();
     Square       dstSq = m.dst_sq();
 
-    if (!Position::Chess960 && m.type() == MT::CASTLING)
+    if (!Position::Chess960 && m.type() == Move::Type::CASTLING)
     {
         assert(rank_of(orgSq) == rank_of(dstSq));
         dstSq = king_castle_sq(orgSq, dstSq);
@@ -136,7 +137,7 @@ std::string move_to_can(const Move m) noexcept {
     can  //
       .append(to_string(orgSq))
       .append(to_string(dstSq));
-    if (m.type() == MT::PROMOTION)
+    if (m.type() == Move::Type::PROMOTION)
         can.push_back(lower_case(m.promotion_char()));
 
     return can;
@@ -228,7 +229,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
     std::string san;
     san.reserve(9);
 
-    if (m.type() == MT::CASTLING)
+    if (m.type() == Move::Type::CASTLING)
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
         san.append(to_string(make_cs(orgSq, dstSq)));
@@ -269,7 +270,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
 
         san.append(to_string(dstSq));
 
-        if (m.type() == MT::PROMOTION)
+        if (m.type() == Move::Type::PROMOTION)
         {
             san.push_back('=');
             san.push_back(upper_case(m.promotion_char()));

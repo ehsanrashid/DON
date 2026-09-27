@@ -24,6 +24,7 @@
 
 #include "attacks.h"
 #include "bitboard.h"
+#include "debug.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
@@ -223,7 +224,7 @@ bool load_book(const fs::path& bookPath) noexcept {
 Worker::Worker(const ThreadContext&      threadCxt,
                NumaReplicatedAccessToken accessToken,
                const SharedState&        sharedState,
-               ManagerPtr                manager) noexcept :
+               Manager::Ptr              manager) noexcept :
     threadContext(threadCxt),
     numaAccessToken(accessToken),
     network(sharedState.network),
@@ -283,7 +284,7 @@ void Worker::ensure_network_replicated() const noexcept {
 
 // Called when the program receives the UCI 'go' command.
 void Worker::start_search() noexcept {
-    auto* manager = is_main() ? this->manager() : nullptr;
+    auto* const manager = is_main() ? this->manager() : nullptr;
 
     // Non-main threads go directly to iterative_deepening()
     if (manager == nullptr)
@@ -440,7 +441,7 @@ void Worker::iterative_deepening() noexcept {
 
     lowPlyQuietHistory.fill(102);
 
-    auto* manager = is_main() ? this->manager() : nullptr;
+    auto* const manager = is_main() ? this->manager() : nullptr;
 
     Color ac = rootPos.active_color();
 
@@ -889,7 +890,8 @@ Value Worker::search(Position&    pos,
     const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
 
     const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
-    const bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
+    const bool preNonPawn =
+      preOk && type_of(pos[preSq]) != PAWN && preMove.type() != Move::Type::PROMOTION;
 
     Value evalue, ttEvalue;
 
@@ -1981,7 +1983,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && move.dst_sq() != preSq && move.type() != MT::PROMOTION
+            if (!check && move.dst_sq() != preSq && move.type() != Move::Type::PROMOTION
                 && !is_loss(baseFutility))
             {
                 if (moveCount > 2)
@@ -2581,7 +2583,6 @@ void Manager::check_time(Worker& worker) noexcept {
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 
-#if !defined(NDEBUG)
     static TimePoint infoTime = now();
 
     if (const TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
@@ -2589,7 +2590,6 @@ void Manager::check_time(Worker& worker) noexcept {
         infoTime = curTime;
         Debug::print();
     }
-#endif
 
     // Should not stop pondering until told so by the GUI
     if (ponder)

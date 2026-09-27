@@ -32,6 +32,7 @@
 #include "movegen.h"
 #include "notation.h"
 #include "position.h"
+#include "state.h"
 #include "thread.h"
 
 namespace DON::Perft {
@@ -62,29 +63,30 @@ void PerftData::classify(Position& pos, const Move m) noexcept {
 
     State st;
 
-    castle += int(m.type() == MT::CASTLING);
+    castle += int(m.type() == Move::Type::CASTLING);
 
-    promotion += int(m.type() == MT::PROMOTION);
+    promotion += int(m.type() == Move::Type::PROMOTION);
 
     if (pos.capture(m))
     {
         ++capture;
 
-        enpassant += int(m.type() == MT::EN_PASSANT);
+        enpassant += int(m.type() == Move::Type::EN_PASSANT);
     }
 
     if (pos.check(m))
     {
         ++anyCheck;
 
-        const auto movedPt = m.type() != MT::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type();
+        const auto movedPt =
+          m.type() != Move::Type::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type();
         if ((pos.checks_bb(movedPt) & dstSq) == 0)
         {
             const Color ac = pos.active_color();
 
             if ((pos.blockers_bb(~ac) & orgSq) != 0)
                 ++dscCheck;
-            else if (m.type() == MT::EN_PASSANT)
+            else if (m.type() == Move::Type::EN_PASSANT)
             {
                 Bitboard occupancyBB =
                   pos.pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
@@ -93,7 +95,7 @@ void PerftData::classify(Position& pos, const Move m) noexcept {
                   (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
                   != 0);
             }
-            //else if (m.type() == MT::CASTLING)
+            //else if (m.type() == Move::Type::CASTLING)
             //    dscCheck += int((pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0);
         }
 
@@ -297,7 +299,7 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
             const_cast<PTEntry*>(rte->depth() <= depth ? rte : fte + ptc->entries.size() - 1)};
 }
 
-PerftTable perftTable;
+PerftTable PerftTable_;
 
 constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
     return !detail && depth >= 4;
@@ -365,7 +367,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                 {
                     const Key key = pos.raw_key();
 
-                    auto [ptHit, pte] = perftTable.probe(key, depth - 1);
+                    auto [ptHit, pte] = PerftTable_.probe(key, depth - 1);
 
                     if (ptHit)
                     {
@@ -451,11 +453,10 @@ u64 perft(const Position& pos,
           const usize     ptSize,
           const Depth     depth,
           const bool      detail) noexcept {
-
     Position p{pos};
 
     if (use_perft_table(depth, detail))
-        perftTable.resize(ptSize, threads);
+        PerftTable_.resize(ptSize, threads);
 
     return perft<true>(p, depth, detail).nodes;
 }

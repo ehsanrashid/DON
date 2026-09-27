@@ -32,6 +32,7 @@
 #include "option.h"
 #include "position.h"
 #include "search.h"
+#include "state.h"
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
@@ -137,8 +138,8 @@ class Engine final {
 
     SharedState sharedState{network, options(), transpositionTable, threads, atomicHistoriesMap};
 
-    mutable StateListPtr states;
-    Position             pos;
+    mutable State::ListPtr states;
+    Position               pos;
 
     Manager::UpdateContext updateContext;
 };

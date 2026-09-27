@@ -83,6 +83,10 @@ class SplitMix64 final {
 //   <https://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class Xorshift64s final {
    public:
+    static constexpr usize StateSize = 1;
+
+    using State = Array<u64, StateSize>;
+
     explicit Xorshift64s(u64 seed) noexcept;
 
     template<typename T>
@@ -115,10 +119,6 @@ class Xorshift64s final {
 
     u64 rand64() noexcept;
 
-    static constexpr usize StateSize = 1;
-
-    using State = Array<u64, StateSize>;
-
     static constexpr State DefaultState = {1};
 
     State state = DefaultState;
@@ -149,6 +149,10 @@ class Xorshift64s final {
 //   <https://prng.di.unimi.it/xoroshiro128starstar.c>
 class Xoroshiro128ss final {
    public:
+    static constexpr usize StateSize = 2;
+
+    using State = Array<u64, StateSize>;
+
     explicit Xoroshiro128ss(u64 seed) noexcept;
 
     template<typename T>
@@ -181,10 +185,6 @@ class Xoroshiro128ss final {
 
     u64 rand64() noexcept;
 
-    static constexpr usize StateSize = 2;
-
-    using State = Array<u64, StateSize>;
-
     static constexpr State DefaultState = {1, 0};
 
     State state = DefaultState;
@@ -215,6 +215,10 @@ class Xoroshiro128ss final {
 //   <https://prng.di.unimi.it/xoshiro256starstar.c>
 class Xoshiro256ss final {
    public:
+    static constexpr usize StateSize = 4;
+
+    using State = Array<u64, StateSize>;
+
     explicit Xoshiro256ss(u64 seed) noexcept;
 
     template<typename T>
@@ -246,10 +250,6 @@ class Xoshiro256ss final {
     u64 mix() const noexcept;
 
     u64 rand64() noexcept;
-
-    static constexpr usize StateSize = 4;
-
-    using State = Array<u64, StateSize>;
 
     static constexpr State DefaultState = {1, 0, 0, 0};
 

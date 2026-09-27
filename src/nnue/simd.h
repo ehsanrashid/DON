@@ -328,7 +328,6 @@ inline int lsx_vec_nnz(const __m128i a) noexcept {
 }
         #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
-
         #define vec_mulhi_8 __lsx_vmuh_bu
         #define vec_srli_8 __lsx_vsrli_b
 
@@ -394,8 +393,13 @@ using psqt_vec_t = i32;
     #define vec_add_psqt_32(a, b) ((a) + (b))
     #define vec_sub_psqt_32(a, b) ((a) - (b))
     #define vec_convert_8_16(a) (i16(a))
+
 #endif
 // clang-format on
+
+#if defined(VECTOR)
+static_assert(CHUNK_SIZE_MAX == sizeof(vec_t), "CHUNK_SIZE_MAX must equal one vector.");
+#endif
 
 #if defined(USE_SSSE3)
     #if defined(USE_AVX512)
@@ -580,23 +584,6 @@ struct Tiling final {
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
 
-#elif defined(USE_RVV)
-struct Tiling final {
-   public:
-    static constexpr Index RegCount     = 1;
-    static constexpr Index PSQTRegCount = 1;
-
-#else
-// Treat scalar impl as degenerate size-1 vector
-struct Tiling final {
-   public:
-    static constexpr Index RegCount       = 1;
-    static constexpr Index PSQTRegCount   = 1;
-    static constexpr Index TileHeight     = 1;
-    static constexpr Index PSQTTileHeight = 1;
-
-#endif
-
    private:
     Tiling() noexcept                         = delete;
     ~Tiling() noexcept                        = delete;
@@ -605,6 +592,19 @@ struct Tiling final {
     Tiling(Tiling&&) noexcept                 = delete;
     Tiling& operator=(Tiling&&) noexcept      = delete;
 };
+
+#else
+// Treat scalar impl as degenerate size-1 vector
+namespace Tiling {
+inline constexpr Index RegCount     = 1;
+inline constexpr Index PSQTRegCount = 1;
+    #if !defined(USE_RVV)
+inline constexpr Index TileHeight     = 1;
+inline constexpr Index PSQTTileHeight = 1;
+    #endif
+}  // namespace Tiling
+
+#endif
 
 }  // namespace DON::NNUE::SIMD
 

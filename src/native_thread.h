@@ -59,7 +59,7 @@ struct ThreadOptions final {
 class NativeThread final {
    private:
     struct BaseCallable {  // Type-erased callable interface
-        virtual ~BaseCallable() = default;
+        virtual ~BaseCallable() noexcept = default;
 
         virtual void invoke() noexcept = 0;
     };
@@ -69,6 +69,10 @@ class NativeThread final {
         Callable(Function&& func, Args&&... args) :
             func_(std::forward<Function>(func)),
             args_(std::make_tuple(std::forward<Args>(args)...)) {}
+
+        // ~Callable() noexcept {
+        //     DEBUG_LOG("Callable destroyed: " << static_cast<void*>(this));
+        // }
 
         void invoke() noexcept override { std::apply(func_, args_); }
 

@@ -63,7 +63,7 @@ namespace DON::NNUE {
 namespace {
 
 // Read network header
-bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noexcept {
+bool read_header_(std::istream& is, u32& hash, std::string& netDescription) noexcept {
     u32 fileVersion, descSize;
     fileVersion = read_little_endian<u32>(is);
     hash        = read_little_endian<u32>(is);
@@ -95,7 +95,7 @@ bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noex
 }
 
 // Write network header
-bool _write_header(std::ostream& os, u32 hash, std::string_view netDescription) noexcept {
+bool write_header_(std::ostream& os, u32 hash, std::string_view netDescription) noexcept {
     write_little_endian<u32>(os, FILE_VERSION);
     write_little_endian<u32>(os, hash);
     write_little_endian<u32>(os, u32(netDescription.size()));
@@ -106,7 +106,7 @@ bool _write_header(std::ostream& os, u32 hash, std::string_view netDescription) 
 
 // Read evaluation function parameters
 template<typename T>
-bool _read_parameters(std::istream& is, T& reference) noexcept {
+bool read_parameters_(std::istream& is, T& reference) noexcept {
     u32 hash;
     hash = read_little_endian<u32>(is);
 
@@ -118,7 +118,7 @@ bool _read_parameters(std::istream& is, T& reference) noexcept {
 
 // Write evaluation function parameters
 template<typename T>
-bool _write_parameters(std::ostream& os, const T& reference) noexcept {
+bool write_parameters_(std::ostream& os, const T& reference) noexcept {
     write_little_endian<u32>(os, T::hash());
 
     return reference.write_parameters(os);
@@ -352,17 +352,17 @@ bool Network::save(std::ostream& os, std::string_view netDescription) const noex
 
 bool Network::read_parameters(std::istream& is, std::string& netDescription) noexcept {
     u32 hash;
-    if (!_read_header(is, hash, netDescription))
+    if (!read_header_(is, hash, netDescription))
         return false;
 
     if (hash != Network::Hash)
         return false;
 
-    if (!_read_parameters(is, featureTransformer))
+    if (!read_parameters_(is, featureTransformer))
         return false;
 
     for (auto& arch : networkArchitectures)
-        if (!_read_parameters(is, arch))
+        if (!read_parameters_(is, arch))
             return false;
 
     return bool(is) && is.peek() == std::ios::traits_type::eof();
@@ -370,14 +370,14 @@ bool Network::read_parameters(std::istream& is, std::string& netDescription) noe
 
 bool Network::write_parameters(std::ostream& os, std::string_view netDescription) const noexcept {
 
-    if (!_write_header(os, Network::Hash, netDescription))
+    if (!write_header_(os, Network::Hash, netDescription))
         return false;
 
-    if (!_write_parameters(os, featureTransformer))
+    if (!write_parameters_(os, featureTransformer))
         return false;
 
     for (const auto& arch : networkArchitectures)
-        if (!_write_parameters(os, arch))
+        if (!write_parameters_(os, arch))
             return false;
 
     return bool(os);

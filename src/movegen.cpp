@@ -265,7 +265,7 @@ Move* generate_pawns_moves(const Position& pos,
             {
                 const Square orgSq = AC == WHITE ? pop_lsq(epPawnsBB) : pop_msq(epPawnsBB);
 
-                *moves++ = Move{orgSq, pos.en_passant_sq(), MT::EN_PASSANT};
+                *moves++ = Move{orgSq, pos.en_passant_sq(), Move::Type::EN_PASSANT};
             }
         }
     }
@@ -351,7 +351,7 @@ Move* generate_king_moves(const Position& pos,
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
                            && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)) != 0);
 
-                    *moves++ = Move{kingSq, pos.castling_rook_sq(AC, cs), MT::CASTLING};
+                    *moves++ = Move{kingSq, pos.castling_rook_sq(AC, cs), Move::Type::CASTLING};
 
                     if constexpr (Any)
                         return moves;

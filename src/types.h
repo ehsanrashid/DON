@@ -764,8 +764,6 @@ class Move {
 inline constexpr Move Move::None{0x000};
 inline constexpr Move Move::Null{0xFFF};
 
-using MT = Move::Type;
-
 using Moves = std::vector<Move>;
 
 // Keep track of what piece changes on the board by a move

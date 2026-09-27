@@ -34,6 +34,7 @@
 #include "../position.h"
 #include "../prng.h"
 #include "../search.h"
+#include "../state.h"
 #include "../types.h"
 
 namespace DON::Book {
