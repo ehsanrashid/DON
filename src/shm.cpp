@@ -28,6 +28,7 @@
     #include <sys/uio.h>   // iovec
 
     #include <algorithm>  // min()/max()
+    #include <memory>     // make_unique<>
 #endif
 
 namespace DON {
@@ -214,6 +215,22 @@ void InitLock::unlock() noexcept {
     lockFd.reset();
 }
 
+ScmRightsMessage::ScmRightsMessage() noexcept :
+    controlStorage(std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + alignof(cmsghdr))) {
+    constexpr usize Alignment = alignof(cmsghdr);
+    const usize     space     = CMSG_SPACE(sizeof(int));
+
+    std::byte* msgControlBuf = align_ptr_up<Alignment>(controlStorage.get());
+
+    iov[0].iov_base = buf;
+    iov[0].iov_len  = 1;
+
+    msg.msg_iov        = iov;
+    msg.msg_iovlen     = 1;
+    msg.msg_control    = msgControlBuf;
+    msg.msg_controllen = space;
+}
+
 void* map_shared(const int fd, const usize size) noexcept {
     #if defined(__linux__)
     constexpr usize Alignment = 2 * MB;
@@ -330,21 +347,7 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
 
     if (ret == 0)
     {
-        struct msghdr   msg            = {};
-        const usize     space          = CMSG_SPACE(sizeof(int));
-        constexpr usize Alignment      = alignof(struct cmsghdr);
-        auto            controlStorage = std::make_unique<std::byte[]>(space + Alignment);
-        std::byte*      msgControlBuf  = align_ptr_up<Alignment>(controlStorage.get());
-
-        char         buf[1] = {};
-        struct iovec iov[1];
-        iov[0].iov_base = buf;
-        iov[0].iov_len  = 1;
-
-        msg.msg_iov        = iov;
-        msg.msg_iovlen     = 1;
-        msg.msg_control    = msgControlBuf;
-        msg.msg_controllen = space;
+        ScmRightsMessage message;
 
         ssize_t bytesRecv;
 
@@ -354,12 +357,12 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
     #endif
 
         do
-            bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
+            bytesRecv = ::recvmsg(peerFd.get(), &message.msg, flags);
         while (bytesRecv == -1 && errno == EINTR);
 
         if (bytesRecv > 0)
         {
-            cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+            cmsghdr* cmsg = CMSG_FIRSTHDR(&message.msg);
             // Receive rights to the memFd from the peer; see make_server_thread
             if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
             {
@@ -434,28 +437,14 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
                 if (!clientFd.is_valid())
                     continue;
 
-                struct msghdr   msg            = {};
-                const usize     space          = CMSG_SPACE(sizeof(int));
-                constexpr usize Alignment      = alignof(struct cmsghdr);
-                auto            controlStorage = std::make_unique<std::byte[]>(space + Alignment);
-                std::byte*      msgControlBuf  = align_ptr_up<Alignment>(controlStorage.get());
-
-                char  buf[1] = {};
-                iovec iov[1];
-                iov[0].iov_base = buf;
-                iov[0].iov_len  = 1;
-
-                msg.msg_iov        = iov;
-                msg.msg_iovlen     = 1;
-                msg.msg_control    = msgControlBuf;
-                msg.msg_controllen = space;
+                ScmRightsMessage message;
 
                 // Send over rights to the memFd (SCM_RIGHTS). The fd may be given a different number, but
                 // will refer to the same underlying file. Once it's mmapped then it will share physical memory
                 // between the processes.
                 // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
                 int             rawFd = fd.get();
-                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&msg);
+                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&message.msg);
                 cmsg->cmsg_level      = SOL_SOCKET;
                 cmsg->cmsg_type       = SCM_RIGHTS;
                 cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
@@ -470,7 +459,7 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
     #if defined(MSG_NOSIGNAL)
                 flags |= MSG_NOSIGNAL;
     #endif
-                while (::sendmsg(clientFd.get(), &msg, flags) == -1)
+                while (::sendmsg(clientFd.get(), &message.msg, flags) == -1)
                 {
                     if (errno == EINTR)
                         continue;

@@ -63,6 +63,7 @@
     #include <cassert>
     #include <cerrno>
     #include <cstring>  // strncpy
+    #include <memory>   // unique_ptr<>, make_unique<>
     #include <optional>
 
     #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
@@ -537,6 +538,22 @@ struct InitLock final {
     void unlock() noexcept;
 
     UniqueFd lockFd;
+};
+
+struct ScmRightsMessage final {
+    ScmRightsMessage() noexcept;
+
+    msghdr msg    = {};
+    char   buf[1] = {};
+    iovec  iov[1] = {};
+
+   private:
+    ScmRightsMessage(const ScmRightsMessage&)            = delete;
+    ScmRightsMessage& operator=(const ScmRightsMessage&) = delete;
+    ScmRightsMessage(ScmRightsMessage&&)                 = delete;
+    ScmRightsMessage& operator=(ScmRightsMessage&&)      = delete;
+
+    std::unique_ptr<std::byte[]> controlStorage;
 };
 
 void* map_shared(int fd, usize size) noexcept;
