@@ -232,66 +232,6 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
     return count == 0 || stride <= room / count;
 }
 
-// Tablebase data layout is structured as following:
-//
-//  TBTable:  one object for each file with corresponding indexing information
-//  TBTables: has ownership of TBTable objects, keeping a list and a hash
-
-// TBPaths contains the directories used to locate Syzygy tablebase files
-// (.rtbw / .rtbz).
-//
-// Responsibilities:
-// • Parse a platform-dependent list of directories:
-//     - ';' on Windows
-//     - ':' on Unix-like systems
-// • Store paths as std::filesystem::path for safe concatenation and
-//   cross-platform correctness.
-// • Provide read-only access to the configured directories.
-//
-// Usage:
-// • Call TBPaths::init() once during engine startup.
-// • Use TBPaths::get() when resolving tablebase files.
-//
-// Example:
-//     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
-//     for (const auto& dir : TBPaths::get()) { ... }
-//
-// Notes:
-// • Re-initialization replaces the previous path set.
-namespace TBPaths {
-
-namespace {
-
-// Platform-specific directory separator.
-// Example:
-// C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-constexpr std::string_view PATH_SEPARATOR{
-    #if defined(_WIN32)
-  ";"
-    #else
-  ":"
-    #endif
-};
-
-std::vector<fs::path> Paths;
-
-}  // namespace
-
-bool init(const std::string_view paths) noexcept {
-    Paths.clear();
-    Paths.reserve(4);
-
-    for (const auto path : split(paths, PATH_SEPARATOR, true))
-        if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
-            Paths.emplace_back(utf8_to_path(path));
-
-    return !Paths.empty();
-}
-
-const auto& paths() noexcept { return Paths; }
-
-}  // namespace TBPaths
-
 // TBFile resolves a tablebase filename by searching through TBPaths.
 // The first matching regular file is retained.
 class TBFile final {
@@ -1849,6 +1789,66 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 }
 
 }  // namespace
+
+// Tablebase data layout is structured as following:
+//
+//  TBTable:  one object for each file with corresponding indexing information
+//  TBTables: has ownership of TBTable objects, keeping a list and a hash
+
+// TBPaths contains the directories used to locate Syzygy tablebase files
+// (.rtbw / .rtbz).
+//
+// Responsibilities:
+// • Parse a platform-dependent list of directories:
+//     - ';' on Windows
+//     - ':' on Unix-like systems
+// • Store paths as std::filesystem::path for safe concatenation and
+//   cross-platform correctness.
+// • Provide read-only access to the configured directories.
+//
+// Usage:
+// • Call TBPaths::init() once during engine startup.
+// • Use TBPaths::get() when resolving tablebase files.
+//
+// Example:
+//     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
+//     for (const auto& dir : TBPaths::get()) { ... }
+//
+// Notes:
+// • Re-initialization replaces the previous path set.
+namespace TBPaths {
+
+namespace {
+
+// Platform-specific directory separator.
+// Example:
+// C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+constexpr std::string_view PATH_SEPARATOR{
+    #if defined(_WIN32)
+  ";"
+    #else
+  ":"
+    #endif
+};
+
+std::vector<fs::path> Paths;
+
+}  // namespace
+
+bool init(const std::string_view paths) noexcept {
+    Paths.clear();
+    Paths.reserve(4);
+
+    for (const auto path : split(paths, PATH_SEPARATOR, true))
+        if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
+            Paths.emplace_back(utf8_to_path(path));
+
+    return !Paths.empty();
+}
+
+const std::vector<fs::path>& paths() noexcept { return Paths; }
+
+}  // namespace TBPaths
 
 void init() noexcept {
 

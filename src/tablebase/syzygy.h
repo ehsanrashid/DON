@@ -98,7 +98,7 @@ namespace TBPaths {
 
 bool init(std::string_view paths) noexcept;
 
-const auto& paths() noexcept;
+const std::vector<fs::path>& paths() noexcept;
 
 }  // namespace TBPaths
 
