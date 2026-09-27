@@ -557,7 +557,7 @@ struct ScmRightsMessage final {
     std::unique_ptr<std::byte[]> controlStorage;
 };
 
-void* map_shared(int fd, usize size) noexcept;
+void* map_shared(usize size, int fd) noexcept;
 
 std::string make_sentinel_base(std::string_view name) noexcept;
 
@@ -677,7 +677,7 @@ class SharedMemory final: public BaseSharedMemory {
         assert(memFd.is_valid());
 
         // Try to map the memFd
-        T* mappedMem = static_cast<T*>(map_shared(memFd.get(), sizeof(T)));
+        T* mappedMem = static_cast<T*>(map_shared(sizeof(T), memFd.get()));
         if (mappedMem == MAP_FAILED)
             return false;
 

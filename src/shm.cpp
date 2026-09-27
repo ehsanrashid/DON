@@ -230,7 +230,7 @@ ScmRightsMessage::ScmRightsMessage() noexcept :
     msg.msg_controllen = space;
 }
 
-void* map_shared(const int fd, const usize size) noexcept {
+void* map_shared(const usize size, const int fd) noexcept {
     #if !defined(__linux__) || !defined(__ANDROID__)
     return mmap_huge_aligned(size, MAP_SHARED, fd);
     #else

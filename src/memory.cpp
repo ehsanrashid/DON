@@ -30,7 +30,8 @@
         #include <features.h>  // glibc feature-test macros
     #endif
     #if defined(__linux__) && !defined(__ANDROID__)
-        #include <sys/mman.h>
+        #include <sys/mman.h>  // munmap()
+        #include <unistd.h>    // close()
         #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
             #define USE_POSIX_X86_64_HUGE_PAGES
         #endif
@@ -105,6 +106,52 @@ void free_aligned_std(void* const mem) noexcept {
 #endif
 }
 
+#if defined(__linux__) && !defined(__ANDROID__)
+// Allocate size bytes aligned to a 2 MB boundary using mmap.
+// On success the returned pointer can be freed with munmap(ptr, size).
+void* mmap_huge_aligned(usize size, int flags, int fd, off_t offset) noexcept {
+
+    constexpr usize Alignment = 2 * MB;
+    const long      pageSize  = ::sysconf(_SC_PAGESIZE);
+
+    if (size >= Alignment && pageSize > 0)
+    {
+        // Align the mapping to 2 MiB for huge-page-friendly virtual addressing.
+        // File-backed huge pages require matching virtual-address and file-offset alignment.
+        const usize mappingSize  = ceil_to_multiple(size, usize(pageSize));
+        const usize reservedSize = mappingSize + Alignment;
+        void*       reservedAddress =
+          ::mmap(nullptr, reservedSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        if (reservedAddress != MAP_FAILED)
+        {
+            char* const reservationBase = static_cast<char*>(reservedAddress);
+            char* const mappingAddress  = align_ptr_up<Alignment>(reservationBase);
+            void*       mappedAddress = ::mmap(mappingAddress, mappingSize, PROT_READ | PROT_WRITE,
+                                               flags | MAP_FIXED, fd, offset);
+
+            if (mappedAddress != MAP_FAILED)
+            {
+                const usize prefixSize = usize(mappingAddress - reservationBase);
+                const usize suffixSize = reservedSize - prefixSize - mappingSize;
+
+                if (prefixSize != 0)
+                    ::munmap(reservedAddress, prefixSize);
+
+                if (suffixSize != 0)
+                    ::munmap(mappingAddress + mappingSize, suffixSize);
+
+                return mappedAddress;
+            }
+
+            ::munmap(reservedAddress, reservedSize);
+        }
+    }
+
+    return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, flags, fd, offset);
+}
+#endif
+
 namespace {
 
 #if defined(_WIN32)
@@ -152,7 +199,7 @@ void* alloc_aligned_huge_page(const usize allocSize) noexcept {
         return nullptr;
 
         #if defined(MADV_HUGEPAGE)
-    ::madvise(mem, size, MADV_HUGEPAGE);
+    ::madvise(mem, allocSize, MADV_HUGEPAGE);
         #endif
 
     #endif
