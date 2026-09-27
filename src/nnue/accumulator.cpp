@@ -235,11 +235,11 @@ namespace {
 constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
 namespace {
-using Tiling = SIMD::Tiling
 #if defined(VECTOR)
-  <Dimensions, Dimensions, PSQT_BUCKETS>
+using Tiling = SIMD::Tiling<Dimensions, Dimensions, PSQT_BUCKETS>;
+#else
+namespace Tiling = SIMD::Tiling;
 #endif
-  ;
 
 enum class Op : u8 {
     Add,
