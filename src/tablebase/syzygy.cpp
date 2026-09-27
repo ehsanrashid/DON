@@ -801,7 +801,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     *size      = mappedSize;
     mappedPtr  = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fdGuard.get(), 0);
 
-    if (!mappedGuard.is_valid())
+    if (mappedGuard.get_ptr() == MAP_FAILED)
     {
         std::cerr << "::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
                   << std::strerror(errno) << std::endl;
@@ -810,13 +810,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     }
 
         #if defined(MADV_RANDOM)
-    if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
-        && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
-    {
-        std::cerr << "::madvise() failed: name = " << filename
-                  << " mappedSize = " << mappedGuard.get_size()
-                  << ", error = " << std::strerror(errno) << std::endl;
-    }
+    if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0)
+        ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM);
         #endif
     #endif
 
