@@ -23,6 +23,26 @@
 
 namespace DON {
 
+Square pop_lsq(Bitboard& b) noexcept {
+    assert(b != 0);
+
+    const Square s = lsq(b);
+
+    b &= b - 1;
+
+    return s;
+}
+
+Square pop_msq(Bitboard& b) noexcept {
+    assert(b != 0);
+
+    const Square s = msq(b);
+
+    b ^= s;
+
+    return s;
+}
+
 std::string pretty_str(const Bitboard b) noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 

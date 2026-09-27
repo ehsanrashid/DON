@@ -541,13 +541,43 @@ void Position::set_state() noexcept {
         st->key ^= Zobrist_.turn();
 }
 
-void Position::set_pinner_blocker() noexcept {
-    st->pinnersBB[WHITE] = st->pinnersBB[BLACK] = 0;
+void Position::reset_pinner_blocker(const Color c) noexcept {
+    st->pinnersBB[c]  = 0;
+    st->blockersBB[c] = 0;
+}
 
-    st->blockersBB[WHITE] = blockers_bb(square<KING>(WHITE), pieces_bb(BLACK),  //
-                                        st->pinnersBB[WHITE], st->pinnersBB[BLACK]);
-    st->blockersBB[BLACK] = blockers_bb(square<KING>(BLACK), pieces_bb(WHITE),  //
-                                        st->pinnersBB[BLACK], st->pinnersBB[WHITE]);
+void Position::compute_pinner_blocker(const Color c) noexcept {
+    const Square kingSq = square<KING>(c);
+
+    const Bitboard attackersBB = pieces_bb(~c);
+
+    // xSnipers are x-ray attackers that attack 's' when blockers are removed
+    Bitboard       xSnipersBB  = xslide_attackers_bb(kingSq) & attackersBB;
+    const Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
+
+    while (xSnipersBB != 0)
+    {
+        const Square xSniperSq = pop_lsq(xSnipersBB);
+
+        if (const Bitboard blockerBB = Attacks::between_bb(kingSq, xSniperSq) & occupancyBB;
+            exactly_one(blockerBB))
+        {
+            st->blockersBB[c] |= blockerBB;
+
+            if ((blockerBB & attackersBB) != 0)
+                st->pinnersBB[c] |= xSniperSq;
+            else
+                st->pinnersBB[~c] |= xSniperSq;
+        }
+    }
+}
+
+void Position::set_pinner_blocker() noexcept {
+    reset_pinner_blocker(WHITE);
+    reset_pinner_blocker(BLACK);
+
+    compute_pinner_blocker(WHITE);
+    compute_pinner_blocker(BLACK);
 }
 
 void Position::set_ext_state() noexcept {

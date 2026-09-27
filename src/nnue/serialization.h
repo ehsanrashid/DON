@@ -305,7 +305,7 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
         bufferPos = 0;
     };
 
-    const auto write = [&](const u8 b) noexcept {
+    const auto write = [&](const u8 b) noexcept -> void {
         buffer[bufferPos] = b;
         ++bufferPos;
 
@@ -332,7 +332,7 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
 }
 
 template<typename IntType, usize Size>
-inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in) {
+inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in) noexcept {
     write_leb_128(os, in.data(), Size);
 }
 
