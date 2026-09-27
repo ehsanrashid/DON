@@ -139,15 +139,13 @@ class ConcurrentMap final {
 };
 
 // ConcurrentAllocationTracker: thread-safe allocation and freeing, with allocation size tracking.
-template<typename AllocFunc, typename FreeFunc>
 class ConcurrentAllocationTracker final {
    public:
-    explicit ConcurrentAllocationTracker(AllocFunc allocFn, FreeFunc freeFn) noexcept :
-        allocFunc(std::move(allocFn)),
-        freeFunc(std::move(freeFn)) {}
-
-    [[nodiscard]] void* alloc(const usize allocSize) noexcept {
-        void* mem = allocFunc(allocSize);
+    ConcurrentAllocationTracker() noexcept = default;
+    
+    template<typename AllocFunc>
+    [[nodiscard]] void* alloc(const usize allocSize, AllocFunc&& allocFn) noexcept {
+        void* mem = std::forward<AllocFunc>(allocFn)(allocSize);
 
         if (mem != nullptr)
         {
@@ -159,12 +157,13 @@ class ConcurrentAllocationTracker final {
         return mem;
     }
 
-    [[nodiscard]] bool free(void* const mem) noexcept {
+    template<typename FreeFunc>
+    [[nodiscard]] bool free(void* const mem, FreeFunc&& freeFn) noexcept {
         std::lock_guard writeLock(mutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
-            if (!freeFunc(mem, itr->second))
+            if (!std::forward<FreeFunc>(freeFn)(mem, itr->second))
             {
                 std::exit(EXIT_FAILURE);
                 return false;
@@ -204,8 +203,6 @@ class ConcurrentAllocationTracker final {
     ConcurrentAllocationTracker(ConcurrentAllocationTracker&&) noexcept                 = delete;
     ConcurrentAllocationTracker& operator=(ConcurrentAllocationTracker&&) noexcept      = delete;
 
-    const AllocFunc                  allocFunc;
-    const FreeFunc                   freeFunc;
     mutable std::shared_mutex        mutex;
     std::unordered_map<void*, usize> sizesMap;
 };
