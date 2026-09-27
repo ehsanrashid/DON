@@ -165,7 +165,7 @@ class ConcurrentAllocationTracker final {
         {
             if (!std::forward<FreeFunc>(freeFn)(mem, itr->second))
             {
-                std::exit(EXIT_FAILURE);
+                //std::exit(EXIT_FAILURE);
                 return false;
             }
 
