@@ -593,11 +593,11 @@ struct Tiling final {
 #else
 // Treat scalar impl as degenerate size-1 vector
 namespace Tiling {
-static constexpr Index RegCount     = 1;
-static constexpr Index PSQTRegCount = 1;
+inline constexpr Index RegCount     = 1;
+inline constexpr Index PSQTRegCount = 1;
     #if !defined(USE_RVV)
-static constexpr Index TileHeight     = 1;
-static constexpr Index PSQTTileHeight = 1;
+inline constexpr Index TileHeight     = 1;
+inline constexpr Index PSQTTileHeight = 1;
     #endif
 }  // namespace Tiling
 

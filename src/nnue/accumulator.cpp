@@ -250,24 +250,24 @@ enum class Op : u8 {
 using Tile     = vint16m8_t;
 using PsqtTile = vint32m1_t;
 
-ALWAYS_INLINE Tile load_tile(const i16* data, const Index j) noexcept {
+ALWAYS_INLINE Tile load_tile(const i16* src, const Index j) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
-    return __riscv_vle16_v_i16m8(data + j, vl);
+    return __riscv_vle16_v_i16m8(src + j, vl);
 }
 
-ALWAYS_INLINE void store_tile(i16* dest, const Index j, Tile acc) noexcept {
+ALWAYS_INLINE void store_tile(i16* dst, const Index j, const Tile& acc) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
-    __riscv_vse16_v_i16m8(dest + j, acc, vl);
+    __riscv_vse16_v_i16m8(dst + j, acc, vl);
 }
 
-ALWAYS_INLINE PsqtTile load_psqt(const i32* data, const Index j) noexcept {
+ALWAYS_INLINE PsqtTile load_psqt(const i32* src, const Index j) noexcept {
     usize vl = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    return __riscv_vle32_v_i32m1(data + j, vl);
+    return __riscv_vle32_v_i32m1(src + j, vl);
 }
 
-ALWAYS_INLINE void store_psqt(i32* dest, const Index j, PsqtTile psqt) noexcept {
+ALWAYS_INLINE void store_psqt(i32* dst, const Index j, PsqtTile psqt) noexcept {
     usize vl = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    __riscv_vse32_v_i32m1(dest + j, psqt, vl);
+    __riscv_vse32_v_i32m1(dst + j, psqt, vl);
 }
 
 ALWAYS_INLINE void increment_index(Index& j) noexcept { j += __riscv_vsetvl_e16m8(Dimensions - j); }
@@ -324,7 +324,8 @@ ALWAYS_INLINE Tile apply_threat_features(const ThreatFeature::IndexList& in,
 
 struct Tile final {
    public:
-    auto& operator[](int i) { return inner[i]; }
+    auto&       operator[](int i) noexcept { return inner[i]; }
+    const auto& operator[](int i) const noexcept { return inner[i]; }
 
    private:
     SIMD::vec_t inner[Tiling::RegCount];
@@ -332,36 +333,37 @@ struct Tile final {
 
 struct PsqtTile final {
    public:
-    auto& operator[](int i) { return inner[i]; }
+    auto&       operator[](int i) noexcept { return inner[i]; }
+    const auto& operator[](int i) const noexcept { return inner[i]; }
 
    private:
     SIMD::psqt_vec_t inner[Tiling::PSQTRegCount];
 };
 
-ALWAYS_INLINE Tile load_tile(const i16* data, const Index j) noexcept {
+ALWAYS_INLINE Tile load_tile(const i16* src, const Index j) noexcept {
     Tile  acc;
-    auto* column = reinterpret_cast<const SIMD::vec_t*>(&data[j]);
+    auto* column = reinterpret_cast<const SIMD::vec_t*>(&src[j]);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         acc[k] = column[k];
     return acc;
 }
 
-ALWAYS_INLINE void store_tile(i16* dest, const Index j, Tile acc) noexcept {
-    auto* column = reinterpret_cast<SIMD::vec_t*>(&dest[j]);
+ALWAYS_INLINE void store_tile(i16* dst, const Index j, const Tile& acc) noexcept {
+    auto* column = reinterpret_cast<SIMD::vec_t*>(&dst[j]);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         column[k] = acc[k];
 }
 
-ALWAYS_INLINE PsqtTile load_psqt(const i32* data, const Index j) noexcept {
+ALWAYS_INLINE PsqtTile load_psqt(const i32* src, const Index j) noexcept {
     PsqtTile psqt;
-    auto*    column = reinterpret_cast<const SIMD::psqt_vec_t*>(&data[j]);
+    auto*    column = reinterpret_cast<const SIMD::psqt_vec_t*>(&src[j]);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
         psqt[k] = column[k];
     return psqt;
 }
 
-ALWAYS_INLINE void store_psqt(i32* dest, const Index j, PsqtTile psqt) noexcept {
-    auto* column = reinterpret_cast<SIMD::psqt_vec_t*>(&dest[j]);
+ALWAYS_INLINE void store_psqt(i32* dst, const Index j, PsqtTile psqt) noexcept {
+    auto* column = reinterpret_cast<SIMD::psqt_vec_t*>(&dst[j]);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
         column[k] = psqt[k];
 }
