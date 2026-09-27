@@ -383,7 +383,7 @@ template<typename T>
 // ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
 // where N is the number of elements in the array.
 template<usize Alignment, typename T>
-[[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
+[[nodiscard]] T* align_ptr_up(T* ptr) noexcept {
     static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 

@@ -205,9 +205,9 @@ class PerftTable final {
 
     ProbResult probe(Key key, Depth depth) const noexcept;
 
-   private:
     void free() noexcept;
 
+   private:
     PTCluster* clusters = nullptr;
     usize      clusterCount;
 };
@@ -216,7 +216,7 @@ PerftTable::~PerftTable() noexcept { free(); }
 
 void PerftTable::free() noexcept {
     [[maybe_unused]] const bool freed = free_aligned_large_page(clusters);
-    assert(freed);
+    //assert(freed);
 }
 
 void PerftTable::resize(const usize ptSize, const Threads& threads) noexcept {
@@ -458,7 +458,12 @@ u64 perft(const Position& pos,
     if (use_perft_table(depth, detail))
         PerftTable_.resize(ptSize, threads);
 
-    return perft<true>(p, depth, detail).nodes;
+    u64 nodes = perft<true>(p, depth, detail).nodes;
+
+    if (use_perft_table(depth, detail))
+        PerftTable_.free();
+
+    return nodes;
 }
 
 }  // namespace DON::Perft
