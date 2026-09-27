@@ -231,11 +231,13 @@ ScmRightsMessage::ScmRightsMessage() noexcept :
 }
 
 void* map_shared(const usize size, const int fd) noexcept {
-    #if !defined(__linux__) || !defined(__ANDROID__)
-    return mmap_huge_aligned(size, MAP_SHARED, fd);
+    return
+    #if defined(__linux__) && !defined(__ANDROID__)
+      mmap_huge_aligned(size, MAP_SHARED, fd)
     #else
-    return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+      ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)
     #endif
+        ;
 }
 
 std::string make_sentinel_base(const std::string_view name) noexcept {
