@@ -166,6 +166,19 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         maximumScale = 1.3000 + 0.1100 * mtg;
     }
 
+    // Decrease time usage if behind in time.
+    // This is skipped in two cases:
+    // - if the nodestime option is used can't calculate the opponent nodes budget in a deterministic way.
+    // - if use a cyclic time management (like 40/10) calculating time advantage for the last move (movestogo = 1)
+    //   can be vastly off, because if the opponent had done his last move before his time budget includes already
+    //   the next cycle time increment but not our. This leads to a unnecessary big decrease in time usage which favors blunders.
+    // Warning: don't remove this conditions.
+    if (!use_nodes_time() && limit.movesToGo != 1)
+    {
+        double timeAdvantage = (limit.clocks[ac].time - limit.clocks[~ac].time) / (1.0 + limit.clocks[ac].time + limit.clocks[~ac].time);
+        optimumScale *= 1.0 + 0.9 * std::min(timeAdvantage, 0.0);
+    }
+
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(std::max(std::max(optimumScale * remainTime, 1.0), double(options["MinMoveTime"])));
     maximumTime = std::max(
