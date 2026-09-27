@@ -23,7 +23,6 @@
 #include <cstdlib>  // exit(), EXIT_FAILURE
 #include <cstring>  // strerror(), memcpy()
 #include <deque>
-#include <filesystem>
 #include <initializer_list>
 #include <iostream>
 #include <limits>
@@ -32,7 +31,6 @@
 #include <system_error>  // error_code
 #include <type_traits>
 #include <utility>  // pair<>, swap()
-#include <vector>
 
 #if defined(_WIN32)
     #include "../platform_win.h"

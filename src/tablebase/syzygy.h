@@ -18,8 +18,10 @@
 #ifndef TABLEBASE_SYZYGY_H_INCLUDED
 #define TABLEBASE_SYZYGY_H_INCLUDED
 
+#include <filesystem>
 #include <functional>
 #include <string_view>
+#include <vector>
 
 #include "../misc.h"
 #include "../types.h"
