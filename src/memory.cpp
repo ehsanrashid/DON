@@ -130,8 +130,8 @@ void* mmap_huge_aligned(const usize size,
         {
             char* const reservationBase = static_cast<char*>(reservedAddress);
             char* const mappingAddress  = align_ptr_up<Alignment>(reservationBase);
-            void* const mappedAddress = ::mmap(mappingAddress, mappingSize, PROT_READ | PROT_WRITE,
-                                               flags | MAP_FIXED, fd, offset);
+            void* const mappedAddress =
+              ::mmap(mappingAddress, size, PROT_READ | PROT_WRITE, flags | MAP_FIXED, fd, offset);
 
             if (mappedAddress != MAP_FAILED)
             {
