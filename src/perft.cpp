@@ -301,8 +301,8 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
 PerftTable PerftTable_;
 
-constexpr bool use_perft_table(const Depth /*depth*/, const bool /*detail*/) noexcept {
-    return false;  // !detail&& depth >= 4;
+constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
+    return false && !detail && depth >= 4;
 }
 
 // Utility to verify move generation.

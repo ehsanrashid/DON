@@ -335,7 +335,8 @@ constexpr bool is_power_of_2(const T x) noexcept {
 template<typename T1, typename T2>
 constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
-    return (R(n) + R(d) - 1) / R(d);
+    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
+    return R(n) / R(d) + (R(n) % R(d) != 0);
 }
 
 // Round n up to be a multiple of base
