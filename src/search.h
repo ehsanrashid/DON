@@ -640,6 +640,7 @@ struct Stack final {
     Move  ttMove;
     u16   moveCount;
     u16   cutoffCount;
+    u16   nmpFailHigh;
     bool  inCheck;
     bool  pvTT;
     bool  pvFollow;

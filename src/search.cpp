@@ -860,8 +860,6 @@ Value Worker::search(Position&    pos,
 
     assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
-    (ss + 1)->cutoffCount = 0;
-
     const bool exclude = excludedMove != Move::None;
 
     const auto correctionValue = correction_value(pos, ss);
@@ -892,6 +890,9 @@ Value Worker::search(Position&    pos,
     const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
     const bool preNonPawn =
       preOk && type_of(pos[preSq]) != PAWN && preMove.type() != Move::Type::PROMOTION;
+
+    (ss + 1)->cutoffCount = 0;
+    (ss + 1)->nmpFailHigh = 0;
 
     Value evalue, ttEvalue;
 
@@ -1124,7 +1125,7 @@ Value Worker::search(Position&    pos,
     if constexpr (CutNode)
     {
     if (!exclude && pos.has_non_pawn(ac) /*Zugzwang guard*/ && ss->ply >= nmpPly
-        && beta >= -2000 && ss->evalue - 365 + int(improve) * 47 + 13 * depth >= beta)
+        && beta >= -2000 && ss->evalue - 365 + int(improve) * 47 + 13 * depth + 50 * ss->nmpFailHigh >= beta)
     {
         assert(preMove != Move::Null);
 
@@ -1145,7 +1146,10 @@ Value Worker::search(Position&    pos,
             // At low depths or when verification is disabled,
             // return immediately to avoid expensive verification search.
             if (depth < 16 || nmpPly != 0)
+            {
+                ++ss->nmpFailHigh;
                 return nullValue;
+            }
 
             assert(nmpPly == 0);  // Recursive verification is not allowed
 
@@ -1158,7 +1162,10 @@ Value Worker::search(Position&    pos,
             nmpPly = 0;
 
             if (verifyValue >= beta)
+            {
+                ++ss->nmpFailHigh;
                 return nullValue;
+            }
 
             ss->ttMove = ttd.move;
         }
