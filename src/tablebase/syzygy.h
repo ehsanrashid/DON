@@ -94,6 +94,14 @@ enum ProbeState : u8 {
     return "None";
 }
 
+namespace TBPaths {
+
+bool init(std::string_view paths) noexcept;
+
+const auto& paths() noexcept;
+
+}  // namespace TBPaths
+
 struct Config final {
    public:
     bool  rootInTB    = false;

@@ -68,7 +68,7 @@ bool has_large_page() noexcept;
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
-void memory_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
+void memory_deleter(T* const mem, FreeFunc&& freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
@@ -82,7 +82,7 @@ void memory_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
-void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
+void memory_array_deleter(T* const mem, FreeFunc&& freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
@@ -190,14 +190,14 @@ make_unique_aligned_std(usize size) noexcept {
 
 template<typename T>
 struct LargePageDeleter {
-    void operator()(T* mem) const noexcept {
+    void operator()(T* const mem) const noexcept {
         return memory_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
 template<typename T>
 struct LargePageArrayDeleter {
-    void operator()(T* mem) const noexcept {
+    void operator()(T* const mem) const noexcept {
         return memory_array_deleter<T>(mem, free_aligned_large_page);
     }
 };

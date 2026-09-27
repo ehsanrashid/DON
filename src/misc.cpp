@@ -597,7 +597,7 @@ namespace {
 // Lifetime:
 //  - The map does not own the std::ostream objects.
 //  - Mutexes remain in the map for the lifetime of the process.
-ConcurrentMap<std::ostream*, std::mutex> OsToMutex(usize{16}, 0.75f);
+ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
 
 }  // namespace
 

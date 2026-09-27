@@ -211,7 +211,9 @@ bool free_aligned_huge(void* const mem, const usize allocSize) noexcept {
     return true;
 }
 
-ConcurrentAllocationTracker HugePageAllocationTracker;
+
+ConcurrentAllocationTracker HugePageAllocationTracker{};
+
     #endif
 
 #endif

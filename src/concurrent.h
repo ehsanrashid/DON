@@ -145,13 +145,12 @@ class ConcurrentAllocationTracker final {
 
     template<typename AllocFunc>
     [[nodiscard]] void* alloc(const usize allocSize, AllocFunc&& allocFn) noexcept {
-        void* mem = std::forward<AllocFunc>(allocFn)(allocSize);
+        void* const mem = std::forward<AllocFunc>(allocFn)(allocSize);
 
         if (mem != nullptr)
         {
             std::lock_guard writeLock(mutex);
-
-            sizesMap[mem] = allocSize;
+            sizesMap.emplace(mem, allocSize);
         }
 
         return mem;
@@ -161,7 +160,7 @@ class ConcurrentAllocationTracker final {
     [[nodiscard]] bool free(void* const mem, FreeFunc&& freeFn) noexcept {
         std::lock_guard writeLock(mutex);
 
-        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        if (const auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
             const usize allocSize = itr->second;
 

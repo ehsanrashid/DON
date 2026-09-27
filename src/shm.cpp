@@ -219,14 +219,14 @@ ScmRightsMessage::ScmRightsMessage() noexcept :
     constexpr usize Alignment = alignof(cmsghdr);
     const usize     space     = CMSG_SPACE(sizeof(int));
 
-    std::byte* msgControlBuf = align_ptr_up<Alignment>(controlStorage.get());
+    std::byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
 
     iov[0].iov_base = buf;
     iov[0].iov_len  = 1;
 
     msg.msg_iov        = iov;
     msg.msg_iovlen     = 1;
-    msg.msg_control    = msgControlBuf;
+    msg.msg_control    = controlBuf;
     msg.msg_controllen = space;
 }
 
