@@ -142,7 +142,7 @@ inline void write_little_endian(std::ostream& os, const std::array<IntType, Size
 }
 
 template<typename BufType, typename IntType>
-inline void _read_leb_128(std::istream& is,
+inline void read_leb_128_(std::istream& is,
                           BufType&      buffer,
                           u32&          bufferPos,
                           u32&          bufferEnd,
@@ -232,7 +232,7 @@ inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
 
     u32 bufferPos = 0, bufferEnd = 0;
 
-    (_read_leb_128(is, buffer, bufferPos, bufferEnd, byteCount, outs.data(), outs.size()), ...);
+    (read_leb_128_(is, buffer, bufferPos, bufferEnd, byteCount, outs.data(), outs.size()), ...);
 
     if (byteCount != 0)
         is.setstate(std::ios::failbit);
@@ -258,7 +258,7 @@ inline void read_leb_128(std::istream& is, IntType* out, const usize expected) n
 
     u32 bufferPos = 0, bufferEnd = 0;
 
-    _read_leb_128(is, buffer, bufferPos, bufferEnd, byteCount, out, expected);
+    read_leb_128_(is, buffer, bufferPos, bufferEnd, byteCount, out, expected);
 
     if (byteCount != 0)
         is.setstate(std::ios::failbit);

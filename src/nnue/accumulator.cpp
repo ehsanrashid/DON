@@ -250,22 +250,22 @@ enum class Op : u8 {
 using Tile     = vint16m8_t;
 using PsqtTile = vint32m1_t;
 
-ALWAYS_INLINE Tile load_tile(const i16* src, const Index j) noexcept {
+ALWAYS_INLINE Tile load_tile(const i16* const src, const Index j) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
     return __riscv_vle16_v_i16m8(src + j, vl);
 }
 
-ALWAYS_INLINE void store_tile(i16* dst, const Index j, const Tile& acc) noexcept {
+ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& acc) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
     __riscv_vse16_v_i16m8(dst + j, acc, vl);
 }
 
-ALWAYS_INLINE PsqtTile load_psqt(const i32* src, const Index j) noexcept {
+ALWAYS_INLINE PsqtTile load_psqt(const i32* const src, const Index j) noexcept {
     usize vl = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
     return __riscv_vle32_v_i32m1(src + j, vl);
 }
 
-ALWAYS_INLINE void store_psqt(i32* dst, const Index j, PsqtTile psqt) noexcept {
+ALWAYS_INLINE void store_psqt(i32* const dst, const Index j, const PsqtTile& psqt) noexcept {
     usize vl = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
     __riscv_vse32_v_i32m1(dst + j, psqt, vl);
 }
@@ -277,25 +277,25 @@ ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept {
 }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i16* src, Index j, Tile& acc) noexcept {
+ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    usize      vl      = __riscv_vsetvl_e16m8(Dimensions - j);
-    vint16m8_t dataVec = __riscv_vle16_v_i16m8(src + j, vl);
+    usize      vl     = __riscv_vsetvl_e16m8(Dimensions - j);
+    vint16m8_t srcVec = __riscv_vle16_v_i16m8(src + j, vl);
     if constexpr (op == Op::Add)
-        acc = __riscv_vadd_vv_i16m8(acc, dataVec, vl);
+        acc = __riscv_vadd_vv_i16m8(acc, srcVec, vl);
     else
-        acc = __riscv_vsub_vv_i16m8(acc, dataVec, vl);
+        acc = __riscv_vsub_vv_i16m8(acc, srcVec, vl);
 }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i32* src, Index j, PsqtTile& acc) noexcept {
+ALWAYS_INLINE void apply(const i32* const src, const Index j, PsqtTile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    usize      vl      = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    vint32m1_t dataVec = __riscv_vle32_v_i32m1(src + j, vl);
+    usize      vl     = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
+    vint32m1_t srcVec = __riscv_vle32_v_i32m1(src + j, vl);
     if constexpr (op == Op::Add)
-        acc = __riscv_vadd_vv_i32m1(acc, dataVec, vl);
+        acc = __riscv_vadd_vv_i32m1(acc, srcVec, vl);
     else
-        acc = __riscv_vsub_vv_i32m1(acc, dataVec, vl);
+        acc = __riscv_vsub_vv_i32m1(acc, srcVec, vl);
 }
 
 template<Op op>
@@ -321,8 +321,8 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
 
 struct Tile final {
    public:
-    auto&       operator[](Index i) noexcept { return inner[i]; }
-    const auto& operator[](Index i) const noexcept { return inner[i]; }
+    auto&       operator[](const Index i) noexcept { return inner[i]; }
+    const auto& operator[](const Index i) const noexcept { return inner[i]; }
 
    private:
     SIMD::vec_t inner[Tiling::RegCount];
@@ -330,14 +330,14 @@ struct Tile final {
 
 struct PsqtTile final {
    public:
-    auto&       operator[](Index i) noexcept { return inner[i]; }
-    const auto& operator[](Index i) const noexcept { return inner[i]; }
+    auto&       operator[](const Index i) noexcept { return inner[i]; }
+    const auto& operator[](const Index i) const noexcept { return inner[i]; }
 
    private:
     SIMD::psqt_vec_t inner[Tiling::PSQTRegCount];
 };
 
-ALWAYS_INLINE Tile load_tile(const i16* src, const Index j) noexcept {
+ALWAYS_INLINE Tile load_tile(const i16* const src, const Index j) noexcept {
     Tile  acc;
     auto* column = reinterpret_cast<const SIMD::vec_t*>(&src[j]);
     for (Index k = 0; k < Tiling::RegCount; ++k)
@@ -345,13 +345,13 @@ ALWAYS_INLINE Tile load_tile(const i16* src, const Index j) noexcept {
     return acc;
 }
 
-ALWAYS_INLINE void store_tile(i16* dst, const Index j, const Tile& acc) noexcept {
+ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& acc) noexcept {
     auto* column = reinterpret_cast<SIMD::vec_t*>(&dst[j]);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         column[k] = acc[k];
 }
 
-ALWAYS_INLINE PsqtTile load_psqt(const i32* src, const Index j) noexcept {
+ALWAYS_INLINE PsqtTile load_psqt(const i32* const src, const Index j) noexcept {
     PsqtTile psqt;
     auto*    column = reinterpret_cast<const SIMD::psqt_vec_t*>(&src[j]);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
@@ -359,7 +359,7 @@ ALWAYS_INLINE PsqtTile load_psqt(const i32* src, const Index j) noexcept {
     return psqt;
 }
 
-ALWAYS_INLINE void store_psqt(i32* dst, const Index j, PsqtTile psqt) noexcept {
+ALWAYS_INLINE void store_psqt(i32* const dst, const Index j, const PsqtTile& psqt) noexcept {
     auto* column = reinterpret_cast<SIMD::psqt_vec_t*>(&dst[j]);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
         column[k] = psqt[k];
@@ -370,7 +370,7 @@ ALWAYS_INLINE void increment_index(Index& j) noexcept { j += Tiling::TileHeight;
 ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept { j += Tiling::PSQTTileHeight; }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i16* src, Index j, Tile& acc) noexcept {
+ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     const auto* column = reinterpret_cast<const SIMD::vec_t*>(src + j);
     for (Index k = 0; k < Tiling::RegCount; ++k)
@@ -381,7 +381,7 @@ ALWAYS_INLINE void apply(const i16* src, Index j, Tile& acc) noexcept {
 }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i32* src, Index j, PsqtTile& acc) noexcept {
+ALWAYS_INLINE void apply(const i32* const src, const Index j, PsqtTile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     const auto* column = reinterpret_cast<const SIMD::psqt_vec_t*>(src + j);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
