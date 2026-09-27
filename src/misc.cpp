@@ -70,14 +70,14 @@ std::string format_date(const std::string_view date) noexcept {
 
     StringReader reader{date};
 
-    // Parse month (first 3 chars).
+    // Parse month (first 3 chars)
     const Array<char, 3> monthChars{reader.get(), reader.get(), reader.get()};
     const u32            month = to_month(std::string_view{monthChars.data(), monthChars.size()});
 
     if (month == 0)
         return std::string{NullDate};
 
-    // Parse day.
+    // Parse day
     reader.skip_spaces();
 
     int day;
@@ -89,13 +89,13 @@ std::string format_date(const std::string_view date) noexcept {
     if (day < 1 || 31 < day)
         return std::string{NullDate};
 
-    // Skip spaces and optional comma.
+    // Skip spaces and optional comma
     reader.skip_spaces();
 
     if (reader.peek() == ',')
         reader.advance();
 
-    // Parse year.
+    // Parse year
     int year;
     if (!reader.get_int(year))
         return std::string{NullDate};
@@ -597,13 +597,13 @@ namespace {
 // Lifetime:
 //  - The map does not own the std::ostream objects.
 //  - Mutexes remain in the map for the lifetime of the process.
-ConcurrentMap<std::ostream*, std::mutex> osToMutex(usize{16}, 0.75f);
+ConcurrentMap<std::ostream*, std::mutex> OsToMutex(usize{16}, 0.75f);
 
 }  // namespace
 
 SyncOS::SyncOS(std::ostream& os) noexcept :
     osPtr(&os),
-    lock(osToMutex.get(osPtr)) {}
+    lock(OsToMutex.get(osPtr)) {}
 
 SyncOS::SyncOS(SyncOS&& syncOs) noexcept :
     osPtr(std::exchange(syncOs.osPtr, nullptr)),
@@ -1220,7 +1220,7 @@ std::string u64_to_hex_prefix(const u64 value) noexcept {
 
 void print_info_string(const std::string_view info) noexcept {
 
-    if (infoStopped)
+    if (InfoStopped)
         return;
 
     for (const auto line : split(info, "\n", true))

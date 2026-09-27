@@ -62,7 +62,7 @@ inline constexpr usize MOVES_CAPACITY = 32;
 
 using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
 
-inline Book::PolyGlot pgBook;
+inline Book::PolyGlot PGBook;
 
 bool load_book(const fs::path& bookPath) noexcept;
 

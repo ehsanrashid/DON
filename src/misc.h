@@ -1824,7 +1824,7 @@ std::string u32_to_hex_prefix(u32 value) noexcept;
 
 std::string u64_to_hex_prefix(u64 value) noexcept;
 
-inline bool infoStopped = false;
+inline bool InfoStopped = false;
 
 void print_info_string(std::string_view infos) noexcept;
 

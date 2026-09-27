@@ -217,7 +217,7 @@ bool load_book(const fs::path& bookPath) noexcept {
     if (bookPath.empty())
         return false;
 
-    return pgBook.load(bookPath);
+    return PGBook.load(bookPath);
 }
 
 // Initialize the worker with its thread and NUMA information
@@ -318,7 +318,7 @@ void Worker::start_search() noexcept {
 
         // Check polyglot book
         if (!limit.infinite && limit.mate == 0)
-            bookBestMove = pgBook.probe(rootPos, rootMoves, options);
+            bookBestMove = PGBook.probe(rootPos, rootMoves, options);
 
         if (bookBestMove != Move::None)
         {
@@ -329,7 +329,7 @@ void Worker::start_search() noexcept {
             for (const Move m : MoveList<GenType::LEGAL>(rootPos))
                 orms.emplace_back(m);
 
-            Move bookPonderMove = pgBook.probe(rootPos, orms, options);
+            Move bookPonderMove = PGBook.probe(rootPos, orms, options);
 
             rootPos.undo_move(bookBestMove);
 

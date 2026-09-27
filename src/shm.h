@@ -448,7 +448,7 @@ class BaseSharedMemory {
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
 inline ConcurrentRegistry<BaseSharedMemory*>  //
-  memoryRegistry(usize{256}, 0.75f);
+  MemoryRegistry(usize{256}, 0.75f);
 
 // MemoryRegistryCleanup
 //
@@ -463,7 +463,7 @@ inline ConcurrentRegistry<BaseSharedMemory*>  //
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
 inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
-  memoryRegistryCleanup(memoryRegistry);
+  MemoryRegistryCleanup(MemoryRegistry);
 
 // MemoryRegistryCleanupHook
 //
@@ -484,7 +484,7 @@ inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
 inline RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
-  memoryRegistryCleanupHook(memoryRegistryCleanup);
+  MemoryRegistryCleanupHook(MemoryRegistryCleanup);
 
 // TempRoot
 //
@@ -605,7 +605,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMemory)
             return *this;
 
-        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(this);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_value(this);
         assert(unregistered);
 
         reset();
@@ -618,7 +618,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
                                                                const T&         value) noexcept {
-        memoryRegistryCleanupHook.ensure_initialized();
+        MemoryRegistryCleanupHook.ensure_initialized();
 
         const auto& tempRoot = TempRoot::temp_root();
 
@@ -746,7 +746,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         // Register for cleanup at exit
-        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry.register_value(this);
         assert(registered);
 
         return true;
@@ -771,7 +771,7 @@ class SharedMemory final: public BaseSharedMemory {
     //  - unregister the source object
     //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
-        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(&sharedMemory);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_value(&sharedMemory);
         assert(unregistered);
 
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
@@ -782,13 +782,13 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry.register_value(this);
         assert(registered);
     }
 
     // Unregister SharedMemory object and reset resources
     bool reset_with_registry() noexcept {
-        if (!memoryRegistry.unregister_value(this))
+        if (!MemoryRegistry.unregister_value(this))
             return false;
 
         reset();
