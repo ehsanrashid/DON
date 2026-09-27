@@ -305,7 +305,7 @@ bool free_aligned_large_page(void* const mem) noexcept {
         return false;
     }
 #else
-    #if defined(USE_POSIX_X86_64_HUGE_PAGES) || (defined(__linux__) && !defined(__ANDROID__))
+    #if defined(__linux__) && !defined(__ANDROID__)
     if (HugePageAllocationTracker.free(mem, free_aligned_page))
         return true;
     #endif
