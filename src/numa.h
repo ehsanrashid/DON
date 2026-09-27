@@ -33,6 +33,10 @@
 #include <variant>  // variant<>
 #include <vector>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
 #if !defined(_WIN64)              /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID)) /* Linux (Non-Android) */
     #define USE_UNIX_NUMA
