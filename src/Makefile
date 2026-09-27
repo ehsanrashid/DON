@@ -194,7 +194,7 @@ ifeq ($(ARCH),)
 ARCH = native
 endif
 ifeq ($(ARCH),native)
-override ARCH := $(shell $(SHELL) ../scripts/get_native_properties.sh | cut -d " " -f 1)
+override ARCH := $(shell '$(SHELL)' ../scripts/get_native_properties.sh | cut -d " " -f 1)
 endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
@@ -1362,7 +1362,7 @@ macos-lipo:
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
 	lipo -create '$(EXE)-x86_64' '$(EXE)-arm64' -output '$(EXE)'
-	$(SHELL) universal/patch_x86_64_slice.sh '$(EXE)' '$(EXE)-x86_64' '$(NNUE_NET)'
+	'$(SHELL)' universal/patch_x86_64_slice.sh '$(EXE)' '$(EXE)-x86_64' '$(NNUE_NET)'
 	@echo; \
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
 	lipo -create '$(EXE)-x86_64' '$(EXE)-arm64' -output '$(EXE)'
@@ -1431,7 +1431,7 @@ endif
 
 # Evaluation network (nnue)
 net:
-	@$(SHELL) '../scripts/net.sh'
+	@'$(SHELL)' '../scripts/net.sh'
 
 strip:
 	$(STRIP) $(EXE)
@@ -1786,7 +1786,7 @@ $(TEMP_DIR):
 
 # Download NNUE files once into src/; all architecture builds reuse them via --embed-dir.
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd '$(CURDIR)' && $(SHELL) '../scripts/net.sh' $(EMBED_DIR_SUPPORTED)
+	@cd '$(CURDIR)' && '$(SHELL)' '../scripts/net.sh' '$(EMBED_DIR_SUPPORTED)'
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
