@@ -26,7 +26,6 @@
 #include <utility>
 #include <vector>
 
-#include "error.h"
 #include "history.h"
 #include "misc.h"
 #include "numa.h"
@@ -41,6 +40,8 @@
 #include "nnue/network.h"
 
 namespace DON {
+
+struct Error;
 
 class Engine final {
    public:

@@ -602,12 +602,12 @@ ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
 }  // namespace
 
 SyncOS::SyncOS(std::ostream& os) noexcept :
-    osPtr(&os),
-    uniqueLock(OsToMutex.get(osPtr)) {}
+    osPtr{&os},
+    uniqueLock{OsToMutex.get(osPtr)} {}
 
 SyncOS::SyncOS(SyncOS&& syncOs) noexcept :
-    osPtr(std::exchange(syncOs.osPtr, nullptr)),
-    uniqueLock(std::move(syncOs.uniqueLock)) {}
+    osPtr{std::exchange(syncOs.osPtr, nullptr)},
+    uniqueLock{std::move(syncOs.uniqueLock)} {}
 
 SyncOS& SyncOS::operator<<(IosManip manip) & {
     assert(osPtr != nullptr && "Use of moved-from SyncOS");

@@ -31,13 +31,13 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "error.h"
 #include "misc.h"
 #include "state.h"
 #include "types.h"
 
 namespace DON {
 
+struct Error;
 class Worker;
 
 // Position class stores information regarding the board representation as

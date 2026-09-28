@@ -34,17 +34,18 @@
 #include <limits>
 #include <mutex>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
 #if defined(_WIN32)
     #include "platform_win.h"  // GetCommandLineW()
-#elif defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
 #endif
 
 #if defined(USE_PREFETCH) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))

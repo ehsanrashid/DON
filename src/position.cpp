@@ -26,6 +26,7 @@
 
 #include "concurrent.h"  // ConcurrentCache<>
 #include "cuckoo.h"
+#include "error.h"
 #include "history.h"
 #include "movegen.h"
 #include "search.h"

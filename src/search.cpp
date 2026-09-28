@@ -2765,7 +2765,7 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
 }
 
 void Manager::set_ponder(const bool p) noexcept {
-    std::lock_guard lockGuard(mutex);
+    std::lock_guard lockGuard{mutex};
 
     ponder = p;
 

@@ -169,12 +169,12 @@ class BackendSharedMemory final {
         LargePageAllocation
     };
 
-    BackendSharedMemory() noexcept :
-        status(Status::NotInitialized) {}
+    BackendSharedMemory(const std::string_view shmName = {}) noexcept :
+        name_{shmName},
+        status{Status::NotInitialized} {}
 
-    BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        name_(normalize_shm_name(shmName)),
-        status(Status::NotInitialized) {
+    BackendSharedMemory(const std::string_view shmName, const T& value) noexcept :
+        BackendSharedMemory{normalize_shm_name(shmName)} {
         //DEBUG_LOG("Creating shared memory with name: " << name());
 
         initialize(value);
@@ -183,11 +183,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
-    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        mapFileHandleGuard{mapFileHandle},
-        mappedGuard{mappedPtr} {
-        move(std::move(backendShm));
-    }
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept { move(std::move(backendShm)); }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
         if (this == &backendShm)
             return *this;
@@ -407,7 +403,7 @@ class BackendSharedMemory final {
 #elif defined(USE_UNIX_SHM)
 class BaseSharedMemory {
    public:
-    explicit BaseSharedMemory(std::string_view shmName) noexcept;
+    explicit BaseSharedMemory(std::string_view shmName = {}) noexcept;
 
     BaseSharedMemory(const BaseSharedMemory&)            = delete;
     BaseSharedMemory& operator=(const BaseSharedMemory&) = delete;
@@ -587,10 +583,10 @@ class SharedMemory final: public BaseSharedMemory {
 
    public:
     explicit SharedMemory(std::string_view shmName, const TempRoot& tempRoot) noexcept :
-        BaseSharedMemory(shmName),
-        sharedDir(std::string{tempRoot.path()} + "/" + make_sentinel_base(name())),
-        initLockPath(sharedDir + "/init_lock"),
-        socketPath(sharedDir + "/" + std::to_string(::getpid()) + ".sock") {}
+        BaseSharedMemory{shmName},
+        sharedDir{std::string{tempRoot.path()} + "/" + make_sentinel_base(name())},
+        initLockPath{sharedDir + "/init_lock"},
+        socketPath{sharedDir + "/" + std::to_string(::getpid()) + ".sock"} {}
 
     ~SharedMemory() noexcept override { reset_with_registry(); }
 
@@ -598,7 +594,7 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        BaseSharedMemory(std::move(sharedMemory)) {
+        BaseSharedMemory{std::move(sharedMemory)} {
         move_with_registry(std::move(sharedMemory));
     }
     SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
@@ -625,7 +621,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (!tempRoot)
             return std::nullopt;
 
-        SharedMemory<T> shm(name, *tempRoot);
+        SharedMemory<T> shm{name, *tempRoot};
 
         if (!shm.open(value))
             return std::nullopt;
@@ -935,13 +931,13 @@ struct FallbackBackendSharedMemory final {
 
     FallbackBackendSharedMemory([[maybe_unused]] std::string_view shmName, const T& value) noexcept
         :
-        fallbackObj(make_unique_aligned_large_page<T>(value)) {}
+        fallbackObj{make_unique_aligned_large_page<T>(value)} {}
 
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
     FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
 
     FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept :
-        fallbackObj(std::move(fallbackBackendShm.fallbackObj)) {}
+        fallbackObj{std::move(fallbackBackendShm.fallbackObj)} {}
     FallbackBackendSharedMemory&
     operator=(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept {
         fallbackObj = std::move(fallbackBackendShm.fallbackObj);
@@ -1000,19 +996,20 @@ struct SystemWideSharedMemory final {
         if (shmName.size() > SHM_NAME_MAX)
             shmName.resize(SHM_NAME_MAX);
 
-        BackendSharedMemory<T> tempBackendShm(shmName, value);
+        // Candidate BackendShm
+        BackendSharedMemory<T> candBackendShm{shmName, value};
 
-        if (tempBackendShm.is_valid())
-            backendShm = std::move(tempBackendShm);
+        if (candBackendShm.is_valid())
+            backendShm = std::move(candBackendShm);
         else
-            backendShm = FallbackBackendSharedMemory<T>(shmName, value);
+            backendShm = FallbackBackendSharedMemory<T>{shmName, value};
     }
 
     SystemWideSharedMemory(const SystemWideSharedMemory&) noexcept            = delete;
     SystemWideSharedMemory& operator=(const SystemWideSharedMemory&) noexcept = delete;
 
     SystemWideSharedMemory(SystemWideSharedMemory&& systemWideShm) noexcept :
-        backendShm(std::move(systemWideShm.backendShm)) {}
+        backendShm{std::move(systemWideShm.backendShm)} {}
     SystemWideSharedMemory& operator=(SystemWideSharedMemory&& systemWideShm) noexcept {
         backendShm = std::move(systemWideShm.backendShm);
         return *this;

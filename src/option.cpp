@@ -184,8 +184,8 @@ class SpinOption final: public Option {
 
 SpinOption::SpinOption(const int v, const int minV, const int maxV, OnChange&& onCng) noexcept :
     Option{std::to_string(v), std::move(onCng)},
-    minValue(minV),
-    maxValue(maxV) {}
+    minValue{minV},
+    maxValue{maxV} {}
 
 std::string_view SpinOption::type() const noexcept { return "spin"; }
 
@@ -224,7 +224,7 @@ class ComboOption final: public Option {
 
 ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
     Option{str, std::move(onCng)},
-    vars(std::move(vrs)) {
+    vars{std::move(vrs)} {
     assert(contains(default_value()));
 }
 

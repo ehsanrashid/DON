@@ -29,6 +29,7 @@
 
 #include "benchmark.h"
 #include "debug.h"
+#include "error.h"
 #include "memory.h"
 #include "misc.h"
 #include "option.h"

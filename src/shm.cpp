@@ -146,12 +146,12 @@ std::string normalize_shm_name(const std::string_view shmName) noexcept {
 #elif defined(USE_UNIX_SHM)
 
 BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
-    name_(normalize_shm_name(shmName)) {}
+    name_{normalize_shm_name(shmName)} {}
 
 std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 
 TempRoot::TempRoot(std::string path) noexcept :
-    path_(std::move(path)) {}
+    path_{std::move(path)} {}
 
 const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
     static const auto tempRoot = []() -> std::optional<TempRoot> {
@@ -187,10 +187,10 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
 }
 
 InitLock::InitLock(UniqueFd fd) noexcept :
-    lockFd(std::move(fd)) {}
+    lockFd{std::move(fd)} {}
 
 InitLock InitLock::acquire_lock(const std::string_view path) noexcept {
-    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, DEFFILEMODE));
+    UniqueFd fd{::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, DEFFILEMODE)};
 
     if (!fd.is_valid())
         return {};
@@ -215,7 +215,7 @@ void InitLock::unlock() noexcept {
 }
 
 ScmRightsMessage::ScmRightsMessage() noexcept :
-    controlStorage(std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + alignof(cmsghdr))) {
+    controlStorage{std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + alignof(cmsghdr))} {
     constexpr usize Alignment = alignof(cmsghdr);
     const usize     space     = CMSG_SPACE(sizeof(int));
 

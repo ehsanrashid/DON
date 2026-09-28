@@ -24,6 +24,7 @@
 #include <optional>
 #include <sstream>
 
+#include "error.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "notation.h"
@@ -36,10 +37,10 @@ namespace DON {
 
 Engine::Engine(const fs::path& path) noexcept :
     // clang-format off
-    binaryDirectory(CommandLine::binary_directory(path)),
-    numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
+    binaryDirectory{CommandLine::binary_directory(path)},
+    numaContext{NumaConfig::from_system(NUMA_POLICY_DEFAULT)},
     networkFile{std::nullopt, {}},
-    network(numaContext, default_network()) {
+    network{numaContext, default_network()} {
 
     options().add("NumaPolicy",        Option::string("auto", [this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; }));
     options().add("Threads",           Option::spin(1, 1, int(THREAD_MAX), [this](const Option&) { resize_threads_tt(); return thread_allocation(); }));

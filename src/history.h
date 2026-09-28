@@ -177,13 +177,13 @@ class AtomicHistories final {
    public:
     AtomicHistories() noexcept = delete;
     AtomicHistories(const usize threadCount) noexcept :
-        correctionHistorySize(threadCount * CORRECTION_HISTORY_BASE_SIZE),
-        pawnHistorySize(threadCount * PAWN_HISTORY_BASE_SIZE),
-        pawnCorrectionHistory(correction_history_size()),
-        minorCorrectionHistory(correction_history_size()),
-        nonPawnCorrectionHistory(correction_history_size()),
-        pawnHistory(pawn_history_size()),
-        continuationHistory(make_unique_aligned_large_page<ContinuationHistory>()) {
+        correctionHistorySize{threadCount * CORRECTION_HISTORY_BASE_SIZE},
+        pawnHistorySize{threadCount * PAWN_HISTORY_BASE_SIZE},
+        pawnCorrectionHistory{correction_history_size()},
+        minorCorrectionHistory{correction_history_size()},
+        nonPawnCorrectionHistory{correction_history_size()},
+        pawnHistory{pawn_history_size()},
+        continuationHistory{make_unique_aligned_large_page<ContinuationHistory>()} {
         assert(is_power_of_2(threadCount));
     }
 
