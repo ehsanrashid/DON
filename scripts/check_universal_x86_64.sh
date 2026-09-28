@@ -32,6 +32,7 @@ ivb:x86-64-sse41-popcnt
 hsw:x86-64-bmi2
 skl:x86-64-bmi2
 adl:x86-64-avxvnni
+rkl:x86-64-avxvnni
 skx:x86-64-avx512
 clx:x86-64-vnni512
 icl:x86-64-avx512icl
@@ -59,13 +60,14 @@ for pair in $PAIRS; do
     expected_compiler=${pair##*:}
     (
         compiler_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" compiler 2>&1 || true)
+        bench_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" bench 2>&1 >/dev/null || true)
+
         actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
             sub(/^[[:space:]]+/, "", $2)
             sub(/[[:space:]]+$/, "", $2)
             print $2
             exit
         }')
-        bench_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" bench 2>&1 >/dev/null || true)
         actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
             sub(/^[[:space:]]+/, "", $2)
             sub(/[[:space:]]+$/, "", $2)

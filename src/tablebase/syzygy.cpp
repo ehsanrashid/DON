@@ -43,6 +43,7 @@
 
 #include "../attacks.h"
 #include "../bitboard.h"
+#include "../error.h"
 #include "../misc.h"
 #include "../movegen.h"
 #include "../option.h"
@@ -577,14 +578,20 @@ struct TBTable final: BaseTBTable {
     #if defined(_WIN32)
     HANDLE      mapFileHandle = HANDLE_INVALID;
     HandleGuard mapFileHandleGuard{mapFileHandle};
-
-    void*     mappedPtr = MMAP_PTR_INVALID;
-    MMapGuard mappedGuard{mappedPtr};
-    #else
-    void*     mappedPtr  = MMAP_PTR_INVALID;
-    usize     mappedSize = MMAP_SIZE_INVALID;
-    MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
+
+    void* mappedPtr = MMAP_PTR_INVALID;
+    #if !defined(_WIN32)
+    usize mappedSize = MMAP_SIZE_INVALID;
+    #endif
+    MMapGuard mappedGuard{
+      mappedPtr  //
+    #if !defined(_WIN32)
+      ,
+      mappedSize  //
+    #endif
+    };
+
     u8*      mapPtr = nullptr;
     CallOnce initCallOnce;
 };
@@ -699,6 +706,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
         unmap();
         std::exit(EXIT_FAILURE);
     }
+
     #else
     int fd = ::open(filename.data(), O_RDONLY | O_CLOEXEC);
 
@@ -1097,9 +1105,8 @@ class TBTables final {
 
    private:
     static usize probe_distance(const Entry& entry, usize actualBucket) noexcept {
-        return (actualBucket - entry.bucket() /*idealBucket*/) & Mask;
+        return (actualBucket - entry.bucket()) & Mask;
     }
-
 
     bool insert(Entry newEntry) noexcept {
 

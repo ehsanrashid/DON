@@ -168,11 +168,6 @@ struct ArrayDef<T, Size> final {
 template<typename T, usize Size, usize... Sizes>
 using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
-// Base exception type for application-specific errors
-struct Error: public std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
-
 inline constexpr usize BYTE_BITS = 8;
 
 inline constexpr usize HEX64_SIZE = 16;

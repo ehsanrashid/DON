@@ -31,6 +31,7 @@
 
 #include "attacks.h"
 #include "bitboard.h"
+#include "error.h"
 #include "misc.h"
 #include "state.h"
 #include "types.h"

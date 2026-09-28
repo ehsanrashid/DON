@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "error.h"
 #include "history.h"
 #include "misc.h"
 #include "numa.h"
