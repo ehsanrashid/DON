@@ -34,40 +34,38 @@ class RootMoves;
 
 namespace Tablebase::Syzygy {
 
-using AbortFunc = std::function<bool()>;
-
 // Max number of supported piece
 inline constexpr usize TB_PIECES_MAX = 7;
 
 enum WDLScore : i8 {
-    WDL_LOSS         = -2,  // Loss
-    WDL_BLESSED_LOSS = -1,  // Loss, but draw under 50-move rule
-    WDL_DRAW         = 0,   // Draw
-    WDL_CURSED_WIN   = +1,  // Win, but draw under 50-move rule
-    WDL_WIN          = +2,  // Win
+    WDLLoss        = -2,  // Loss
+    WDLBlessedLoss = -1,  // Loss, but draw under 50-move rule
+    WDLDraw        = 0,   // Draw
+    WDLCursedWin   = +1,  // Win, but draw under 50-move rule
+    WDLWin         = +2,  // Win
 };
 
 inline constexpr usize WDL_SCORE_NB = 5;
 
-constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
+constexpr WDLScore operator-(const WDLScore wdl) noexcept { return WDLScore(-int(wdl)); }
 
-// Normalize any WDLScore to pure outcome: WDL_LOSS, WDL_DRAW, WDL_WIN
-constexpr WDLScore normalize_wdl(WDLScore wdlScore) noexcept {
-    return WDLScore(2 * ((wdlScore > WDL_DRAW) - (wdlScore < WDL_DRAW)));
+// Normalize any WDLScore to pure outcome: WDLLoss, WDLDraw, WDLWin
+constexpr WDLScore normalize_wdl(const WDLScore wdl) noexcept {
+    return WDLScore(2 * ((wdl > WDLDraw) - (wdl < WDLDraw)));
 }
 
-[[nodiscard]] constexpr std::string_view to_string(const WDLScore wdlScore) noexcept {
-    switch (wdlScore)
+[[nodiscard]] constexpr std::string_view to_string(const WDLScore wdl) noexcept {
+    switch (wdl)
     {
-    case WDL_LOSS :
+    case WDLScore::WDLLoss :
         return "Loss";
-    case WDL_BLESSED_LOSS :
+    case WDLScore::WDLBlessedLoss :
         return "Blessed loss";
-    case WDL_DRAW :
+    case WDLScore::WDLDraw :
         return "Draw";
-    case WDL_CURSED_WIN :
+    case WDLScore::WDLCursedWin :
         return "Cursed win";
-    case WDL_WIN :
+    case WDLScore::WDLWin :
         return "Win";
     }
     return "None";
@@ -75,22 +73,22 @@ constexpr WDLScore normalize_wdl(WDLScore wdlScore) noexcept {
 
 // Possible states after a probing operation
 enum ProbeState : u8 {
-    PS_FAIL              = 0,   // Probe failed (missing file table)
-    PS_OK                = +1,  // Probe successful
-    PS_AC_CHANGED        = +2,  // DTZ should check the other side
-    PS_BEST_MOVE_ZEROING = +3   // Best move zeroes DTZ (capture or pawn move)
+    Fail            = 0,   // Probe unavailable (missing file/table)
+    Success         = +1,  // Probe successful
+    ChangeAc        = +2,  // DTZ should probe for the other side
+    BestMoveZeroing = +3   // Best move zeroes DTZ (capture or pawn move)
 };
 
 [[nodiscard]] constexpr std::string_view to_string(const ProbeState ps) noexcept {
     switch (ps)
     {
-    case PS_FAIL :
+    case ProbeState::Fail :
         return "Failed";
-    case PS_OK :
+    case ProbeState::Success :
         return "Success";
-    case PS_AC_CHANGED :
-        return "Active color changed";
-    case PS_BEST_MOVE_ZEROING :
+    case ProbeState::ChangeAc :
+        return "Change active color";
+    case ProbeState::BestMoveZeroing :
         return "Best move zeroing";
     }
     return "None";
@@ -103,6 +101,8 @@ bool init(std::string_view paths) noexcept;
 const std::vector<fs::path>& paths() noexcept;
 
 }  // namespace TBPaths
+
+using AbortFunc = std::function<bool()>;
 
 struct Config final {
    public:

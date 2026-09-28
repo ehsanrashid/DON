@@ -603,7 +603,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMemory)
             return *this;
 
-        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_value(this);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_(this);
         assert(unregistered);
 
         reset();
@@ -744,7 +744,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         // Register for cleanup at exit
-        [[maybe_unused]] const bool registered = MemoryRegistry.register_value(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry.register_(this);
         assert(registered);
 
         return true;
@@ -769,7 +769,7 @@ class SharedMemory final: public BaseSharedMemory {
     //  - unregister the source object
     //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
-        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_value(&sharedMemory);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_(&sharedMemory);
         assert(unregistered);
 
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
@@ -780,13 +780,13 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        [[maybe_unused]] const bool registered = MemoryRegistry.register_value(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry.register_(this);
         assert(registered);
     }
 
     // Unregister SharedMemory object and reset resources
     bool reset_with_registry() noexcept {
-        if (!MemoryRegistry.unregister_value(this))
+        if (!MemoryRegistry.unregister_(this))
             return false;
 
         reset();

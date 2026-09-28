@@ -1024,7 +1024,7 @@ Value Worker::search(Position&    pos,
                 if (is_main())
                     manager()->callsCount = 1;
 
-                if (wdlPs != Tablebase::Syzygy::PS_FAIL)
+                if (wdlPs != Tablebase::Syzygy::ProbeState::Fail)
                 {
                     ++tbHits;
 

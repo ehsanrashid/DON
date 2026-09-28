@@ -40,6 +40,8 @@ namespace DON {
 template<typename Key, typename Value>
 class ConcurrentMap final {
    public:
+    using Map = std::unordered_map<Key, Value>;
+
     explicit ConcurrentMap(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
@@ -122,8 +124,6 @@ class ConcurrentMap final {
     ConcurrentMap(ConcurrentMap&&) noexcept                 = delete;
     ConcurrentMap& operator=(ConcurrentMap&&) noexcept      = delete;
 
-    using Map = std::unordered_map<Key, Value>;
-
     void configure(Map& valueMap) const noexcept {
         valueMap.max_load_factor(max_load_factor(maxLoadFactor));
         valueMap.reserve(reserve_count(reserveCount));
@@ -142,6 +142,8 @@ class ConcurrentMap final {
 // ConcurrentAllocationTracker: thread-safe allocation and freeing, with allocation size tracking.
 class ConcurrentAllocationTracker final {
    public:
+    using SizeMap = std::unordered_map<void*, usize>;
+
     ConcurrentAllocationTracker() noexcept = default;
 
     template<typename AllocFunc>
@@ -152,7 +154,7 @@ class ConcurrentAllocationTracker final {
         {
             std::lock_guard lockGuard{mutex};
 
-            sizesMap.emplace(mem, allocSize);
+            sizeMap.emplace(mem, allocSize);
         }
 
         return mem;
@@ -162,7 +164,7 @@ class ConcurrentAllocationTracker final {
     [[nodiscard]] bool free(void* const mem, FreeFunc&& freeFn) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        if (const auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        if (const auto itr = sizeMap.find(mem); itr != sizeMap.end())
         {
             const usize allocSize = itr->second;
 
@@ -172,7 +174,7 @@ class ConcurrentAllocationTracker final {
                 return false;
             }
 
-            sizesMap.erase(itr);
+            sizeMap.erase(itr);
             return true;
         }
 
@@ -182,19 +184,19 @@ class ConcurrentAllocationTracker final {
     [[nodiscard]] usize size() const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return sizesMap.size();
+        return sizeMap.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return sizesMap.empty();
+        return sizeMap.empty();
     }
 
     [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        if (auto itr = sizeMap.find(mem); itr != sizeMap.end())
             return itr->second;
 
         return std::nullopt;
@@ -206,14 +208,33 @@ class ConcurrentAllocationTracker final {
     ConcurrentAllocationTracker(ConcurrentAllocationTracker&&) noexcept                 = delete;
     ConcurrentAllocationTracker& operator=(ConcurrentAllocationTracker&&) noexcept      = delete;
 
-    mutable std::shared_mutex        mutex;
-    std::unordered_map<void*, usize> sizesMap;
+    mutable std::shared_mutex mutex;
+    SizeMap                   sizeMap;
 };
 
 // ConcurrentCache: sharded thread-safe key-value cache with lazy value creation and pre-reserved storage.
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
+    static constexpr usize ThresholdSize = 128;
+
+    static constexpr usize ShardCount = 32;
+    static constexpr usize ShardMask  = ShardCount - 1;
+    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
+
+    using StorageValue =
+      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
+
+    using ValueMap = std::unordered_map<Key, StorageValue>;
+
+    struct alignas(64) Shard final {
+       public:
+        mutable std::shared_mutex mutex;
+        ValueMap                  valueMap;
+    };
+
+    using Shards = Array<Shard, ShardCount>;
+
     explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
@@ -342,25 +363,6 @@ class ConcurrentCache final {
     ConcurrentCache(ConcurrentCache&&) noexcept                 = delete;
     ConcurrentCache& operator=(ConcurrentCache&&) noexcept      = delete;
 
-    static constexpr usize ThresholdSize = 128;
-
-    static constexpr usize ShardCount = 32;
-    static constexpr usize ShardMask  = ShardCount - 1;
-    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
-
-    using StorageValue =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
-
-    using ValueMap = std::unordered_map<Key, StorageValue>;
-
-    struct alignas(64) Shard final {
-       public:
-        mutable std::shared_mutex mutex;
-        ValueMap                  valueMap;
-    };
-
-    using Shards = Array<Shard, ShardCount>;
-
     // Helper functions for hashing, sharding, and value storage.
 
     // General-purpose key hasher
@@ -425,22 +427,22 @@ class ConcurrentRegistry final {
     // Registers a value in the registry.
     //
     // Returns false if the value is already registered.
-    bool register_value(const Value& value) noexcept {
+    bool register_(const Value& value) noexcept {
         std::lock_guard lockGuard{mutex};
 
         if (regStopped)
             return false;
 
-        return nolock_register_value(value);
+        return nolock_register(value);
     }
 
     // Unregisters a value from the registry.
     //
     // Returns false if the value is not registered.
-    bool unregister_value(const Value& value) noexcept {
+    bool unregister_(const Value& value) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        return nolock_unregister_value(value);
+        return nolock_unregister(value);
     }
 
     // Detaches the internal list from the registry.
@@ -589,7 +591,7 @@ class ConcurrentRegistry final {
     // Set is checked first to reject duplicate values. The value is then
     // appended to List, IndexMap records its corresponding List iterator,
     // and Set establishes membership.
-    bool nolock_register_value(const Value& value) noexcept {
+    bool nolock_register(const Value& value) noexcept {
         if (nolock_contains(value))
             return false;
 
@@ -621,7 +623,7 @@ class ConcurrentRegistry final {
     //
     // Set is checked first to reject unregistered values. IndexMap then
     // provides the corresponding List iterator for constant-time removal.
-    bool nolock_unregister_value(const Value& value) noexcept {
+    bool nolock_unregister(const Value& value) noexcept {
         const auto setItr = set.find(value);
 
         // Not registered.
@@ -665,7 +667,7 @@ class ConcurrentRegistry final {
 
     // Stops accepting new values.
     //
-    // Once stopped, register_value() rejects new values.
+    // Once stopped, register_() rejects new values.
     void stop_registering() noexcept {
         std::lock_guard lockGuard{mutex};
 
