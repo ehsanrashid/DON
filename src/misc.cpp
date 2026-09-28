@@ -603,11 +603,11 @@ ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
 
 SyncOS::SyncOS(std::ostream& os) noexcept :
     osPtr(&os),
-    lock(OsToMutex.get(osPtr)) {}
+    uniqueLock(OsToMutex.get(osPtr)) {}
 
 SyncOS::SyncOS(SyncOS&& syncOs) noexcept :
     osPtr(std::exchange(syncOs.osPtr, nullptr)),
-    lock(std::move(syncOs.lock)) {}
+    uniqueLock(std::move(syncOs.uniqueLock)) {}
 
 SyncOS& SyncOS::operator<<(IosManip manip) & {
     assert(osPtr != nullptr && "Use of moved-from SyncOS");
@@ -783,13 +783,13 @@ TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
 }
 
 bool Logger::start(const fs::path& logPath) noexcept {
-    std::lock_guard writeLock(instance().mutex);
+    std::lock_guard lockGuard(instance().mutex);
 
     return instance().open(logPath);
 }
 
 void Logger::stop() noexcept {
-    std::lock_guard writeLock(instance().mutex);
+    std::lock_guard lockGuard(instance().mutex);
 
     instance().close();
 }

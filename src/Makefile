@@ -972,28 +972,28 @@ endif
 ifeq ($(avx512),yes)
 CXXFLAGS += -DUSE_AVX512
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl
 endif
 endif
 
 ifeq ($(vnni256),yes)
 CXXFLAGS += -DUSE_VNNI
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
 endif
 endif
 
 ifeq ($(vnni512),yes)
 CXXFLAGS += -DUSE_VNNI
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl -mavx512vnni
 endif
 endif
 
 ifeq ($(avx512icl),yes)
 CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl -mavx512vnni -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
 endif
 endif
 

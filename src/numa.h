@@ -752,7 +752,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaId != 0);
 
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard(mutex);
 
         // Check again for races.
         if (instances[numaId] != nullptr)
@@ -889,7 +889,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaId != 0);
 
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard(mutex);
 
         // Check again for races
         if (instances[numaId] != nullptr)

@@ -356,12 +356,12 @@ void Worker::start_search() noexcept {
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Therefore simply wait here until the GUI sends one of those commands.
         {
-            std::unique_lock condLock(manager->mutex);
+            std::unique_lock uniqueLock(manager->mutex);
 
             // Wait until either:
             // 1. Threads are stopped, OR
             // 2. Not in infinite search AND Not pondering
-            manager->condVar.wait(condLock, [&]() noexcept -> bool {
+            manager->condVar.wait(uniqueLock, [&]() noexcept -> bool {
                 return threads.is_stopped() || (!limit.infinite && !manager->ponder);
             });
         }
@@ -2765,7 +2765,7 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
 }
 
 void Manager::set_ponder(const bool p) noexcept {
-    std::lock_guard writeLock(mutex);
+    std::lock_guard lockGuard(mutex);
 
     ponder = p;
 

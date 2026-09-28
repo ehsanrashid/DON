@@ -1067,7 +1067,7 @@ class [[nodiscard]] SyncOS final {
 
    private:
     std::ostream*                osPtr;
-    std::unique_lock<std::mutex> lock;
+    std::unique_lock<std::mutex> uniqueLock;
 };
 
 [[nodiscard]] SyncOS sync_os(std::ostream& os = std::cout) noexcept;
