@@ -596,6 +596,9 @@ class Manager final {
 
     const UpdateContext& updateContext;
 
+    std::mutex              mutex;
+    std::condition_variable condVar;
+
     Skill       skill;
     TimeManager timeManager;
     double      sumMoveChanges;
@@ -609,9 +612,6 @@ class Manager final {
     Value  preBestAvgValue;
     double preTimeReduction;
     bool   atFirst;
-
-    std::mutex              mutex;
-    std::condition_variable condVar;
 };
 
 // NT indicates the type of node in the search tree

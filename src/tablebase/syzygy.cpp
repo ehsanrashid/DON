@@ -122,9 +122,7 @@ constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
 
 constexpr WDLScore WDL_SCORE_OFFSET = -WDLLoss;
 
-constexpr usize WDL_INDEX(const WDLScore wdlScore) noexcept {
-    return usize(wdlScore + WDL_SCORE_OFFSET);
-}
+constexpr usize WDL_INDEX(const WDLScore wdl) noexcept { return usize(wdl + WDL_SCORE_OFFSET); }
 
 // clang-format off
 
@@ -136,8 +134,8 @@ constexpr Array<int  , WDL_SCORE_NB> BEFORE_ZEROING_DTZ{       -1,           -10
 // DTZ-tables don't store valid scores for moves that reset the rule50 counter
 // like captures and pawn moves but can easily recover the correct DTZ-score of the
 // previous move if know the position's WDL-score.
-constexpr int before_zeroing_dtz(const WDLScore wdlScore) noexcept {
-    return BEFORE_ZEROING_DTZ[WDL_INDEX(wdlScore)];
+constexpr int before_zeroing_dtz(const WDLScore wdl) noexcept {
+    return BEFORE_ZEROING_DTZ[WDL_INDEX(wdl)];
 }
 
 [[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
@@ -154,7 +152,7 @@ Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE
 
 // clang-format on
 
-constexpr int NO_DTZ_SCORE = std::numeric_limits<int>::max();
+constexpr int NO_DTZ = std::numeric_limits<int>::max();
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
 constexpr bool pawn_ascending(const Square s1, const Square s2) noexcept {
@@ -1408,7 +1406,7 @@ WDLScore map_score(TBTable<WDL>*, const File, const WDLScore, int value) noexcep
     return WDLScore(value - 2);
 }
 
-int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int value) noexcept {
+int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdl, int value) noexcept {
 
     auto* pd    = table->get(0, f);
     auto  flags = pd->flags;
@@ -1418,16 +1416,16 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int va
         auto* mapPtr = table->map_ptr();
         auto* mapIdx = pd->mapIdx.data();
 
-        auto idx = mapIdx[WDL_MAP[WDL_INDEX(wdlScore)]] + value;
+        auto idx = mapIdx[WDL_MAP[WDL_INDEX(wdl)]] + value;
 
         value = (flags & TBFlag::Wide) != 0 ? ((u16*) mapPtr)[idx] : mapPtr[idx];
     }
 
     // DTZ-tables store distance to zero in number of moves or plies.
     // So have to convert to plies when needed.
-    if ((wdlScore == WDLWin && (flags & TBFlag::WinPlies) == 0)
-        || (wdlScore == WDLLoss && (flags & TBFlag::LossPlies) == 0)
-        || (wdlScore == WDLCursedWin || wdlScore == WDLBlessedLoss))
+    if ((wdl == WDLWin && (flags & TBFlag::WinPlies) == 0)
+        || (wdl == WDLLoss && (flags & TBFlag::LossPlies) == 0)
+        || (wdl == WDLCursedWin || wdl == WDLBlessedLoss))
         value *= 2;
 
     return value + 1;
@@ -1449,7 +1447,7 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int va
 template<typename T, typename Ret = typename T::Ret>
 Ret do_probe_table(T*                table,
                    const Position&   pos,
-                   const WDLScore    wdlScore,
+                   const WDLScore    wdl,
                    ProbeState* const ps) noexcept {
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB-tables
@@ -1692,15 +1690,13 @@ Ret do_probe_table(T*                table,
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
-    return map_score(table, tbFile, wdlScore, decompress_pairs(pd, idx));
+    return map_score(table, tbFile, wdl, decompress_pairs(pd, idx));
 }
 
     #undef DISABLE_CLANG_LOOP_VECTORIZE
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
-Ret probe_table(const Position&   pos,
-                ProbeState* const ps,
-                const WDLScore    wdlScore = WDLDraw) noexcept {
+Ret probe_table(const Position& pos, ProbeState* const ps, const WDLScore wdl = WDLDraw) noexcept {
 
     const Key materialKey = pos.material_key();
 
@@ -1715,7 +1711,7 @@ Ret probe_table(const Position&   pos,
         return Ret();
     }
 
-    return do_probe_table(table, pos, wdlScore, ps);
+    return do_probe_table(table, pos, wdl, ps);
 }
 
 // For position where the side to move has a winning capture it is not necessary to
@@ -1734,7 +1730,7 @@ Ret probe_table(const Position&   pos,
 template<bool CheckZeroingMoves>
 WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
-    WDLScore wdlScore, bestWdlScore = WDLLoss;
+    WDLScore wdl, bestWdl = WDLLoss;
 
     MoveList<GenType::LEGAL> legalMoveList(pos);
 
@@ -1750,22 +1746,22 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
         State st;
         pos.do_move(m, st);
 
-        wdlScore = -search<false>(pos, ps);
+        wdl = -search<false>(pos, ps);
 
         pos.undo_move(m);
 
         if (*ps == ProbeState::Fail)
             return WDLDraw;
 
-        if (bestWdlScore < wdlScore)
+        if (bestWdl < wdl)
         {
-            bestWdlScore = wdlScore;
+            bestWdl = wdl;
 
-            if (wdlScore >= WDLWin)
+            if (wdl >= WDLWin)
             {
                 // Winning DTZ-zeroing move
                 *ps = ProbeState::BestMoveZeroing;
-                return wdlScore;
+                return wdl;
             }
         }
     }
@@ -1781,26 +1777,26 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
     if (legalMovesExhausted)
     {
-        wdlScore = bestWdlScore;
+        wdl = bestWdl;
     }
     else
     {
-        wdlScore = probe_table<WDL>(pos, ps);
+        wdl = probe_table<WDL>(pos, ps);
 
         if (*ps == ProbeState::Fail)
             return WDLDraw;
     }
 
     // DTZ stores a "don't care" WDL-score if best WDL-score is a win
-    if (bestWdlScore >= wdlScore)
+    if (bestWdl >= wdl)
     {
-        *ps = legalMovesExhausted || bestWdlScore > WDLDraw ? ProbeState::BestMoveZeroing
-                                                            : ProbeState::Success;
-        return bestWdlScore;
+        *ps = legalMovesExhausted || bestWdl > WDLDraw ? ProbeState::BestMoveZeroing
+                                                       : ProbeState::Success;
+        return bestWdl;
     }
 
     *ps = ProbeState::Success;
-    return wdlScore;
+    return wdl;
 }
 
 }  // namespace
@@ -2037,28 +2033,27 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 
     *ps = ProbeState::Success;
 
-    auto wdlScore = search<true>(pos, ps);
+    auto wdl = search<true>(pos, ps);
 
-    if (*ps == ProbeState::Fail || wdlScore == WDLDraw)  // DTZ-tables don't store draws
+    if (*ps == ProbeState::Fail || wdl == WDLDraw)  // DTZ-tables don't store draws
         return 0;
 
     // DTZ stores a 'don't care value in this case, or even a plain wrong
     // one as in case the best move is a losing ep, so it cannot be probed.
     if (*ps == ProbeState::BestMoveZeroing)
-        return before_zeroing_dtz(wdlScore);
+        return before_zeroing_dtz(wdl);
 
-    int dtzScore = probe_table<DTZ>(pos, ps, wdlScore);
+    int dtz = probe_table<DTZ>(pos, ps, wdl);
 
     if (*ps == ProbeState::Fail)
         return 0;
 
     if (*ps != ProbeState::ChangeAc)
-        return sign(wdlScore)
-             * (dtzScore + int(wdlScore == WDLBlessedLoss || wdlScore == WDLCursedWin) * 100);
+        return sign(wdl) * (dtz + int(wdl == WDLBlessedLoss || wdl == WDLCursedWin) * 100);
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = NO_DTZ_SCORE;
+    int minDtz = NO_DTZ;
 
     for (const Move m : MoveList<GenType::LEGAL>(pos))
     {
@@ -2067,25 +2062,25 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
         State st;
         pos.do_move(m, st);
 
-        // For zeroing moves want the dtzScore of the move _before_ doing it,
-        // otherwise will get the dtzScore of the next move sequence.
+        // For zeroing moves want the dtz of the move _before_ doing it,
+        // otherwise will get the dtz of the next move sequence.
         // Search the position after the move to get the WDL-score sign
         // (because even in a winning position could make a losing capture or go for a draw).
-        dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
+        dtz = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force min DTZ-score to 1
-        if (dtzScore == 1 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
-            minDtzScore = 1;
+        if (dtz == 1 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
+            minDtz = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
         // by dtz_before_zeroing() that returns the DTZ of the previous move.
         if (!zeroing)
-            dtzScore += sign(dtzScore);
+            dtz += sign(dtz);
 
         // Skip the draws and if winning only pick positive DTZ-score
-        if (sign(dtzScore) == sign(wdlScore))
-            if (minDtzScore > dtzScore)
-                minDtzScore = dtzScore;
+        if (sign(dtz) == sign(wdl))
+            if (minDtz > dtz)
+                minDtz = dtz;
 
         pos.undo_move(m);
 
@@ -2094,7 +2089,7 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore != NO_DTZ_SCORE ? minDtzScore : -1;
+    return minDtz != NO_DTZ ? minDtz : -1;
 }
 
 bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule50) noexcept {
@@ -2106,19 +2101,19 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
 
         ProbeState ps = ProbeState::Success;
 
-        WDLScore wdlScore = pos.is_draw(1) ? WDLDraw : -probe_wdl(pos, &ps);
+        WDLScore wdl = pos.is_draw(1) ? WDLDraw : -probe_wdl(pos, &ps);
 
         pos.undo_move(rm[0]);
 
         if (ps == ProbeState::Fail)
             return false;
 
-        rm.tbRank = WDL_RANK[WDL_INDEX(wdlScore)];
+        rm.tbRank = WDL_RANK[WDL_INDEX(wdl)];
 
         if (!useRule50)
-            wdlScore = normalize_wdl(wdlScore);
+            wdl = normalize_wdl(wdl);
 
-        rm.tbValue = WDL_VALUE[WDL_INDEX(wdlScore)];
+        rm.tbValue = WDL_VALUE[WDL_INDEX(wdl)];
     }
 
     return true;
@@ -2145,31 +2140,31 @@ bool rank_root_moves_dtz(Position&       pos,
 
         ProbeState ps = ProbeState::Success;
 
-        int dtzScore;
+        int dtz;
 
-        // Calculate dtzScore for the current move counting from the root position
+        // Calculate dtz for the current move counting from the root position
         if (pos.rule50_count() == 0)
         {
-            // In case of a zeroing move, dtzScore is one of -101/-1/0/1/101
-            dtzScore = before_zeroing_dtz(-probe_wdl(pos, &ps));
+            // In case of a zeroing move, dtz is one of -101/-1/0/1/101
+            dtz = before_zeroing_dtz(-probe_wdl(pos, &ps));
         }
         else if (pos.is_draw(1, useRule50))
         {
             // In case a root move leads to a draw by repetition or 50-move rule,
-            // set dtzScore to zero. Note: since are only 1 ply from the root,
+            // set dtz to zero. Note: since are only 1 ply from the root,
             // this must be a true 3-fold repetition inside the game history.
-            dtzScore = 0;
+            dtz = 0;
         }
         else
         {
-            // Otherwise, take dtzScore for the new position and correct by 1 ply
-            dtzScore = -probe_dtz(pos, &ps);
-            dtzScore += sign(dtzScore);
+            // Otherwise, take dtz for the new position and correct by 1 ply
+            dtz = -probe_dtz(pos, &ps);
+            dtz += sign(dtz);
         }
 
-        // Make sure that a mating move is assigned a dtzScore value of 1
-        if (dtzScore == 2 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
-            dtzScore = 1;
+        // Make sure that a mating move is assigned a dtz value of 1
+        if (dtz == 2 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
+            dtz = 1;
 
         pos.undo_move(rm[0]);
 
@@ -2183,13 +2178,12 @@ bool rank_root_moves_dtz(Position&       pos,
 
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
-        int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
-                                  ? +DTZ_MAX - (rankDTZ ? +dtzScore : 0)
-                                  : +DTZ_MAX / 2 - (+dtzScore + rule50Count))
-              : dtzScore < 0
-                ? (-2 * dtzScore + rule50Count < 100 ? -DTZ_MAX + (rankDTZ ? -dtzScore : 0)
-                                                     : -DTZ_MAX / 2 + (-dtzScore + rule50Count))
-                : 0;
+        int r = dtz > 0 ? (+1 * dtz + rule50Count < 100 && !hasRepeated
+                             ? +DTZ_MAX - (rankDTZ ? +dtz : 0)
+                             : +DTZ_MAX / 2 - (+dtz + rule50Count))
+              : dtz < 0 ? (-2 * dtz + rule50Count < 100 ? -DTZ_MAX + (rankDTZ ? -dtz : 0)
+                                                        : -DTZ_MAX / 2 + (-dtz + rule50Count))
+                        : 0;
 
         rm.tbRank = r;
 

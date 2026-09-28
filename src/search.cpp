@@ -456,7 +456,8 @@ void Worker::iterative_deepening() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (manager->skill.enabled())
-            multiPV = std::max(usize{4}, multiPV);
+            if (multiPV < 4)
+                multiPV = 4;
 
         manager->timeManager.init(rootPos.active_color(), rootPos.ply(), options, limit);
         manager->sumMoveChanges = 0.0;
@@ -467,7 +468,8 @@ void Worker::iterative_deepening() noexcept {
         manager->ponderhitStop = false;
     }
 
-    multiPV = std::min(rootMovesSize, multiPV);
+    if (multiPV > rootMovesSize)
+        multiPV = rootMovesSize;
 
     nmpPly = 0;
 
@@ -1016,28 +1018,28 @@ Value Worker::search(Position&    pos,
             if (pieceCount < tbConfig.cardinality
                 || (pieceCount == tbConfig.cardinality && depth >= tbConfig.probeDepth))
             {
-                Tablebase::Syzygy::ProbeState wdlPs;
+                Tablebase::Syzygy::ProbeState ps;
 
-                auto wdlScore = Tablebase::Syzygy::probe_wdl(pos, &wdlPs);
+                auto wdl = Tablebase::Syzygy::probe_wdl(pos, &ps);
 
                 // Force check of time on the next occasion
                 if (is_main())
                     manager()->callsCount = 1;
 
-                if (wdlPs != Tablebase::Syzygy::ProbeState::Fail)
+                if (ps != Tablebase::Syzygy::ProbeState::Fail)
                 {
                     ++tbHits;
 
-                    int drawValue = int(tbConfig.useRule50);
+                    int drawScr = tbConfig.useRule50 ? 1 : 0;
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_PLY_MAX to value
-                    Value tbValue = wdlScore < -drawValue ? -VALUE_TB + ss->ply
-                                  : wdlScore > +drawValue ? +VALUE_TB - ss->ply
-                                                          : VALUE_DRAW + 2 * wdlScore * drawValue;
+                    Value tbValue = wdl < -drawScr ? -VALUE_TB + ss->ply
+                                  : wdl > +drawScr ? +VALUE_TB - ss->ply
+                                                   : VALUE_DRAW + 2 * wdl * drawScr;
 
-                    Bound bound = wdlScore < -drawValue ? Bound::UPPER
-                                : wdlScore > +drawValue ? Bound::LOWER
-                                                        : Bound::EXACT;
+                    Bound bound = wdl < -drawScr ? Bound::UPPER
+                                : wdl > +drawScr ? Bound::LOWER
+                                                 : Bound::EXACT;
 
                     if (bound == Bound::EXACT
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
@@ -1054,7 +1056,8 @@ Value Worker::search(Position&    pos,
                         {
                             bestValue = tbValue;
 
-                            alpha = std::max(tbValue, alpha);
+                            if (alpha < tbValue)
+                                alpha = tbValue;
                         }
                         else
                             maxValue = tbValue;
@@ -1808,7 +1811,8 @@ Value Worker::search(Position&    pos,
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
     {
-        bestValue = std::min(maxValue, bestValue);
+        if (bestValue > maxValue)
+            bestValue = maxValue;
     }
 
     // If no good move is found and the previous position was pvTT, then the previous
@@ -1949,7 +1953,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         return bestValue;
     }
 
-    alpha = std::max(bestValue, alpha);
+    if (alpha < bestValue)
+        alpha = bestValue;
 
     baseFutility = 306 + ss->evalue;
         // clang-format on
@@ -2221,7 +2226,8 @@ void Worker::update_histories(const Position&             pos,
 
     int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0)
               + int(bmTT) * 364;
-    bonus     = std::max(bonus, 0);
+    if (bonus < 0)
+        bonus = 0;
 
     const int malus = std::min(-235 + 968 * depth, +2244);
 
@@ -2635,11 +2641,11 @@ void Manager::handle_time_management(const Worker& worker,
     // clang-format off
 
     // Compute evaluation inconsistency based on differences from previous best scores
-    const double inconsistencyFactor = std::clamp((11.48
-                                                 + 02.30 * (preBestAvgValue - bestValue)
-                                                 + 01.10 * (preBestValue - bestValue)) / 100.0,
-                                                1.0000 - int(!atFirst) * 0.4240,
-                                                1.0000 + int(!atFirst) * 0.7280);
+    const double inconsistencyFactor = std::clamp((11.480
+                                                 + 02.300 * (preBestAvgValue - bestValue)
+                                                 + 01.100 * (preBestValue    - bestValue)) / 100.0,
+                                                1.000 - int(!atFirst) * 0.424,
+                                                1.000 + int(!atFirst) * 0.728);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
     const Depth stableDepth = worker.rootDepth - lastBestMoveDepth;
@@ -2672,7 +2678,9 @@ void Manager::handle_time_management(const Worker& worker,
     // clang-format on
 
     // Cap totalTime to the available maximum time
-    totalTime = std::min(timeManager.maximum(), totalTime);
+    const TimePoint maximumTime = timeManager.maximum();
+    if (totalTime > maximumTime)
+        totalTime = maximumTime;
     // Cap totalTime to either 55% of total time or MaxForcedMoveTime ms in case of forced move for a better viewer experience
     if (worker.rootMoves.size() == 1)
         totalTime =
@@ -2714,8 +2722,9 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
     const auto& tbConfig           = worker.tbConfig;
     const usize multiPV            = worker.multiPV;
     // Ensure non-zero to avoid a 'divide by zero'
-    const TimePoint time   = std::max(elapsed(), TimePoint{1});
-    const u64       nodes  = threads.sum(&Worker::nodes);
+    const TimePoint elapsedTime = elapsed();
+    const TimePoint time        = elapsedTime < TimePoint{1} ? TimePoint{1} : elapsedTime;
+    const u64       nodes       = threads.sum(&Worker::nodes);
     const u64       tbHits = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
     const u16       hashfull = transpositionTable.hashfull();
     const bool      ShowWDL  = options["UCI_ShowWDL"];
@@ -2724,40 +2733,38 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
     {
         const auto& rm = rootMoves[i];
 
-        const bool isValueInvalid = rm.value == -VALUE_INFINITE;
+        const bool usePreValue = rm.value == -VALUE_INFINITE;
 
-        if (i != 0 && depth == 1 && isValueInvalid)
+        if (usePreValue && i != 0 && depth == 1)
             continue;
 
-        const Depth d = !isValueInvalid || depth <= 1 ? depth : depth - 1;
+        const Depth d = !usePreValue || depth <= 1 ? depth : depth - 1;
 
-        Value v = isValueInvalid ? rm.preValue : rm.uciValue;
+        Value v = usePreValue ? rm.preValue : rm.uciValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        const bool isValueTB = tbConfig.rootInTB && !is_mate(v);
+        const bool useTBValue = tbConfig.rootInTB && !is_mate(v);
 
-        if (isValueTB)
+        if (useTBValue)
             v = rm.tbValue;
 
         // Potentially correct and extend the PV, and in exceptional cases value also.
         // Previous PVs have already been extended. Bound flags indicate an unreliable PV.
-        if (!isValueInvalid && is_decisive(v) && !is_mate(v) && (isValueTB || !rm.is_inexact()))
+        if (!usePreValue && is_decisive(v) && !is_mate(v) && (useTBValue || !rm.is_inexact()))
             worker.extend_tb_pv(i, v);
 
-        FixedText score{to_score({v, rootPos})};
+        const auto score = to_score({v, rootPos});
 
-        FixedText bound;
         // TB and previous scores are exact, even though their bound flags may say otherwise
-        if (!(isValueTB || isValueInvalid) && rm.is_inexact())
-            bound = FixedText::from(to_string(rm.bound));
+        const auto bound = !(useTBValue || usePreValue) && rm.is_inexact()
+                           ? FixedText::from(to_string(rm.bound))
+                           : FixedText{};
 
-        FixedText wdl;
-        if (ShowWDL)
-            wdl = to_wdl(v, rootPos);
+        const auto wdl = ShowWDL ? to_wdl(v, rootPos) : FixedText{};
 
-        std::string pv{isValueInvalid ? rm.prePV.build_pv() : rm.pv.build_pv()};
+        const auto pv = usePreValue ? rm.prePV.build_pv() : rm.pv.build_pv();
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, tbHits, hashfull, pv});
