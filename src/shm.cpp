@@ -166,7 +166,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
             return std::nullopt;
 
         // Temp root already exists, verify ownership and permissions
-        struct stat fileStat = {};
+        stat fileStat = {};
 
         if (::lstat(tempPath.c_str(), &fileStat) != 0)
             return std::nullopt;
@@ -215,9 +215,9 @@ void InitLock::unlock() noexcept {
 }
 
 ScmRightsMessage::ScmRightsMessage() noexcept :
-    controlStorage{std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + alignof(cmsghdr))} {
-    constexpr usize Alignment = alignof(cmsghdr);
-    const usize     space     = CMSG_SPACE(sizeof(int));
+    controlStorage{std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + Alignment)} {
+
+    const usize ControlSpace = CMSG_SPACE(sizeof(int));
 
     std::byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
 
@@ -227,7 +227,7 @@ ScmRightsMessage::ScmRightsMessage() noexcept :
     msg.msg_iov        = iov;
     msg.msg_iovlen     = 1;
     msg.msg_control    = controlBuf;
-    msg.msg_controllen = space;
+    msg.msg_controllen = ControlSpace;
 }
 
 void* map_shared(const usize size, const int fd) noexcept {
@@ -275,7 +275,7 @@ Strings get_peer_sockets(const std::string& sharedDir) noexcept {
 
     if (DIR* dir = ::opendir(sharedDir.c_str()))
     {
-        while (const struct dirent* entry = ::readdir(dir))
+        while (const dirent* entry = ::readdir(dir))
         {
             const std::string_view dName = entry->d_name;
 
@@ -295,18 +295,18 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
         return {};
 
     // 1-second timeout for connect and receive
-    struct timeval tv = {1, 0};
+    timeval tv = {1, 0};
     ::setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     ::setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    struct sockaddr_un addr = {};
-    addr.sun_family         = AF_UNIX;
+    sockaddr_un addr = {};
+    addr.sun_family  = AF_UNIX;
     std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
 
     // Connect to peer socket and request access to the memFd
     int ret;
     do
-        ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+        ret = ::connect(peerFd.get(), reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
     while (ret == -1 && errno == EINTR);
 
     if (ret == 0)
@@ -369,7 +369,7 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
     return create_native_thread([fd         = std::move(fd),          //
                                  shutdownFd = std::move(shutdownFd),  //
                                  serverFd   = std::move(serverFd)]() noexcept -> void {
-        struct pollfd fds[PI_NB];
+        pollfd fds[PI_NB];
         fds[+PI::SERVER].fd     = serverFd.get();
         fds[+PI::SERVER].events = POLLIN;
 
@@ -411,11 +411,11 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
                 // will refer to the same underlying file. Once it's mmapped then it will share physical memory
                 // between the processes.
                 // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
-                int             rawFd = fd.get();
-                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&message.msg);
-                cmsg->cmsg_level      = SOL_SOCKET;
-                cmsg->cmsg_type       = SCM_RIGHTS;
-                cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
+                int      rawFd   = fd.get();
+                cmsghdr* cmsg    = CMSG_FIRSTHDR(&message.msg);
+                cmsg->cmsg_level = SOL_SOCKET;
+                cmsg->cmsg_type  = SCM_RIGHTS;
+                cmsg->cmsg_len   = CMSG_LEN(sizeof(rawFd));
                 std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
 
     #if defined(SO_NOSIGPIPE)

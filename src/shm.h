@@ -554,6 +554,8 @@ struct ScmRightsMessage final {
     ScmRightsMessage(ScmRightsMessage&&)                 = delete;
     ScmRightsMessage& operator=(ScmRightsMessage&&)      = delete;
 
+    static constexpr usize Alignment = alignof(cmsghdr);
+
     std::unique_ptr<std::byte[]> controlStorage;
 };
 

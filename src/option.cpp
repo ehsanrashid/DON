@@ -24,9 +24,9 @@
 namespace DON {
 
 Option::Option(std::string_view str, OnChange&& onCng) noexcept :
-    defaultValue(str),
-    currentValue(str),
-    onChange(std::move(onCng)) {}
+    defaultValue{str},
+    currentValue{str},
+    onChange{std::move(onCng)} {}
 
 std::string_view Option::current_value() const noexcept { return currentValue; }
 

@@ -279,16 +279,15 @@ MovePicker::MovePicker(const Position&                 p,
                        const AtomicHistories* const    atomicHists,
                        const u16                       ply,
                        const int                       th) noexcept :
-    pos(p),
-    ttMove(ttm),
-    captureHistory(captureHist),
-    quietHistory(quietHist),
-    lowPlyQuietHistory(lowPlyQuietHist),
-    continuationHistory(continuationHist),
-    atomicHistories(atomicHists),
-    ssPly(ply),
-    threshold(th),
-    moves() {
+    pos{p},
+    ttMove{ttm},
+    captureHistory{captureHist},
+    quietHistory{quietHist},
+    lowPlyQuietHistory{lowPlyQuietHist},
+    continuationHistory{continuationHist},
+    atomicHistories{atomicHists},
+    ssPly{ply},
+    threshold{th} {
     assert(ttMove == Move::None || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -316,16 +315,15 @@ MovePicker::MovePicker(const Position&             p,
                        const Move                  ttm,
                        const CaptureHistory* const captureHist,
                        const int                   th) noexcept :
-    pos(p),
-    ttMove(ttm),
-    captureHistory(captureHist),
-    threshold(th),
-    moves() {
+    pos{p},
+    ttMove{ttm},
+    captureHistory{captureHist},
+    threshold{th} {
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
     initStage = Stage::PROBCUT;
-    curStage  = Stage(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    curStage  = Stage{!(ttMove != Move::None && pos.capture_promo(ttMove))};
 }
 
 template<GenType GT>
@@ -484,7 +482,7 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 }
 
 template<typename Predicate>
-bool MovePicker::select(const Predicate& pred) noexcept {
+bool MovePicker::select(Predicate pred) noexcept {
 
     for (; cur != curEnd; ++cur)
         if (*cur != ttMove && pred())
