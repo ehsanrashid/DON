@@ -33,8 +33,12 @@
 #include <variant>  // variant<>
 #include <vector>
 
-#if !defined(_WIN64)                                 /* Non-Windows */ \
-  && ((defined(__linux__) && !defined(__ANDROID__))) /* Linux (Non-Android) */
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
+#if !defined(_WIN64)              /* Non-Windows */ \
+  && (defined(LINUX_NON_ANDROID)) /* Linux (Non-Android) */
     #define USE_UNIX_NUMA
 #endif
 
@@ -607,7 +611,7 @@ class NumaReplicated final: public BaseNumaReplicated {
 
     NumaReplicated(NumaReplicated&& numaRep) noexcept :
         BaseNumaReplicated(std::move(numaRep)),
-        instances(std::exchange(numaRep.instances, {})) {}
+        instances{std::exchange(numaRep.instances, {})} {}
     NumaReplicated& operator=(NumaReplicated&& numaRep) noexcept {
         if (this == &numaRep)
             return *this;
@@ -694,7 +698,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
     LazyNumaReplicated(LazyNumaReplicated&& lazyNumaRep) noexcept :
         BaseNumaReplicated(std::move(lazyNumaRep)),
-        instances(std::exchange(lazyNumaRep.instances, {})) {}
+        instances{std::exchange(lazyNumaRep.instances, {})} {}
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
         if (this == &lazyNumaRep)
             return *this;
@@ -748,7 +752,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaId != 0);
 
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         // Check again for races.
         if (instances[numaId] != nullptr)
@@ -808,7 +812,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
     SystemWideLazyNumaReplicated(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept :
         BaseNumaReplicated(std::move(sysNumaRep)),
-        instances(std::exchange(sysNumaRep.instances, {})) {}
+        instances{std::exchange(sysNumaRep.instances, {})} {}
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
         if (this == &sysNumaRep)
             return *this;
@@ -885,7 +889,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaId != 0);
 
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         // Check again for races
         if (instances[numaId] != nullptr)

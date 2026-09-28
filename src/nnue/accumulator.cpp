@@ -101,7 +101,7 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
                              Square                    wKingSq,
                              Square                    bKingSq,
                              const Accumulator&        srcAcc,
-                             Accumulator&              dstAcc);
+                             Accumulator&              dstAcc) noexcept;
 
 }  // namespace
 
@@ -372,6 +372,7 @@ ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept { j += Tiling::PSQTTi
 template<Op op>
 ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
+
     const auto* column = reinterpret_cast<const SIMD::vec_t*>(src + j);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         if constexpr (op == Op::Add)
@@ -383,6 +384,7 @@ ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcep
 template<Op op>
 ALWAYS_INLINE void apply(const i32* const src, const Index j, PsqtTile& acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
+
     const auto* column = reinterpret_cast<const SIMD::psqt_vec_t*>(src + j);
     for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
         if constexpr (op == Op::Add)
@@ -449,12 +451,23 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
 
 #endif
 
-template<Op op>
+template<Op op, bool Incremental = false>
 ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
                                       const FeatureTransformer&    ft,
                                       const Index                  j,
                                       Tile&                        acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
+
+    if constexpr (Incremental)
+    {
+        assert(in.size() == 1 || in.size() == 2);
+
+        apply<op>(&ft.weights[in[0] * Dimensions], j, acc);
+        if (in.size() > 1)
+            apply<op>(&ft.weights[in[1] * Dimensions], j, acc);
+
+        return;
+    }
     for (Index i = 0; i < in.size(); ++i)
         apply<op>(&ft.weights[in[i] * Dimensions], j, acc);
 }
@@ -465,6 +478,7 @@ ALWAYS_INLINE void apply_psqt(const FixedVector<IdxType, Size, IdxType>& in,
                               const Index                                j,
                               PsqtTile&                                  acc) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
+
     for (Index i = 0; i < in.size(); ++i)
         apply<op>(&weights[in[i] * PSQT_BUCKETS], j, acc);
 }
@@ -806,8 +820,8 @@ void apply_combined(Color                           perspective,
     {
         acc = load_tile(srcAccm.data(), j);
 
-        apply_psq_features<Op::Sub>(psqRemoved, featureTransformer, j, acc);
-        apply_psq_features<Op::Add>(psqAdded, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub, true>(psqRemoved, featureTransformer, j, acc);
+        apply_psq_features<Op::Add, true>(psqAdded, featureTransformer, j, acc);
 
         apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
         apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
@@ -886,7 +900,7 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
                              const Square              wKingSq,
                              const Square              bKingSq,
                              const Accumulator&        srcAcc,
-                             Accumulator&              dstAcc) {
+                             Accumulator&              dstAcc) noexcept {
     assert(srcAcc.computed[WHITE]);
     assert(srcAcc.computed[BLACK]);
     assert(!dstAcc.computed[WHITE]);

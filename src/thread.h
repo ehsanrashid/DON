@@ -177,12 +177,12 @@ class Thread final {
 // The actual job execution happens asynchronously in idle_func().
 inline void Thread::run_custom_job(const JobFunc jobFn) noexcept {
 
-    std::unique_lock condLock(mutex);
+    std::unique_lock uniqueLock{mutex};
 
     // Wait until the thread is idle or being terminated.
     // - If !busy, the thread is ready to accept a new job.
     // - If dead, the thread is shutting down, so we shouldn't schedule work.
-    condVar.wait(condLock, [this]() noexcept -> bool { return !busy || dead; });
+    condVar.wait(uniqueLock, [this]() noexcept -> bool { return !busy || dead; });
 
     // If the thread is still alive, schedule the job
     if (!dead)
@@ -216,9 +216,9 @@ inline void Thread::start_search() noexcept {
 
 // Blocks on the condition variable until the thread has finished job
 inline void Thread::wait_finish() noexcept {
-    std::unique_lock condLock(mutex);
+    std::unique_lock uniqueLock{mutex};
 
-    condVar.wait(condLock, [this]() noexcept -> bool { return !busy || dead; });
+    condVar.wait(uniqueLock, [this]() noexcept -> bool { return !busy || dead; });
 }
 
 class Options;
@@ -248,24 +248,24 @@ class Threads final {
     [[nodiscard]] auto end() const noexcept { return threads.end(); }
 
     [[nodiscard]] u16 size() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         return u16(threads.size());
     }
     [[nodiscard]] bool empty() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         return threads.empty();
     }
 
     void reserve(const u16 threadCount) noexcept {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         threads.reserve(threadCount);
     }
 
     void clear() noexcept {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         threads.clear();
     }
@@ -348,7 +348,7 @@ class Threads final {
 
 
     void notify_manager() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         assert(!threads.empty());
 
@@ -363,14 +363,14 @@ class Threads final {
         // Try to acquire the main-manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.
         // If locking fails still notify — notify_one() is allowed without holding the lock.
-        std::unique_lock condLock(manager->mutex, std::try_to_lock);
+        std::unique_lock uniqueLock(manager->mutex, std::try_to_lock);
         // Safe to call even if mutex not locked
         manager->condVar.notify_one();
     }
 
     template<typename Func>
     void for_each_thread(Func&& func, bool includeMain = true) const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         for (auto&& th : threads)
         {
@@ -383,7 +383,7 @@ class Threads final {
 
     template<typename T>
     void set(RelaxedAtomic<T> Worker::* member, T value) noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         for (auto&& th : threads)
             th->worker.get()->*member = value;
@@ -391,7 +391,7 @@ class Threads final {
 
     template<typename T>
     [[nodiscard]] u64 sum(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         u64 sum = initialSum;
         for (auto&& th : threads)
@@ -403,7 +403,7 @@ class Threads final {
     template<typename T>
     [[nodiscard]] u64 sum_and_reset(RelaxedAtomic<T> Worker::* member,
                                     u64                        initialSum = 0) noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         u64 sum = initialSum;
         for (auto&& th : threads)
@@ -433,7 +433,7 @@ inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main-thread
     {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         if (!threads.empty())
             mainThread = threads.front().get();
@@ -448,7 +448,7 @@ inline void Threads::destroy() noexcept {
     }
 
     // Clear threads and thread binding nodes
-    std::lock_guard writeLock(mutex);
+    std::lock_guard lockGuard{mutex};
 
     threads.clear();
     threadBoundNumaNodes.clear();
@@ -468,13 +468,13 @@ inline void Threads::reset() const noexcept {
 }
 
 inline Thread* Threads::main_thread() const noexcept {
-    std::shared_lock readLock(mutex);
+    std::shared_lock sharedLock{mutex};
 
     return !threads.empty() ? threads.front().get() : nullptr;
 }
 
 inline Manager* Threads::manager() const noexcept {
-    std::shared_lock readLock(mutex);
+    std::shared_lock sharedLock{mutex};
 
     // Access the main thread directly because main_thread() would lock mutex again.
     // Snapshot the main-thread pointer under the shared lock and return its manager.

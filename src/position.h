@@ -37,6 +37,7 @@
 
 namespace DON {
 
+struct Error;
 class Worker;
 
 // Position class stores information regarding the board representation as

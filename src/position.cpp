@@ -26,6 +26,7 @@
 
 #include "concurrent.h"  // ConcurrentCache<>
 #include "cuckoo.h"
+#include "error.h"
 #include "history.h"
 #include "movegen.h"
 #include "search.h"
@@ -41,8 +42,8 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-ConcurrentCache<Key, Value> NonPawnValueCache(32 * KB, 0.75f);
-ConcurrentCache<Key, Value> MaterialValueCache(16 * KB, 0.75f);
+ConcurrentCache<Key, Value> NonPawnValueCache{32 * KB, 0.75f};
+ConcurrentCache<Key, Value> MaterialValueCache{16 * KB, 0.75f};
 
 }  // namespace
 
@@ -2202,13 +2203,13 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
         Tablebase::Syzygy::ProbeState wdlPs, dtzPs;
 
-        const auto wdlScore = Tablebase::Syzygy::probe_wdl(p, &wdlPs);
-        const auto dtzScore = Tablebase::Syzygy::probe_dtz(p, &dtzPs);
+        const auto wdl = Tablebase::Syzygy::probe_wdl(p, &wdlPs);
+        const auto dtz = Tablebase::Syzygy::probe_dtz(p, &dtzPs);
 
-        os << "\nTablebase WDL: " << std::setw(4) << to_string(wdlScore)  //
-           << " (" << to_string(wdlPs) << ")";
-        os << "\nTablebase DTZ: " << std::setw(4) << std::to_string(dtzScore)  //
-           << " (" << to_string(dtzPs) << ")";
+        os << "\nTablebase WDL: " << std::setw(4) << to_string(wdl) << " (" << to_string(wdlPs)
+           << ")";
+        os << "\nTablebase DTZ: " << std::setw(4) << std::to_string(dtz) << " (" << to_string(dtzPs)
+           << ")";
     }
 
     return os;

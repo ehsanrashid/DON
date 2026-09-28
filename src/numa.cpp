@@ -411,10 +411,10 @@ CpuSet get_process_affinity() noexcept {
 #endif
 
 NumaReplicatedAccessToken::NumaReplicatedAccessToken() noexcept :
-    NumaReplicatedAccessToken(0) {}
+    NumaReplicatedAccessToken{0} {}
 
 NumaReplicatedAccessToken::NumaReplicatedAccessToken(const NumaIndex numaIdx) noexcept :
-    numaId(numaIdx) {}
+    numaId{numaIdx} {}
 
 NumaIndex NumaReplicatedAccessToken::numa_id() const noexcept { return numaId; }
 
@@ -633,8 +633,8 @@ std::optional<NumaConfig> NumaConfig::from_string(const std::string_view sv) noe
 }
 
 NumaConfig::NumaConfig(const CpuIndex maxCpuIdx, const bool customAff) noexcept :
-    maxCpuId(maxCpuIdx),
-    customAffinity(customAff) {}
+    maxCpuId{maxCpuIdx},
+    customAffinity{customAff} {}
 
 NumaConfig::NumaConfig() noexcept :
     NumaConfig{0, false} {
@@ -1089,7 +1089,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
 
 
 NumaReplicationContext::NumaReplicationContext(NumaConfig&& numaCfg) noexcept :
-    numaConfig(std::move(numaCfg)) {}
+    numaConfig{std::move(numaCfg)} {}
 
 NumaReplicationContext::~NumaReplicationContext() noexcept {
     // The context must outlive all attached replicated objects.
@@ -1134,13 +1134,13 @@ const NumaConfig& NumaReplicationContext::numa_config() const noexcept { return 
 
 
 BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept :
-    numaContext(&numaCtx) {
+    numaContext{&numaCtx} {
     [[maybe_unused]] const bool attached = attach_context();
     assert(attached);
 }
 
 BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept :
-    numaContext(std::exchange(baseNumaRep.numaContext, nullptr)) {
+    numaContext{std::exchange(baseNumaRep.numaContext, nullptr)} {
     move_context(baseNumaRep);
 }
 

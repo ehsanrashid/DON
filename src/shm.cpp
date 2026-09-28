@@ -146,12 +146,12 @@ std::string normalize_shm_name(const std::string_view shmName) noexcept {
 #elif defined(USE_UNIX_SHM)
 
 BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
-    name_(normalize_shm_name(shmName)) {}
+    name_{normalize_shm_name(shmName)} {}
 
 std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 
 TempRoot::TempRoot(std::string path) noexcept :
-    path_(std::move(path)) {}
+    path_{std::move(path)} {}
 
 const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
     static const auto tempRoot = []() -> std::optional<TempRoot> {
@@ -187,10 +187,10 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
 }
 
 InitLock::InitLock(UniqueFd fd) noexcept :
-    lockFd(std::move(fd)) {}
+    lockFd{std::move(fd)} {}
 
 InitLock InitLock::acquire_lock(const std::string_view path) noexcept {
-    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, DEFFILEMODE));
+    UniqueFd fd{::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, DEFFILEMODE)};
 
     if (!fd.is_valid())
         return {};
@@ -215,23 +215,23 @@ void InitLock::unlock() noexcept {
 }
 
 ScmRightsMessage::ScmRightsMessage() noexcept :
-    controlStorage(std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + alignof(cmsghdr))) {
-    constexpr usize Alignment = alignof(cmsghdr);
-    const usize     space     = CMSG_SPACE(sizeof(int));
+    controlStorage{std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + Alignment)} {
 
-    std::byte* msgControlBuf = align_ptr_up<Alignment>(controlStorage.get());
+    const usize ControlSpace = CMSG_SPACE(sizeof(int));
+
+    std::byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
 
     iov[0].iov_base = buf;
     iov[0].iov_len  = 1;
 
     msg.msg_iov        = iov;
     msg.msg_iovlen     = 1;
-    msg.msg_control    = msgControlBuf;
-    msg.msg_controllen = space;
+    msg.msg_control    = controlBuf;
+    msg.msg_controllen = ControlSpace;
 }
 
 void* map_shared(const usize size, const int fd) noexcept {
-    #if defined(__linux__) && !defined(__ANDROID__)
+    #if defined(LINUX_NON_ANDROID)
     return mmap_huge_aligned(size, MAP_SHARED, fd);
     #else
     return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -273,17 +273,17 @@ UniqueFd create_unix_socket() noexcept {
 Strings get_peer_sockets(const std::string& sharedDir) noexcept {
     Strings peerSockets;
 
-    DIR* dirPtr = ::opendir(sharedDir.c_str());
-    if (dirPtr != nullptr)
+    if (DIR* dir = ::opendir(sharedDir.c_str()))
     {
-        const struct dirent* dirEntryPtr;
-        while ((dirEntryPtr = ::readdir(dirPtr)) != nullptr)
+        while (const dirent* entry = ::readdir(dir))
         {
-            std::string dName{dirEntryPtr->d_name};
+            const std::string_view dName = entry->d_name;
+
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
-                peerSockets.push_back(sharedDir + "/" + dName);
+                peerSockets.push_back(sharedDir + "/" + std::string{dName});
         }
-        ::closedir(dirPtr);
+
+        ::closedir(dir);
     }
 
     return peerSockets;
@@ -295,18 +295,18 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
         return {};
 
     // 1-second timeout for connect and receive
-    struct timeval tv = {1, 0};
+    timeval tv = {1, 0};
     ::setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     ::setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    struct sockaddr_un addr = {};
-    addr.sun_family         = AF_UNIX;
+    sockaddr_un addr = {};
+    addr.sun_family  = AF_UNIX;
     std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
 
     // Connect to peer socket and request access to the memFd
     int ret;
     do
-        ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+        ret = ::connect(peerFd.get(), reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
     while (ret == -1 && errno == EINTR);
 
     if (ret == 0)
@@ -327,14 +327,18 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
         if (bytesRecv > 0)
         {
             cmsghdr* cmsg = CMSG_FIRSTHDR(&message.msg);
+
             // Receive rights to the memFd from the peer; see make_server_thread
-            if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS
+                && cmsg->cmsg_len >= CMSG_LEN(sizeof(int)))
             {
                 int receivedFd;
                 std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
+
     #if !defined(MSG_CMSG_CLOEXEC)
                 set_cloexec(receivedFd);
     #endif
+
                 return UniqueFd{receivedFd};
             }
         }
@@ -365,7 +369,7 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
     return create_native_thread([fd         = std::move(fd),          //
                                  shutdownFd = std::move(shutdownFd),  //
                                  serverFd   = std::move(serverFd)]() noexcept -> void {
-        struct pollfd fds[PI_NB];
+        pollfd fds[PI_NB];
         fds[+PI::SERVER].fd     = serverFd.get();
         fds[+PI::SERVER].events = POLLIN;
 
@@ -407,11 +411,11 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
                 // will refer to the same underlying file. Once it's mmapped then it will share physical memory
                 // between the processes.
                 // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
-                int             rawFd = fd.get();
-                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&message.msg);
-                cmsg->cmsg_level      = SOL_SOCKET;
-                cmsg->cmsg_type       = SCM_RIGHTS;
-                cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
+                int      rawFd   = fd.get();
+                cmsghdr* cmsg    = CMSG_FIRSTHDR(&message.msg);
+                cmsg->cmsg_level = SOL_SOCKET;
+                cmsg->cmsg_type  = SCM_RIGHTS;
+                cmsg->cmsg_len   = CMSG_LEN(sizeof(rawFd));
                 std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
 
     #if defined(SO_NOSIGPIPE)

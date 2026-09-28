@@ -23,7 +23,6 @@
 #include <cstdlib>  // exit(), EXIT_FAILURE
 #include <cstring>  // strerror(), memcpy()
 #include <deque>
-#include <filesystem>
 #include <initializer_list>
 #include <iostream>
 #include <limits>
@@ -32,7 +31,6 @@
 #include <system_error>  // error_code
 #include <type_traits>
 #include <utility>  // pair<>, swap()
-#include <vector>
 
 #if defined(_WIN32)
     #include "../platform_win.h"
@@ -45,6 +43,7 @@
 
 #include "../attacks.h"
 #include "../bitboard.h"
+#include "../error.h"
 #include "../misc.h"
 #include "../movegen.h"
 #include "../option.h"
@@ -61,11 +60,11 @@ void init() noexcept {}
 void init(const std::string_view) noexcept {}
 
 WDLScore probe_wdl(Position&, ProbeState* const ps) noexcept {
-    *ps = PS_FAIL;
-    return WDL_DRAW;
+    *ps = ProbeState::Fail;
+    return WDLDraw;
 }
 int probe_dtz(Position&, ProbeState* const ps) noexcept {
-    *ps = PS_FAIL;
+    *ps = ProbeState::Fail;
     return 0;
 }
 
@@ -100,12 +99,12 @@ constexpr usize TB_TYPE_NB = 2;
 
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
 enum TBFlag : u8 {
-    ACTIVE_COLOR = 1,
-    MAPPED       = 2,
-    WIN_PLIES    = 4,
-    LOSS_PLIES   = 8,
-    WIDE         = 16,
-    SINGLE_VALUE = 128
+    STM         = 1,
+    Mapped      = 2,
+    WinPlies    = 4,
+    LossPlies   = 8,
+    Wide        = 16,
+    SingleValue = 128
 };
 
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
@@ -121,11 +120,9 @@ constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
 
-constexpr WDLScore WDL_SCORE_OFFSET = -WDL_LOSS;
+constexpr WDLScore WDL_SCORE_OFFSET = -WDLLoss;
 
-constexpr usize WDL_INDEX(const WDLScore wdlScore) noexcept {
-    return usize(wdlScore + WDL_SCORE_OFFSET);
-}
+constexpr usize WDL_INDEX(const WDLScore wdl) noexcept { return usize(wdl + WDL_SCORE_OFFSET); }
 
 // clang-format off
 
@@ -137,8 +134,8 @@ constexpr Array<int  , WDL_SCORE_NB> BEFORE_ZEROING_DTZ{       -1,           -10
 // DTZ-tables don't store valid scores for moves that reset the rule50 counter
 // like captures and pawn moves but can easily recover the correct DTZ-score of the
 // previous move if know the position's WDL-score.
-constexpr int before_zeroing_dtz(const WDLScore wdlScore) noexcept {
-    return BEFORE_ZEROING_DTZ[WDL_INDEX(wdlScore)];
+constexpr int before_zeroing_dtz(const WDLScore wdl) noexcept {
+    return BEFORE_ZEROING_DTZ[WDL_INDEX(wdl)];
 }
 
 [[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
@@ -155,7 +152,7 @@ Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE
 
 // clang-format on
 
-constexpr int NO_DTZ_SCORE = std::numeric_limits<int>::max();
+constexpr int NO_DTZ = std::numeric_limits<int>::max();
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
 constexpr bool pawn_ascending(const Square s1, const Square s2) noexcept {
@@ -212,6 +209,8 @@ struct LR final {
             return (data[2] << 4) | (data[1] >> 4);
     }
 
+    static const LR Default;
+
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
     // If the symbol has length 1, then the left-hand symbol is the stored value.
     Array<u8, 3> data;
@@ -219,11 +218,12 @@ struct LR final {
 
 static_assert(sizeof(LR) == 3, "LR size must be 3 bytes");
 
-constexpr usize SymCount = 4096;
+constexpr LR LR::Default{{0x00, 0xF0, 0xFF}};
 
+constexpr usize SymCount = 4096;
 static_assert(is_power_of_2(SymCount));
 
-bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
+bool fits(const u8* const p, const u64 count, const u64 stride, const u8* const end) noexcept {
 
     if (p > end)
         return false;
@@ -231,74 +231,6 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
     const u64 room = u64(end - p);
     return count == 0 || stride <= room / count;
 }
-
-// Tablebase data layout is structured as following:
-//
-//  TBTable:  one object for each file with corresponding indexing information
-//  TBTables: has ownership of TBTable objects, keeping a list and a hash
-
-// TBPaths contains the directories used to locate Syzygy tablebase files
-// (.rtbw / .rtbz).
-//
-// Responsibilities:
-// • Parse a platform-dependent list of directories:
-//     - ';' on Windows
-//     - ':' on Unix-like systems
-// • Store paths as std::filesystem::path for safe concatenation and
-//   cross-platform correctness.
-// • Provide read-only access to the configured directories.
-//
-// Usage:
-// • Call TBPaths::init() once during engine startup.
-// • Use TBPaths::get() when resolving tablebase files.
-//
-// Example:
-//     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
-//     for (const auto& dir : TBPaths::get()) { ... }
-//
-// Notes:
-// • Re-initialization replaces the previous path set.
-namespace TBPaths {
-
-bool init(std::string_view paths) noexcept;
-
-const auto& paths() noexcept;
-
-}  // namespace TBPaths
-
-namespace TBPaths {
-
-namespace {
-
-// Platform-specific directory separator.
-// Example:
-// C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-constexpr std::string_view PATH_SEPARATOR{
-    #if defined(_WIN32)
-  ";"
-    #else
-  ":"
-    #endif
-};
-
-std::vector<fs::path> Paths;
-
-}  // namespace
-
-bool init(const std::string_view paths) noexcept {
-    Paths.clear();
-    Paths.reserve(4);
-
-    for (const auto path : split(paths, PATH_SEPARATOR, true))
-        if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
-            Paths.emplace_back(utf8_to_path(path));
-
-    return !Paths.empty();
-}
-
-const auto& paths() noexcept { return Paths; }
-
-}  // namespace TBPaths
 
 // TBFile resolves a tablebase filename by searching through TBPaths.
 // The first matching regular file is retained.
@@ -351,174 +283,9 @@ struct PairsData final {
     // In Recursive Pairing, each symbol represents a pair of child symbols.
     // Expand each symbol through its left and right child symbols
     // until reaching the leaves that represent the symbol value.
-    u8 set_symlen(const usize sym, Array<SymColor, SymCount>& symColor, bool& cyclic) noexcept {
+    u8 set_symLen(const usize sym, Array<SymColor, SymCount>& symColors, bool& cyclic) noexcept;
 
-        symColor[sym] = SYM_GREY;
-
-        const Sym rSym = btree[sym].get<false>();
-
-        if (rSym == SymCount - 1)
-        {
-            symColor[sym] = SYM_BLACK;
-            return 0;
-        }
-
-        const Sym lSym = btree[sym].get<true>();
-
-        if (symColor[lSym] == SYM_GREY || symColor[rSym] == SYM_GREY)
-        {
-            cyclic        = true;
-            symColor[sym] = SYM_BLACK;
-            return 0;
-        }
-
-        if (symColor[lSym] == SYM_WHITE)
-        {
-            symLen[lSym] = set_symlen(lSym, symColor, cyclic);
-
-            if (cyclic)
-            {
-                symColor[sym] = SYM_BLACK;
-                return 0;
-            }
-        }
-
-        if (symColor[rSym] == SYM_WHITE)
-        {
-            symLen[rSym] = set_symlen(rSym, symColor, cyclic);
-
-            if (cyclic)
-            {
-                symColor[sym] = SYM_BLACK;
-                return 0;
-            }
-        }
-
-        symColor[sym] = SYM_BLACK;
-
-        return 1 + symLen[lSym] + symLen[rSym];
-    }
-
-    u8* set_sizes(u8* data_, const u8* end) noexcept {
-
-        if (!fits(data_, 1, 1, end))
-            return nullptr;
-
-        flags = *data_++;
-
-        if (flags & SINGLE_VALUE)
-        {
-            blockCount      = 0;
-            blockLengthSize = 0;
-            span            = 0;
-            sparseIndexSize = 0;  // Broken MSVC zero-init
-
-            if (!fits(data_, 1, 1, end))
-                return nullptr;
-
-            minSymLen = *data_++;  // Here store the single value
-
-            return data_;
-        }
-
-        // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
-        // element stores the biggest index that is the tb size.
-        u64 tbSize = groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
-
-        if (!fits(data_, 9, 1, end))
-            return nullptr;
-
-        if (data_[0] >= 64 || data_[1] >= 64)
-            return nullptr;
-
-        blockSize       = u64{1} << *data_++;
-        span            = u64{1} << *data_++;
-        sparseIndexSize = ceil_div(tbSize, span);  // Round up
-
-        auto padding = number<u8, Endian::LITTLE>(data_);
-        data_ += 1;
-        blockCount = number<u32, Endian::LITTLE>(data_);
-        data_ += sizeof(u32);
-        // Padded to ensure SparseIndex[] does not point out of range.
-        blockLengthSize = blockCount + padding;
-        maxSymLen       = *data_++;
-        minSymLen       = *data_++;
-
-        if (minSymLen == 0 || minSymLen > maxSymLen || maxSymLen >= 64)
-            return nullptr;
-
-        lowestSym = (Sym*) (data_);
-        base64.resize(maxSymLen - minSymLen + 1);
-
-        if (!fits(data_, base64.size(), sizeof(Sym), end))
-            return nullptr;
-
-        // See https://en.wikipedia.org/wiki/Huffman_coding
-        // The canonical code is ordered such that longer symbols (in terms of
-        // the number of bits of their Huffman code) have a lower numeric value,
-        // so that lowestSym[i] >= lowestSym[i+1] (when read as LittleEndian).
-        // Starting from this compute a base64[] table indexed by symbol length
-        // and containing 64 bit values so that base64[i] >= base64[i+1].
-        usize base64Size = base64.size();
-
-        for (usize i = std::max(base64Size, usize{1}) - 1; i-- > 0;)
-        {
-            auto curSym = number<Sym, Endian::LITTLE>(&lowestSym[i + 0]);
-            auto nxtSym = number<Sym, Endian::LITTLE>(&lowestSym[i + 1]);
-
-            base64[i] = (base64[i + 1] + curSym - nxtSym) / 2;
-
-            if (2 * base64[i] < base64[i + 1])
-                return nullptr;
-        }
-
-        // Now left-shift by an amount so that base64[i] gets shifted 1-bit more
-        // than base64[i+1] and given the above assert condition.
-        // Ensure that base64[i] >= base64[i+1].
-        // Moreover for any symbol s64 of length i and right-padded to 64 bits holds
-        // base64[i-1] >= s64 >= base64[i].
-        for (usize i = 0; i < base64Size; ++i)
-            base64[i] <<= 64 - i - minSymLen;  // Right-padding to 64-bit
-
-        data_ += base64Size * sizeof(Sym);
-
-        if (!fits(data_, sizeof(u16), 1, end))
-            return nullptr;
-
-        const usize symlenSize = number<u16, Endian::LITTLE>(data_);
-        data_ += sizeof(u16);
-
-        if (!fits(data_, symlenSize, sizeof(LR), end))
-            return nullptr;
-
-        btreeBuf.fill(LR{0x00, 0xF0, 0xFF});
-        std::memcpy(btreeBuf.data(), data_, symlenSize * sizeof(LR));
-        btree = btreeBuf.data();
-
-        // The compression scheme used is "Recursive Pairing", that replaces the most
-        // frequent adjacent pair of symbols in the source message by a new symbol,
-        // reevaluating the frequencies of all of the symbol pairs with respect to
-        // the extended alphabet, and then repeating the process.
-        // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
-        symLen.fill(u8{0});
-        Array<SymColor, SymCount> symColor;
-        symColor.fill(SYM_WHITE);
-        bool cyclic = false;
-
-        for (usize sym = 0; sym < symlenSize; ++sym)
-            if (symColor[sym] == SYM_WHITE)
-            {
-                symLen[sym] = set_symlen(sym, symColor, cyclic);
-
-                if (cyclic)
-                    break;
-            }
-
-        if (cyclic)
-            return nullptr;
-
-        return data_ + symlenSize * sizeof(LR) + (symlenSize & 1);
-    }
+    u8* set_sizes(u8* pData, const u8* end) noexcept;
 
     u8    flags;            // Table flags, see enum TBFlag
     u8    maxSymLen;        // Maximum length in bits of the Huffman symbols
@@ -540,8 +307,179 @@ struct PairsData final {
     Array<Piece, TB_PIECES_MAX> pieces;  // Position pieces: the order of pieces defines the groups
     Array<u64, TB_PIECES_MAX + 1> groupIdx;  // Start index for the encoding of the group's pieces
     Array<i32, TB_PIECES_MAX + 1> groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
-    Array<u16, 4> mapIdx;  // WDL_WIN, WDL_LOSS, WDL_CURSED_WIN, WDL_BLESSED_LOSS (used in DTZ)
+    Array<u16, 4> mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
+
+u8 PairsData::set_symLen(const usize                sym,
+                         Array<SymColor, SymCount>& symColors,
+                         bool&                      cyclic) noexcept {
+
+    symColors[sym] = SYM_GREY;
+
+    const Sym rSym = btree[sym].get<false>();
+
+    if (rSym == SymCount - 1)
+    {
+        symColors[sym] = SYM_BLACK;
+        return 0;
+    }
+
+    const Sym lSym = btree[sym].get<true>();
+
+    if (symColors[lSym] == SYM_GREY || symColors[rSym] == SYM_GREY)
+    {
+        cyclic         = true;
+        symColors[sym] = SYM_BLACK;
+        return 0;
+    }
+
+    if (symColors[lSym] == SYM_WHITE)
+    {
+        symLen[lSym] = set_symLen(lSym, symColors, cyclic);
+
+        if (cyclic)
+        {
+            symColors[sym] = SYM_BLACK;
+            return 0;
+        }
+    }
+
+    if (symColors[rSym] == SYM_WHITE)
+    {
+        symLen[rSym] = set_symLen(rSym, symColors, cyclic);
+
+        if (cyclic)
+        {
+            symColors[sym] = SYM_BLACK;
+            return 0;
+        }
+    }
+
+    symColors[sym] = SYM_BLACK;
+
+    return 1 + symLen[lSym] + symLen[rSym];
+}
+
+u8* PairsData::set_sizes(u8* pData, const u8* end) noexcept {
+
+    if (!fits(pData, 1, 1, end))
+        return nullptr;
+
+    flags = *pData++;
+
+    if (flags & TBFlag::SingleValue)
+    {
+        blockCount      = 0;
+        blockLengthSize = 0;
+        span            = 0;
+        sparseIndexSize = 0;  // Broken MSVC zero-init
+
+        if (!fits(pData, 1, 1, end))
+            return nullptr;
+
+        minSymLen = *pData++;  // Here store the single value
+
+        return pData;
+    }
+
+    // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
+    // element stores the biggest index that is the tb size.
+    u64 tbSize = groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
+
+    if (!fits(pData, 9, 1, end))
+        return nullptr;
+
+    if (pData[0] >= 64 || pData[1] >= 64)
+        return nullptr;
+
+    blockSize       = u64{1} << *pData++;
+    span            = u64{1} << *pData++;
+    sparseIndexSize = ceil_div(tbSize, span);  // Round up
+
+    auto padding = number<u8, Endian::LITTLE>(pData);
+    pData += 1;
+    blockCount = number<u32, Endian::LITTLE>(pData);
+    pData += sizeof(u32);
+    // Padded to ensure SparseIndex[] does not point out of range.
+    blockLengthSize = blockCount + padding;
+    maxSymLen       = *pData++;
+    minSymLen       = *pData++;
+
+    if (minSymLen == 0 || minSymLen > maxSymLen || maxSymLen >= 64)
+        return nullptr;
+
+    lowestSym = (Sym*) (pData);
+    base64.resize(maxSymLen - minSymLen + 1);
+
+    if (!fits(pData, base64.size(), sizeof(Sym), end))
+        return nullptr;
+
+    // See https://en.wikipedia.org/wiki/Huffman_coding
+    // The canonical code is ordered such that longer symbols (in terms of
+    // the number of bits of their Huffman code) have a lower numeric value,
+    // so that lowestSym[i] >= lowestSym[i+1] (when read as LittleEndian).
+    // Starting from this compute a base64[] table indexed by symbol length
+    // and containing 64 bit values so that base64[i] >= base64[i+1].
+    usize base64Size = base64.size();
+
+    for (usize i = std::max(base64Size, usize{1}) - 1; i-- > 0;)
+    {
+        auto curSym = number<Sym, Endian::LITTLE>(&lowestSym[i + 0]);
+        auto nxtSym = number<Sym, Endian::LITTLE>(&lowestSym[i + 1]);
+
+        base64[i] = (base64[i + 1] + curSym - nxtSym) / 2;
+
+        if (2 * base64[i] < base64[i + 1])
+            return nullptr;
+    }
+
+    // Now left-shift by an amount so that base64[i] gets shifted 1-bit more
+    // than base64[i+1] and given the above assert condition.
+    // Ensure that base64[i] >= base64[i+1].
+    // Moreover for any symbol s64 of length i and right-padded to 64 bits holds
+    // base64[i-1] >= s64 >= base64[i].
+    for (usize i = 0; i < base64Size; ++i)
+        base64[i] <<= 64 - i - minSymLen;  // Right-padding to 64-bit
+
+    pData += base64Size * sizeof(Sym);
+
+    if (!fits(pData, sizeof(u16), 1, end))
+        return nullptr;
+
+    const usize symLenSize = number<u16, Endian::LITTLE>(pData);
+    pData += sizeof(u16);
+
+    if (!fits(pData, symLenSize, sizeof(LR), end))
+        return nullptr;
+
+    btreeBuf.fill(LR::Default);
+    std::memcpy(btreeBuf.data(), pData, symLenSize * sizeof(LR));
+    btree = btreeBuf.data();
+
+    // The compression scheme used is "Recursive Pairing", that replaces the most
+    // frequent adjacent pair of symbols in the source message by a new symbol,
+    // reevaluating the frequencies of all of the symbol pairs with respect to
+    // the extended alphabet, and then repeating the process.
+    // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
+    symLen.fill(u8{0});
+    Array<SymColor, SymCount> symColors;
+    symColors.fill(SYM_WHITE);
+    bool cyclic = false;
+
+    for (usize sym = 0; sym < symLenSize; ++sym)
+        if (symColors[sym] == SYM_WHITE)
+        {
+            symLen[sym] = set_symLen(sym, symColors, cyclic);
+
+            if (cyclic)
+                break;
+        }
+
+    if (cyclic)
+        return nullptr;
+
+    return pData + symLenSize * sizeof(LR) + (symLenSize & 1);
+}
 
 struct TableData final {
    public:
@@ -647,14 +585,20 @@ struct TBTable final: BaseTBTable {
     #if defined(_WIN32)
     HANDLE      mapFileHandle = HANDLE_INVALID;
     HandleGuard mapFileHandleGuard{mapFileHandle};
-
-    void*     mappedPtr = MMAP_PTR_INVALID;
-    MMapGuard mappedGuard{mappedPtr};
-    #else
-    void*     mappedPtr  = MMAP_PTR_INVALID;
-    usize     mappedSize = MMAP_SIZE_INVALID;
-    MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
+
+    void* mappedPtr = MMAP_PTR_INVALID;
+    #if !defined(_WIN32)
+    usize mappedSize = MMAP_SIZE_INVALID;
+    #endif
+    MMapGuard mappedGuard{
+      mappedPtr  //
+    #if !defined(_WIN32)
+      ,
+      mappedSize  //
+    #endif
+    };
+
     u8*      mapPtr = nullptr;
     CallOnce initCallOnce;
 };
@@ -769,6 +713,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
         unmap();
         std::exit(EXIT_FAILURE);
     }
+
     #else
     int fd = ::open(filename.data(), O_RDONLY | O_CLOEXEC);
 
@@ -801,7 +746,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     *size      = mappedSize;
     mappedPtr  = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fdGuard.get(), 0);
 
-    if (!mappedGuard.is_valid())
+    if (mappedGuard.get_ptr() == MAP_FAILED)
     {
         std::cerr << "::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
                   << std::strerror(errno) << std::endl;
@@ -810,13 +755,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     }
 
         #if defined(MADV_RANDOM)
-    if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
-        && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
-    {
-        std::cerr << "::madvise() failed: name = " << filename
-                  << " mappedSize = " << mappedGuard.get_size()
-                  << ", error = " << std::strerror(errno) << std::endl;
-    }
+    if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0)
+        ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM);
         #endif
     #endif
 
@@ -1039,9 +979,9 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile, const u8* const end)
 
         auto flags = pd->flags;
 
-        if (flags & MAPPED)
+        if (flags & TBFlag::Mapped)
         {
-            if (flags & WIDE)
+            if (flags & TBFlag::Wide)
             {
                 data += reinterpret_cast<uptr>(data) & 1;  // Word alignment, may have a mixed table
 
@@ -1172,9 +1112,8 @@ class TBTables final {
 
    private:
     static usize probe_distance(const Entry& entry, usize actualBucket) noexcept {
-        return (actualBucket - entry.bucket() /*idealBucket*/) & Mask;
+        return (actualBucket - entry.bucket()) & Mask;
     }
-
 
     bool insert(Entry newEntry) noexcept {
 
@@ -1328,7 +1267,7 @@ TBTables TBTables_;
 int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
 
     // Special case where all table positions store the same value
-    if (pd->flags & SINGLE_VALUE)
+    if (pd->flags & TBFlag::SingleValue)
         return pd->minSymLen;
 
     // First need to locate the right block that stores the value at index "idx".
@@ -1395,8 +1334,8 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
         // For any symbol s64 of length 'l' right-padded to 64 bits that
         // d->base64[l-1] >= s64 >= d->base64[l]
         // so can find the symbol length iterating through base64[].
-        while (len < pd->base64.size() && buf64 < pd->base64[len])
-            ++len;
+        for (; len < pd->base64.size() && buf64 < pd->base64[len]; ++len)
+        {}
 
         // All the symbols of a given length are consecutive integers (numerical sequence property),
         // so can compute the offset of our symbol of length len, stored at the beginning of buf64.
@@ -1456,7 +1395,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
 bool check_ac(TBTable<WDL>*, int, File) noexcept { return true; }
 
 bool check_ac(TBTable<DTZ>* table, int ac, File f) noexcept {
-    return (table->get(ac, f)->flags & ACTIVE_COLOR) == ac
+    return (table->get(ac, f)->flags & TBFlag::STM) == ac
         || (!table->hasPawns && table->key[WHITE] == table->key[BLACK]);
 }
 
@@ -1467,26 +1406,26 @@ WDLScore map_score(TBTable<WDL>*, const File, const WDLScore, int value) noexcep
     return WDLScore(value - 2);
 }
 
-int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int value) noexcept {
+int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdl, int value) noexcept {
 
     auto* pd    = table->get(0, f);
     auto  flags = pd->flags;
 
-    if ((flags & MAPPED) != 0)
+    if ((flags & TBFlag::Mapped) != 0)
     {
         auto* mapPtr = table->map_ptr();
         auto* mapIdx = pd->mapIdx.data();
 
-        auto idx = mapIdx[WDL_MAP[WDL_INDEX(wdlScore)]] + value;
+        auto idx = mapIdx[WDL_MAP[WDL_INDEX(wdl)]] + value;
 
-        value = (flags & WIDE) != 0 ? ((u16*) mapPtr)[idx] : mapPtr[idx];
+        value = (flags & TBFlag::Wide) != 0 ? ((u16*) mapPtr)[idx] : mapPtr[idx];
     }
 
     // DTZ-tables store distance to zero in number of moves or plies.
     // So have to convert to plies when needed.
-    if ((wdlScore == WDL_WIN && (flags & WIN_PLIES) == 0)
-        || (wdlScore == WDL_LOSS && (flags & LOSS_PLIES) == 0)
-        || (wdlScore == WDL_CURSED_WIN || wdlScore == WDL_BLESSED_LOSS))
+    if (is_rule50_wdl(wdl)  //
+        || (wdl == WDLWin && (flags & TBFlag::WinPlies) == 0)
+        || (wdl == WDLLoss && (flags & TBFlag::LossPlies) == 0))
         value *= 2;
 
     return value + 1;
@@ -1508,7 +1447,7 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int va
 template<typename T, typename Ret = typename T::Ret>
 Ret do_probe_table(T*                table,
                    const Position&   pos,
-                   const WDLScore    wdlScore,
+                   const WDLScore    wdl,
                    ProbeState* const ps) noexcept {
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB-tables
@@ -1575,7 +1514,7 @@ Ret do_probe_table(T*                table,
     // early exit otherwise.
     if (!check_ac(table, activeColor, tbFile))
     {
-        *ps = PS_AC_CHANGED;
+        *ps = ProbeState::ChangeAc;
         return Ret();
     }
 
@@ -1751,30 +1690,28 @@ Ret do_probe_table(T*                table,
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
-    return map_score(table, tbFile, wdlScore, decompress_pairs(pd, idx));
+    return map_score(table, tbFile, wdl, decompress_pairs(pd, idx));
 }
 
     #undef DISABLE_CLANG_LOOP_VECTORIZE
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
-Ret probe_table(const Position&   pos,
-                ProbeState* const ps,
-                const WDLScore    wdlScore = WDL_DRAW) noexcept {
+Ret probe_table(const Position& pos, ProbeState* const ps, const WDLScore wdl = WDLDraw) noexcept {
 
     const Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count() == 2
-        return Ret(WDL_DRAW);
+        return Ret(WDLDraw);
 
     TBTable<T>* table = TBTables_.get<T>(materialKey);
 
     if (table == nullptr || table->init(pos) == nullptr)
     {
-        *ps = PS_FAIL;
+        *ps = ProbeState::Fail;
         return Ret();
     }
 
-    return do_probe_table(table, pos, wdlScore, ps);
+    return do_probe_table(table, pos, wdl, ps);
 }
 
 // For position where the side to move has a winning capture it is not necessary to
@@ -1789,15 +1726,15 @@ Ret probe_table(const Position&   pos,
 // DTZ-tables do not store scores when a following move is a zeroing winning move
 // (winning capture or winning pawn move). Also, DTZ store wrong scores for positions
 // where the best move is an ep-move (even if losing). So in all these cases set
-// the state to PS_BEST_MOVE_ZEROING.
+// the state to BestMoveZeroing.
 template<bool CheckZeroingMoves>
 WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
-    WDLScore wdlScore, bestWdlScore = WDL_LOSS;
+    WDLScore wdl, bestWdl = WDLLoss;
+
+    u16 moveCount = 0;
 
     MoveList<GenType::LEGAL> legalMoveList(pos);
-
-    u8 moveCount = 0;
 
     for (const Move m : legalMoveList)
     {
@@ -1809,22 +1746,22 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
         State st;
         pos.do_move(m, st);
 
-        wdlScore = -search<false>(pos, ps);
+        wdl = -search<false>(pos, ps);
 
         pos.undo_move(m);
 
-        if (*ps == PS_FAIL)
-            return WDL_DRAW;
+        if (*ps == ProbeState::Fail)
+            return WDLDraw;
 
-        if (bestWdlScore < wdlScore)
+        if (bestWdl < wdl)
         {
-            bestWdlScore = wdlScore;
+            bestWdl = wdl;
 
-            if (wdlScore >= WDL_WIN)
+            if (wdl >= WDLWin)
             {
                 // Winning DTZ-zeroing move
-                *ps = PS_BEST_MOVE_ZEROING;
-                return wdlScore;
+                *ps = ProbeState::BestMoveZeroing;
+                return wdl;
             }
         }
     }
@@ -1835,33 +1772,94 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
     // so in this case the result of probe_wdl_table is wrong.
     // Also in case of only capture moves,
     // for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7,
-    // have to return with PS_BEST_MOVE_ZEROING set.
-    bool legalMovesExhausted = moveCount != 0 && moveCount == legalMoveList.size();
+    // have to return with BestMoveZeroing set.
+    const bool legalMovesExhausted = moveCount != 0 && moveCount == legalMoveList.size();
 
     if (legalMovesExhausted)
     {
-        wdlScore = bestWdlScore;
+        wdl = bestWdl;
     }
     else
     {
-        wdlScore = probe_table<WDL>(pos, ps);
+        wdl = probe_table<WDL>(pos, ps);
 
-        if (*ps == PS_FAIL)
-            return WDL_DRAW;
+        if (*ps == ProbeState::Fail)
+            return WDLDraw;
     }
 
     // DTZ stores a "don't care" WDL-score if best WDL-score is a win
-    if (bestWdlScore >= wdlScore)
+    if (bestWdl >= wdl)
     {
-        *ps = legalMovesExhausted || bestWdlScore > WDL_DRAW ? PS_BEST_MOVE_ZEROING : PS_OK;
-        return bestWdlScore;
+        *ps = legalMovesExhausted || bestWdl > WDLDraw ? ProbeState::BestMoveZeroing
+                                                       : ProbeState::Success;
+        return bestWdl;
     }
 
-    *ps = PS_OK;
-    return wdlScore;
+    *ps = ProbeState::Success;
+    return wdl;
 }
 
 }  // namespace
+
+// Tablebase data layout is structured as following:
+//
+//  TBTable:  one object for each file with corresponding indexing information
+//  TBTables: has ownership of TBTable objects, keeping a list and a hash
+
+// TBPaths contains the directories used to locate Syzygy tablebase files
+// (.rtbw / .rtbz).
+//
+// Responsibilities:
+// • Parse a platform-dependent list of directories:
+//     - ';' on Windows
+//     - ':' on Unix-like systems
+// • Store paths as std::filesystem::path for safe concatenation and
+//   cross-platform correctness.
+// • Provide read-only access to the configured directories.
+//
+// Usage:
+// • Call TBPaths::init() once during engine startup.
+// • Use TBPaths::get() when resolving tablebase files.
+//
+// Example:
+//     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
+//     for (const auto& dir : TBPaths::get()) { ... }
+//
+// Notes:
+// • Re-initialization replaces the previous path set.
+namespace TBPaths {
+
+namespace {
+
+// Platform-specific directory separator.
+// Example:
+// C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+constexpr std::string_view PATH_SEPARATOR{
+    #if defined(_WIN32)
+  ";"
+    #else
+  ":"
+    #endif
+};
+
+std::vector<fs::path> Paths;
+
+}  // namespace
+
+bool init(const std::string_view paths) noexcept {
+    Paths.clear();
+    Paths.reserve(4);
+
+    for (const auto path : split(paths, PATH_SEPARATOR, true))
+        if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
+            Paths.emplace_back(utf8_to_path(path));
+
+    return !Paths.empty();
+}
+
+const std::vector<fs::path>& paths() noexcept { return Paths; }
+
+}  // namespace TBPaths
 
 void init() noexcept {
 
@@ -2026,73 +2024,72 @@ void init(const std::string_view paths) noexcept {
 
 WDLScore probe_wdl(Position& pos, ProbeState* const ps) noexcept {
 
-    *ps = PS_OK;
+    *ps = ProbeState::Success;
 
     return search<false>(pos, ps);
 }
 
 int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 
-    *ps = PS_OK;
+    *ps = ProbeState::Success;
 
-    auto wdlScore = search<true>(pos, ps);
+    const auto wdl = search<true>(pos, ps);
 
-    if (*ps == PS_FAIL || wdlScore == WDL_DRAW)  // DTZ-tables don't store draws
+    if (*ps == ProbeState::Fail || wdl == WDLDraw)  // DTZ-tables don't store draws
         return 0;
 
     // DTZ stores a 'don't care value in this case, or even a plain wrong
     // one as in case the best move is a losing ep, so it cannot be probed.
-    if (*ps == PS_BEST_MOVE_ZEROING)
-        return before_zeroing_dtz(wdlScore);
+    if (*ps == ProbeState::BestMoveZeroing)
+        return before_zeroing_dtz(wdl);
 
-    int dtzScore = probe_table<DTZ>(pos, ps, wdlScore);
+    int dtz = probe_table<DTZ>(pos, ps, wdl);
 
-    if (*ps == PS_FAIL)
+    if (*ps == ProbeState::Fail)
         return 0;
 
-    if (*ps != PS_AC_CHANGED)
-        return sign(wdlScore)
-             * (dtzScore + int(wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN) * 100);
+    if (*ps != ProbeState::ChangeAc)
+        return sign(wdl) * (dtz + int(is_rule50_wdl(wdl)) * 100);
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = NO_DTZ_SCORE;
+    int minDtz = NO_DTZ;
 
     for (const Move m : MoveList<GenType::LEGAL>(pos))
     {
-        bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
+        const bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
         State st;
         pos.do_move(m, st);
 
-        // For zeroing moves want the dtzScore of the move _before_ doing it,
-        // otherwise will get the dtzScore of the next move sequence.
+        // For zeroing moves want the dtz of the move _before_ doing it,
+        // otherwise will get the dtz of the next move sequence.
         // Search the position after the move to get the WDL-score sign
         // (because even in a winning position could make a losing capture or go for a draw).
-        dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
+        dtz = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force min DTZ-score to 1
-        if (dtzScore == 1 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
-            minDtzScore = 1;
+        if (dtz == 1 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
+            minDtz = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
         // by dtz_before_zeroing() that returns the DTZ of the previous move.
         if (!zeroing)
-            dtzScore += sign(dtzScore);
+            dtz += sign(dtz);
 
         // Skip the draws and if winning only pick positive DTZ-score
-        if (sign(dtzScore) == sign(wdlScore))
-            if (minDtzScore > dtzScore)
-                minDtzScore = dtzScore;
+        if (sign(dtz) == sign(wdl))
+            if (minDtz > dtz)
+                minDtz = dtz;
 
         pos.undo_move(m);
 
-        if (*ps == PS_FAIL)
+        if (*ps == ProbeState::Fail)
             return 0;
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore != NO_DTZ_SCORE ? minDtzScore : -1;
+    return minDtz != NO_DTZ ? minDtz : -1;
 }
 
 bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule50) noexcept {
@@ -2102,21 +2099,17 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
         State st;
         pos.do_move(rm[0], st);
 
-        ProbeState ps = PS_OK;
+        ProbeState ps = ProbeState::Success;
 
-        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
+        WDLScore wdl = pos.is_draw(1) ? WDLDraw : -probe_wdl(pos, &ps);
 
         pos.undo_move(rm[0]);
 
-        if (ps == PS_FAIL)
+        if (ps == ProbeState::Fail)
             return false;
 
-        rm.tbRank = WDL_RANK[WDL_INDEX(wdlScore)];
-
-        if (!useRule50)
-            wdlScore = normalize_wdl(wdlScore);
-
-        rm.tbValue = WDL_VALUE[WDL_INDEX(wdlScore)];
+        rm.tbRank  = WDL_RANK[WDL_INDEX(wdl)];
+        rm.tbValue = WDL_VALUE[WDL_INDEX(useRule50 ? wdl : normalize_wdl(wdl))];
     }
 
     return true;
@@ -2128,12 +2121,12 @@ bool rank_root_moves_dtz(Position&       pos,
                          const bool      rankDTZ,
                          const AbortFunc should_abort) noexcept {
     // Obtain 50-move counter for the root position
-    i16 rule50Count = pos.rule50_count();
+    const i16 rule50Count = pos.rule50_count();
 
     // Check whether the position was repeated since the last zeroing move
-    bool hasRepeated = pos.has_repeated();
+    const bool hasRepeated = pos.has_repeated();
 
-    int bound = useRule50 ? (DTZ_MAX / 2 - 100) : 1;
+    const int bound = useRule50 ? (DTZ_MAX / 2 - 100) : 1;
 
     // Probe and rank each move
     for (auto& rm : rootMoves)
@@ -2141,37 +2134,37 @@ bool rank_root_moves_dtz(Position&       pos,
         State st;
         pos.do_move(rm[0], st);
 
-        ProbeState ps = PS_OK;
+        ProbeState ps = ProbeState::Success;
 
-        int dtzScore;
+        int dtz;
 
-        // Calculate dtzScore for the current move counting from the root position
+        // Calculate dtz for the current move counting from the root position
         if (pos.rule50_count() == 0)
         {
-            // In case of a zeroing move, dtzScore is one of -101/-1/0/1/101
-            dtzScore = before_zeroing_dtz(-probe_wdl(pos, &ps));
+            // In case of a zeroing move, dtz is one of -101/-1/0/1/101
+            dtz = before_zeroing_dtz(-probe_wdl(pos, &ps));
         }
         else if (pos.is_draw(1, useRule50))
         {
             // In case a root move leads to a draw by repetition or 50-move rule,
-            // set dtzScore to zero. Note: since are only 1 ply from the root,
+            // set dtz to zero. Note: since are only 1 ply from the root,
             // this must be a true 3-fold repetition inside the game history.
-            dtzScore = 0;
+            dtz = 0;
         }
         else
         {
-            // Otherwise, take dtzScore for the new position and correct by 1 ply
-            dtzScore = -probe_dtz(pos, &ps);
-            dtzScore += sign(dtzScore);
+            // Otherwise, take dtz for the new position and correct by 1 ply
+            dtz = -probe_dtz(pos, &ps);
+            dtz += sign(dtz);
         }
 
-        // Make sure that a mating move is assigned a dtzScore value of 1
-        if (dtzScore == 2 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
-            dtzScore = 1;
+        // Make sure that a mating move is assigned a dtz value of 1
+        if (dtz == 2 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
+            dtz = 1;
 
         pos.undo_move(rm[0]);
 
-        if (ps == PS_FAIL)
+        if (ps == ProbeState::Fail)
             return false;
         if (should_abort())
         {
@@ -2181,13 +2174,12 @@ bool rank_root_moves_dtz(Position&       pos,
 
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
-        int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
-                                  ? +DTZ_MAX - (rankDTZ ? +dtzScore : 0)
-                                  : +DTZ_MAX / 2 - (+dtzScore + rule50Count))
-              : dtzScore < 0
-                ? (-2 * dtzScore + rule50Count < 100 ? -DTZ_MAX + (rankDTZ ? -dtzScore : 0)
-                                                     : -DTZ_MAX / 2 + (-dtzScore + rule50Count))
-                : 0;
+        int r = dtz > 0 ? (+1 * dtz + rule50Count < 100 && !hasRepeated
+                             ? +DTZ_MAX - (rankDTZ ? +dtz : 0)
+                             : +DTZ_MAX / 2 - (+dtz + rule50Count))
+              : dtz < 0 ? (-2 * dtz + rule50Count < 100 ? -DTZ_MAX + (rankDTZ ? -dtz : 0)
+                                                        : -DTZ_MAX / 2 + (-dtz + rule50Count))
+                        : 0;
 
         rm.tbRank = r;
 

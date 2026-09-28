@@ -56,14 +56,15 @@ static CpuFeatures query_cpu_features() noexcept {
 }
 
 // Selects the most capable ISA variant supported by current CPU
-static int dispatch(const CpuFeatures& f, const int argc, const char* const argv[]) noexcept {
-    if (!f.dotprod)
+static int
+dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
+    if (!cpuFeatures.dotprod)
         return entry_armv8(argc, argv);
 
     return entry_armv8_dotprod(argc, argv);
 }
 
 int main(const int argc, const char* const argv[]) noexcept {
-    CpuFeatures features = query_cpu_features();
-    return dispatch(features, argc, argv);
+    auto cpuFeatures = query_cpu_features();
+    return dispatch(cpuFeatures, argc, argv);
 }

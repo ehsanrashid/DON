@@ -34,12 +34,15 @@
 #include <limits>
 #include <mutex>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
 
 #if defined(_WIN32)
     #include "platform_win.h"  // GetCommandLineW()
@@ -165,11 +168,6 @@ struct ArrayDef<T, Size> final {
 
 template<typename T, usize Size, usize... Sizes>
 using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
-
-// Base exception type for application-specific errors
-struct Error: public std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
 
 inline constexpr usize BYTE_BITS = 8;
 
@@ -333,7 +331,8 @@ constexpr bool is_power_of_2(const T x) noexcept {
 template<typename T1, typename T2>
 constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
-    return (R(n) + R(d) - 1) / R(d);
+    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
+    return R(n) / R(d) + (R(n) % R(d) != 0);
 }
 
 // Round n up to be a multiple of base
@@ -391,10 +390,10 @@ template<usize Alignment, typename T>
     return reinterpret_cast<T*>(uPtr);
 }
 
-constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
+constexpr float max_load_factor(const float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
-constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
+constexpr usize reserve_count(const usize reserveCount = 1024) noexcept {
     return std::max(reserveCount, usize{8});
 }
 
@@ -456,7 +455,7 @@ constexpr std::string_view week_day(const u32 year, const u32 month, const u32 d
     };
 
     // Precomputed weekday offsets for each month.
-    constexpr Array<u32, 12> MonthWeekdays{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    constexpr Array<u16, 12> MonthWeekdays{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
 
     // Treat January and February as part of the previous year.
     const u32 yr = year - u32(month < 3);
@@ -517,12 +516,12 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
 constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__SIZEOF_INT128__)
-    return (static_cast<u128>(u1) * static_cast<u128>(u2)) >> 64;
+    return (u128(u1) * u128(u2)) >> 64;
 #else
-    u64 u1L = static_cast<u32>(u1), u1H = u1 >> 32;
-    u64 u2L = static_cast<u32>(u2), u2H = u2 >> 32;
+    u64 u1L = u32(u1), u1H = u1 >> 32;
+    u64 u2L = u32(u2), u2H = u2 >> 32;
     u64 mid = u1H * u2L + ((u1L * u2L) >> 32);
-    return u1H * u2H + ((u1L * u2H + static_cast<u32>(mid)) >> 32) + (mid >> 32);
+    return u1H * u2H + ((u1L * u2H + u32(mid)) >> 32) + (mid >> 32);
 #endif
 }
 
@@ -1064,7 +1063,7 @@ class [[nodiscard]] SyncOS final {
 
    private:
     std::ostream*                osPtr;
-    std::unique_lock<std::mutex> lock;
+    std::unique_lock<std::mutex> uniqueLock;
 };
 
 [[nodiscard]] SyncOS sync_os(std::ostream& os = std::cout) noexcept;
@@ -1821,7 +1820,7 @@ std::string u32_to_hex_prefix(u32 value) noexcept;
 
 std::string u64_to_hex_prefix(u64 value) noexcept;
 
-inline bool infoStopped = false;
+inline bool InfoStopped = false;
 
 void print_info_string(std::string_view infos) noexcept;
 

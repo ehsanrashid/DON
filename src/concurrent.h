@@ -40,10 +40,13 @@ namespace DON {
 template<typename Key, typename Value>
 class ConcurrentMap final {
    public:
+    using Map = std::unordered_map<Key, Value>;
+
     explicit ConcurrentMap(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
+
         configure(map);
     }
 
@@ -55,14 +58,14 @@ class ConcurrentMap final {
     Value& get(const Key& key) noexcept {
         // Fast path: check for an existing value under a shared lock.
         {
-            std::shared_lock readLock(mutex);
+            std::shared_lock sharedLock{mutex};
 
             if (const auto itr = map.find(key); itr != map.end())
                 return itr->second;
         }
 
         // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return map.try_emplace(key).first->second;
     }
@@ -75,42 +78,42 @@ class ConcurrentMap final {
     Value& get(const Key& key, Args&&... args) noexcept {
         // Fast path: check for an existing value under a shared lock.
         {
-            std::shared_lock readLock(mutex);
+            std::shared_lock sharedLock{mutex};
 
             if (const auto itr = map.find(key); itr != map.end())
                 return itr->second;
         }
 
         // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return map.try_emplace(key, std::forward<Args>(args)...).first->second;
     }
 
     // Returns true if the map contains the key.
     bool contains(const Key& key) const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         return map.find(key) != map.end();
     }
 
     // Returns the number of entries in the map.
     usize size() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         return map.size();
     }
 
     // Returns true if the map contains no entries.
     bool empty() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         return map.empty();
     }
 
     // Removes all entries from the map.
     void clear() noexcept {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         map.clear();
     }
@@ -120,8 +123,6 @@ class ConcurrentMap final {
     ConcurrentMap& operator=(const ConcurrentMap&) noexcept = delete;
     ConcurrentMap(ConcurrentMap&&) noexcept                 = delete;
     ConcurrentMap& operator=(ConcurrentMap&&) noexcept      = delete;
-
-    using Map = std::unordered_map<Key, Value>;
 
     void configure(Map& valueMap) const noexcept {
         valueMap.max_load_factor(max_load_factor(maxLoadFactor));
@@ -141,17 +142,19 @@ class ConcurrentMap final {
 // ConcurrentAllocationTracker: thread-safe allocation and freeing, with allocation size tracking.
 class ConcurrentAllocationTracker final {
    public:
+    using SizeMap = std::unordered_map<void*, usize>;
+
     ConcurrentAllocationTracker() noexcept = default;
 
     template<typename AllocFunc>
     [[nodiscard]] void* alloc(const usize allocSize, AllocFunc&& allocFn) noexcept {
-        void* mem = std::forward<AllocFunc>(allocFn)(allocSize);
+        void* const mem = std::forward<AllocFunc>(allocFn)(allocSize);
 
         if (mem != nullptr)
         {
-            std::lock_guard writeLock(mutex);
+            std::lock_guard lockGuard{mutex};
 
-            sizesMap[mem] = allocSize;
+            sizeMap.emplace(mem, allocSize);
         }
 
         return mem;
@@ -159,9 +162,9 @@ class ConcurrentAllocationTracker final {
 
     template<typename FreeFunc>
     [[nodiscard]] bool free(void* const mem, FreeFunc&& freeFn) noexcept {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
-        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        if (const auto itr = sizeMap.find(mem); itr != sizeMap.end())
         {
             const usize allocSize = itr->second;
 
@@ -171,7 +174,7 @@ class ConcurrentAllocationTracker final {
                 return false;
             }
 
-            sizesMap.erase(itr);
+            sizeMap.erase(itr);
             return true;
         }
 
@@ -179,21 +182,21 @@ class ConcurrentAllocationTracker final {
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
-        return sizesMap.size();
+        return sizeMap.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
-        return sizesMap.empty();
+        return sizeMap.empty();
     }
 
     [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
-        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        if (auto itr = sizeMap.find(mem); itr != sizeMap.end())
             return itr->second;
 
         return std::nullopt;
@@ -205,20 +208,39 @@ class ConcurrentAllocationTracker final {
     ConcurrentAllocationTracker(ConcurrentAllocationTracker&&) noexcept                 = delete;
     ConcurrentAllocationTracker& operator=(ConcurrentAllocationTracker&&) noexcept      = delete;
 
-    mutable std::shared_mutex        mutex;
-    std::unordered_map<void*, usize> sizesMap;
+    mutable std::shared_mutex mutex;
+    SizeMap                   sizeMap;
 };
 
 // ConcurrentCache: sharded thread-safe key-value cache with lazy value creation and pre-reserved storage.
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
+    static constexpr usize ThresholdSize = 128;
+
+    static constexpr usize ShardCount = 32;
+    static constexpr usize ShardMask  = ShardCount - 1;
+    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
+
+    using StorageValue =
+      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
+
+    using ValueMap = std::unordered_map<Key, StorageValue>;
+
+    struct alignas(64) Shard final {
+       public:
+        mutable std::shared_mutex mutex;
+        ValueMap                  valueMap;
+    };
+
+    using Shards = Array<Shard, ShardCount>;
+
     explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
         for (auto& shard : shards)
         {
-            std::lock_guard writeLock(shard.mutex);
+            std::lock_guard lockGuard{shard.mutex};
 
             configure(shard.valueMap);
         }
@@ -229,14 +251,14 @@ class ConcurrentCache final {
         auto& shard = get_shard(key);
         // Fast path: check for an existing value under a shared lock.
         {
-            std::shared_lock readLock(shard.mutex);
+            std::shared_lock sharedLock(shard.mutex);
 
             if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
                 return get(itr->second);
         }
 
         // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
+        std::lock_guard lockGuard{shard.mutex};
 
         // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
@@ -253,14 +275,14 @@ class ConcurrentCache final {
         auto& shard = get_shard(key);
         // Fast path: check for an existing value under a shared lock.
         {
-            std::shared_lock readLock(shard.mutex);
+            std::shared_lock sharedLock(shard.mutex);
 
             if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
                 return get(itr->second);
         }
 
         // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
+        std::lock_guard lockGuard{shard.mutex};
 
         // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
@@ -278,14 +300,14 @@ class ConcurrentCache final {
         auto& shard = get_shard(key);
         // Fast path: check for an existing value under a shared lock.
         {
-            std::shared_lock readLock(shard.mutex);
+            std::shared_lock sharedLock(shard.mutex);
 
             if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
                 return std::forward<Transformer>(transformer)(get_ref(itr->second));
         }
 
         // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
+        std::lock_guard lockGuard{shard.mutex};
 
         // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
@@ -305,14 +327,14 @@ class ConcurrentCache final {
         auto& shard = get_shard(key);
         // Fast path: check for an existing value under a shared lock.
         {
-            std::shared_lock readLock(shard.mutex);
+            std::shared_lock sharedLock(shard.mutex);
 
             if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
                 return std::forward<Transformer>(transformer)(get_ref(itr->second));
         }
 
         // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard writeLock(shard.mutex);
+        std::lock_guard lockGuard{shard.mutex};
 
         // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
@@ -327,7 +349,7 @@ class ConcurrentCache final {
     void reset() noexcept {
         for (auto& shard : shards)
         {
-            std::lock_guard writeLock(shard.mutex);
+            std::lock_guard lockGuard{shard.mutex};
 
             shard.valueMap.clear();
             shard.valueMap.rehash(0);
@@ -340,25 +362,6 @@ class ConcurrentCache final {
     ConcurrentCache& operator=(const ConcurrentCache&) noexcept = delete;
     ConcurrentCache(ConcurrentCache&&) noexcept                 = delete;
     ConcurrentCache& operator=(ConcurrentCache&&) noexcept      = delete;
-
-    static constexpr usize ThresholdSize = 128;
-
-    static constexpr usize ShardCount = 32;
-    static constexpr usize ShardMask  = ShardCount - 1;
-    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
-
-    using StorageValue =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
-
-    using ValueMap = std::unordered_map<Key, StorageValue>;
-
-    struct alignas(64) Shard final {
-       public:
-        mutable std::shared_mutex mutex;
-        ValueMap                  valueMap;
-    };
-
-    using Shards = Array<Shard, ShardCount>;
 
     // Helper functions for hashing, sharding, and value storage.
 
@@ -415,7 +418,8 @@ class ConcurrentRegistry final {
     explicit ConcurrentRegistry(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
+
         configure(indexMap);
         configure(set);
     }
@@ -423,22 +427,22 @@ class ConcurrentRegistry final {
     // Registers a value in the registry.
     //
     // Returns false if the value is already registered.
-    bool register_value(const Value& value) noexcept {
-        std::lock_guard writeLock(mutex);
+    bool register_(const Value& value) noexcept {
+        std::lock_guard lockGuard{mutex};
 
         if (regStopped)
             return false;
 
-        return nolock_register_value(value);
+        return nolock_register(value);
     }
 
     // Unregisters a value from the registry.
     //
     // Returns false if the value is not registered.
-    bool unregister_value(const Value& value) noexcept {
-        std::lock_guard writeLock(mutex);
+    bool unregister_(const Value& value) noexcept {
+        std::lock_guard lockGuard{mutex};
 
-        return nolock_unregister_value(value);
+        return nolock_unregister(value);
     }
 
     // Detaches the internal list from the registry.
@@ -449,7 +453,7 @@ class ConcurrentRegistry final {
     // processed, allowing callers to safely operate on the values without
     // holding the registry lock.
     List detach_list() noexcept {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         assert(nolock_is_consistent());
 
@@ -468,7 +472,7 @@ class ConcurrentRegistry final {
 
     // Returns the number of currently registered values.
     usize size() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         assert(nolock_is_consistent());
 
@@ -477,7 +481,7 @@ class ConcurrentRegistry final {
 
     // Returns true if the registry contains no values.
     bool empty() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         assert(nolock_is_consistent());
 
@@ -486,7 +490,7 @@ class ConcurrentRegistry final {
 
     // Prints all registered values in true insertion order.
     void print() const noexcept {
-        std::shared_lock readLock(mutex);
+        std::shared_lock sharedLock{mutex};
 
         assert(nolock_is_consistent());
 
@@ -587,7 +591,7 @@ class ConcurrentRegistry final {
     // Set is checked first to reject duplicate values. The value is then
     // appended to List, IndexMap records its corresponding List iterator,
     // and Set establishes membership.
-    bool nolock_register_value(const Value& value) noexcept {
+    bool nolock_register(const Value& value) noexcept {
         if (nolock_contains(value))
             return false;
 
@@ -619,7 +623,7 @@ class ConcurrentRegistry final {
     //
     // Set is checked first to reject unregistered values. IndexMap then
     // provides the corresponding List iterator for constant-time removal.
-    bool nolock_unregister_value(const Value& value) noexcept {
+    bool nolock_unregister(const Value& value) noexcept {
         const auto setItr = set.find(value);
 
         // Not registered.
@@ -663,9 +667,9 @@ class ConcurrentRegistry final {
 
     // Stops accepting new values.
     //
-    // Once stopped, register_value() rejects new values.
+    // Once stopped, register_() rejects new values.
     void stop_registering() noexcept {
-        std::lock_guard writeLock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         regStopped = true;
     }

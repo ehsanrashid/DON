@@ -40,8 +40,6 @@ Value evaluate(const Position&         pos,
                NNUE::AccumulatorCache& accCache,
                NNUE::AccumulatorStack& accStack,
                i32                     optimism) noexcept {
-    constexpr double Scale = 91000.0;
-
     assert(pos.checkers_bb() == 0);
 
     const auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
@@ -53,12 +51,14 @@ Value evaluate(const Position&         pos,
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
     nnue     = constexpr_round(nnue * std::max(1.0 - complexity / 18236.0, 0.0));
 
-    // Guarantee evaluation does not hit the table-base range
-    return in_range(
+    const i32 v =
       // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
-      constexpr_round(((nnue * (Scale + double(pos.material())) + optimism * 7675.0) / Scale)
+      constexpr_round((nnue + (nnue * pos.material() + optimism * 7675.0) / 91000.0)
                       // Damp evaluation linearly based on the 50-move rule
-                      * std::max(1.0 - double(pos.rule50_count()) / 195.0, 0.0)));
+                      * std::max(1.0 - double(pos.rule50_count()) / 195.0, 0.0));
+
+    // Guarantee evaluation does not hit the table-base range
+    return in_range(v);
 }
 
 namespace {

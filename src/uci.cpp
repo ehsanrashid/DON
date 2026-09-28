@@ -29,6 +29,7 @@
 
 #include "benchmark.h"
 #include "debug.h"
+#include "error.h"
 #include "memory.h"
 #include "misc.h"
 #include "option.h"
@@ -621,7 +622,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
     constexpr usize WarmupPositionCount = 3;
 
-    infoStopped = true;
+    InfoStopped = true;
     engine.set_on_update_short([](const auto&) noexcept -> void {});
     engine.set_on_update_full([&](const auto&) noexcept -> void {});
     engine.set_on_update_iter([](const auto&) noexcept -> void {});
@@ -788,7 +789,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     // clang-format on
 
     set_on_updates();
-    infoStopped = false;
+    InfoStopped = false;
 }
 
 }  // namespace DON

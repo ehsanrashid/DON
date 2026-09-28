@@ -47,13 +47,16 @@ for pair in $PAIRS; do
     cpu=${pair%%:*}
     expected_compiler=${pair##*:}
     (
-        actual_compiler=$($QEMU -cpu "$cpu" "$DON_EXE" compiler 2>&1 | awk -F: '/Compilation architecture/ {
+        compiler_out=$("$QEMU" -cpu "$cpu" "$DON_EXE" compiler 2>&1 || true)
+        bench_out=$("$QEMU" -cpu "$cpu" "$DON_EXE" bench 2>&1 >/dev/null || true)
+
+        actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
             sub(/^[[:space:]]+/, "", $2)
             sub(/[[:space:]]+$/, "", $2)
             print $2
             exit
         }')
-        actual_bench=$($QEMU -cpu "$cpu" "$DON_EXE" bench 2>&1 | awk -F: '/Total nodes/ {
+        actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
             gsub(/[^0-9]/, "", $2)
             print $2
             exit

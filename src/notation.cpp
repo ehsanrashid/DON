@@ -285,7 +285,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
     if (pos.checkers_bb() != 0)
         san.push_back(legalMoveListEmpty ? '#' : '+');
     else if (legalMoveListEmpty)
-        san.push_back('*');
+        san.push_back('=');
 
     pos.undo_move(m);
 
@@ -298,8 +298,11 @@ Move san_to_move(std::string                     san,
     assert(2 <= san.size() && san.size() <= 9);
 
     if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || lower_case(san[0]) == 'o'))
+    {
         std::replace_if(
-          san.begin(), san.end(), [](char c) -> bool { return c == 'o' || c == '0'; }, 'O');
+          san.begin(), san.end(),
+          [](const char ch) noexcept -> bool { return ch == 'o' || ch == '0'; }, 'O');
+    }
 
     for (const Move m : legalMoveList)
         if (san == move_to_san(m, pos))

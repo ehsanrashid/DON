@@ -28,16 +28,20 @@
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
 
-#if !defined(_WIN32)                                /* Non-Windows */ \
-  && ((defined(__linux__) && !defined(__ANDROID__)) /* Linux (Non-Android) */ \
-      || defined(__APPLE__)                         /* macOS / iOS */ \
-      || defined(__sun)                             /* Solaris */ \
-      || defined(__FreeBSD__)                       /* FreeBSD */ \
-      || defined(__OpenBSD__)                       /* OpenBSD */ \
-      || defined(__NetBSD__)                        /* NetBSD */ \
-      || defined(__DragonFly__)                     /* DragonFly BSD */ \
-      || defined(__e2k__)                           /* Elbrus 2000 */ \
-      || defined(_AIX))                             /* IBM AIX */
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
+#if !defined(_WIN32)             /* Non-Windows */ \
+  && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
+      || defined(__APPLE__)      /* macOS / iOS */ \
+      || defined(__sun)          /* Solaris */ \
+      || defined(__FreeBSD__)    /* FreeBSD */ \
+      || defined(__OpenBSD__)    /* OpenBSD */ \
+      || defined(__NetBSD__)     /* NetBSD */ \
+      || defined(__DragonFly__)  /* DragonFly BSD */ \
+      || defined(__e2k__)        /* Elbrus 2000 */ \
+      || defined(_AIX))          /* IBM AIX */
     #define USE_UNIX_SHM
 #endif
 
@@ -70,7 +74,7 @@
     #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
 
     // Linux (non-Android)
-    #if defined(__linux__) && !defined(__ANDROID__)
+    #if defined(LINUX_NON_ANDROID)
     // macOS / iOS
     #elif defined(__APPLE__)
         #include <mach-o/dyld.h>
@@ -165,12 +169,12 @@ class BackendSharedMemory final {
         LargePageAllocation
     };
 
-    BackendSharedMemory() noexcept :
-        status(Status::NotInitialized) {}
+    BackendSharedMemory(const std::string_view shmName = {}) noexcept :
+        name_{shmName},
+        status{Status::NotInitialized} {}
 
-    BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        name_(normalize_shm_name(shmName)),
-        status(Status::NotInitialized) {
+    BackendSharedMemory(const std::string_view shmName, const T& value) noexcept :
+        BackendSharedMemory{normalize_shm_name(shmName)} {
         //DEBUG_LOG("Creating shared memory with name: " << name());
 
         initialize(value);
@@ -179,11 +183,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
-    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        mapFileHandleGuard{mapFileHandle},
-        mappedGuard{mappedPtr} {
-        move(std::move(backendShm));
-    }
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept { move(std::move(backendShm)); }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
         if (this == &backendShm)
             return *this;
@@ -403,7 +403,7 @@ class BackendSharedMemory final {
 #elif defined(USE_UNIX_SHM)
 class BaseSharedMemory {
    public:
-    explicit BaseSharedMemory(std::string_view shmName) noexcept;
+    explicit BaseSharedMemory(std::string_view shmName = {}) noexcept;
 
     BaseSharedMemory(const BaseSharedMemory&)            = delete;
     BaseSharedMemory& operator=(const BaseSharedMemory&) = delete;
@@ -444,7 +444,7 @@ class BaseSharedMemory {
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
 inline ConcurrentRegistry<BaseSharedMemory*>  //
-  memoryRegistry(usize{256}, 0.75f);
+  MemoryRegistry(usize{256}, 0.75f);
 
 // MemoryRegistryCleanup
 //
@@ -459,7 +459,7 @@ inline ConcurrentRegistry<BaseSharedMemory*>  //
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
 inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
-  memoryRegistryCleanup(memoryRegistry);
+  MemoryRegistryCleanup{MemoryRegistry};
 
 // MemoryRegistryCleanupHook
 //
@@ -480,7 +480,7 @@ inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
 inline RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
-  memoryRegistryCleanupHook(memoryRegistryCleanup);
+  MemoryRegistryCleanupHook{MemoryRegistryCleanup};
 
 // TempRoot
 //
@@ -554,6 +554,8 @@ struct ScmRightsMessage final {
     ScmRightsMessage(ScmRightsMessage&&)                 = delete;
     ScmRightsMessage& operator=(ScmRightsMessage&&)      = delete;
 
+    static constexpr usize Alignment = alignof(cmsghdr);
+
     std::unique_ptr<std::byte[]> controlStorage;
 };
 
@@ -583,10 +585,10 @@ class SharedMemory final: public BaseSharedMemory {
 
    public:
     explicit SharedMemory(std::string_view shmName, const TempRoot& tempRoot) noexcept :
-        BaseSharedMemory(shmName),
-        sharedDir(std::string{tempRoot.path()} + "/" + make_sentinel_base(name())),
-        initLockPath(sharedDir + "/init_lock"),
-        socketPath(sharedDir + "/" + std::to_string(::getpid()) + ".sock") {}
+        BaseSharedMemory{shmName},
+        sharedDir{std::string{tempRoot.path()} + "/" + make_sentinel_base(name())},
+        initLockPath{sharedDir + "/init_lock"},
+        socketPath{sharedDir + "/" + std::to_string(::getpid()) + ".sock"} {}
 
     ~SharedMemory() noexcept override { reset_with_registry(); }
 
@@ -594,14 +596,14 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        BaseSharedMemory(std::move(sharedMemory)) {
+        BaseSharedMemory{std::move(sharedMemory)} {
         move_with_registry(std::move(sharedMemory));
     }
     SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
         if (this == &sharedMemory)
             return *this;
 
-        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(this);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_(this);
         assert(unregistered);
 
         reset();
@@ -614,14 +616,14 @@ class SharedMemory final: public BaseSharedMemory {
 
     [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
                                                                const T&         value) noexcept {
-        memoryRegistryCleanupHook.ensure_initialized();
+        MemoryRegistryCleanupHook.ensure_initialized();
 
         const auto& tempRoot = TempRoot::temp_root();
 
         if (!tempRoot)
             return std::nullopt;
 
-        SharedMemory<T> shm(name, *tempRoot);
+        SharedMemory<T> shm{name, *tempRoot};
 
         if (!shm.open(value))
             return std::nullopt;
@@ -742,7 +744,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         // Register for cleanup at exit
-        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry.register_(this);
         assert(registered);
 
         return true;
@@ -767,7 +769,7 @@ class SharedMemory final: public BaseSharedMemory {
     //  - unregister the source object
     //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
-        [[maybe_unused]] const bool unregistered = memoryRegistry.unregister_value(&sharedMemory);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry.unregister_(&sharedMemory);
         assert(unregistered);
 
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
@@ -778,13 +780,13 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        [[maybe_unused]] const bool registered = memoryRegistry.register_value(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry.register_(this);
         assert(registered);
     }
 
     // Unregister SharedMemory object and reset resources
     bool reset_with_registry() noexcept {
-        if (!memoryRegistry.unregister_value(this))
+        if (!MemoryRegistry.unregister_(this))
             return false;
 
         reset();
@@ -931,13 +933,13 @@ struct FallbackBackendSharedMemory final {
 
     FallbackBackendSharedMemory([[maybe_unused]] std::string_view shmName, const T& value) noexcept
         :
-        fallbackObj(make_unique_aligned_large_page<T>(value)) {}
+        fallbackObj{make_unique_aligned_large_page<T>(value)} {}
 
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
     FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
 
     FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept :
-        fallbackObj(std::move(fallbackBackendShm.fallbackObj)) {}
+        fallbackObj{std::move(fallbackBackendShm.fallbackObj)} {}
     FallbackBackendSharedMemory&
     operator=(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept {
         fallbackObj = std::move(fallbackBackendShm.fallbackObj);
@@ -996,19 +998,20 @@ struct SystemWideSharedMemory final {
         if (shmName.size() > SHM_NAME_MAX)
             shmName.resize(SHM_NAME_MAX);
 
-        BackendSharedMemory<T> tempBackendShm(shmName, value);
+        // Candidate BackendShm
+        BackendSharedMemory<T> candBackendShm{shmName, value};
 
-        if (tempBackendShm.is_valid())
-            backendShm = std::move(tempBackendShm);
+        if (candBackendShm.is_valid())
+            backendShm = std::move(candBackendShm);
         else
-            backendShm = FallbackBackendSharedMemory<T>(shmName, value);
+            backendShm = FallbackBackendSharedMemory<T>{shmName, value};
     }
 
     SystemWideSharedMemory(const SystemWideSharedMemory&) noexcept            = delete;
     SystemWideSharedMemory& operator=(const SystemWideSharedMemory&) noexcept = delete;
 
     SystemWideSharedMemory(SystemWideSharedMemory&& systemWideShm) noexcept :
-        backendShm(std::move(systemWideShm.backendShm)) {}
+        backendShm{std::move(systemWideShm.backendShm)} {}
     SystemWideSharedMemory& operator=(SystemWideSharedMemory&& systemWideShm) noexcept {
         backendShm = std::move(systemWideShm.backendShm);
         return *this;

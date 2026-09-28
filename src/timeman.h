@@ -21,10 +21,10 @@
 #include <limits>
 
 #include "misc.h"
+#include "types.h"  // IWYU pragma: keep
 
 namespace DON {
 
-enum Color : u8;
 struct Limit;
 class Options;
 

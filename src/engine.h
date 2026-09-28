@@ -41,6 +41,8 @@
 
 namespace DON {
 
+struct Error;
+
 class Engine final {
    public:
     explicit Engine(const fs::path& path = {}) noexcept;

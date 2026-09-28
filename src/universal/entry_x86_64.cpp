@@ -78,10 +78,14 @@ struct CpuFeatures final {
     bool sse41;            // SSE4.1
     bool popcnt;           // POPCNT
     bool avx2;             // AVX2
+    bool bmi;              // BMI
     bool bmi2;             // BMI2 (may be slow on AMD Excavator and Zen/Zen+/Zen2)
+    bool avxvnni;          // AVX-VNNI (non-512 dot product instructions)
     bool avx512f;          // AVX-512 Foundation
-    bool avx512vl;         // AVX-512 Vector Length extensions
     bool avx512bw;         // AVX-512 Byte and Word instructions
+    bool avx512cd;         // AVX-512 Conflict Detection
+    bool avx512dq;         // AVX-512 Doubleword and Quadword instructions
+    bool avx512vl;         // AVX-512 Vector Length extensions
     bool avx512vnni;       // AVX-512 Vector Neural Network Instructions
     bool avx512ifma;       // AVX-512 Integer Fused Multiply-Add
     bool avx512vbmi;       // AVX-512 Vector Bit Manipulation Instructions
@@ -91,7 +95,6 @@ struct CpuFeatures final {
     bool vpclmulqdq;       // Carry-less multiplication (AVX512 variant)
     bool gfni;             // Galois Field instructions
     bool vaes;             // AES instructions (AVX512 variant)
-    bool avxvnni;          // AVX-VNNI (non-512 dot product instructions)
 };
 
 static CpuFeatures query_cpu_features() noexcept {
@@ -99,10 +102,14 @@ static CpuFeatures query_cpu_features() noexcept {
       .sse41           = (bool) __builtin_cpu_supports("sse4.1"),
       .popcnt          = (bool) __builtin_cpu_supports("popcnt"),
       .avx2            = (bool) __builtin_cpu_supports("avx2"),
+      .bmi             = (bool) __builtin_cpu_supports("bmi"),
       .bmi2            = (bool) __builtin_cpu_supports("bmi2"),
+      .avxvnni         = (bool) __builtin_cpu_supports("avxvnni"),
       .avx512f         = (bool) __builtin_cpu_supports("avx512f"),
-      .avx512vl        = (bool) __builtin_cpu_supports("avx512vl"),
       .avx512bw        = (bool) __builtin_cpu_supports("avx512bw"),
+      .avx512cd        = (bool) __builtin_cpu_supports("avx512cd"),
+      .avx512dq        = (bool) __builtin_cpu_supports("avx512dq"),
+      .avx512vl        = (bool) __builtin_cpu_supports("avx512vl"),
       .avx512vnni      = (bool) __builtin_cpu_supports("avx512vnni"),
       .avx512ifma      = (bool) __builtin_cpu_supports("avx512ifma"),
       .avx512vbmi      = (bool) __builtin_cpu_supports("avx512vbmi"),
@@ -112,42 +119,42 @@ static CpuFeatures query_cpu_features() noexcept {
       .vpclmulqdq      = (bool) __builtin_cpu_supports("vpclmulqdq"),
       .gfni            = (bool) __builtin_cpu_supports("gfni"),
       .vaes            = (bool) __builtin_cpu_supports("vaes"),
-      .avxvnni         = (bool) __builtin_cpu_supports("avxvnni"),
     };
 }
 
 // Selects the most capable ISA variant supported by current CPU
-static int dispatch(const CpuFeatures& f, const int argc, const char* const argv[]) noexcept {
-    if (!f.sse41 || !f.popcnt)
+static int
+dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
+    if (!cpuFeatures.sse41 || !cpuFeatures.popcnt)
         return entry_x86_64(argc, argv);
 
-    if (!f.avx2)
+    if (!cpuFeatures.avx2)
         return entry_x86_64_sse41_popcnt(argc, argv);
 
-    if (!f.bmi2 || has_slow_bmi2())
+    if (!cpuFeatures.bmi2 || has_slow_bmi2())
         return entry_x86_64_avx2(argc, argv);
 
-    if (!f.avx512f || !f.avx512vl || !f.avx512bw)
+    if (!cpuFeatures.avx512f || !cpuFeatures.avx512bw || !cpuFeatures.avx512cd
+        || !cpuFeatures.avx512dq || !cpuFeatures.avx512vl)
     {
-        if (!f.avxvnni)
+        if (!cpuFeatures.avxvnni)
             return entry_x86_64_bmi2(argc, argv);
 
         return entry_x86_64_avxvnni(argc, argv);
     }
 
-    if (!f.avx512vnni)
+    if (!cpuFeatures.avx512vnni)
         return entry_x86_64_avx512(argc, argv);
 
     // AVX512ICL requires the full Icelake-client feature suite
-    if (!f.avx512ifma          //
-        || !f.avx512vbmi       //
-        || !f.avx512vbmi2      //
-        || !f.avx512vpopcntdq  //
-        || !f.avx512bitalg     //
-        || !f.vpclmulqdq       //
-        || !f.gfni             //
-        || !f.vaes             //
-    )
+    if (!cpuFeatures.avx512ifma          //
+        || !cpuFeatures.avx512vbmi       //
+        || !cpuFeatures.avx512vbmi2      //
+        || !cpuFeatures.avx512vpopcntdq  //
+        || !cpuFeatures.avx512bitalg     //
+        || !cpuFeatures.vpclmulqdq       //
+        || !cpuFeatures.gfni             //
+        || !cpuFeatures.vaes)
         return entry_x86_64_vnni512(argc, argv);
 
     return entry_x86_64_avx512icl(argc, argv);
@@ -172,6 +179,6 @@ int main(const int argc, const char* const argv[]) noexcept {
     maybe_promote_thread_to_avx512();
 
     __builtin_cpu_init();
-    CpuFeatures features = query_cpu_features();
-    return dispatch(features, argc, argv);
+    auto cpuFeatures = query_cpu_features();
+    return dispatch(cpuFeatures, argc, argv);
 }

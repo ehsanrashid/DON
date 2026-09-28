@@ -43,9 +43,9 @@ namespace DON {
 
 struct ThreadOptions final {
    public:
-    explicit constexpr ThreadOptions(bool sStackSize = false, bool sGuardSize = false) noexcept :
-        useStackSize(sStackSize),
-        useGuardSize(sGuardSize) {}
+    explicit constexpr ThreadOptions(bool stackSize = false, bool guardSize = false) noexcept :
+        useStackSize{stackSize},
+        useGuardSize{guardSize} {}
 
     bool useStackSize = false;
     bool useGuardSize = false;
@@ -67,12 +67,8 @@ class NativeThread final {
     template<typename Function, typename... Args>
     struct Callable final: public BaseCallable {
         Callable(Function&& func, Args&&... args) :
-            func_(std::forward<Function>(func)),
-            args_(std::make_tuple(std::forward<Args>(args)...)) {}
-
-        // ~Callable() noexcept {
-        //     DEBUG_LOG("Callable destroyed: " << static_cast<void*>(this));
-        // }
+            func_{std::forward<Function>(func)},
+            args_{std::make_tuple(std::forward<Args>(args)...)} {}
 
         void invoke() noexcept override { std::apply(func_, args_); }
 
@@ -215,22 +211,20 @@ using NativeThread = std::thread;
 #endif
 
 template<typename Function, typename... Args>
-NativeThread create_native_thread_with_options(
+NativeThread create_native_thread_with_options(const ThreadOptions&
 #if defined(USE_PTHREAD)
-  const ThreadOptions& thOptions,
+                                                 thOptions,
 #else
-  const ThreadOptions&,
+                                               ,
 #endif
-  Function&& func,
-  Args&&... args) noexcept {
-    return
+                                               Function&& func,
+                                               Args&&... args) noexcept {
 #if defined(USE_PTHREAD)
-      NativeThread(thOptions, std::forward<Function>(func), std::forward<Args>(args)...)
+    return NativeThread{thOptions, std::forward<Function>(func), std::forward<Args>(args)...};
 #else
-      // TODO: implement fallible thread creation on MSVC
-      NativeThread(std::forward<Function>(func), std::forward<Args>(args)...)
+    // TODO: implement fallible thread creation for non-pthread platforms
+    return NativeThread{std::forward<Function>(func), std::forward<Args>(args)...};
 #endif
-        ;
 }
 
 template<typename Function, typename... Args>

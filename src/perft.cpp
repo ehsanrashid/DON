@@ -189,11 +189,7 @@ struct ProbResult final {
 
 class PerftTable final {
    public:
-    PerftTable() noexcept                             = default;
-    PerftTable(const PerftTable&) noexcept            = delete;
-    PerftTable& operator=(const PerftTable&) noexcept = delete;
-    PerftTable(PerftTable&&) noexcept                 = delete;
-    PerftTable& operator=(PerftTable&&) noexcept      = delete;
+    PerftTable() noexcept = default;
 
     ~PerftTable() noexcept;
 
@@ -208,6 +204,11 @@ class PerftTable final {
     void free() noexcept;
 
    private:
+    PerftTable(const PerftTable&) noexcept            = delete;
+    PerftTable& operator=(const PerftTable&) noexcept = delete;
+    PerftTable(PerftTable&&) noexcept                 = delete;
+    PerftTable& operator=(PerftTable&&) noexcept      = delete;
+
     PTCluster* clusters = nullptr;
     usize      clusterCount;
 };
@@ -216,7 +217,7 @@ PerftTable::~PerftTable() noexcept { free(); }
 
 void PerftTable::free() noexcept {
     [[maybe_unused]] const bool freed = free_aligned_large_page(clusters);
-    //assert(freed);
+    assert(freed);
 }
 
 void PerftTable::resize(const usize ptSize, const Threads& threads) noexcept {
@@ -227,8 +228,7 @@ void PerftTable::resize(const usize ptSize, const Threads& threads) noexcept {
 
     const usize ptBytes = clusterCount * PT_CLUSTER_SIZE;
 
-    // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
-    // memory oversubscription
+    // Request 1GB pages if get at least eight per NUMA node, to avoid memory oversubscription
     const bool hugePageHint = ptBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
 
     clusters = static_cast<PTCluster*>(alloc_aligned_large_page_with_hint(ptBytes, hugePageHint));
@@ -301,8 +301,8 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
 PerftTable PerftTable_;
 
-constexpr bool use_perft_table(const Depth /*depth*/, const bool /*detail*/) noexcept {
-    return false;  // !detail&& depth >= 4;
+constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
+    return false && !detail && depth >= 4;
 }
 
 // Utility to verify move generation.

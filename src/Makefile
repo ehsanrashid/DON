@@ -106,9 +106,9 @@ UNIVERSAL_SRCS := \
     universal/nnue_embed.cpp
 
 HEADERS := \
-    attacks.h benchmark.h bitboard.h color.h concurrent.h cuckoo.h debug.h engine.h evaluate.h history.h memory.h \
-    misc.h movegen.h movepick.h native_thread.h notation.h numa.h option.h perft.h platform_win.h position.h \
-    prng.h search.h shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
+    attacks.h benchmark.h bitboard.h color.h concurrent.h cuckoo.h debug.h engine.h error.h evaluate.h history.h \
+    memory.h misc.h movegen.h movepick.h native_thread.h notation.h numa.h option.h perft.h platform_win.h \
+    position.h prng.h search.h shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \
     nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
@@ -194,7 +194,7 @@ ifeq ($(ARCH),)
 ARCH = native
 endif
 ifeq ($(ARCH),native)
-override ARCH := $(shell $(SHELL) ../scripts/get_native_properties.sh | cut -d " " -f 1)
+override ARCH := $(shell '$(SHELL)' ../scripts/get_native_properties.sh | cut -d " " -f 1)
 endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
@@ -972,28 +972,28 @@ endif
 ifeq ($(avx512),yes)
 CXXFLAGS += -DUSE_AVX512
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl
 endif
 endif
 
 ifeq ($(vnni256),yes)
 CXXFLAGS += -DUSE_VNNI
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
 endif
 endif
 
 ifeq ($(vnni512),yes)
 CXXFLAGS += -DUSE_VNNI
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl -mavx512vnni
 endif
 endif
 
 ifeq ($(avx512icl),yes)
 CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
+CXXFLAGS += -mavx512f -mavx512bw -mavx512cd -mavx512dq -mavx512vl -mavx512vnni -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
 endif
 endif
 
@@ -1362,7 +1362,7 @@ macos-lipo:
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
 	lipo -create '$(EXE)-x86_64' '$(EXE)-arm64' -output '$(EXE)'
-	$(SHELL) universal/patch_x86_64_slice.sh '$(EXE)' '$(EXE)-x86_64' '$(NNUE_NET)'
+	'$(SHELL)' universal/patch_x86_64_slice.sh '$(EXE)' '$(EXE)-x86_64' '$(NNUE_NET)'
 	@echo; \
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
 	lipo -create '$(EXE)-x86_64' '$(EXE)-arm64' -output '$(EXE)'
@@ -1431,7 +1431,7 @@ endif
 
 # Evaluation network (nnue)
 net:
-	@$(SHELL) '../scripts/net.sh'
+	@'$(SHELL)' '../scripts/net.sh'
 
 strip:
 	$(STRIP) $(EXE)
@@ -1786,7 +1786,7 @@ $(TEMP_DIR):
 
 # Download NNUE files once into src/; all architecture builds reuse them via --embed-dir.
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd '$(CURDIR)' && $(SHELL) '../scripts/net.sh' $(EMBED_DIR_SUPPORTED)
+	@cd '$(CURDIR)' && '$(SHELL)' '../scripts/net.sh' '$(EMBED_DIR_SUPPORTED)'
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)

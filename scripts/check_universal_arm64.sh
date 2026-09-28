@@ -38,14 +38,15 @@ for pair in $PAIRS; do
     idx=$((idx + 1))
     cpu=${pair%%:*}
     expected_compiler=${pair##*:}
-    compiler_out=$(qemu-aarch64 -cpu "$cpu" -- "$DON_EXE" compiler 2>&1 || true)
+    compiler_out=$('qemu-aarch64' -cpu "$cpu" -- "$DON_EXE" compiler 2>&1 || true)
+    bench_out=$('qemu-aarch64' -cpu "$cpu" -- "$DON_EXE" bench 2>&1 >/dev/null || true)
+
     actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
         sub(/^[[:space:]]+/, "", $2)
         sub(/[[:space:]]+$/, "", $2)
         print $2
         exit
     }')
-    bench_out=$(qemu-aarch64 -cpu "$cpu" -- "$DON_EXE" bench 2>&1 || true)
     actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
         sub(/^[[:space:]]+/, "", $2)
         sub(/[[:space:]]+$/, "", $2)

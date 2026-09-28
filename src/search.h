@@ -62,7 +62,7 @@ inline constexpr usize MOVES_CAPACITY = 32;
 
 using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
 
-inline Book::PolyGlot pgBook;
+inline Book::PolyGlot PGBook;
 
 bool load_book(const fs::path& bookPath) noexcept;
 
@@ -596,6 +596,9 @@ class Manager final {
 
     const UpdateContext& updateContext;
 
+    std::mutex              mutex;
+    std::condition_variable condVar;
+
     Skill       skill;
     TimeManager timeManager;
     double      sumMoveChanges;
@@ -609,9 +612,6 @@ class Manager final {
     Value  preBestAvgValue;
     double preTimeReduction;
     bool   atFirst;
-
-    std::mutex              mutex;
-    std::condition_variable condVar;
 };
 
 // NT indicates the type of node in the search tree
@@ -640,6 +640,7 @@ struct Stack final {
     Move  ttMove;
     u16   moveCount;
     u16   cutoffCount;
+    u16   nmpFailHigh;
     bool  inCheck;
     bool  pvTT;
     bool  pvFollow;
