@@ -166,7 +166,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
             return std::nullopt;
 
         // Temp root already exists, verify ownership and permissions
-        stat fileStat = {};
+        struct stat fileStat = {};
 
         if (::lstat(tempPath.c_str(), &fileStat) != 0)
             return std::nullopt;

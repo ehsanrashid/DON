@@ -719,7 +719,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
         return nullptr;
     }
 
-    stat fileStat = {};
+    struct stat fileStat = {};
 
     if (::fstat(fdGuard.get(), &fileStat) != 0)
     {
