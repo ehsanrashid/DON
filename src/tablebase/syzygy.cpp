@@ -223,7 +223,7 @@ constexpr LR LR::Default{{0x00, 0xF0, 0xFF}};
 constexpr usize SymCount = 4096;
 static_assert(is_power_of_2(SymCount));
 
-bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
+bool fits(const u8* const p, const u64 count, const u64 stride, const u8* const end) noexcept {
 
     if (p > end)
         return false;
@@ -1423,9 +1423,9 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdl, int value) 
 
     // DTZ-tables store distance to zero in number of moves or plies.
     // So have to convert to plies when needed.
-    if ((wdl == WDLWin && (flags & TBFlag::WinPlies) == 0)
-        || (wdl == WDLLoss && (flags & TBFlag::LossPlies) == 0)
-        || (wdl == WDLCursedWin || wdl == WDLBlessedLoss))
+    if (is_rule50_wdl(wdl)  //
+        || (wdl == WDLWin && (flags & TBFlag::WinPlies) == 0)
+        || (wdl == WDLLoss && (flags & TBFlag::LossPlies) == 0))
         value *= 2;
 
     return value + 1;
@@ -1732,9 +1732,9 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
     WDLScore wdl, bestWdl = WDLLoss;
 
-    MoveList<GenType::LEGAL> legalMoveList(pos);
+    u16 moveCount = 0;
 
-    u8 moveCount = 0;
+    MoveList<GenType::LEGAL> legalMoveList(pos);
 
     for (const Move m : legalMoveList)
     {
@@ -2033,7 +2033,7 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 
     *ps = ProbeState::Success;
 
-    auto wdl = search<true>(pos, ps);
+    const auto wdl = search<true>(pos, ps);
 
     if (*ps == ProbeState::Fail || wdl == WDLDraw)  // DTZ-tables don't store draws
         return 0;
@@ -2049,7 +2049,7 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
         return 0;
 
     if (*ps != ProbeState::ChangeAc)
-        return sign(wdl) * (dtz + int(wdl == WDLBlessedLoss || wdl == WDLCursedWin) * 100);
+        return sign(wdl) * (dtz + int(is_rule50_wdl(wdl)) * 100);
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
@@ -2057,7 +2057,7 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 
     for (const Move m : MoveList<GenType::LEGAL>(pos))
     {
-        bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
+        const bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
         State st;
         pos.do_move(m, st);
@@ -2108,12 +2108,8 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
         if (ps == ProbeState::Fail)
             return false;
 
-        rm.tbRank = WDL_RANK[WDL_INDEX(wdl)];
-
-        if (!useRule50)
-            wdl = normalize_wdl(wdl);
-
-        rm.tbValue = WDL_VALUE[WDL_INDEX(wdl)];
+        rm.tbRank  = WDL_RANK[WDL_INDEX(wdl)];
+        rm.tbValue = WDL_VALUE[WDL_INDEX(useRule50 ? wdl : normalize_wdl(wdl))];
     }
 
     return true;
@@ -2125,12 +2121,12 @@ bool rank_root_moves_dtz(Position&       pos,
                          const bool      rankDTZ,
                          const AbortFunc should_abort) noexcept {
     // Obtain 50-move counter for the root position
-    i16 rule50Count = pos.rule50_count();
+    const i16 rule50Count = pos.rule50_count();
 
     // Check whether the position was repeated since the last zeroing move
-    bool hasRepeated = pos.has_repeated();
+    const bool hasRepeated = pos.has_repeated();
 
-    int bound = useRule50 ? (DTZ_MAX / 2 - 100) : 1;
+    const int bound = useRule50 ? (DTZ_MAX / 2 - 100) : 1;
 
     // Probe and rank each move
     for (auto& rm : rootMoves)

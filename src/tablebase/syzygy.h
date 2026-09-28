@@ -53,6 +53,9 @@ constexpr WDLScore operator-(const WDLScore wdl) noexcept { return WDLScore(-int
 constexpr WDLScore normalize_wdl(const WDLScore wdl) noexcept {
     return WDLScore(2 * ((wdl > WDLDraw) - (wdl < WDLDraw)));
 }
+constexpr bool is_rule50_wdl(const WDLScore wdl) noexcept {
+    return wdl == WDLBlessedLoss || wdl == WDLCursedWin;
+}
 
 [[nodiscard]] constexpr std::string_view to_string(const WDLScore wdl) noexcept {
     switch (wdl)
