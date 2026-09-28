@@ -964,7 +964,7 @@ Value Worker::search(Position&    pos,
             {
                 // Bonus for a quiet ttMove
                 if (!ttmCapture)
-                    update_quiet_histories(pos, ss, ttd.move, std::min(112 * depth, +695));
+                    update_quiet_histories(pos, ss, ttd.move, 131 * depth);
 
                 // Extra penalty for early quiet moves of the previous ply
                 if (preOk && !preCapture && (ss - 1)->moveCount < 5)
