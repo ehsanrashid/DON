@@ -510,7 +510,8 @@ void Worker::iterative_deepening() noexcept {
     Value       lastBestMoveValue = -VALUE_INFINITE;
     RootPVMoves lastBestMovePV;
 
-    u16 researchCnt = 0;
+    u16 researchCnt      = 0;
+    u16 failHighRecovery = 0;
 
     // Iterative deepening loop
     const Depth maxDepth = limit.depth != DEPTH_ZERO ? std::min(limit.depth, DEPTH_MAX) : DEPTH_MAX;
@@ -524,15 +525,15 @@ void Worker::iterative_deepening() noexcept {
         Array<usize, MOVE_MAX + 1> tbRankGroups{};
         usize                      tbRankGroupCnt = 0;
         // Group moves by tbRank and snapshot scores before search
-        for (usize i = 0; i < rootMovesSize;)
+        for (usize i = 0; i < rootMovesSize; ++tbRankGroupCnt)
         {
-            tbRankGroups[tbRankGroupCnt++] = i;
+            tbRankGroups[tbRankGroupCnt] = i;
             // Scan group: record boundaries and snapshot scores
             auto tbRank = rootMoves[i].tbRank;
             do
             {
-                // Save the last iteration's scores before the first PV line is searched and
-                // all the move scores except the (new) PV are set to -VALUE_INFINITE.
+                // Save the last iteration's scores before the first PV line is searched
+                // and all move scores except the new PV are set to -VALUE_INFINITE.
                 rootMoves[i].preValue = rootMoves[i].value;
                 rootMoves[i].prePV    = rootMoves[i].pv;
                 rootMoves[i].isExact  = i < multiPV;
@@ -580,6 +581,9 @@ void Worker::iterative_deepening() noexcept {
             // Start with a small aspiration window and, in the case of a fail
             // high/low, research with a bigger window until don't fail high/low anymore.
             u16 failHighCnt = 0;
+            if (pvIdx == 0)
+                failHighRecovery = std::max(failHighRecovery - 2, 0);
+
             while (true)
             {
                 ss->cutoffCount = 0;
@@ -588,7 +592,8 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta != 0);
 
                 // Reduce search depth according to fail-highs and research count.
-                const Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
+                const Depth penaltyDepth =
+                  failHighCnt + failHighRecovery + 3 * (1 + researchCnt) / 4;
                 const Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
@@ -636,6 +641,10 @@ void Worker::iterative_deepening() noexcept {
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
+
+            // Gradually increase depth after reduced depth search
+            if (failHighCnt > 0 && pvIdx == 0)
+                failHighRecovery = 2 + (failHighCnt + 1) / 2;
 
             if (pvIdx != 0 && threads.is_stopped())
             {
