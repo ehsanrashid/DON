@@ -68,12 +68,7 @@ DEFINE_ARCH_ENTRY(x86_64_avx512)
 DEFINE_ARCH_ENTRY(x86_64_vnni512)
 DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
-// AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pext/pdep via microcode.
-static bool has_slow_bmi2() noexcept {
-    return __builtin_cpu_is("amd")
-        && (__builtin_cpu_is("bdver4") || __builtin_cpu_is("znver1") || __builtin_cpu_is("znver2"));
-}
-
+namespace {
 struct CpuFeatures final {
     bool sse41;            // SSE4.1
     bool popcnt;           // POPCNT
@@ -81,7 +76,7 @@ struct CpuFeatures final {
     bool fma;              // FMA
     bool bmi;              // BMI
     bool bmi2;             // BMI2 (may be slow on AMD Excavator and Zen/Zen+/Zen2)
-    bool avxvnni;          // AVX-VNNI (non-512 dot-product instructions)
+    bool avxvnni;          // AVX-VNNI (non-512-bit dot-product instructions)
     bool avx512f;          // AVX-512 Foundation
     bool avx512bw;         // AVX-512 Byte and Word
     bool avx512cd;         // AVX-512 Conflict Detection
@@ -90,15 +85,15 @@ struct CpuFeatures final {
     bool avx512vnni;       // AVX-512 Vector Neural Network Instructions
     bool avx512ifma;       // AVX-512 Integer Fused Multiply-Add
     bool avx512vbmi;       // AVX-512 Vector Bit Manipulation Instructions
-    bool avx512vbmi2;      // AVX-512 VBMI2
+    bool avx512vbmi2;      // AVX-512 Vector Bit Manipulation Instructions 2
     bool avx512vpopcntdq;  // AVX-512 Vector Population Count Doubleword and Quadword
     bool avx512bitalg;     // AVX-512 Bit Algorithms
-    bool vpclmulqdq;       // Vector PCLMULQDQ: Carry-less multiplication (AVX512 variant)
+    bool vpclmulqdq;       // VPCLMULQDQ: Vector Carry-less multiplication
     bool gfni;             // Galois Field instructions
-    bool vaes;             // Vector AES: AES instructions (AVX512 variant)
+    bool vaes;             // VAES: Vector AES instructions
 };
 
-static CpuFeatures query_cpu_features() noexcept {
+CpuFeatures query_cpu_features() noexcept {
     return {
       .sse41           = (bool) __builtin_cpu_supports("sse4.1"),
       .popcnt          = (bool) __builtin_cpu_supports("popcnt"),
@@ -124,9 +119,14 @@ static CpuFeatures query_cpu_features() noexcept {
     };
 }
 
+// AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pext/pdep via microcode.
+bool has_slow_bmi2() noexcept {
+    return __builtin_cpu_is("amd")
+        && (__builtin_cpu_is("bdver4") || __builtin_cpu_is("znver1") || __builtin_cpu_is("znver2"));
+}
+
 // Selects the most capable ISA variant supported by current CPU
-static int
-dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
+int dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
     if (!cpuFeatures.sse41 || !cpuFeatures.popcnt)
         return entry_x86_64(argc, argv);
 
@@ -162,7 +162,7 @@ dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[
     return entry_x86_64_avx512icl(argc, argv);
 }
 
-static void maybe_promote_thread_to_avx512() noexcept {
+void maybe_promote_thread_to_avx512() noexcept {
 #if defined(__APPLE__)
     // Intel Macs supporting AVX512 don't advertise it in xgetbv and only
     // do so once at least one avx512 instruction has been executed.
@@ -176,6 +176,8 @@ static void maybe_promote_thread_to_avx512() noexcept {
     }
 #endif
 }
+
+}  // namespace
 
 int main(const int argc, const char* const argv[]) noexcept {
     maybe_promote_thread_to_avx512();

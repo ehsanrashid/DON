@@ -41,6 +41,7 @@
 DEFINE_ARCH_ENTRY(riscv64)
 DEFINE_ARCH_ENTRY(riscv64_rva23)
 
+namespace {
 struct CpuFeatures final {
     bool gcv;        // GCV
     bool zbitmanip;  // Zba + Zbb + Zbs
@@ -48,7 +49,7 @@ struct CpuFeatures final {
     int  vlen;       // vector length in bits (valid only if gcv is true), always a power of two
 };
 
-static CpuFeatures query_cpu_features() noexcept {
+CpuFeatures query_cpu_features() noexcept {
     unsigned long  hwcap    = getauxval(AT_HWCAP);
     constexpr long MASK_GCV = 0x20112d;
 
@@ -84,13 +85,14 @@ static CpuFeatures query_cpu_features() noexcept {
 }
 
 // Selects the most capable ISA variant supported by current CPU
-static int
-dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
+int dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
     if (!cpuFeatures.gcv || !cpuFeatures.zbitmanip || !cpuFeatures.zicond || cpuFeatures.vlen < 128)
         return entry_riscv64(argc, argv);
 
     return entry_riscv64_rva23(argc, argv);
 }
+
+}  // namespace
 
 int main(const int argc, const char* const argv[]) noexcept {
     auto cpuFeatures = query_cpu_features();

@@ -1562,13 +1562,17 @@ Value Worker::search(Position&    pos,
             r = constexpr_round(r * (1.0 + 276.0 / (268.0 + 256.0 * depth)));
         }
 
-        // Apply the computed LMR (Late Move Reduction).
+        // Apply the computed LMR (Late Move Reduction)
         if (depth > 1 && moveCount > 1)
         {
-            Depth redDepth =
-              std::max<Depth>(std::min<Depth>(newDepth - constexpr_round(r / 1024.0), newDepth + 2),
-                              1)
-              + int(PVNode);
+            // In general, cap the LMR search depth at newDepth.
+            // But when the reduction is negative, allow a limited search extension beyond newDepth.
+            // To avoid search explosion, limit extensions to the upper part of the search tree relative to rootDepth.
+            const int maxExtension = ss->ply < 2 * rootDepth ? 2 : 0;
+            Depth     redDepth = newDepth + std::min(-constexpr_round(r / 1024.0), maxExtension);
+            if (redDepth < 1)
+                redDepth = 1;
+            redDepth += int(PVNode);
 
             i16 reduction = newDepth - redDepth;
 
