@@ -1103,10 +1103,10 @@ Value Worker::search(Position&    pos,
 
     // Step 8. Razoring
     // Razoring is disabled for PV nodes to avoid prematurely returning decisive scores.
-    if constexpr (!PVNode)
+    if constexpr (AllNode)
     {
     // If eval is really low, confirm the fail low before pruning with qsearch.
-    if (!exclude && !seekMate && ttEvalue + 482 * depth < alpha)
+    if (!exclude && !seekMate && ttEvalue + 342 * depth < alpha)
     {
         const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
 
