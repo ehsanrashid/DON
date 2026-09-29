@@ -42,11 +42,12 @@
 DEFINE_ARCH_ENTRY(armv8)
 DEFINE_ARCH_ENTRY(armv8_dotprod)
 
+namespace {
 struct CpuFeatures final {
     bool dotprod;
 };
 
-static CpuFeatures query_cpu_features() noexcept {
+CpuFeatures query_cpu_features() noexcept {
 #if defined(_WIN32)
     return {.dotprod = (bool) IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE)};
 #else
@@ -56,13 +57,14 @@ static CpuFeatures query_cpu_features() noexcept {
 }
 
 // Selects the most capable ISA variant supported by current CPU
-static int
-dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
+int dispatch(const CpuFeatures& cpuFeatures, const int argc, const char* const argv[]) noexcept {
     if (!cpuFeatures.dotprod)
         return entry_armv8(argc, argv);
 
     return entry_armv8_dotprod(argc, argv);
 }
+
+}  // namespace
 
 int main(const int argc, const char* const argv[]) noexcept {
     auto cpuFeatures = query_cpu_features();
