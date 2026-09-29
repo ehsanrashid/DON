@@ -126,16 +126,16 @@ constexpr usize WDL_INDEX(const WDLScore wdl) noexcept { return usize(wdl + WDL_
 
 // clang-format off
 
-constexpr Array<int  , WDL_SCORE_NB> WDL_MAP           {        1,              3,          0,              2,        0 };
-constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK          {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
-constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE         {-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
-constexpr Array<int  , WDL_SCORE_NB> BEFORE_ZEROING_DTZ{       -1,           -101,          0,           +101,       +1 };
+constexpr Array<int  , WDL_SCORE_NB> WDL_MAPS           {         1,              3,          0,              2,         0 };
+constexpr Array<i32  , WDL_SCORE_NB> WDL_RANKS          {  -DTZ_MAX, -DTZ_MAX + 101,          0, +DTZ_MAX - 101,  +DTZ_MAX };
+constexpr Array<Value, WDL_SCORE_NB> WDL_VALUES         { -VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB };
+constexpr Array<int  , WDL_SCORE_NB> BEFORE_ZEROING_DTZS{        -1,           -101,          0,           +101,        +1 };
 
 // DTZ-tables don't store valid scores for moves that reset the rule50 counter
 // like captures and pawn moves but can easily recover the correct DTZ-score of the
 // previous move if know the position's WDL-score.
 constexpr int before_zeroing_dtz(const WDLScore wdl) noexcept {
-    return BEFORE_ZEROING_DTZ[WDL_INDEX(wdl)];
+    return BEFORE_ZEROING_DTZS[WDL_INDEX(wdl)];
 }
 
 [[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
@@ -275,9 +275,9 @@ bool TBFile::exists() const noexcept { return !file_name().empty(); }
 struct PairsData final {
    public:
     enum SymColor : u8 {
-        SYM_WHITE,
-        SYM_GREY,
-        SYM_BLACK
+        White,
+        Grey,
+        Black
     };
 
     // In Recursive Pairing, each symbol represents a pair of child symbols.
@@ -314,50 +314,51 @@ u8 PairsData::set_symLen(const usize                sym,
                          Array<SymColor, SymCount>& symColors,
                          bool&                      cyclic) noexcept {
 
-    symColors[sym] = SYM_GREY;
+    symColors[sym] = SymColor::Grey;
 
     const Sym rSym = btree[sym].get<false>();
 
     if (rSym == SymCount - 1)
     {
-        symColors[sym] = SYM_BLACK;
+        symColors[sym] = SymColor::Black;
         return 0;
     }
 
     const Sym lSym = btree[sym].get<true>();
 
-    if (symColors[lSym] == SYM_GREY || symColors[rSym] == SYM_GREY)
+    if (symColors[lSym] == SymColor::Grey || symColors[rSym] == SymColor::Grey)
     {
         cyclic         = true;
-        symColors[sym] = SYM_BLACK;
+        symColors[sym] = SymColor::Black;
         return 0;
     }
 
-    if (symColors[lSym] == SYM_WHITE)
+    if (symColors[lSym] == SymColor::White)
     {
-        symLen[lSym] = set_symLen(lSym, symColors, cyclic);
+        set_symLen(lSym, symColors, cyclic);
 
         if (cyclic)
         {
-            symColors[sym] = SYM_BLACK;
+            symColors[sym] = SymColor::Black;
             return 0;
         }
     }
 
-    if (symColors[rSym] == SYM_WHITE)
+    if (symColors[rSym] == SymColor::White)
     {
-        symLen[rSym] = set_symLen(rSym, symColors, cyclic);
+        set_symLen(rSym, symColors, cyclic);
 
         if (cyclic)
         {
-            symColors[sym] = SYM_BLACK;
+            symColors[sym] = SymColor::Black;
             return 0;
         }
     }
 
-    symColors[sym] = SYM_BLACK;
+    symColors[sym] = SymColor::Black;
 
-    return 1 + symLen[lSym] + symLen[rSym];
+    symLen[sym] = 1 + symLen[lSym] + symLen[rSym];
+    return symLen[sym];
 }
 
 u8* PairsData::set_sizes(u8* pData, const u8* end) noexcept {
@@ -463,17 +464,19 @@ u8* PairsData::set_sizes(u8* pData, const u8* end) noexcept {
     // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
     symLen.fill(u8{0});
     Array<SymColor, SymCount> symColors;
-    symColors.fill(SYM_WHITE);
+    symColors.fill(SymColor::White);
     bool cyclic = false;
 
     for (usize sym = 0; sym < symLenSize; ++sym)
-        if (symColors[sym] == SYM_WHITE)
-        {
-            symLen[sym] = set_symLen(sym, symColors, cyclic);
+    {
+        if (symColors[sym] != SymColor::White)
+            continue;
 
-            if (cyclic)
-                break;
-        }
+        set_symLen(sym, symColors, cyclic);
+
+        if (cyclic)
+            break;
+    }
 
     if (cyclic)
         return nullptr;
@@ -1416,7 +1419,7 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdl, int value) 
         auto* mapPtr = table->map_ptr();
         auto* mapIdx = pd->mapIdx.data();
 
-        auto idx = mapIdx[WDL_MAP[WDL_INDEX(wdl)]] + value;
+        auto idx = mapIdx[WDL_MAPS[WDL_INDEX(wdl)]] + value;
 
         value = (flags & TBFlag::Wide) != 0 ? ((u16*) mapPtr)[idx] : mapPtr[idx];
     }
@@ -2108,8 +2111,8 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
         if (ps == ProbeState::Fail)
             return false;
 
-        rm.tbRank  = WDL_RANK[WDL_INDEX(wdl)];
-        rm.tbValue = WDL_VALUE[WDL_INDEX(useRule50 ? wdl : normalize_wdl(wdl))];
+        rm.tbRank  = WDL_RANKS[WDL_INDEX(wdl)];
+        rm.tbValue = WDL_VALUES[WDL_INDEX(useRule50 ? wdl : normalize_wdl(wdl))];
     }
 
     return true;

@@ -467,8 +467,7 @@ inline void lasx_m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m2
     product         = __lasx_xvmaddwod_h_bu_b(product, a, b);
     acc             = __lasx_xvadd_w(acc, __lasx_xvhaddw_w_h(product, product));
 }
-    #endif
-    #if defined(USE_LSX)
+    #else
 inline int lsx_m128_hadd(const __m128i sum, const int bias) noexcept {
     __m128i sm = sum;
     sm         = __lsx_vadd_w(sm, __lsx_vshuf4i_w(sm, 0x4E));  // [C,D,A,B]
@@ -486,6 +485,23 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
 #endif  // USE_LSX
 
 #if defined(USE_NEON)
+    #if defined(USE_NEON) && USE_NEON >= 8
+        #if defined(USE_NEON_DOTPROD)
+inline void
+dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
+    acc = vdotq_s32(acc, a, b);
+}
+        #else
+inline void
+neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
+    const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
+    const int16x8_t product1 = vmull_high_s8(a, b);
+    const int16x8_t sum      = vpaddq_s16(product0, product1);
+    acc                      = vpadalq_s16(acc, sum);
+}
+        #endif
+    #endif
+
 inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
     #if defined(USE_NEON) && USE_NEON >= 8
     return vaddvq_s32(s);
@@ -497,22 +513,6 @@ inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
 inline int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
     return neon_m128_reduce_add_epi32(sum) + bias;
 }
-
-    #if defined(USE_NEON_DOTPROD)
-inline void
-dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
-    acc = vdotq_s32(acc, a, b);
-}
-    #endif
-    #if defined(USE_NEON) && USE_NEON >= 8
-inline void
-neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
-    const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
-    const int16x8_t product1 = vmull_high_s8(a, b);
-    const int16x8_t sum      = vpaddq_s16(product0, product1);
-    acc                      = vpadalq_s16(acc, sum);
-}
-    #endif
 #endif  // USE_NEON
 
 #if defined(VECTOR)
