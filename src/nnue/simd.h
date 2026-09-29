@@ -137,7 +137,7 @@ using psqt_vec_t = __m128i;
         #define vec_store(dst, value) *(dst) = (value)
 
         #if defined(X86_32)  // 32-bit x86?
-inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
+ALWAYS_INLINE __m128i i386_cvtsi64_si128(const i64 value) noexcept {
     return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value));
 }
             #define _mm_cvtsi64_si128(a) SIMD::i386_cvtsi64_si128(a)
@@ -149,7 +149,7 @@ inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
                 #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(static_cast<i64>(a)))
             #endif
         #else
-inline __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
+ALWAYS_INLINE __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
     const __m128i v8   = _mm_cvtsi64_si128(static_cast<i64>(a));
     const __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
     return _mm_unpacklo_epi8(v8, sign);
@@ -193,17 +193,17 @@ using vec_t      = __m256i;
 using vec_i8_t   = __m128i;
 using psqt_vec_t = __m256i;
 
-inline __m256i lasx_load256(const __m256i* src) noexcept {
+ALWAYS_INLINE __m256i lasx_load256(const __m256i* src) noexcept {
     return __lasx_xvld(reinterpret_cast<const void*>(src), 0);
 }
         #define vec_load(src) SIMD::lasx_load256(src)
 
-inline void lasx_store256(__m256i* dst, const __m256i value) noexcept {
+ALWAYS_INLINE void lasx_store256(__m256i* dst, const __m256i value) noexcept {
     __lasx_xvst(value, reinterpret_cast<void*>(dst), 0);
 }
         #define vec_store(dst, value) SIMD::lasx_store256(dst, value)
 
-inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
+ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #if defined(__has_builtin) && __has_builtin(__builtin_lasx_cast_128)
     return __lasx_vext2xv_h_b(__lasx_cast_128(a));
         #elif defined(__GNUC__) && !defined(__clang__)
@@ -230,7 +230,7 @@ inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #define vec_min_16(a, b) __lasx_xvmin_h(a, b)
         #define vec_slli_16(a, b) __lasx_xvslli_h(a, b)
         // Inverse permuted at load time
-inline __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
+ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
         #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_bu_h)
     return (__m256i) __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
         #else
@@ -239,7 +239,7 @@ inline __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
 }
         #define vec_packus_16(a, b) SIMD::lasx_packus_16(a, b)
 
-inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
+ALWAYS_INLINE __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
         #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_hu_w)
     return (__m256i) __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
         #else
@@ -254,7 +254,7 @@ inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
         #define vec_sub_psqt_32(a, b) __lasx_xvsub_w(a, b)
         #define vec_zero_psqt() __lasx_xvldi(0)
 
-inline int lasx_vec_nnz(const __m256i a) noexcept {
+ALWAYS_INLINE int lasx_vec_nnz(const __m256i a) noexcept {
     const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
     const __m256i mask = __lasx_xvmskltz_w(cmp);
     return (__lasx_xvpickve2gr_w(mask, 0) << 0)
@@ -262,8 +262,13 @@ inline int lasx_vec_nnz(const __m256i a) noexcept {
 }
         #define vec_nnz(a) SIMD::lasx_vec_nnz(a)
 
-        #define vec_mulhi_8 __lasx_xvmuh_bu
-        #define vec_srli_8 __lasx_xvsrli_b
+ALWAYS_INLINE vec_t vec_mulhi_8(const vec_t a, const vec_t b) noexcept {
+    return __lasx_xvmuh_bu(a, b);
+}
+
+ALWAYS_INLINE vec_t vec_srli_8(const vec_t a, const unsigned shift) noexcept {
+    return __lasx_xvsrli_b(a, shift);
+}
 
         inline constexpr usize REGISTER_COUNT_MAX = 24;
         inline constexpr usize CHUNK_SIZE_MAX = 32;
@@ -276,7 +281,7 @@ using psqt_vec_t = __m128i;
         #define vec_load(src) (*(src))
         #define vec_store(dst, value) *(dst) = (value)
 
-inline __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
+ALWAYS_INLINE __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
     __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
     return __lsx_vsllwil_h_b(v, 0);
 }
@@ -291,7 +296,7 @@ inline __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
         #define vec_min_16(a, b) __lsx_vmin_h(a, b)
         #define vec_slli_16(a, b) __lsx_vslli_h(a, b)
         // Inverse permuted at load time
-inline __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
+ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
         #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_bu_h)
     return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
         #else
@@ -300,7 +305,7 @@ inline __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
 }
         #define vec_packus_16(a, b) SIMD::lsx_packus_16(a, b)
 
-inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
+ALWAYS_INLINE __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
         #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_hu_w)
     return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
         #else
@@ -315,15 +320,20 @@ inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
         #define vec_sub_psqt_32(a, b) __lsx_vsub_w(a, b)
         #define vec_zero_psqt() __lsx_vldi(0)
 
-inline int lsx_vec_nnz(const __m128i a) noexcept {
+ALWAYS_INLINE int lsx_vec_nnz(const __m128i a) noexcept {
     const __m128i cmp  = __lsx_vslt_w(__lsx_vldi(0), a);
     const __m128i mask = __lsx_vmskltz_w(cmp);
     return __lsx_vpickve2gr_w(mask, 0);
 }
         #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
-        #define vec_mulhi_8 __lsx_vmuh_bu
-        #define vec_srli_8 __lsx_vsrli_b
+ALWAYS_INLINE vec_t vec_mulhi_8(const vec_t a, const vec_t b) noexcept {
+    return __lsx_vmuh_bu(a, b);
+}
+
+ALWAYS_INLINE vec_t vec_srli_8(const vec_t a, const unsigned shift) noexcept {
+    return __lsx_vsrli_b(a, shift);
+}
 
         inline constexpr usize REGISTER_COUNT_MAX = 24;
         inline constexpr usize CHUNK_SIZE_MAX = 16;
@@ -363,10 +373,10 @@ using psqt_vec_t __attribute__((may_alias)) = int32x4_t;
 
     #if defined(__arm__) && !defined(__aarch64__)
 // Compatibility wrappers for missing NEON _high widening intrinsics on 32-bit ARM
-inline int16x8_t arm32_vaddw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
+ALWAYS_INLINE int16x8_t arm32_vaddw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vaddw_s8(a, vget_high_s8(b));
 }
-inline int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
+ALWAYS_INLINE int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vsubw_s8(a, vget_high_s8(b));
 }
         #define vaddw_high_s8(a, b) SIMD::arm32_vaddw_high_s8(a, b)
@@ -397,11 +407,11 @@ static_assert(CHUNK_SIZE_MAX == sizeof(vec_t), "CHUNK_SIZE_MAX must equal one ve
 
 #if defined(USE_SSSE3)
     #if defined(USE_AVX512)
-inline int m512_hadd(const __m512i sum, const int bias) noexcept {
+ALWAYS_INLINE int m512_hadd(const __m512i sum, const int bias) noexcept {
     return _mm512_reduce_add_epi32(sum) + bias;
 }
 
-inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b) noexcept {
+ALWAYS_INLINE void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b) noexcept {
         #if defined(USE_VNNI)
     acc = _mm512_dpbusd_epi32(acc, a, b);
         #else
@@ -412,7 +422,7 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b
 }
     #endif
     #if defined(USE_AVX2)
-inline int m256_hadd(const __m256i sum, const int bias) noexcept {
+ALWAYS_INLINE int m256_hadd(const __m256i sum, const int bias) noexcept {
     const __m128i loSum = _mm256_castsi256_si128(sum);
     const __m128i hiSum = _mm256_extracti128_si256(sum, 1);
     __m128i       sm    = _mm_add_epi32(loSum, hiSum);
@@ -421,7 +431,7 @@ inline int m256_hadd(const __m256i sum, const int bias) noexcept {
     return _mm_cvtsi128_si32(sm) + bias;
 }
 
-inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
+ALWAYS_INLINE void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
         #if defined(USE_VNNI)
     acc = _mm256_dpbusd_epi32(acc, a, b);
         #else
@@ -432,14 +442,14 @@ inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b
 }
     #endif
     #if defined(USE_SSSE3)
-inline int m128_hadd(const __m128i sum, const int bias) noexcept {
+ALWAYS_INLINE int m128_hadd(const __m128i sum, const int bias) noexcept {
     __m128i sm = sum;
     sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0x4E));  //_MM_PERM_BADC
     sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0xB1));  //_MM_PERM_CDAB
     return _mm_cvtsi128_si32(sm) + bias;
 }
 
-inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
+ALWAYS_INLINE void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
         #if defined(__wasm_relaxed_simd__)
     acc = wasm_i32x4_relaxed_dot_i8x16_i7x16_add(b, a, acc);
         #else
@@ -453,7 +463,7 @@ inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b
 
 #if defined(USE_LSX)
     #if defined(USE_LASX)
-inline int lasx_m256_hadd(const __m256i sum, const int bias) noexcept {
+ALWAYS_INLINE int lasx_m256_hadd(const __m256i sum, const int bias) noexcept {
     __m256i sm = sum;
     sm         = __lasx_xvadd_w(sm, __lasx_xvshuf4i_w(sm, 0x4E));  // [C,D,A,B] per lane
     sm         = __lasx_xvadd_w(sm, __lasx_xvshuf4i_w(sm, 0xB1));  // [B,A,D,C] per lane
@@ -462,20 +472,22 @@ inline int lasx_m256_hadd(const __m256i sum, const int bias) noexcept {
     return loSm + hiSm + bias;
 }
 
-inline void lasx_m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
+ALWAYS_INLINE void
+lasx_m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
     __m256i product = __lasx_xvmulwev_h_bu_b(a, b);
     product         = __lasx_xvmaddwod_h_bu_b(product, a, b);
     acc             = __lasx_xvadd_w(acc, __lasx_xvhaddw_w_h(product, product));
 }
     #else
-inline int lsx_m128_hadd(const __m128i sum, const int bias) noexcept {
+ALWAYS_INLINE int lsx_m128_hadd(const __m128i sum, const int bias) noexcept {
     __m128i sm = sum;
     sm         = __lsx_vadd_w(sm, __lsx_vshuf4i_w(sm, 0x4E));  // [C,D,A,B]
     sm         = __lsx_vadd_w(sm, __lsx_vshuf4i_w(sm, 0xB1));  // [B,A,D,C]
     return __lsx_vpickve2gr_w(sm, 0) + bias;
 }
 
-inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
+ALWAYS_INLINE void
+lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
     // product[i] = a[2i]*b[2i] + a[2i+1]*b[2i+1]
     __m128i product = __lsx_vmulwev_h_bu_b(a, b);
     product         = __lsx_vmaddwod_h_bu_b(product, a, b);
@@ -487,12 +499,12 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
 #if defined(USE_NEON)
     #if defined(USE_NEON) && USE_NEON >= 8
         #if defined(USE_NEON_DOTPROD)
-inline void
+ALWAYS_INLINE void
 dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     acc = vdotq_s32(acc, a, b);
 }
         #else
-inline void
+ALWAYS_INLINE void
 neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     const int16x8_t product1 = vmull_high_s8(a, b);
@@ -502,7 +514,7 @@ neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b
         #endif
     #endif
 
-inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
+ALWAYS_INLINE int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
     #if defined(USE_NEON) && USE_NEON >= 8
     return vaddvq_s32(s);
     #else
@@ -510,7 +522,7 @@ inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
     #endif
 }
 
-inline int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
+ALWAYS_INLINE int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
     return neon_m128_reduce_add_epi32(sum) + bias;
 }
 #endif  // USE_NEON
