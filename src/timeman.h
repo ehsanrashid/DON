@@ -73,14 +73,25 @@ class TimeManager final {
 
     static constexpr TimePoint NoBound = TimeMax / 2;
 
+    static constexpr double TimeAdjustDefault = -1.0;
+    static constexpr double TimeAdjustMin     = 1.0e-6;
+
+    static constexpr i64 TimeNodesDefault = -1;
+
+    // Maximum moves to go used by time management formulas.
+    static constexpr u8 MTGMax = u8{50};
+
     TimePoint startTime;
     TimePoint optimumTime;
     TimePoint maximumTime;
 
-    double timeAdjust;
+    double timeAdjust = TimeAdjustDefault;
 
-    i64  timeNodes;
-    bool useNodesTime;
+    // Related to 'Nodes as Time' mode:
+    bool useNodesTime = false;
+    i64  timeNodes    = TimeNodesDefault;
+    u8   preMovesToGo = 0;
+    i64  cyclicBudget = 0;
 };
 
 }  // namespace DON

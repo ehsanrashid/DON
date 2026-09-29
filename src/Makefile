@@ -1593,8 +1593,7 @@ config-sanity: net
 	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	@echo "MAKELEVEL=$$MAKELEVEL"
-	@echo "MAKEFLAGS=$$MAKEFLAGS"
+	@echo "\$$MAKE[$$MAKELEVEL]:$$MAKEFLAGS"
 	+$(strip $(CXX) $(LDFLAGS) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(LDLIBS)) -o '$@'
 
 %.o: %.cpp

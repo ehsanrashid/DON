@@ -29,14 +29,6 @@ namespace DON {
 
 namespace {
 
-// Maximum moves to go used by time management formulas.
-constexpr u8 MTG_MAX = u8{50};
-
-constexpr double TIME_ADJUST_INIT = -1.0;
-constexpr double TIME_ADJUST_MIN  = 1.0e-6;
-
-constexpr i64 TIME_NODES_INIT = i64{-1};
-
 i64 time_nodes(const i64 time, const u64 nodesTime) noexcept {
     assert(nodesTime != 0);
 
@@ -57,9 +49,11 @@ bool TimeManager::use_nodes_time() const noexcept { return useNodesTime; }
 
 void TimeManager::reset() noexcept {
 
-    timeAdjust = TIME_ADJUST_INIT;
+    timeAdjust = TimeAdjustDefault;
 
-    timeNodes = TIME_NODES_INIT;
+    timeNodes    = TimeNodesDefault;
+    preMovesToGo = 0;
+    cyclicBudget = 0;
 }
 
 void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) noexcept {
@@ -95,8 +89,17 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     if (use_nodes_time())
     {
         // Only once at game start
-        if (timeNodes == TIME_NODES_INIT)
-            timeNodes = time_nodes(clock.time, NodesTime);
+        if (timeNodes == TimeNodesDefault)
+        {
+            timeNodes    = time_nodes(clock.time, NodesTime);
+            cyclicBudget = time_nodes(clock.time - clock.inc, NodesTime);
+        }
+        else if (limit.movesToGo != 0 && limit.movesToGo > preMovesToGo && cyclicBudget > 0)
+        {
+            timeNodes += cyclicBudget;
+        }
+
+        preMovesToGo = limit.movesToGo;
 
         // Convert from milliseconds to nodes
         clock.time = TimePoint(timeNodes);
@@ -111,7 +114,7 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     // clang-format off
 
     // Maximum move horizon
-    u8 mtg = limit.movesToGo != 0 ? std::min(limit.movesToGo, MTG_MAX) : MTG_MAX;
+    u8 mtg = limit.movesToGo != 0 ? std::min(limit.movesToGo, MTGMax) : MTGMax;
 
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls keep the actual movestogo as horizon.
@@ -138,8 +141,8 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         if (clock.inc == 0)
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (timeAdjust == TIME_ADJUST_INIT)
-            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), TIME_ADJUST_MIN);
+        if (timeAdjust == TimeAdjustDefault)
+            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), TimeAdjustMin);
 
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
@@ -151,8 +154,8 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         else
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (timeAdjust == TIME_ADJUST_INIT)
-            timeAdjust = std::max(-0.4141 + 0.3272 * std::log10(remainTime), TIME_ADJUST_MIN);
+        if (timeAdjust == TimeAdjustDefault)
+            timeAdjust = std::max(-0.4141 + 0.3272 * std::log10(remainTime), TimeAdjustMin);
 
         optimumScale = timeAdjust
                      * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * logScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);
@@ -169,7 +172,7 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     // Decrease time usage if behind in time.
     // This is skipped in two cases:
     // - if the nodestime option is used can't calculate the opponent nodes budget in a deterministic way.
-    // - if use a cyclic time management (like 40/10) calculating time advantage for the last move (movestogo = 1)
+    // - if use a cyclic time management (like 40/10) calculating time advantage for the last move (movesToGo = 1)
     //   can be vastly off, because if the opponent had done his last move before his time budget includes already
     //   the next cycle time increment but not our. This leads to a unnecessary big decrease in time usage which favors blunders.
     // Warning: don't remove this conditions.
