@@ -46,7 +46,7 @@ namespace {
 
 constexpr Depth OUTPUT_DEPTH_LIMIT = 30;
 
-// Dynamic EMA parameters: weight the new value between 37.5% and 75%,
+// Dynamic Exponential moving average parameters: weight the new value between 37.5% and 75%,
 // increasing with new nodes relative to the accumulated history (Chi = 1.5).
 constexpr u64 WEIGHT_SCALE    = 32;
 constexpr u64 CHI_NUMERATOR   = 3;
@@ -277,8 +277,7 @@ void Worker::reset() noexcept {
 
 // Ensure that the neural network is replicated on this NUMA node
 void Worker::ensure_network_replicated() const noexcept {
-    // Access once to force lazy initialization.
-    // Do this because want to avoid initialization during search.
+    // Access once to force lazy initialization, avoiding initialization during search
     (void) (network[numa_access_token()]);
 }
 
@@ -532,8 +531,8 @@ void Worker::iterative_deepening() noexcept {
             auto tbRank = rootMoves[i].tbRank;
             do
             {
-                // Save the last iteration's scores before the first PV line is searched
-                // and all move scores except the new PV are set to -VALUE_INFINITE.
+                // Save the previous iteration's value and PV before the first PV search,
+                // as non-PV move values are reset to -VALUE_INFINITE during the search.
                 rootMoves[i].preValue = rootMoves[i].value;
                 rootMoves[i].prePV    = rootMoves[i].pv;
                 rootMoves[i].isExact  = i < multiPV;
@@ -546,7 +545,7 @@ void Worker::iterative_deepening() noexcept {
         // Index in tbRankGroups
         usize tbRankGroupIdx = 0;
         usize pvBeg = pvEnd = 0;
-        // MultiPV loop. Perform a full root search for each PV line
+        // MultiPV loop: Perform a full root search for each PV line
         for (pvIdx = 0; pvIdx < multiPV; ++pvIdx)
         {
             const bool pvIdxLast = pvIdx + 1 == multiPV;
@@ -579,7 +578,7 @@ void Worker::iterative_deepening() noexcept {
             optimism[~ac] = -optimism[ac];
 
             // Start with a small aspiration window and, after a fail-high/low,
-            // research with a larger window until the search no longer fails high/low.
+            // progressively enlarge the window until the search no longer fails high/low.
 
             // Decrease fail-high recovery.
             if (pvIdx == 0)
@@ -675,7 +674,7 @@ void Worker::iterative_deepening() noexcept {
                         rmIdx_0.reset_bound();
                     }
                     // Otherwise, if can, cap the score to the best possible, and mark
-                    // the score as a bound (also a valid excuse for the incomplete PV)
+                    // the score as a bound (also a valid excuse for the incomplete PV).
                     else
                     {
                         if (is_loss(rmIdx_1.value))
@@ -969,6 +968,7 @@ Value Worker::search(Position&    pos,
     // Step 6. Check for an early TT cutoff at non-pv nodes
     if constexpr (!PVNode)
     {
+        // Note that the TT value must always be checked for validity because of access races.
         if (!exclude && is_valid(ttd.value) && (CutNode == (ttd.value >= beta) || depth > 4)
             && ttd.depth > depth - (ttd.value <= beta)
             && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
@@ -1006,7 +1006,7 @@ Value Worker::search(Position&    pos,
             }
         }
         // No cutoff, but why? Does the stored inexact value mismatch our aspiration window?
-        // Penalize the entry since its bound is now no longer useful for this window-bound
+        // Penalize the entry since its bound is now no longer useful for this window-bound.
         else if (!exclude && depth > 5 && is_valid(ttd.value)
                  && ttd.depth > depth - (ttd.value <= beta) && ttd.bound != Bound::EXACT
                  && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
@@ -1518,12 +1518,13 @@ Value Worker::search(Position&    pos,
 
         assert(capturedPt == type_of(pos.captured_pc()));
 
-        // Step 18. Compute and apply late moves reduction (LMR) (or possibly extension)
+        // Step 18. Compute and apply late moves reductions/extensions (LMR)
 
         ss->history = history_value(capture, move, movedPc, capturedPt, ac, contHistory);
 
         // Base reduction offset to compensate for other tweaks
         r += 697;
+
         r -= 65 * moveCount;
         r -= constexpr_ceil(absCorrectionValue / 26310.0);
 
@@ -1702,9 +1703,9 @@ Value Worker::search(Position&    pos,
                     ++moveChanges;
             }
             else
-                // All other moves but the PV, are set to the lowest value, this
-                // is not a problem when sorting because the sort is stable and the
-                // move position in the list is preserved - just the PV is pushed up.
+                // All moves except the PV are set to the lowest value.
+                // This is not a problem when sorting because the sort is stable and
+                // preserves their positions in the list; only the PV is pushed up.
                 rm.value = -VALUE_INFINITE;
         }
 
@@ -1758,11 +1759,12 @@ Value Worker::search(Position&    pos,
            || (MoveList<GenType::LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
-    // Step 23. Check for mate and stalemate
+    // Step 23. Check for mate and stalemate.
     // All legal moves have been searched and if there are no legal moves, it must be a mate or a stalemate.
-    // If in a singular extension search then return a fail low score.
     if (moveCount == 0)
+        // If in a singular extension search then return a fail low score.
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+    // Otherwise update bestmove/countermove stats
     else
     {
         // Adjust best value for fail high cases
@@ -1787,6 +1789,7 @@ Value Worker::search(Position&    pos,
             // Bonus for prior quiet move
             if (!preCapture)
             {
+                // Bonus scale ranges from 0 to roughly 2.3M, overflows happen for multipliers larger than 900
                 int bonusScale = std::max(
                   -241
                     // Increase bonus when depth is high
@@ -1993,7 +1996,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
                   &atomicHistories, ss->ply);
-    // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs.
+    // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.legal(move));
@@ -2024,7 +2027,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                     continue;
                 }
 
-                // SEE based pruning
+                // SEE-based pruning:
+                // Prune if static exchange evaluation is low enough.
                 int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
@@ -2037,7 +2041,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             if (!capture)
                 continue;
 
-            // SEE based pruning
+            // SEE-based pruning:
             if (pos.see(move) < -74)
                 continue;
         }
@@ -2161,6 +2165,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
 
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
+// Evaluate the current position of the game tree, from the point of view of the side to move.
 Value Worker::evaluate(const Position& pos) noexcept {
     return Evaluate::evaluate(pos, network[numa_access_token()], accCache, accStack,
                               optimism[pos.active_color()]);
@@ -2601,13 +2606,14 @@ void Manager::reset() noexcept {
     atFirst          = true;
 }
 
-// Used to print debug info and, more importantly,
-// to detect when out of available time and thus stop the search.
+// Detect when running out of time and thus stop the search,
+// and also used to print debug info after 1s.
 void Manager::check_time(Worker& worker) noexcept {
     assert(callsCount > 0);
     if (--callsCount > 0)
         return;
-    // When using nodes, ensure checking rate is not lower than 0.1% of nodes
+
+    // When using nodes, ensure the checking rate is at least 0.1% of nodes
     callsCount = worker.limit.calls_count();
 
     const TimePoint elapsedTime = elapsed(worker.threads);

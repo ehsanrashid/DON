@@ -26,13 +26,14 @@
 namespace DON {
 
 // There is only one global hash table for the engine and all its threads.
-// For chess in particular, even allow racy updates between threads to and from the TT,
-// as taking the time to synchronize access would cost thinking time and thus Elo.
-// As a hash table, collisions are possible and may cause chess playing issues (bizarre blunders, faulty mate reports, etc).
-// Fixing these also loses elo; however such risk decreases quickly with larger TT size.
-//
-// Use separate TTData, a local copy of an entry, from TTWriter, which writes to the global table.
-// A copy of the data already in an entry (possibly collided).
+// For chess in particular, even allow racy updates to and from the TT,
+// as the time spent synchronizing access would cost thinking time and thus Elo.
+// As Hash table, collisions are possible and may cause several chess-playing issues
+// (bizarre blunders, faulty mate reports, etc.).
+// Avoiding these issues also costs Elo; however, the risk decreases quickly with larger TT sizes.
+// Clearly separate TTData, a local copy of an entry, from TTWriter, which writes to the global table.
+
+// Copy of the data in an entry, possibly from a collision.
 // Probes and reads are racy and non-atomic, possibly resulting in inconsistent data.
 struct TTData final {
    public:
@@ -61,8 +62,8 @@ struct TTEntry;
 struct TTCluster;
 
 // Used to make racy, non-atomic writes to the global TT.
-// Writes are not guaranteed: for chess reasons, a later write may decide
-// that the new data is less important than the existing data.
+// Writes are not 'guaranteed': for chess reasons,
+// later write may decide that the new data is less important than the existing data.
 class TTWriter final {
    public:
     TTWriter(TTWriter&&) noexcept = default;
@@ -100,8 +101,10 @@ class TranspositionTable final {
     TranspositionTable() noexcept = default;
     ~TranspositionTable() noexcept;
 
+    // The current age, used when writing new data to the TT
     u8 generation() const noexcept;
 
+    // Must be called at the beginning of each root search to track entry aging
     void advance_generation() const noexcept;
 
     // Sets the size of the transposition table, measured in megabytes (MB).
@@ -113,14 +116,14 @@ class TranspositionTable final {
 
     TTCluster* cluster(Key key) const noexcept;
 
-    // `probe` is the primary method: looks up the current position (key) in the transposition table.
+    // `probe(key)` is the primary method: looks up the current position (key) in the transposition table.
     // On a hit, it returns:
-    //   1) copy of the existing data (which may be a collision or self-inconsistent due to read races)
+    //   1) copy of the existing data (which may be a collision or self-inconsistent due to races)
     //   2) writer for the corresponding entry
     // On a miss, it returns empty data and writer for the least valuable entry selected for replacement.
     ProbResult probe(Key key) const noexcept;
 
-    // Returns an approximation of the hash table occupation during a search.
+    // Approximate what fraction of entries (permille) have been written to the TT during this root search.
     // The hash is x per mill full, as per UCI protocol.
     // Only counts entries which match the current generation. [maxAge: 0-GENERATION_MASK]
     u16 hashfull(u8 maxAge = 0) const noexcept;

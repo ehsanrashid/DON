@@ -116,7 +116,7 @@ u8 TTEntry::relative_age(const u8 gen) const noexcept {
 i16 TTEntry::worth(const u8 gen) const noexcept { return depth8 - 8 * relative_age(gen); }
 
 // Populates the TTEntry with a new node's data, possibly overwriting an old position.
-// The update is non-atomic and can be racy.
+// The update is non-atomic and can be racy. Convert external types to internal bitfields.
 void TTEntry::save(const u16   k,
                    const Move  m,
                    const Value v,
@@ -153,7 +153,7 @@ void TTEntry::save(const u16   k,
     }
 }
 
-// Decrement the stored depth by the penalty, clamping at zero
+// Decrement the stored depth by the penalty, clamping at DEPTH_ZERO
 void TTEntry::penalize(const u8 penalty) noexcept {
     // Guard against racy underflows, default to "unoccupied"
     depth8 = std::max(depth8 - penalty, 0);
@@ -215,6 +215,16 @@ void TTWriter::write(const Move  m,
                      const Depth d,
                      const Bound b,
                      const bool  pv) noexcept {
+    if (tte->key() != key)
+    {
+        // Find an entry to be replaced according to the replacement strategy
+        tte = ttc->entries.data();
+
+        for (usize i = 1; i < TTCluster::EntryCount; ++i)
+            if (tte->worth(generation) > ttc->entries[i].worth(generation))
+                tte = &ttc->entries[i];
+    }
+
     for (auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
         tte->reset();
 
@@ -307,14 +317,7 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
         if (entry.key() == key16)
             return {entry.read(), TTWriter{const_cast<TTEntry*>(&entry), ttc, key16, generation8}};
 
-    // Find an entry to be replaced according to the replacement strategy
-    const auto* rte = ttc->entries.data();
-
-    for (usize i = 1; i < TTCluster::EntryCount; ++i)
-        if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
-            rte = &ttc->entries[i];
-
-    return {TTData::empty(), TTWriter{const_cast<TTEntry*>(rte), ttc, key16, generation8}};
+    return {TTData::empty(), TTWriter{ttc->entries.data(), ttc, key16, generation8}};
 }
 
 u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
