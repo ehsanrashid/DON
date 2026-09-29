@@ -49,7 +49,7 @@ ConcurrentCache<Key, Value> MaterialValueCache{16 * KB, 0.75f};
 
 void Position::init() noexcept {
 
-    Zobrist_.init(0x105524);
+    Zobrist_.init(u64{0x105524});
 
     Cuckoos_.init(Zobrist_);
 }

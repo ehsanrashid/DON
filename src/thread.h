@@ -28,7 +28,6 @@
 #include <utility>
 #include <vector>
 
-#include "memory.h"
 #include "misc.h"
 #include "native_thread.h"
 #include "numa.h"
@@ -63,8 +62,6 @@ class ThreadToNumaNodeBinder final {
 };
 
 using JobFunc = std::function<void()>;
-
-using WorkerPtr = LargePagePtr<Worker>;
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
 // After construction, the native thread is started with idle_func()
@@ -152,7 +149,7 @@ class Thread final {
     // Blocks on the condition variable until the thread has finished job
     void wait_finish() noexcept;
 
-    WorkerPtr worker;
+    Worker::Ptr worker;
 
    private:
     // Thread main function: waits for work and executes jobs.

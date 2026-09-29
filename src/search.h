@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "history.h"
+#include "memory.h"
 #include "misc.h"
 #include "notation.h"
 #include "numa.h"
@@ -651,6 +652,8 @@ struct Stack final {
 // of the search history, and storing data required for the search.
 class Worker final {
    public:
+    using Ptr = LargePagePtr<Worker>;
+
     Worker() noexcept = delete;
     Worker(const ThreadContext&      threadCxt,
            NumaReplicatedAccessToken accessToken,

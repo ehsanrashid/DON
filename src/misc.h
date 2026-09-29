@@ -1075,12 +1075,11 @@ template<typename T>
 class RelaxedAtomic final {
    public:
     RelaxedAtomic() = default;
+    RelaxedAtomic(T v) noexcept { store(v); }
 
-    RelaxedAtomic(T v) noexcept :
-        value(v) {}
-
-    RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
-        value(static_cast<T>(relaxedAtomic)) {}
+    RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept {
+        store(static_cast<T>(relaxedAtomic));
+    }
     RelaxedAtomic& operator=(const RelaxedAtomic& relaxedAtomic) noexcept {
         if (this == &relaxedAtomic)
             return *this;
