@@ -78,23 +78,24 @@ struct CpuFeatures final {
     bool sse41;            // SSE4.1
     bool popcnt;           // POPCNT
     bool avx2;             // AVX2
+    bool fma;              // FMA
     bool bmi;              // BMI
     bool bmi2;             // BMI2 (may be slow on AMD Excavator and Zen/Zen+/Zen2)
-    bool avxvnni;          // AVX-VNNI (non-512 dot product instructions)
+    bool avxvnni;          // AVX-VNNI (non-512 dot-product instructions)
     bool avx512f;          // AVX-512 Foundation
-    bool avx512bw;         // AVX-512 Byte and Word instructions
+    bool avx512bw;         // AVX-512 Byte and Word
     bool avx512cd;         // AVX-512 Conflict Detection
-    bool avx512dq;         // AVX-512 Doubleword and Quadword instructions
-    bool avx512vl;         // AVX-512 Vector Length extensions
+    bool avx512dq;         // AVX-512 Doubleword and Quadword
+    bool avx512vl;         // AVX-512 Vector Length
     bool avx512vnni;       // AVX-512 Vector Neural Network Instructions
     bool avx512ifma;       // AVX-512 Integer Fused Multiply-Add
     bool avx512vbmi;       // AVX-512 Vector Bit Manipulation Instructions
     bool avx512vbmi2;      // AVX-512 VBMI2
-    bool avx512vpopcntdq;  // AVX-512 VPOPCNTDQ
-    bool avx512bitalg;     // AVX-512 BITALG
-    bool vpclmulqdq;       // Carry-less multiplication (AVX512 variant)
+    bool avx512vpopcntdq;  // AVX-512 Vector Population Count Doubleword and Quadword
+    bool avx512bitalg;     // AVX-512 Bit Algorithms
+    bool vpclmulqdq;       // Vector PCLMULQDQ: Carry-less multiplication (AVX512 variant)
     bool gfni;             // Galois Field instructions
-    bool vaes;             // AES instructions (AVX512 variant)
+    bool vaes;             // Vector AES: AES instructions (AVX512 variant)
 };
 
 static CpuFeatures query_cpu_features() noexcept {
@@ -102,6 +103,7 @@ static CpuFeatures query_cpu_features() noexcept {
       .sse41           = (bool) __builtin_cpu_supports("sse4.1"),
       .popcnt          = (bool) __builtin_cpu_supports("popcnt"),
       .avx2            = (bool) __builtin_cpu_supports("avx2"),
+      .fma             = (bool) __builtin_cpu_supports("fma"),
       .bmi             = (bool) __builtin_cpu_supports("bmi"),
       .bmi2            = (bool) __builtin_cpu_supports("bmi2"),
       .avxvnni         = (bool) __builtin_cpu_supports("avxvnni"),
