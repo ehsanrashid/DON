@@ -2136,6 +2136,7 @@ void Worker::do_move(
 
     prefetch(&(*(ss - 1)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
     prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
+    prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
     const bool capture = pos.capture_promo(m);
 
@@ -2319,6 +2320,7 @@ void Worker::update_correction_histories(const Position& pos, const Stack* const
 
         (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(bonus * 130.0 / BonusDivisor);
         (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(bonus *  70.0 / BonusDivisor);
+        (*(ss - 6)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(bonus *  35.0 / BonusDivisor);
     }
 }
 
@@ -2327,11 +2329,11 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{7670} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{6903} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
-           + i64{5284} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
+           + i64{4756} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
-           +i64{12906} * (atomicHistories.non_pawn_correction_entry<WHITE>(pos)[ac]
+           +i64{11615} * (atomicHistories.non_pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.non_pawn_correction_entry<BLACK>(pos)[ac]);
 
     const Move preMove = (ss - 1)->move;
@@ -2340,11 +2342,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
         const Square preSq = preMove.dst_sq();
         const Piece  prePc = pos[preSq];
 
-        correctionValue += i64{8761} * ((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
-                                      + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq]);
+        correctionValue += i64{7885} * ((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
+                                      + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq])
+                         + i64{6307} * ((*(ss - 6)->pieceSqCorrectionHistory)[+prePc][preSq]);
     }
     else
-        correctionValue += i64{64049};
+        correctionValue += i64{80695};
 
     return static_cast<i32>(std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT));
 }
