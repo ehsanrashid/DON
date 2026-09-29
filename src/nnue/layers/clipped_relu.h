@@ -68,23 +68,24 @@ class ClippedReLU final {
     // Write network parameters
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
+#if !defined(USE_PAIR_ACTIVATIONS)
     // Forward propagation
     void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
 
-#if defined(USE_SSE2)
+    #if defined(USE_SSE2)
         constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
-    #if !(defined(USE_SSE41))
+        #if !(defined(USE_SSE41))
         const __m128i K0x80s = _mm_set1_epi8(-128);
-    #endif
+        #endif
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
         for (Index i = 0; i < ChunkCount; ++i)
         {
             const Index j = i * 4;
-                // clang-format off
+                    // clang-format off
     #if defined(USE_SSE41)
             const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
             const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
@@ -106,8 +107,8 @@ class ClippedReLU final {
 
         constexpr Index Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_LSX)
-    #if defined(USE_LASX)
+    #elif defined(USE_LSX)
+        #if defined(USE_LASX)
         constexpr Index SimdWidth  = SIMD::WIDTH;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
@@ -125,7 +126,7 @@ class ClippedReLU final {
 
         constexpr Index Start = SimdWidth * ChunkCount;
 
-    #else
+        #else
         constexpr Index SimdWidth  = SIMD::WIDTH;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
@@ -142,9 +143,9 @@ class ClippedReLU final {
 
         constexpr Index Start = SimdWidth * ChunkCount;
 
-    #endif
+        #endif
 
-#elif defined(USE_NEON)
+    #elif defined(USE_NEON)
         constexpr Index SimdWidth  = SIMD::WIDTH / 2;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
@@ -163,7 +164,7 @@ class ClippedReLU final {
 
         constexpr Index Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_RVV)
+    #elif defined(USE_RVV)
         for (Index i = 0, vl; i < InputDimensions; i += vl)
         {
             // clang-format off
@@ -178,14 +179,15 @@ class ClippedReLU final {
 
         constexpr Index Start = InputDimensions;
 
-#else
+    #else
         constexpr Index Start = 0;
 
-#endif
+    #endif
 
         for (Index i = Start; i < InputDimensions; ++i)
             output[i] = static_cast<Output>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
     }
+#endif
 };
 
 }  // namespace DON::NNUE::Layers

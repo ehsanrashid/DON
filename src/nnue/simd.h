@@ -44,14 +44,8 @@
 #include "../misc.h"
 #include "ntypes.h"
 
-#if defined(USE_AVX2) && !(defined(USE_VNNI) || defined(USE_AVX512))
-    #define USE_AVX2_PAIR_ACTIVATIONS
-#endif
-#if defined(USE_AVX2_PAIR_ACTIVATIONS) || defined(USE_AVX512)
+#if defined(USE_AVX2)
     #define USE_PAIR_ACTIVATIONS
-#endif
-#if defined(USE_AVX2_PAIR_ACTIVATIONS) || defined(USE_LASX)
-    #define USE_SCRAMBLED_ACTIVATIONS
 #endif
 
 // If vector instructions are enabled, update and refresh the accumulator tile by tile
