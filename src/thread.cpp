@@ -29,6 +29,7 @@
 #include <unordered_set>
 
 #include "history.h"
+#include "memory.h"  // make_unique_aligned_large_page<>()
 #include "movegen.h"
 #include "notation.h"
 #include "option.h"

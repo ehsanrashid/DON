@@ -24,7 +24,14 @@ namespace DON {
 
 // Base type for application-specific errors
 struct Error: public std::runtime_error {
+   public:
     using std::runtime_error::runtime_error;
+};
+
+struct FENError final: public Error {
+   public:
+    explicit FENError(const std::string_view message) :
+        Error{"Invalid FEN: " + std::string{message}} {}
 };
 
 }  // namespace DON

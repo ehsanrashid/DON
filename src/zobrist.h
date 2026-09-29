@@ -84,16 +84,16 @@ class Zobrist final {
     Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static constexpr u8 PAWN_OFFSET = u8{8};
+    static constexpr u8 PawnOffset = u8{8};
 
-    static constexpr u8 R50_OFFSET = u8{14};
-    static constexpr u8 R50_FACTOR = u8{8};
+    static constexpr u8 R50Offset  = u8{14};
+    static constexpr u8 R50Divisor = u8{8};
 
     Array<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
     Array<Key, CASTLING_RIGHTS_NB>                      Castling;
     Array<Key, FILE_NB>                                 Enpassant;
     Key                                                 Turn;
-    Array<Key, 64>                                      MR50;
+    Array<Key, 32>                                      MR50;
 };
 
 }  // namespace DON

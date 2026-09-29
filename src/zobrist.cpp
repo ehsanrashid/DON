@@ -37,8 +37,8 @@ void Zobrist::init(const u64 seed) noexcept {
         for (const auto pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
-        std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));
-        std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PAWN_OFFSET * sizeof(Key));
+        std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PawnOffset * sizeof(Key));
+        std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PawnOffset * sizeof(Key));
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);
@@ -63,7 +63,7 @@ Key Zobrist::piece_square(const Piece pc, const Square s) const noexcept {
 }
 
 Key Zobrist::piece_count(const Color c, const PieceType pt, const u8 cnt) const noexcept {
-    const Square s = Square(PAWN_OFFSET + cnt);
+    const Square s = Square(PawnOffset + cnt);
     assert(is_ok(s));
 
     return piece_square(c, pt, s);
@@ -82,9 +82,9 @@ Key Zobrist::enpassant(const Square enPassantSq) const noexcept {
 Key Zobrist::turn() const noexcept { return Turn; }
 
 Key Zobrist::mr50(const i16 rule50Count) const noexcept {
-    return rule50Count < R50_OFFSET
+    return rule50Count < R50Offset
            ? 0
-           : MR50[std::min(usize((rule50Count - R50_OFFSET) / R50_FACTOR), MR50.size() - 1)];
+           : MR50[std::min(usize((rule50Count - R50Offset) / R50Divisor), MR50.size() - 1)];
 }
 
 }  // namespace DON

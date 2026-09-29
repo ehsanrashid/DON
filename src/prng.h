@@ -190,7 +190,7 @@ class Xoroshiro128ss final {
     State state = DefaultState;
 };
 
-// xoshiro256** Pseudorandom Number Generator
+// xoshiro256** Pseudo-Random Number Generator
 //
 // Fast, high-quality 64-bit pseudorandom number generator with a
 // 256-bit internal state.
