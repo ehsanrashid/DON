@@ -88,14 +88,19 @@ class AffineTransform final {
     static constexpr Index weight_index(Index i) noexcept {
 #if defined(USE_AFFINE_SIMD)
         Index idx = i % PaddedInputDimensions;
-    #if defined(USE_SCRAMBLED_ACTIVATIONS)
-        // AVX2 and LASX packs operate independently on 128-bit lanes.
-        // Keep their interleaved output order and rearrange the following
-        // layer's weights instead of issuing a runtime permutation.
+    #if defined(USE_PAIR_ACTIVATIONS) || defined(USE_LASX)
+        // At load time, pre-permute the weights to match the per-128-bit-lane interleaving that
+        // the previous layer produces, either via SqrClippedReLU::propagate_pair() or via the
+        // separate SqrClippedReLU/ClippedReLU propagate() calls, so no shuffle is needed at runtime.
         const Index block = idx / 32;
         const Index chunk = (idx % 32) / ChunkSize;
-
-        idx = block * 32 + ((chunk % 2) * ChunkSize + chunk / 2) * ChunkSize + idx % ChunkSize;
+        #if defined(USE_AVX512)
+        idx = block * 32 + ((chunk % ChunkSize) * 2 + chunk / ChunkSize) * ChunkSize  //
+            + idx % ChunkSize;
+        #else
+        idx = block * 32 + ((chunk % 2) * ChunkSize + chunk / 2) * ChunkSize  //
+            + idx % ChunkSize;
+        #endif
     #endif
         return idx / ChunkSize * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + idx % ChunkSize;

@@ -337,9 +337,9 @@ class FeatureTransformer final {
                 const SIMD::vec_t p0 = vec_packus_16(acc00, acc01);
                 const SIMD::vec_t p1 = vec_packus_16(acc10, acc11);
 
-                const SIMD::vec_t hi = vec_mulhi_8(p0, p1);
+                const SIMD::vec_t hi = SIMD::vec_mulhi_8(p0, p1);
 
-                pack = vec_srli_8(hi, 1);
+                pack = SIMD::vec_srli_8(hi, 1);
 
     #elif defined(USE_NEON)
                 const uint16x8_t mul0 = vmull_u8(vqmovun_s16(acc00), vqmovun_s16(acc10));

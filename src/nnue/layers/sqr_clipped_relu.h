@@ -70,20 +70,23 @@ class SqrClippedReLU final {
 
 #if defined(USE_PAIR_ACTIVATIONS)
     // Produce the squared and linear clipped activations together, sharing the input loads and
-    // the initial signed 32-to-16-bit saturating narrowing.
+    // the initial signed 32-to-16-bit saturating narrowing. No shuffle is needed to fix up the
+    // pack lane order because the next layer's weights were already reverse pre-permuted to match
+    // by AffineTransform::get_weight_index_scrambled().
     void propagate_pair(const Input* RESTRICT input,
                         Output* RESTRICT      squared,
                         Output* RESTRICT      clipped) const noexcept {
         static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
                       "SqrClippedReLU only support WeightScaleBits between 5 and 8");
-        static_assert(InputDimensions % 32 == 0);
+        static_assert(InputDimensions % 32 == 0,
+                      "propagate_pair() needs a tail path if L2/L3 change to multiple of 16");
 
         constexpr u8 BaseShift = 7 + 2 * WeightScaleBits;
         constexpr u8 SimdShift = BaseShift - 16;
 
         constexpr Index ChunkCount = InputDimensions / 32;
-
-    #if defined(USE_AVX512)
+    #if defined(USE_AVX2)
+        #if defined(USE_AVX512)
         const auto* in      = reinterpret_cast<const __m512i*>(input);
         auto*       sqrOut  = reinterpret_cast<__m256i*>(squared);
         auto*       clipOut = reinterpret_cast<__m256i*>(clipped);
@@ -92,10 +95,8 @@ class SqrClippedReLU final {
         for (Index i = 0; i < ChunkCount; ++i)
         {
             // clang-format off
-            const __m256i words0 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[i * 2 + 0]));
-            const __m256i words1 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[i * 2 + 1]));
-            const __m512i words  = _mm512_inserti64x4(_mm512_castsi256_si512(words0), words1, 1);
-
+            const __m512i words    = _mm512_packs_epi32(_mm512_load_si512(&in[i * 2 + 0]),
+                                                        _mm512_load_si512(&in[i * 2 + 1]));
             const __m512i sqrWords = _mm512_srli_epi16(_mm512_mulhi_epi16(words, words), SimdShift);
             _mm256_store_si256(&sqrOut[i], _mm512_cvtsepi16_epi8(sqrWords));
 
@@ -104,7 +105,7 @@ class SqrClippedReLU final {
             // clang-format on
         }
 
-    #elif defined(USE_AVX2_PAIR_ACTIVATIONS)
+        #else
         const auto* in      = reinterpret_cast<const __m256i*>(input);
         auto*       sqrOut  = reinterpret_cast<__m256i*>(squared);
         auto*       clipOut = reinterpret_cast<__m256i*>(clipped);
@@ -131,6 +132,10 @@ class SqrClippedReLU final {
             _mm256_store_si256(&clipOut[i], clipPacked);
             // clang-format on
         }
+
+        #endif
+    #else
+        #error "propagate_pair() requires AVX2+ (AVX512)"
     #endif
     }
 
@@ -145,30 +150,6 @@ class SqrClippedReLU final {
         [[maybe_unused]] constexpr u8 SimdShift = BaseShift - 16;
 
     #if defined(USE_SSE2)
-        #if defined(USE_AVX512)
-        static_assert(InputDimensions % 32 == 0);
-
-        constexpr Index SimdWidth  = SIMD::WIDTH;
-        constexpr Index ChunkCount = InputDimensions / SimdWidth;
-
-        const auto* in  = reinterpret_cast<const __m512i*>(input);
-        auto*       out = reinterpret_cast<__m256i*>(output);
-        for (Index i = 0; i < ChunkCount; ++i)
-        {
-            // clang-format off
-            const Index j = i * 2;
-
-            const __m256i words0 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 0]));
-            const __m256i words1 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 1]));
-            const __m512i words  = _mm512_inserti64x4(_mm512_castsi256_si512(words0), words1, 1);
-            const __m512i packed = _mm512_srli_epi16(_mm512_mulhi_epi16(words, words), SimdShift);
-            _mm256_store_si256(&out[i], _mm512_cvtsepi16_epi8(packed));
-            // clang-format on
-        }
-
-        constexpr Index Start = SimdWidth * ChunkCount;
-
-        #else
         constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
@@ -188,8 +169,6 @@ class SqrClippedReLU final {
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;
-
-        #endif
 
     #elif defined(USE_LSX)
         #if defined(USE_LASX)
