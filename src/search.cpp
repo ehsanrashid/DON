@@ -54,10 +54,17 @@ constexpr u64 CHI_DENOMINATOR = 2;   // Chi = 1.5
 constexpr u64 WEIGHT_MIN      = 12;  // 37.5% of WEIGHT_SCALE
 constexpr u64 WEIGHT_MAX      = 24;  // 75.0% of WEIGHT_SCALE
 
-constexpr Array<int, 16> LMR_DIVISORS{
-  3637, 2787, 2761, 2939, 3171, 3347, 3147, 2762,  //
-  2772, 3106, 3107, 3060, 3112, 2991, 3090, 3542   //
-};
+alignas(CACHE_LINE_SIZE) constexpr auto LMR_DIVISORS = []() constexpr noexcept {
+    Array<double, 16> lmrDivisors{};
+
+    for (int depth = 0; depth < int(lmrDivisors.size()); ++depth)
+    {
+        const int d        = depth + 1;
+        lmrDivisors[depth] = 3000.0 + 7 * (d - 8) * (d - 8);
+    }
+
+    return lmrDivisors;
+}();
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
@@ -1399,9 +1406,8 @@ Value Worker::search(Position&    pos,
 
                     // (*Scaler) Generally, lower divisor scales well
                     assert(depth > DEPTH_ZERO);
-                    const double lrmDivisor =
-                      LMR_DIVISORS[std::min(usize(depth), LMR_DIVISORS.size()) - 1];
-                    lmrDepth += constexpr_round(history / lrmDivisor);
+                    lmrDepth += constexpr_round(
+                      history / LMR_DIVISORS[std::min(usize(depth), LMR_DIVISORS.size()) - 1]);
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
