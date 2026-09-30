@@ -17,7 +17,6 @@
 
 #include "option.h"
 
-#include <algorithm>
 #include <cassert>
 #include <iostream>
 
