@@ -109,7 +109,7 @@ void free_aligned_std(void* const mem) noexcept {
 #if defined(LINUX_NON_ANDROID)
 // Allocate size bytes aligned to a 2 MB boundary using mmap.
 // On success the returned pointer can be freed with munmap(ptr, size).
-void* mmap_huge_aligned(const usize size,
+void* mmap_aligned_huge(const usize size,
                         const int   flags,
                         const int   fd,
                         const off_t offset) noexcept {
@@ -159,7 +159,7 @@ namespace {
 
 #if defined(_WIN32)
 // Allocate suitably aligned memory using Windows large pages, if possible
-void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
+void* alloc_aligned_large_page_windows(const usize allocSize) noexcept {
 
     return try_with_windows_lock_memory_privilege(
       [&](const usize largePageSize) noexcept {
@@ -188,7 +188,7 @@ void* alloc_aligned_huge_page(const usize allocSize) noexcept {
 
     #if defined(LINUX_NON_ANDROID)
 void* alloc_aligned_huge(const usize allocSize) noexcept {
-    void* mem = mmap_huge_aligned(allocSize, MAP_PRIVATE | MAP_ANONYMOUS);
+    void* mem = mmap_aligned_huge(allocSize, MAP_PRIVATE | MAP_ANONYMOUS);
     if (mem == MAP_FAILED)
         return nullptr;
 
@@ -226,7 +226,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
 
 #if defined(_WIN32)
     // Try allocating with Windows large pages
-    mem = alloc_windows_aligned_large_page(allocSize);
+    mem = alloc_aligned_large_page_windows(allocSize);
     if (mem != nullptr)
         return mem;
 
@@ -309,7 +309,7 @@ bool has_large_page() noexcept {
 #if defined(_WIN32)
     constexpr usize PageSize = 2 * MB;  // Assume 2MB page-size
 
-    void* mem = alloc_windows_aligned_large_page(PageSize);
+    void* mem = alloc_aligned_large_page_windows(PageSize);
     if (mem == nullptr)
         return false;
     [[maybe_unused]] const bool freed = free_aligned_large_page(mem);
