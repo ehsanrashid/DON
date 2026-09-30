@@ -520,7 +520,8 @@ void Worker::iterative_deepening() noexcept {
     u16 failHighRecovery = 0;
 
     // Iterative deepening loop
-    const Depth maxDepth = limit.depth != DEPTH_ZERO ? std::min(limit.depth, DEPTH_MAX) : DEPTH_MAX;
+    const Depth maxDepth =
+      limit.depth != DEPTH_ZERO && limit.depth < DEPTH_MAX ? limit.depth : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= maxDepth; ++rootDepth)
     {
         // Signal the start of a new iteration
@@ -570,7 +571,7 @@ void Worker::iterative_deepening() noexcept {
 
             const auto& rmIdx = rootMoves[pvIdx];
 
-            idxPrePV = rmIdx.prePV;
+            iterPrePV = rmIdx.prePV;
 
             const auto avgValue    = rmIdx.avgValue;
             const auto avgSqrValue = rmIdx.avgSqrValue;
@@ -630,8 +631,11 @@ void Worker::iterative_deepening() noexcept {
                 {
                     assert(alpha > -VALUE_INFINITE);
 
+                    int newAlpha = bestValue - delta;
+                    if (newAlpha < -VALUE_INFINITE)
+                        newAlpha = -VALUE_INFINITE;
                     beta  = alpha;
-                    alpha = std::max(bestValue - delta, -VALUE_INFINITE);
+                    alpha = Value(newAlpha);
 
                     failHighCnt = 0;
 
@@ -640,15 +644,22 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    alpha = std::max(beta - delta, +alpha);
-                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
+                    const int newAlpha = beta - delta;
+                    if (alpha < newAlpha)
+                        alpha = Value(newAlpha);
+                    int newBeta = bestValue + delta;
+                    if (newBeta > +VALUE_INFINITE)
+                        newBeta = +VALUE_INFINITE;
+                    beta = Value(newBeta);
 
                     ++failHighCnt;
                 }
                 else
                     break;
 
-                delta = std::min(constexpr_ceil(delta * 175.0 / 128.0), DELTA_MAX);
+                delta = constexpr_ceil(delta * 175.0 / 128.0);
+                if (delta > DELTA_MAX)
+                    delta = DELTA_MAX;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -848,18 +859,20 @@ Value Worker::search(Position&    pos,
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(u16(ss->ply + u16{1}), selDepth);
+        const u16 newSelDepth = u16(ss->ply + u16{1});
+        if (selDepth < newSelDepth)
+            selDepth = newSelDepth;
     }
 
-    const usize pvPreIdx = usize(std::max((ss - 1)->ply, i16{0}));
+    const usize prePly = (ss - 1)->ply;
 
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->pvFollow  = RootNode
-                 || ((ss - 1)->pvFollow
-                     && (pvPreIdx < idxPrePV.size() && (ss - 1)->move == idxPrePV[pvPreIdx]));
+    ss->pvFollow =
+      RootNode
+      || ((ss - 1)->pvFollow && (prePly < iterPrePV.size() && (ss - 1)->move == iterPrePV[prePly]));
 
     if constexpr (!RootNode)
     {
@@ -873,8 +886,12 @@ Value Worker::search(Position&    pos,
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        alpha = std::max(mated_in(ss->ply + 0), alpha);
-        beta  = std::min(mates_in(ss->ply + 1), beta);
+        const Value newAplha = mated_in(ss->ply + 0);
+        const Value newBeta  = mates_in(ss->ply + 1);
+        if (alpha < newAplha)
+            alpha = newAplha;
+        if (beta > newBeta)
+            beta = newBeta;
 
         if (alpha >= beta)
             return alpha;
@@ -1118,8 +1135,11 @@ Value Worker::search(Position&    pos,
     // If eval is really low, confirm the fail low before pruning with qsearch.
     if (!exclude && !seekMate && ttEvalue + 342 * depth < alpha)
     {
-        const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
+        int razorAlphaValue = alpha - 1;
+        if (razorAlphaValue < -VALUE_INFINITE)
+            razorAlphaValue = -VALUE_INFINITE;
 
+        const Value razorAlpha = Value(razorAlphaValue);
         const Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
 
         if (razorValue <= razorAlpha)
@@ -1136,13 +1156,13 @@ Value Worker::search(Position&    pos,
     if (!ss->pvTT && !exclude && depth < 19 - int(seekMate) * 13 && (ttmNone || ttmCapture) && !is_win(ttEvalue) && !is_loss(beta))
     {
         // Compute base futility
-        int baseFutility = std::min(45 + 4 * depth, 85) - int(!ttd.hit) * 20;
+        const int baseFutility = std::min(45 + 4 * depth, 85) - int(!ttd.hit) * 20;
         // Compute futility
-        int futility = std::max(baseFutility * depth
-                              - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
-                              + constexpr_ceil(absCorrectionValue / 198435.0),
-                                0);
-
+        int futility = baseFutility * depth
+                     - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
+                     + constexpr_ceil(absCorrectionValue / 198435.0);
+        if (futility < 0)
+            futility = 0;
         if (ttEvalue - futility >= beta)
             return blend_values(beta, ttEvalue, 661.0, 1024.0);
     }
@@ -1157,7 +1177,10 @@ Value Worker::search(Position&    pos,
         assert(preMove != Move::Null);
 
         // Null move dynamic reduction
-        Depth R = 7 + depth / 3 + std::max(constexpr_ceil((ss->evalue - beta) / 256.0), 0);
+        Depth R = 7 + depth / 3;
+        const int evalDiff = constexpr_ceil((ss->evalue - beta) / 256.0);
+        if (evalDiff > 0)
+            R += evalDiff;
 
         do_null_move(pos, st, ss);
 
@@ -1216,14 +1239,21 @@ Value Worker::search(Position&    pos,
     // returns a value much above beta, can (almost) safely prune previous move.
     if (depth > 2 && !is_loss(beta))
     {
-        const Value probCutBeta = std::min(241 + beta - int(improve) * 64, +VALUE_INFINITE);
+        int probCutBetaValue = 241 + beta - int(improve) * 64;
+        if (probCutBetaValue > +VALUE_INFINITE)
+            probCutBetaValue = +VALUE_INFINITE;
+
+        const Value probCutBeta = Value(probCutBetaValue);
         assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, Don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        const Depth probCutDepth     = std::max(Depth(depth - 3 - int(improve) * 2), DEPTH_ZERO);
-        const int   probCutThreshold = probCutBeta - ss->evalue;
+        Depth probCutDepth = depth - 3 - int(improve) * 2;
+        if (probCutDepth < DEPTH_ZERO)
+            probCutDepth = DEPTH_ZERO;
+
+        const int probCutThreshold = probCutBeta - ss->evalue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
         // Loop through all legal moves
@@ -1285,7 +1315,11 @@ Value Worker::search(Position&    pos,
     // Step 13. Small ProbCut idea
     if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
-        const Value probCutBeta = std::min(428 + beta, +VALUE_INFINITE);
+        int probCutBetaValue = 428 + beta;
+        if (probCutBetaValue > +VALUE_INFINITE)
+            probCutBetaValue = +VALUE_INFINITE;
+
+        const Value probCutBeta = Value(probCutBetaValue);
 
         if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
@@ -1409,19 +1443,23 @@ Value Worker::search(Position&    pos,
 
                     // (*Scaler) Generally, lower divisor scales well
                     assert(depth > DEPTH_ZERO);
-                    lmrDepth += constexpr_round(
-                      history / LMR_DIVISORS[std::min(usize(depth), LMR_DIVISORS.size()) - 1]);
+                    const usize lmrIdx = usize(depth) < LMR_DIVISORS.size()  //
+                                         ? usize(depth)
+                                         : LMR_DIVISORS.size();
+
+                    lmrDepth += constexpr_round(history / LMR_DIVISORS[lmrIdx - 1]);
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
                     if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
-                        int futility = 164 + ss->evalue + 119 * lmrDepth  //
-                                     + int(ss->evalue > alpha) * 90;
+                        const int futility = 164 + ss->evalue + 119 * lmrDepth  //
+                                           + int(ss->evalue > alpha) * 90;
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = Value(std::max<int>(futility, bestValue));
+                                if (bestValue < futility)
+                                    bestValue = Value(futility);
                             continue;
                         }
                     }
@@ -1431,8 +1469,10 @@ Value Worker::search(Position&    pos,
                         || pos.non_pawn_value(ac) != piece_value(type_of(movedPc)))
                     {
                         // SEE based pruning for quiets
-                        int threshold = std::max(
-                          23 * lmrDepth * constexpr_abs(lmrDepth) + int(check) * 128 * depth, 0);
+                        int threshold =
+                          23 * lmrDepth * constexpr_abs(lmrDepth) + int(check) * 128 * depth;
+                        if (threshold < 0)
+                            threshold = 0;
                         if (pos.see(move) < -threshold)
                             continue;
                     }
@@ -1459,8 +1499,11 @@ Value Worker::search(Position&    pos,
         {
             const int singularMargin = constexpr_round((59.0 + int(!PVNode && ss->pvTT) * 66.0) * depth / 63.0);
 
-            const Value singularAlpha = std::max(ttd.value - 1 - singularMargin, -VALUE_INFINITE);
+            int singularAlphaValue = ttd.value - 1 - singularMargin;
+            if (singularAlphaValue < -VALUE_INFINITE)
+                singularAlphaValue = -VALUE_INFINITE;
 
+            const Value singularAlpha = Value(singularAlphaValue);
             const Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
@@ -1577,8 +1620,9 @@ Value Worker::search(Position&    pos,
             // In general, cap the LMR search depth at newDepth.
             // But when the reduction is negative, allow a limited search extension beyond newDepth.
             // To avoid search explosion, limit extensions to the upper part of the search tree relative to rootDepth.
-            const int maxExtension = ss->ply < 2 * rootDepth ? 2 : 0;
-            Depth     redDepth = newDepth + std::min(-constexpr_round(r / 1024.0), maxExtension);
+            const int maxExt   = ss->ply < 2 * rootDepth ? 2 : 0;
+            const int ext      = -constexpr_round(r / 1024.0);
+            Depth     redDepth = newDepth + (ext < maxExt ? ext : maxExt);
             if (redDepth < 1)
                 redDepth = 1;
             redDepth += int(PVNode);
@@ -1659,13 +1703,17 @@ Value Worker::search(Position&    pos,
 
             rm.nodes += newNodes;
 
-            const u64 preEMA = std::max(rm.nodes - newNodes, u64{1});
+            u64 preEMA = rm.nodes - newNodes;
+            if (preEMA < 1)
+                preEMA = 1;
 
             const u64 weight = std::clamp((WEIGHT_SCALE * newNodes * CHI_DENOMINATOR)
                                             / (newNodes * CHI_DENOMINATOR + preEMA * CHI_NUMERATOR),
                                           WEIGHT_MIN, WEIGHT_MAX);
 
-            const u64 sqrWeight = std::min(weight, u64{16});
+            u64 sqrWeight = weight;
+            if (sqrWeight > 16)
+                sqrWeight = 16;
 
             if (rm.avgValue == -VALUE_INFINITE)
                 rm.avgValue = value;
@@ -1758,8 +1806,12 @@ Value Worker::search(Position&    pos,
 
                 // Reduce depth for subsequent moves after a non-decisive score improvement
                 if (depth > 3 && !is_decisive(value))
-                    depth = std::max<Depth>(
-                      depth - int(depth < 8) - int(depth < 16) - int(depth < 24), 3);
+                {
+                    depth -= int(depth < 8) + int(depth < 16) + int(depth < 24);
+
+                    if (depth < 3)
+                        depth = 3;
+                }
             }
         }
 
@@ -1803,19 +1855,20 @@ Value Worker::search(Position&    pos,
             if (!preCapture)
             {
                 // Bonus scale ranges from 0 to roughly 2.3M, overflows happen for multipliers larger than 900
-                int bonusScale = std::max(
+                int bonusScale =
                   -241
-                    // Increase bonus when depth is high
-                    + std::min(59 * depth, +420)
-                    // Increase bonus when bestValue is lower than current static evaluation
-                    + 142 * int(!(ss)->inCheck && bestValue <= -106 + (ss)->evalue)
-                    // Increase bonus when bestValue is higher than previous static evaluation
-                    + 159 * int(!(ss - 1)->inCheck && bestValue <= -68 - (ss - 1)->evalue)
-                    // Increase bonus when the previous moveCount is high
-                    + 186 * int((ss - 1)->moveCount > 9)
-                    // Increase bonus if the previous move has a bad history
-                    - constexpr_round((ss - 1)->history / 98.0),
-                  0);
+                  // Increase bonus when depth is high
+                  + std::min(59 * depth, +420)
+                  // Increase bonus when bestValue is lower than current static evaluation
+                  + int(!(ss)->inCheck && bestValue <= -106 + (ss)->evalue) * 142
+                  // Increase bonus when bestValue is higher than previous static evaluation
+                  + int(!(ss - 1)->inCheck && bestValue <= -68 - (ss - 1)->evalue) * 159
+                  // Increase bonus when the previous moveCount is high
+                  + int((ss - 1)->moveCount > 9) * 186
+                  // Increase bonus if the previous move has a bad history
+                  - constexpr_round((ss - 1)->history / 98.0);
+                if (bonusScale < 0)
+                    bonusScale = 0;
 
                 int bonus = bonusScale * std::min(-85 + 150 * depth, +1337);
 
@@ -1902,7 +1955,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         (ss + 1)->pv = &pv;
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(u16(ss->ply + u16{1}), selDepth);
+        const u16 newSelDepth = u16(ss->ply + u16{1});
+        if (selDepth < newSelDepth)
+            selDepth = newSelDepth;
     }
 
     // Step 1. Initialize node
@@ -2032,20 +2087,23 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                int futility = baseFutility + piece_value(pos.captured_pt(move));
+                const int futility = baseFutility + piece_value(pos.captured_pt(move));
 
                 if (futility <= alpha)
                 {
-                    bestValue = Value(std::max<int>(futility, bestValue));
+                    if (bestValue < futility)
+                        bestValue = Value(futility);
                     continue;
                 }
 
                 // SEE-based pruning:
                 // Prune if static exchange evaluation is low enough.
-                int threshold = baseFutility - alpha;
+                const int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
-                    bestValue = Value(std::max<int>(std::min<int>(baseFutility, alpha), bestValue));
+                    const int newBestValue = std::min<int>(baseFutility, alpha);
+                    if (bestValue < newBestValue)
+                        bestValue = Value(newBestValue);
                     continue;
                 }
             }
