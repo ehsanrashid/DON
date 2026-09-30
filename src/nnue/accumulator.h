@@ -61,7 +61,7 @@ static_assert(alignof(Accumulator) == CACHE_LINE_SIZE);
 // where each cache contains multiple entries for each of the possible king squares.
 // When the accumulator needs to be refreshed, the cached entry is used to more
 // efficiently update the accumulator, instead of rebuilding it from scratch.
-// This idea, was first described by Luecx (author of Koivisto) and
+// This idea was first described by Luecx (author of Koivisto) and
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCache final {
    public:

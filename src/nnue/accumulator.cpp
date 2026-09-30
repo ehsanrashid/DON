@@ -461,13 +461,15 @@ ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
     if constexpr (Incremental)
     {
         assert(in.size() == 1 || in.size() == 2);
-
+        // Use the loop below for scalar builds to avoid spurious GCC uninitialized warnings.
+#if defined(VECTOR) || defined(USE_RVV)
         apply<op>(&ft.weights[in[0] * Dimensions], j, acc);
         if (in.size() > 1)
             apply<op>(&ft.weights[in[1] * Dimensions], j, acc);
-
+#endif
         return;
     }
+
     for (Index i = 0; i < in.size(); ++i)
         apply<op>(&ft.weights[in[i] * Dimensions], j, acc);
 }
