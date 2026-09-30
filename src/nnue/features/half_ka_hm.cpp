@@ -20,6 +20,7 @@
 #include "half_ka_hm.h"
 
 #include <array>
+#include <initializer_list>
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
@@ -34,7 +35,7 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-alignas(64) static constexpr auto Offsets = []() constexpr noexcept {
+alignas(64) static constexpr auto OFFSETS = []() constexpr noexcept {
     Array<u16, COLOR_NB * SQUARE_NB, PIECE_NB> offsets{};
 
     for (const Color c : {WHITE, BLACK})
@@ -56,7 +57,7 @@ alignas(64) static constexpr auto Offsets = []() constexpr noexcept {
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE constexpr Index
 make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
-    return Index(s) ^ Offsets[perspective * SQUARE_NB + kingSq][+pc];
+    return Index(s) ^ OFFSETS[perspective * SQUARE_NB + kingSq][+pc];
 }
 
 }  // namespace
