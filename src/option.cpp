@@ -206,7 +206,10 @@ void SpinOption::operator=(const std::string_view value) noexcept {
 
 class ComboOption final: public Option {
    public:
-    ComboOption(std::string_view str, StringViews&& vrs, OnChange&& onCng = {}) noexcept;
+    using StringViewSet =
+      std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
+
+    ComboOption(std::string_view str, const StringViews& vrs, OnChange&& onCng = {}) noexcept;
 
     std::string_view type() const noexcept override;
 
@@ -217,14 +220,18 @@ class ComboOption final: public Option {
     void operator=(std::string_view value) noexcept override;
 
    private:
+    static StringViewSet normalize(const StringViews& vrs) noexcept;
+
     bool contains(std::string_view value) const noexcept;
 
-    const StringViews vars;
+    const StringViewSet vars;
 };
 
-ComboOption::ComboOption(const std::string_view str, StringViews&& vrs, OnChange&& onCng) noexcept :
+ComboOption::ComboOption(const std::string_view str,
+                         const StringViews&     vrs,
+                         OnChange&&             onCng) noexcept :
     Option{str, std::move(onCng)},
-    vars{std::move(vrs)} {
+    vars{normalize(vrs)} {
     assert(contains(default_value()));
 }
 
@@ -248,10 +255,18 @@ void ComboOption::operator=(const std::string_view value) noexcept {
     on_change();
 }
 
+ComboOption::StringViewSet ComboOption::normalize(const StringViews& vrs) noexcept {
+    StringViewSet vars;
+    vars.reserve(vrs.size());
+    // For StringViewSet, there is no meaningful advantage of emplace over insert here.
+    for (const auto value : vrs)
+        vars.insert(value);
+
+    return vars;
+}
+
 bool ComboOption::contains(const std::string_view value) const noexcept {
-    return std::find_if(vars.begin(), vars.end(),
-                        [&](const auto& var) { return CaseInsensitiveEqual{}(var, value); })
-        != vars.end();
+    return vars.find(value) != vars.end();
 }
 
 }  // namespace
@@ -272,8 +287,9 @@ Option::Ptr Option::spin(const int v, const int minV, const int maxV, OnChange o
     return std::make_unique<SpinOption>(v, minV, maxV, std::move(onCng));
 }
 
-Option::Ptr Option::combo(const std::string_view str, StringViews vars, OnChange onCng) noexcept {
-    return std::make_unique<ComboOption>(str, std::move(vars), std::move(onCng));
+Option::Ptr
+Option::combo(const std::string_view str, const StringViews& vars, OnChange onCng) noexcept {
+    return std::make_unique<ComboOption>(str, vars, std::move(onCng));
 }
 
 auto Options::begin() noexcept { return list.begin(); }

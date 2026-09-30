@@ -61,30 +61,33 @@ struct alignas(32) DualMagic final {
     // only, we use a compact lookup table indexed by the 6 inner bits of the rank's
     // occupancy (the edge squares never affect the attack set).
     std::pair<Bitboard, Bitboard> attacks_bb_pair(const Bitboard occupancyBB) const noexcept {
-        // Each lane contains a mask and we follow the same HQ algorithm as
-        // given above in the ARM64 code path
+        // Each lane contains a mask and we follow the same HQ algorithm as given above in the ARM64 code path
         const __m256i mask = _mm256_load_si256(reinterpret_cast<const __m256i*>(this));
-        const __m256i rs   = _mm256_set1_epi64x(rBB);
-        const __m256i rrs  = _mm256_set1_epi64x(rrBB);
+        const __m256i ray  = _mm256_set1_epi64x(rBB);
+        const __m256i rray = _mm256_set1_epi64x(rrBB);
 
-        const __m256i o      = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
-        const __m256i fwd    = _mm256_sub_epi64(o, rs);
-        const __m256i rev    = bswap128(_mm256_sub_epi64(bswap128(o), rrs));
-        const __m256i attack = _mm256_and_si256(_mm256_xor_si256(fwd, rev), mask);
+        const __m256i occupied = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
+        const __m256i forward  = _mm256_sub_epi64(occupied, ray);
+        const __m256i reverse  = bswap128(_mm256_sub_epi64(bswap128(occupied), rray));
+        const __m256i attack   = _mm256_and_si256(_mm256_xor_si256(forward, reverse), mask);
 
-        // Lane 0: rook attacks (file only); lane 1: bishop attacks
-        const __m128i rookBishop =
-          _mm_or_si128(_mm256_extracti128_si256(attack, 1), _mm256_castsi256_si128(attack));
+        // Lane 0: rook attacks (file only); lanes 1 and 2: bishop attacks
+        const __m256i rookBishop =
+          _mm256_or_si256(attack, _mm256_permute4x64_epi64(attack, Shuffle3120));
 
         const auto rowOccupancy    = rankAttacksLookup[(occupancyBB >> (shift + 1)) & Move::SqMask];
         const Bitboard rankAttacks = Bitboard{rowOccupancy} << shift;
 
+        const __m128i loRookBishop = _mm256_castsi256_si128(rookBishop);
+        const __m128i loAttack     = _mm256_castsi256_si128(attack);
+
         // [bishop, rook]
-        return {_mm_extract_epi64(rookBishop, 1), _mm_cvtsi128_si64(rookBishop) + rankAttacks};
+        return {_mm_extract_epi64(loRookBishop, 1),  //
+                _mm_cvtsi128_si64(loAttack) + rankAttacks};
     }
 
-    // file, diagonal, unused, antidiagonal
-    Bitboard maskFileBB, maskDiagBB, maskNoneBB, maskAntidiagBB;
+    // file, diagonal, antidiagonal, unused
+    Bitboard maskFileBB, maskDiagBB, maskAntidiagBB, maskNoneBB;
     // Precomputed 2 * square_bb(sq), 2 * reverse(square_bb(sq))
     Bitboard rBB, rrBB;
 
@@ -98,6 +101,8 @@ struct alignas(32) DualMagic final {
     DualMagic(const DualMagic&) noexcept            = delete;
     DualMagic& operator=(const DualMagic&) noexcept = delete;
     DualMagic& operator=(DualMagic&&) noexcept      = delete;
+
+    static constexpr int Shuffle3120 = _MM_SHUFFLE(3, 1, 2, 0);
 
     // Byteswap within 128-bit elements
     ALWAYS_INLINE static __m256i bswap128(const __m256i v) noexcept {

@@ -253,7 +253,7 @@ template<typename T, typename ByteT>
 #if defined(LINUX_NON_ANDROID)
 // Allocate size bytes aligned to a 2 MB boundary using mmap.
 // On success the returned pointer can be freed with munmap(ptr, size).
-void* mmap_huge_aligned(usize size, int flags, int fd = -1, off_t offset = 0) noexcept;
+void* mmap_aligned_huge(usize size, int flags, int fd = -1, off_t offset = 0) noexcept;
 
 #endif
 
