@@ -976,48 +976,51 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
         // Note that the TT value must always be checked for validity because of access races.
-        if (!exclude && is_valid(ttd.value) && (CutNode == (ttd.value >= beta) || depth > 4)
-            && ttd.depth > depth - (ttd.value <= beta)
-            && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
+        if (!exclude && is_valid(ttd.value) && ttd.depth > depth - (ttd.value <= beta))
         {
-            // If ttMove fails high, update move sorting heuristics on TT hit
-            if (!ttmNone && ttd.value >= beta)
+            // Case A: TT entry can produce a cutoff
+            if ((CutNode == (ttd.value >= beta) || depth > 4)
+                && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
             {
-                // Bonus for a quiet ttMove
-                if (!ttmCapture)
-                    update_quiet_histories(pos, ss, ttd.move, 131 * depth);
-
-                // Extra penalty for early quiet moves of the previous ply
-                if (preOk && !preCapture && (ss - 1)->moveCount < 5)
-                    update_continuation_histories(ss - 1, pos[preSq], preSq, -2210);
-            }
-
-            // Partial workaround for the graph history interaction problem
-            // For high rule50 counts don't produce transposition table cutoffs.
-            if (pos.rule50_count()
-                < constexpr_round((1.0 - int(pos.has_rule50_high()) * 0.25) * rule50_threshold()))
-            {
-                // If the depth is big enough, verify that the ttMove is really a good move
-                if (depth >= 7 && !ttmNone && !is_decisive(ttd.value) && pos.legal(ttd.move))
+                // If ttMove fails high, update move sorting heuristics on TT hit
+                if (!ttmNone && ttd.value >= beta)
                 {
-                    pos.do_move(ttd.move, st);
-                    auto [ottd, ottw] = transpositionTable.probe(pos.key());
-                    pos.undo_move(ttd.move);
+                    // Bonus for a quiet ttMove
+                    if (!ttmCapture)
+                        update_quiet_histories(pos, ss, ttd.move, 131 * depth);
 
-                    // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(ottd.value) || (ttd.value >= beta) == (-ottd.value >= beta))
+                    // Extra penalty for early quiet moves of the previous ply
+                    if (preOk && !preCapture && (ss - 1)->moveCount < 5)
+                        update_continuation_histories(ss - 1, pos[preSq], preSq, -2210);
+                }
+
+                // Partial workaround for the graph history interaction problem
+                // For high rule50 counts don't produce transposition table cutoffs.
+                if (pos.rule50_count() < constexpr_round((1.0 - int(pos.has_rule50_high()) * 0.25)
+                                                         * rule50_threshold(-4)))
+                {
+                    // If the depth is big enough, verify that the ttMove is really a good move
+                    if (depth >= 7 && !ttmNone && !is_decisive(ttd.value) && pos.legal(ttd.move))
+                    {
+                        pos.do_move(ttd.move, st);
+                        auto [ottd, ottw] = transpositionTable.probe(pos.key());
+                        pos.undo_move(ttd.move);
+
+                        // Check that the ttValue after the ttMove would also trigger a cutoff
+                        if (!is_valid(ottd.value) || (ttd.value >= beta) == (-ottd.value >= beta))
+                            return ttd.value;
+                    }
+                    else
                         return ttd.value;
                 }
-                else
-                    return ttd.value;
             }
+            // Case B: No cutoff, but the depth was sufficient. Compare the aspiration window to the bound.
+            // Check whether the stored inexact TT value is inconsistent with the current aspiration window-bound.
+            else if (depth > 5 && ttd.bound != Bound::EXACT
+                     && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
+                // Penalize the entry since its bound is now no longer useful for this window-bound.
+                ttw.penalize(1);
         }
-        // No cutoff, but why? Does the stored inexact value mismatch our aspiration window?
-        // Penalize the entry since its bound is now no longer useful for this window-bound.
-        else if (!exclude && depth > 5 && is_valid(ttd.value)
-                 && ttd.depth > depth - (ttd.value <= beta) && ttd.bound != Bound::EXACT
-                 && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
-            ttw.penalize(1);
     }
 
     const Color ac = pos.active_color();
