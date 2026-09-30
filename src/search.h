@@ -790,7 +790,7 @@ class Worker final {
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves idxPrePV;
+    PVMoves iterPrePV;
 
     // Histories
     CaptureHistory captureHistory;
