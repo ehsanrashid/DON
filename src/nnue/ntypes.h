@@ -31,7 +31,6 @@ namespace DON::NNUE {
 
 using Bias         = i16;
 using Weight       = i16;
-using PSQTWeight   = i32;
 using ThreatWeight = i8;
 using Index        = u16;
 
@@ -46,13 +45,7 @@ inline constexpr Index L3 = 32;
 // Version of the evaluation file
 inline constexpr u32 FILE_VERSION = 0x6A448AFAu;
 
-inline constexpr Index PSQT_BUCKETS = 8;
 inline constexpr Index LAYER_STACKS = 8;
-
-// If vector instructions are enabled, update and refresh the accumulator
-// tile by tile such that each tile fits in the CPU's vector registers.
-static_assert(PSQT_BUCKETS % 8 == 0,
-              "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 // Constant used in evaluation value calculation
 inline constexpr i32 OUTPUT_SCALE      = 16;
@@ -78,16 +71,10 @@ struct EvalFile final {
     std::string netDescription;
 };
 
-struct NetworkOutput final {
-   public:
-    i32 psqt;
-    i32 positional;
-};
-
 struct NetworkTrace final {
    public:
-    Array<NetworkOutput, LAYER_STACKS> nnue;
-    usize                              correctBucket;
+    Array<i32, LAYER_STACKS> nnue;
+    usize                    correctBucket;
 };
 
 }  // namespace DON::NNUE

@@ -37,7 +37,7 @@ namespace DON::NNUE {
 void AccumulatorCache::Entry::init(const Array<Bias, L1>& biases) noexcept {
     // Initialize accumulation with given biases
     accumulation          = biases;
-    constexpr auto offset = offsetof(Entry, psqtAccumulation);
+    constexpr auto offset = offsetof(Entry, pieceMap);
     static_assert(offset <= sizeof(Entry), "offset exceeds object size");
     std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
 }
@@ -236,7 +236,7 @@ constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
 namespace {
 #if defined(VECTOR)
-using Tiling = SIMD::Tiling<Dimensions, Dimensions, PSQT_BUCKETS>;
+using Tiling = SIMD::Tiling<Dimensions, Dimensions>;
 #else
 namespace Tiling = SIMD::Tiling;
 #endif
@@ -247,8 +247,7 @@ enum class Op : u8 {
 };
 
 #if defined(USE_RVV)
-using Tile     = vint16m8_t;
-using PsqtTile = vint32m1_t;
+using Tile = vint16m8_t;
 
 ALWAYS_INLINE Tile load_tile(const i16* const src, const Index j) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
@@ -260,21 +259,7 @@ ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& acc) no
     __riscv_vse16_v_i16m8(dst + j, acc, vl);
 }
 
-ALWAYS_INLINE PsqtTile load_psqt(const i32* const src, const Index j) noexcept {
-    usize vl = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    return __riscv_vle32_v_i32m1(src + j, vl);
-}
-
-ALWAYS_INLINE void store_psqt(i32* const dst, const Index j, const PsqtTile& psqt) noexcept {
-    usize vl = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    __riscv_vse32_v_i32m1(dst + j, psqt, vl);
-}
-
 ALWAYS_INLINE void increment_index(Index& j) noexcept { j += __riscv_vsetvl_e16m8(Dimensions - j); }
-
-ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept {
-    j += __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-}
 
 template<Op op>
 ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
@@ -285,17 +270,6 @@ ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcep
         acc = __riscv_vadd_vv_i16m8(acc, srcVec, vl);
     else
         acc = __riscv_vsub_vv_i16m8(acc, srcVec, vl);
-}
-
-template<Op op>
-ALWAYS_INLINE void apply(const i32* const src, const Index j, PsqtTile& acc) noexcept {
-    static_assert(op == Op::Add || op == Op::Sub);
-    usize      vl     = __riscv_vsetvl_e32m1(PSQT_BUCKETS - j);
-    vint32m1_t srcVec = __riscv_vle32_v_i32m1(src + j, vl);
-    if constexpr (op == Op::Add)
-        acc = __riscv_vadd_vv_i32m1(acc, srcVec, vl);
-    else
-        acc = __riscv_vsub_vv_i32m1(acc, srcVec, vl);
 }
 
 template<Op op>
@@ -328,15 +302,6 @@ struct Tile final {
     SIMD::vec_t inner[Tiling::RegCount];
 };
 
-struct PsqtTile final {
-   public:
-    auto&       operator[](const Index i) noexcept { return inner[i]; }
-    const auto& operator[](const Index i) const noexcept { return inner[i]; }
-
-   private:
-    SIMD::psqt_vec_t inner[Tiling::PSQTRegCount];
-};
-
 ALWAYS_INLINE Tile load_tile(const i16* const src, const Index j) noexcept {
     Tile  acc;
     auto* column = reinterpret_cast<const SIMD::vec_t*>(&src[j]);
@@ -351,23 +316,7 @@ ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& acc) no
         column[k] = acc[k];
 }
 
-ALWAYS_INLINE PsqtTile load_psqt(const i32* const src, const Index j) noexcept {
-    PsqtTile psqt;
-    auto*    column = reinterpret_cast<const SIMD::psqt_vec_t*>(&src[j]);
-    for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
-        psqt[k] = column[k];
-    return psqt;
-}
-
-ALWAYS_INLINE void store_psqt(i32* const dst, const Index j, const PsqtTile& psqt) noexcept {
-    auto* column = reinterpret_cast<SIMD::psqt_vec_t*>(&dst[j]);
-    for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
-        column[k] = psqt[k];
-}
-
 ALWAYS_INLINE void increment_index(Index& j) noexcept { j += Tiling::TileHeight; }
-
-ALWAYS_INLINE void increment_psqt_index(Index& j) noexcept { j += Tiling::PSQTTileHeight; }
 
 template<Op op>
 ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
@@ -379,18 +328,6 @@ ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcep
             acc[k] = vec_add_16(acc[k], column[k]);
         else
             acc[k] = vec_sub_16(acc[k], column[k]);
-}
-
-template<Op op>
-ALWAYS_INLINE void apply(const i32* const src, const Index j, PsqtTile& acc) noexcept {
-    static_assert(op == Op::Add || op == Op::Sub);
-
-    const auto* column = reinterpret_cast<const SIMD::psqt_vec_t*>(src + j);
-    for (Index k = 0; k < Tiling::PSQTRegCount; ++k)
-        if constexpr (op == Op::Add)
-            acc[k] = vec_add_psqt_32(acc[k], column[k]);
-        else
-            acc[k] = vec_sub_psqt_32(acc[k], column[k]);
 }
 
 template<Op op>
@@ -472,17 +409,6 @@ ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
 
     for (Index i = 0; i < in.size(); ++i)
         apply<op>(&ft.weights[in[i] * Dimensions], j, acc);
-}
-
-template<Op op, typename IdxType, usize Size>
-ALWAYS_INLINE void apply_psqt(const FixedVector<IdxType, Size, IdxType>& in,
-                              const PSQTWeight*                          weights,
-                              const Index                                j,
-                              PsqtTile&                                  acc) noexcept {
-    static_assert(op == Op::Add || op == Op::Sub);
-
-    for (Index i = 0; i < in.size(); ++i)
-        apply<op>(&weights[in[i] * PSQT_BUCKETS], j, acc);
 }
 
 }  // namespace
@@ -679,11 +605,7 @@ void update_hybrid(const Color               perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    const auto& srcPsqtAccm = srcAcc.psqtAccumulation[perspective];
-    auto&       dstPsqtAccm = dstAcc.psqtAccumulation[perspective];
-
-    Tile     acc;
-    PsqtTile psqt;
+    Tile acc;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
@@ -708,27 +630,6 @@ void update_hybrid(const Color               perspective,
         apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
 
         store_tile(dstAccm.data(), j, acc);
-    }
-
-    for (Index j = 0; j < PSQT_BUCKETS; increment_psqt_index(j))
-    {
-        psqt = load_psqt(newEntry.psqtAccumulation.data(), j);
-
-        apply_psqt<Op::Sub>(newRemove, featureTransformer.psqtWeights.data(), j, psqt);
-        apply_psqt<Op::Add>(newAdd, featureTransformer.psqtWeights.data(), j, psqt);
-
-        store_psqt(newEntry.psqtAccumulation.data(), j, psqt);
-
-        apply<Op::Add>(srcPsqtAccm.data(), j, psqt);
-        apply<Op::Sub>(oldEntry.psqtAccumulation.data(), j, psqt);
-
-        apply_psqt<Op::Add>(oldRemove, featureTransformer.psqtWeights.data(), j, psqt);
-        apply_psqt<Op::Sub>(oldAdd, featureTransformer.psqtWeights.data(), j, psqt);
-
-        apply_psqt<Op::Sub>(thrRemoved, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        apply_psqt<Op::Add>(thrAdded, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-
-        store_psqt(dstPsqtAccm.data(), j, psqt);
     }
 
     newEntry.pieceMap = curPieceMap;
@@ -769,8 +670,7 @@ void update_refresh_cache(const Color               perspective,
 
     dstAcc.computed[perspective] = true;
 
-    Tile     acc;
-    PsqtTile psqt;
+    Tile acc;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
@@ -785,20 +685,6 @@ void update_refresh_cache(const Color               perspective,
 
         store_tile(dstAcc.accumulation[perspective].data(), j, acc);
     }
-
-    for (Index j = 0; j < PSQT_BUCKETS; increment_psqt_index(j))
-    {
-        psqt = load_psqt(entry.psqtAccumulation.data(), j);
-
-        apply_psqt<Op::Sub>(removed, featureTransformer.psqtWeights.data(), j, psqt);
-        apply_psqt<Op::Add>(added, featureTransformer.psqtWeights.data(), j, psqt);
-
-        store_psqt(entry.psqtAccumulation.data(), j, psqt);
-
-        apply_psqt<Op::Add>(active, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-
-        store_psqt(dstAcc.psqtAccumulation[perspective].data(), j, psqt);
-    }
 }
 
 void apply_combined(Color                           perspective,
@@ -812,11 +698,7 @@ void apply_combined(Color                           perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    const auto& srcPsqtAccm = srcAcc.psqtAccumulation[perspective];
-    auto&       dstPsqtAccm = dstAcc.psqtAccumulation[perspective];
-
-    Tile     acc;
-    PsqtTile psqt;
+    Tile acc;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
@@ -829,19 +711,6 @@ void apply_combined(Color                           perspective,
         apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
 
         store_tile(dstAccm.data(), j, acc);
-    }
-
-    for (Index j = 0; j < PSQT_BUCKETS; increment_psqt_index(j))
-    {
-        psqt = load_psqt(srcPsqtAccm.data(), j);
-
-        apply_psqt<Op::Sub>(psqRemoved, featureTransformer.psqtWeights.data(), j, psqt);
-        apply_psqt<Op::Add>(psqAdded, featureTransformer.psqtWeights.data(), j, psqt);
-
-        apply_psqt<Op::Sub>(thrRemoved, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-        apply_psqt<Op::Add>(thrAdded, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
-
-        store_psqt(dstPsqtAccm.data(), j, psqt);
     }
 }
 

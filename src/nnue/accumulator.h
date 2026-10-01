@@ -38,9 +38,8 @@ class FeatureTransformer;
 // Stores the accumulated affine-transformation results for HalfKAHm and FullThreats.
 struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
-    Array<Bias, COLOR_NB, L1>                 accumulation;
-    Array<PSQTWeight, COLOR_NB, PSQT_BUCKETS> psqtAccumulation;
-    Array<bool, COLOR_NB>                     computed{};
+    Array<Bias, COLOR_NB, L1> accumulation;
+    Array<bool, COLOR_NB>     computed{};
 };
 
 static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
@@ -71,10 +70,9 @@ struct AccumulatorCache final {
         // so put the biases in the accumulation, without any weights on top.
         void init(const Array<Bias, L1>& biases) noexcept;
 
-        Array<Bias, L1>                 accumulation;
-        Array<PSQTWeight, PSQT_BUCKETS> psqtAccumulation;
-        PieceMap                        pieceMap;
-        Bitboard                        piecesBB;
+        Array<Bias, L1> accumulation;
+        PieceMap        pieceMap;
+        Bitboard        piecesBB;
     };
 
     template<typename Network>

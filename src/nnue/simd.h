@@ -71,9 +71,8 @@ inline constexpr Index WIDTH =
 // clang-format off
 #if defined(USE_SSE2)
     #if defined(USE_AVX512)
-using vec_t      = __m512i;
-using vec_i8_t   = __m256i;
-using psqt_vec_t = __m256i;
+using vec_t    = __m512i;
+using vec_i8_t = __m256i;
 
         #define vec_load(src) _mm512_load_si512(src)
         #define vec_store(dst, value) _mm512_store_si512(dst, value)
@@ -88,11 +87,6 @@ using psqt_vec_t = __m256i;
         #define vec_slli_16(a, b) _mm512_slli_epi16(a, b)
         // Inverse permuted at load time
         #define vec_packus_16(a, b) _mm512_packus_epi16(a, b)
-        #define vec_load_psqt(src) _mm256_load_si256(src)
-        #define vec_store_psqt(dst, value) _mm256_store_si256(dst, value)
-        #define vec_add_psqt_32(a, b) _mm256_add_epi32(a, b)
-        #define vec_sub_psqt_32(a, b) _mm256_sub_epi32(a, b)
-        #define vec_zero_psqt() _mm256_setzero_si256()
 
         #define vec_nnz(a) _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512())
 
@@ -100,9 +94,8 @@ using psqt_vec_t = __m256i;
         inline constexpr usize CHUNK_SIZE_MAX = 64;
 
     #elif defined(USE_AVX2)
-using vec_t      = __m256i;
-using vec_i8_t   = __m128i;
-using psqt_vec_t = __m256i;
+using vec_t    = __m256i;
+using vec_i8_t = __m128i;
 
         #define vec_load(src) _mm256_load_si256(src)
         #define vec_store(dst, value) _mm256_store_si256(dst, value)
@@ -117,11 +110,6 @@ using psqt_vec_t = __m256i;
         #define vec_slli_16(a, b) _mm256_slli_epi16(a, b)
         // Inverse permuted at load time
         #define vec_packus_16(a, b) _mm256_packus_epi16(a, b)
-        #define vec_load_psqt(src) _mm256_load_si256(src)
-        #define vec_store_psqt(dst, value) _mm256_store_si256(dst, value)
-        #define vec_add_psqt_32(a, b) _mm256_add_epi32(a, b)
-        #define vec_sub_psqt_32(a, b) _mm256_sub_epi32(a, b)
-        #define vec_zero_psqt() _mm256_setzero_si256()
 
         #define vec_nnz(a) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
 
@@ -129,9 +117,8 @@ using psqt_vec_t = __m256i;
         inline constexpr usize CHUNK_SIZE_MAX = 32;
 
     #else
-using vec_t      = __m128i;
-using vec_i8_t   = u64;
-using psqt_vec_t = __m128i;
+using vec_t    = __m128i;
+using vec_i8_t = u64;
 
         #define vec_load(src) (*(src))
         #define vec_store(dst, value) *(dst) = (value)
@@ -166,11 +153,6 @@ ALWAYS_INLINE __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
         #define vec_min_16(a, b) _mm_min_epi16(a, b)
         #define vec_slli_16(a, b) _mm_slli_epi16(a, b)
         #define vec_packus_16(a, b) _mm_packus_epi16(a, b)
-        #define vec_load_psqt(src) (*(src))
-        #define vec_store_psqt(dst, value) *(dst) = (value)
-        #define vec_add_psqt_32(a, b) _mm_add_epi32(a, b)
-        #define vec_sub_psqt_32(a, b) _mm_sub_epi32(a, b)
-        #define vec_zero_psqt() _mm_setzero_si128()
 
         #if defined(USE_SSSE3)
             #define vec_nnz(a) _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())))
@@ -189,9 +171,8 @@ ALWAYS_INLINE __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
 
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
-using vec_t      = __m256i;
-using vec_i8_t   = __m128i;
-using psqt_vec_t = __m256i;
+using vec_t    = __m256i;
+using vec_i8_t = __m128i;
 
 ALWAYS_INLINE __m256i lasx_load256(const __m256i* src) noexcept {
     return __lasx_xvld(reinterpret_cast<const void*>(src), 0);
@@ -248,12 +229,6 @@ ALWAYS_INLINE __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept 
 }
         #define vec_packus_32(a, b) SIMD::lasx_packus_32(a, b)
 
-        #define vec_load_psqt(src) SIMD::lasx_load256(src)
-        #define vec_store_psqt(dst, value) SIMD::lasx_store256(dst, value)
-        #define vec_add_psqt_32(a, b) __lasx_xvadd_w(a, b)
-        #define vec_sub_psqt_32(a, b) __lasx_xvsub_w(a, b)
-        #define vec_zero_psqt() __lasx_xvldi(0)
-
 ALWAYS_INLINE int lasx_vec_nnz(const __m256i a) noexcept {
     const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
     const __m256i mask = __lasx_xvmskltz_w(cmp);
@@ -274,9 +249,8 @@ ALWAYS_INLINE vec_t vec_srli_8(const vec_t a, const unsigned shift) noexcept {
         inline constexpr usize CHUNK_SIZE_MAX = 32;
 
     #else
-using vec_t      = __m128i;
-using vec_i8_t   = u64;
-using psqt_vec_t = __m128i;
+using vec_t    = __m128i;
+using vec_i8_t = u64;
 
         #define vec_load(src) (*(src))
         #define vec_store(dst, value) *(dst) = (value)
@@ -314,12 +288,6 @@ ALWAYS_INLINE __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
 }
         #define vec_packus_32(a, b) SIMD::lsx_packus_32(a, b)
 
-        #define vec_load_psqt(src) (*(src))
-        #define vec_store_psqt(dst, value) *(dst) = (value)
-        #define vec_add_psqt_32(a, b) __lsx_vadd_w(a, b)
-        #define vec_sub_psqt_32(a, b) __lsx_vsub_w(a, b)
-        #define vec_zero_psqt() __lsx_vldi(0)
-
 ALWAYS_INLINE int lsx_vec_nnz(const __m128i a) noexcept {
     const __m128i cmp  = __lsx_vslt_w(__lsx_vldi(0), a);
     const __m128i mask = __lsx_vmskltz_w(cmp);
@@ -347,9 +315,8 @@ using vec_i8x16_t __attribute__((may_alias)) = int8x16_t;
 using vec_u16x8_t __attribute__((may_alias)) = uint16x8_t;
 using vec_i32x4_t __attribute__((may_alias)) = int32x4_t;
 
-using vec_t      __attribute__((may_alias)) = int16x8_t;
-using vec_i8_t   __attribute__((may_alias)) = int8x16_t;
-using psqt_vec_t __attribute__((may_alias)) = int32x4_t;
+using vec_t    __attribute__((may_alias)) = int16x8_t;
+using vec_i8_t __attribute__((may_alias)) = int8x16_t;
 
     #define vec_load(src) (*(src))
     #define vec_store(dst, value) *(dst) = (value)
@@ -362,11 +329,6 @@ using psqt_vec_t __attribute__((may_alias)) = int32x4_t;
     #define vec_min_16(a, b) vminq_s16(a, b)
     #define vec_slli_16(a, b) vshlq_s16(a, vec_set_16(b))
     #define vec_packus_16(a, b) reinterpret_cast<vec_t>(vcombine_u8(vqmovun_s16(a), vqmovun_s16(b)))
-    #define vec_load_psqt(src) (*(src))
-    #define vec_store_psqt(dst, value) *(dst) = (value)
-    #define vec_add_psqt_32(a, b) vaddq_s32(a, b)
-    #define vec_sub_psqt_32(a, b) vsubq_s32(a, b)
-    #define vec_zero_psqt() psqt_vec_t{0}
 
     inline constexpr usize REGISTER_COUNT_MAX = 16;
     inline constexpr usize CHUNK_SIZE_MAX = 16;
@@ -388,14 +350,11 @@ ALWAYS_INLINE int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b
 
 #else
     #undef VECTOR
-using vec_t      = i16;
-using vec_i8_t   = i8;
-using psqt_vec_t = i32;
+using vec_t    = i16;
+using vec_i8_t = i8;
 
     #define vec_add_16(a, b) ((a) + (b))
     #define vec_sub_16(a, b) ((a) - (b))
-    #define vec_add_psqt_32(a, b) ((a) + (b))
-    #define vec_sub_psqt_32(a, b) ((a) - (b))
     #define vec_convert_8_16(a) (i16(a))
 
 #endif
@@ -529,7 +488,7 @@ ALWAYS_INLINE int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
 
 #if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation
-template<Index TransformedFeatureWidth, Index HalfDimensions, Index PSQTBuckets>
+template<Index TransformedFeatureWidth, Index HalfDimensions>
 struct Tiling final {
    private:
     // Use __m* types as template arguments, which causes GCC to emit warnings about losing some attribute information.
@@ -570,14 +529,10 @@ struct Tiling final {
    public:
     static constexpr Index RegCount =
       best_register_count<vec_t, Weight, TransformedFeatureWidth, REGISTER_COUNT_MAX>();
-    static constexpr Index PSQTRegCount =
-      best_register_count<psqt_vec_t, PSQTWeight, PSQTBuckets, REGISTER_COUNT_MAX>();
 
-    static constexpr Index TileHeight     = RegCount * sizeof(vec_t) / 2;
-    static constexpr Index PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
+    static constexpr Index TileHeight = RegCount * sizeof(vec_t) / 2;
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
-    static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
 
    private:
     Tiling() noexcept                         = delete;
@@ -591,11 +546,9 @@ struct Tiling final {
 #else
 // Treat scalar impl as degenerate size-1 vector
 namespace Tiling {
-inline constexpr Index RegCount     = 1;
-inline constexpr Index PSQTRegCount = 1;
+inline constexpr Index RegCount = 1;
     #if !defined(USE_RVV)
-inline constexpr Index TileHeight     = 1;
-inline constexpr Index PSQTTileHeight = 1;
+inline constexpr Index TileHeight = 1;
     #endif
 }  // namespace Tiling
 
