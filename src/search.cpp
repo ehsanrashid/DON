@@ -2168,7 +2168,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= KNIGHT
                 // No pawn pushes available
-                && (Attacks::pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
+                && (Attacks::pawn_push_bb(ac, pos.pieces_bb(ac, PAWN)) & ~pos.pieces_bb()) == 0
                 && !pos.has_non_pawn(ac)  //
                 && MoveList<GenType::LEGAL, true>(pos).empty())
                 bestValue = VALUE_DRAW;

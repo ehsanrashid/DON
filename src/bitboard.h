@@ -175,58 +175,32 @@ constexpr u8 distance<Square>(const Square s1, const Square s2) noexcept {
 }
 
 // Shifts bitboard as specified by the direction
-template<Direction D>
-constexpr Bitboard shift_bb(const Bitboard b) noexcept {
-    if constexpr (D == Direction::NORTH)
-        return b << +Direction::NORTH;
-    if constexpr (D == Direction::SOUTH)
-        return b >> +Direction::NORTH;
-    if constexpr (D == Direction::NORTH_2)
-        return b << +Direction::NORTH_2;
-    if constexpr (D == Direction::SOUTH_2)
-        return b >> +Direction::NORTH_2;
-    if constexpr (D == Direction::EAST)
-        return (b & ~FILE_H_BB) << +Direction::EAST;
-    if constexpr (D == Direction::WEST)
-        return (b & ~FILE_A_BB) >> +Direction::EAST;
-    if constexpr (D == Direction::NORTH_WEST)
-        return (b & ~FILE_A_BB) << +Direction::NORTH_WEST;
-    if constexpr (D == Direction::SOUTH_EAST)
-        return (b & ~FILE_H_BB) >> +Direction::NORTH_WEST;
-    if constexpr (D == Direction::NORTH_EAST)
-        return (b & ~FILE_H_BB) << +Direction::NORTH_EAST;
-    if constexpr (D == Direction::SOUTH_WEST)
-        return (b & ~FILE_A_BB) >> +Direction::NORTH_EAST;
-    assert(false);
-    UNREACHABLE();
-    return 0;
-}
-
-constexpr Bitboard shift_bb(const Bitboard b, const Direction d) noexcept {
+constexpr Bitboard shift_bb(const Direction d, const Bitboard b) noexcept {
     switch (d)
     {
     case Direction::NORTH :
-        return shift_bb<Direction::NORTH>(b);
+        return b << +Direction::NORTH;
     case Direction::SOUTH :
-        return shift_bb<Direction::SOUTH>(b);
+        return b >> +Direction::NORTH;
     case Direction::NORTH_2 :
-        return shift_bb<Direction::NORTH_2>(b);
+        return b << +Direction::NORTH_2;
     case Direction::SOUTH_2 :
-        return shift_bb<Direction::SOUTH_2>(b);
+        return b >> +Direction::NORTH_2;
     case Direction::EAST :
-        return shift_bb<Direction::EAST>(b);
+        return (b & ~FILE_H_BB) << +Direction::EAST;
     case Direction::WEST :
-        return shift_bb<Direction::WEST>(b);
+        return (b & ~FILE_A_BB) >> +Direction::EAST;
     case Direction::NORTH_WEST :
-        return shift_bb<Direction::NORTH_WEST>(b);
+        return (b & ~FILE_A_BB) << +Direction::NORTH_WEST;
     case Direction::SOUTH_EAST :
-        return shift_bb<Direction::SOUTH_EAST>(b);
+        return (b & ~FILE_H_BB) >> +Direction::NORTH_WEST;
     case Direction::NORTH_EAST :
-        return shift_bb<Direction::NORTH_EAST>(b);
+        return (b & ~FILE_H_BB) << +Direction::NORTH_EAST;
     case Direction::SOUTH_WEST :
-        return shift_bb<Direction::SOUTH_WEST>(b);
+        return (b & ~FILE_A_BB) >> +Direction::NORTH_EAST;
     default :;
     }
+
     assert(false);
     UNREACHABLE();
     return 0;

@@ -246,42 +246,26 @@ struct Magic final {
 
 #endif
 
-template<Color C>
-constexpr Bitboard pawn_push_bb(const Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
+// Returns the squares pushed by pawns of the given color from the given bitboard
+constexpr Bitboard pawn_push_bb(const Color c, const Bitboard pawns) noexcept {
+    assert(is_ok(c) && "Invalid color for pawn_push_bb()");
 
-    return shift_bb<pawn_spush(C)>(pawns);
-}
-constexpr Bitboard pawn_push_bb(const Bitboard pawns, const Color c) noexcept {
-    assert(is_ok(c));
-
-    return c == WHITE ? pawn_push_bb<WHITE>(pawns) : pawn_push_bb<BLACK>(pawns);
+    return shift_bb(pawn_spush(c), pawns);
 }
 
 // Returns the squares attacked by pawns of the given color from the given bitboard
-template<Color C>
-constexpr Bitboard pawn_attacks_bb(const Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
+constexpr Bitboard pawn_attacks_bb(const Color c, const Bitboard pawns) noexcept {
+    assert(is_ok(c) && "Invalid color for pawn_attacks_bb()");
 
-    return shift_bb<(C == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_WEST)>(pawns)
-         | shift_bb<(C == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_EAST)>(pawns);
-}
-constexpr Bitboard pawn_attacks_bb(const Bitboard pawns, const Color c) noexcept {
-    assert(is_ok(c));
-
-    return c == WHITE ? pawn_attacks_bb<WHITE>(pawns) : pawn_attacks_bb<BLACK>(pawns);
+    return c == WHITE
+           ? shift_bb(Direction::NORTH_WEST, pawns) | shift_bb(Direction::NORTH_EAST, pawns)
+           : shift_bb(Direction::SOUTH_WEST, pawns) | shift_bb(Direction::SOUTH_EAST, pawns);
 }
 
-template<Color C>
-constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_push_attacks_bb()");
-
-    return pawn_push_bb<C>(pawns) | pawn_attacks_bb<C>(pawns);
-}
 constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns, const Color c) noexcept {
     assert(is_ok(c));
 
-    return c == WHITE ? pawn_push_attacks_bb<WHITE>(pawns) : pawn_push_attacks_bb<BLACK>(pawns);
+    return pawn_push_bb(c, pawns) | pawn_attacks_bb(c, pawns);
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr noexcept {
@@ -291,8 +275,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr no
     {
         const Bitboard fileBB  = file_bb(s);
         const Bitboard filesBB = fileBB                             //
-                               | shift_bb<Direction::EAST>(fileBB)  //
-                               | shift_bb<Direction::WEST>(fileBB);
+                               | shift_bb(Direction::EAST, fileBB)  //
+                               | shift_bb(Direction::WEST, fileBB);
         pawnPairBBs[s]         = filesBB & ~PROMOTION_RANKS_BB & ~square_bb(s);
     }
 
@@ -425,8 +409,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constex
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        pseudoAttacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
-        pseudoAttacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
+        pseudoAttacksBBs[s][WHITE]  = pawn_attacks_bb(WHITE, square_bb(s));
+        pseudoAttacksBBs[s][BLACK]  = pawn_attacks_bb(BLACK, square_bb(s));
         pseudoAttacksBBs[s][KNIGHT] = pseudo_attacks_bb_(KNIGHT, s);
         pseudoAttacksBBs[s][BISHOP] = pseudo_attacks_bb_(BISHOP, s);
         pseudoAttacksBBs[s][ROOK]   = pseudo_attacks_bb_(ROOK, s);
@@ -437,38 +421,12 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constex
     return pseudoAttacksBBs;
 }();
 
-template<u8 Idx>
-constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
-    assert(is_ok(s));
-
-    return PSEUDO_ATTACKS_BBS[s][Idx];
-}
-
 // Returns the pseudo attacks of the given piece type assuming an empty board
-constexpr Bitboard
-pseudo_attacks_bb(PieceType pt, const Square s, [[maybe_unused]] const Color c = NONE) noexcept {
-    assert(is_ok(pt) && "Unsupported piece type in pseudo_attacks_bb()");
-    assert(is_ok(s) && (pt != PAWN || is_ok(c)));
+constexpr Bitboard pseudo_attacks_bb(const u8 idx, const Square s) noexcept {
+    assert(is_ok(s));
+    assert(idx < PSEUDO_ATTACKS_BBS[s].size());
 
-    switch (pt)
-    {
-    case PAWN :
-        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
-    case KNIGHT :
-        return pseudo_attacks_bb<KNIGHT>(s);
-    case BISHOP :
-        return pseudo_attacks_bb<BISHOP>(s);
-    case ROOK :
-        return pseudo_attacks_bb<ROOK>(s);
-    case QUEEN :
-        return pseudo_attacks_bb<QUEEN>(s);
-    case KING :
-        return pseudo_attacks_bb<KING>(s);
-    default :;
-    }
-    assert(false);
-    UNREACHABLE();
-    return 0;
+    return PSEUDO_ATTACKS_BBS[s][idx];
 }
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
@@ -522,20 +480,16 @@ constexpr const Magic& magic(const PieceType pt, const Square s) noexcept {
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue past an occupied square.
-constexpr Bitboard attacks_bb(const PieceType                 pt,
-                              const Square                    s,
-                              [[maybe_unused]] const Bitboard occupancyBB) noexcept {
+constexpr Bitboard
+attacks_bb(const PieceType pt, const Square s, const Bitboard occupancyBB = 0) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
 
-    if (pt == KNIGHT)
-        return pseudo_attacks_bb<KNIGHT>(s);
-    if (pt == KING)
-        return pseudo_attacks_bb<KING>(s);
+    if (pt == KNIGHT || pt == KING)
+        return pseudo_attacks_bb(pt, s);
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
-    [[maybe_unused]] const auto [bAttacksBB, rAttacksBB] =
-      dual_magic(s).attacks_bb_pair(occupancyBB);
+    const auto [bAttacksBB, rAttacksBB] = dual_magic(s).attacks_bb_pair(occupancyBB);
 
     switch (pt)
     {
@@ -566,7 +520,7 @@ constexpr Bitboard attacks_bb(const PieceType                 pt,
 }
 
 constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square s) noexcept {
-    return {pseudo_attacks_bb<BISHOP>(s), pseudo_attacks_bb<ROOK>(s)};
+    return {pseudo_attacks_bb(BISHOP, s), pseudo_attacks_bb(ROOK, s)};
 }
 
 inline std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square   s,

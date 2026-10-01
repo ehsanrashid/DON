@@ -541,10 +541,10 @@ inline Bitboard Position::slide_attackers_bb(const Square s) const noexcept {
 // Computes bitboard of all pieces which attack a given square on occupancy
 inline Bitboard Position::attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
-         | (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb<BLACK>(s))
-         | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb<WHITE>(s))
-         | (pieces_bb(KNIGHT     ) & Attacks::pseudo_attacks_bb<KNIGHT>(s))
-         | (pieces_bb(KING       ) & Attacks::pseudo_attacks_bb<KING>(s));
+         | (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
+         | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s))
+         | (pieces_bb(KNIGHT     ) & Attacks::pseudo_attacks_bb(KNIGHT, s))
+         | (pieces_bb(KING       ) & Attacks::pseudo_attacks_bb(KING, s));
 }
 inline Bitboard Position::attackers_bb(const Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
@@ -562,10 +562,10 @@ inline bool Position::slide_attackers_exists(const Square s, const Bitboard atta
 // Checks if there are any attackers to 's'
 inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, occupancyBB)
-        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb<BLACK>(s))
-                          | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb<WHITE>(s))))
-          | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::pseudo_attacks_bb<KNIGHT>(s))
-          | (attackersBB & pieces_bb(KING         ) & Attacks::pseudo_attacks_bb<KING>(s))) != 0;
+        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
+                          | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s))))
+          | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::pseudo_attacks_bb(KNIGHT, s))
+          | (attackersBB & pieces_bb(KING         ) & Attacks::pseudo_attacks_bb(KING, s))) != 0;
 }
 inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return attackers_exists(s, attackersBB, pieces_bb());
@@ -577,7 +577,7 @@ inline bool Position::attackers_exists(const Square s, const Bitboard attackersB
 template<PieceType PT>
 inline Bitboard Position::attacks_by_bb(const Color c) const noexcept {
     if constexpr (PT == PAWN)
-        return Attacks::pawn_attacks_bb(pieces_bb(c, PAWN), c);
+        return Attacks::pawn_attacks_bb(c, pieces_bb(c, PAWN));
     else
     {
         Bitboard attacksBB = 0;
@@ -852,7 +852,7 @@ inline void Position::update_piece_threats(const Square              s,
                                            const bool                put,
                                            [[maybe_unused]] Bitboard noRayBB) const noexcept {
     const Bitboard occupancyBB          = pieces_bb();
-    const Bitboard nAttacksBB           = Attacks::pseudo_attacks_bb<KNIGHT>(s);
+    const Bitboard nAttacksBB           = Attacks::pseudo_attacks_bb(KNIGHT, s);
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
     const Bitboard qAttacksBB           = bAttacksBB | rAttacksBB;
     // pieces_bb(PAWN, KNIGHT, BISHOP, ROOK, QUEEN)
@@ -914,12 +914,12 @@ inline void Position::update_piece_threats(const Square              s,
     // clang-format off
     switch (pt)
     {
-    case PAWN   : threatenedBB = Attacks::pseudo_attacks_bb(PAWN, s, color_of(pc)); break;
-    case KNIGHT : threatenedBB = nAttacksBB;                                        break;
-    case BISHOP : threatenedBB = bAttacksBB;                                        break;
-    case ROOK   : threatenedBB = rAttacksBB;                                        break;
-    case QUEEN  : threatenedBB = qAttacksBB;                                        break;
-    default     : assert(false); threatenedBB = 0;                                  break;
+    case PAWN   : threatenedBB = Attacks::pseudo_attacks_bb(color_of(pc), s); break;
+    case KNIGHT : threatenedBB = nAttacksBB;                                  break;
+    case BISHOP : threatenedBB = bAttacksBB;                                  break;
+    case ROOK   : threatenedBB = rAttacksBB;                                  break;
+    case QUEEN  : threatenedBB = qAttacksBB;                                  break;
+    default     : assert(false); threatenedBB = 0;                            break;
     }
     // clang-format on
     threatenedBB &= threatTargetsBB;
@@ -927,8 +927,8 @@ inline void Position::update_piece_threats(const Square              s,
     Bitboard incomingThreatsBB = pieces_bb(KNIGHT) & nAttacksBB;
 
     if (pt == KNIGHT || pt == ROOK)
-        incomingThreatsBB |= (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb<BLACK>(s))
-                           | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb<WHITE>(s));
+        incomingThreatsBB |= (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
+                           | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s));
 
     [[maybe_unused]]  //
     const Bitboard directSlidersBB = pt == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
