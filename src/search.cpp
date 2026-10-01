@@ -827,6 +827,7 @@ Value Worker::search(Position&    pos,
     assert(PVNode || (alpha + 1 == beta));
     assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= DEPTH_MAX));
+    assert(rootDepth > DEPTH_ZERO);
 
     if constexpr (!RootNode)
     {
@@ -903,7 +904,9 @@ Value Worker::search(Position&    pos,
 
     const auto correctionValue = correction_value(pos, ss);
 
-    const bool seekMate = rootDepth >= 16 && constexpr_abs(rootMoves[pvIdx].value) >= 2000;
+    // Do not tune these values. They are not intended for playing strength.
+    const bool seekMate =
+      constexpr_abs(rootMoves[pvIdx].value) >= 750 + 220000 / (rootDepth * rootDepth);
 
     const Key key = pos.key();
 
