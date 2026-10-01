@@ -328,7 +328,7 @@ Move* generate_king_moves(const Position& pos,
     const Square kingSq = pos.square<KING>(AC);
 
     Bitboard dstBB =
-      Attacks::pseudo_attacks_bb(KING, kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
+      Attacks::pseudo_attacks_bb(KING, kingSq) & ~pos.acc_attacks_bb(KING) & targetBB;
 
     while (dstBB != 0)
     {

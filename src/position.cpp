@@ -597,19 +597,19 @@ void Position::set_ext_state() noexcept {
     st->checksBB[KING  ] = 0;
 
     st->accAttacksBB[NO_PIECE_TYPE] = 0;
-    st->accAttacksBB[PAWN  ] = attacks_by_bb<PAWN  >(~ac);
-    st->accAttacksBB[KNIGHT] = attacks_by_bb<KNIGHT>(~ac) | acc_attacks_bb<PAWN  >();
-    st->accAttacksBB[BISHOP] = attacks_by_bb<BISHOP>(~ac) | acc_attacks_bb<KNIGHT>();
-    st->accAttacksBB[ROOK  ] = attacks_by_bb<ROOK  >(~ac) | acc_attacks_bb<BISHOP>();
-    st->accAttacksBB[QUEEN ] = attacks_by_bb<QUEEN >(~ac) | acc_attacks_bb<ROOK  >();
-    st->accAttacksBB[KING  ] = attacks_by_bb<KING  >(~ac) | acc_attacks_bb<QUEEN >();
+    st->accAttacksBB[PAWN  ] = attacks_by_bb(~ac, PAWN  );
+    st->accAttacksBB[KNIGHT] = attacks_by_bb(~ac, KNIGHT) | acc_attacks_bb(PAWN  );
+    st->accAttacksBB[BISHOP] = attacks_by_bb(~ac, BISHOP) | acc_attacks_bb(KNIGHT);
+    st->accAttacksBB[ROOK  ] = attacks_by_bb(~ac, ROOK  ) | acc_attacks_bb(BISHOP);
+    st->accAttacksBB[QUEEN ] = attacks_by_bb(~ac, QUEEN ) | acc_attacks_bb(ROOK  );
+    st->accAttacksBB[KING  ] = attacks_by_bb(~ac, KING  ) | acc_attacks_bb(QUEEN );
 
-    st->accAttacksBB[ALL   ] = attacks_by_bb<PAWN  >(ac)
-                             | attacks_by_bb<KNIGHT>(ac)
-                             | attacks_by_bb<BISHOP>(ac)
-                             | attacks_by_bb<ROOK  >(ac)
-                             | attacks_by_bb<QUEEN >(ac)
-                             | attacks_by_bb<KING  >(ac);
+    st->accAttacksBB[ALL   ] = attacks_by_bb(ac, PAWN  )
+                             | attacks_by_bb(ac, KNIGHT)
+                             | attacks_by_bb(ac, BISHOP)
+                             | attacks_by_bb(ac, ROOK  )
+                             | attacks_by_bb(ac, QUEEN )
+                             | attacks_by_bb(ac, KING  );
     // clang-format on
 }
 
@@ -1221,7 +1221,7 @@ bool Position::legal(const Move m) const noexcept {
 
             // For king moves, check whether the destination square is attacked by the enemies.
             if (type_of(movedPc) == KING)
-                return (acc_attacks_bb<KING>() & dstSq) == 0;
+                return (acc_attacks_bb(KING) & dstSq) == 0;
         }
         break;
     case Move::Type::PROMOTION :

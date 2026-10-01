@@ -141,8 +141,7 @@ class Position final {
     [[nodiscard]] bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
     // Attacks from a piece type
-    template<PieceType PT>
-    [[nodiscard]] Bitboard attacks_by_bb(Color c) const noexcept;
+    [[nodiscard]] Bitboard attacks_by_bb(Color c, PieceType pt) const noexcept;
 
     // Doing and undoing moves
 
@@ -181,9 +180,7 @@ class Position final {
     [[nodiscard]] Bitboard blockers_bb(Color c) const noexcept;
     [[nodiscard]] Bitboard blockers_bb() const noexcept;
 
-    [[nodiscard]] Bitboard acc_attacks_bb() const noexcept;
-    template<PieceType PT>
-    [[nodiscard]] Bitboard acc_attacks_bb() const noexcept;
+    [[nodiscard]] Bitboard acc_attacks_bb(PieceType pt = ALL) const noexcept;
     [[nodiscard]] Bitboard acc_less_attacks_bb(PieceType pt) const noexcept;
     [[nodiscard]] Bitboard threats_bb() const noexcept;
 
@@ -394,122 +391,131 @@ class Position final {
 // Prints to the output stream the position in ASCII + detailed info
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
 
-inline const auto& Position::piece_map() const noexcept { return pieceMap; }
+ALWAYS_INLINE const auto& Position::piece_map() const noexcept { return pieceMap; }
 
-inline const auto& Position::type_bbs() const noexcept { return typeBBs; }
+ALWAYS_INLINE const auto& Position::type_bbs() const noexcept { return typeBBs; }
 
-inline const auto& Position::color_bbs() const noexcept { return colorBBs; }
+ALWAYS_INLINE const auto& Position::color_bbs() const noexcept { return colorBBs; }
 
-inline Piece Position::operator[](const Square s) const noexcept { return pieceMap[s]; }
+ALWAYS_INLINE Piece Position::operator[](const Square s) const noexcept { return pieceMap[s]; }
 
-inline Bitboard Position::operator[](const PieceType pt) const noexcept { return typeBBs[pt]; }
+ALWAYS_INLINE Bitboard Position::operator[](const PieceType pt) const noexcept {
+    return typeBBs[pt];
+}
 
-inline Bitboard Position::operator[](const Color c) const noexcept { return colorBBs[c]; }
+ALWAYS_INLINE Bitboard Position::operator[](const Color c) const noexcept { return colorBBs[c]; }
 
-inline Piece Position::piece(const Square s) const noexcept { return pieceMap[s]; }
+ALWAYS_INLINE Piece Position::piece(const Square s) const noexcept { return pieceMap[s]; }
 
-inline bool Position::empty(const Square s) const noexcept { return piece(s) == Piece::NO_PIECE; }
+ALWAYS_INLINE bool Position::empty(const Square s) const noexcept {
+    return piece(s) == Piece::NO_PIECE;
+}
 
 template<typename... PieceTypes>
-inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
+ALWAYS_INLINE Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
     return (typeBBs[pts] | ...);
 }
 
-inline Bitboard Position::pieces_bb(const Color c) const noexcept { return colorBBs[c]; }
+ALWAYS_INLINE Bitboard Position::pieces_bb(const Color c) const noexcept { return colorBBs[c]; }
 
 template<typename... PieceTypes>
-inline Bitboard Position::pieces_bb(const Color c, PieceTypes... pts) const noexcept {
+ALWAYS_INLINE Bitboard Position::pieces_bb(const Color c, PieceTypes... pts) const noexcept {
     return pieces_bb(c) & pieces_bb(pts...);
 }
 
-inline Bitboard Position::pieces_bb(const Piece pc) const noexcept {
+ALWAYS_INLINE Bitboard Position::pieces_bb(const Piece pc) const noexcept {
     return pieces_bb(color_of(pc), type_of(pc));
 }
 
-inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
+ALWAYS_INLINE Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
 
 template<typename... PieceTypes>
-inline u8 Position::count(PieceTypes... pts) const noexcept {
+ALWAYS_INLINE u8 Position::count(PieceTypes... pts) const noexcept {
     return popcount(pieces_bb(pts...));
 }
 
-inline u8 Position::count(const Color c) const noexcept { return popcount(pieces_bb(c)); }
+ALWAYS_INLINE u8 Position::count(const Color c) const noexcept { return popcount(pieces_bb(c)); }
 
 template<typename... PieceTypes>
-inline u8 Position::count(const Color c, PieceTypes... pts) const noexcept {
+ALWAYS_INLINE u8 Position::count(const Color c, PieceTypes... pts) const noexcept {
     return popcount(pieces_bb(c, pts...));
 }
 
-inline u8 Position::count(const Piece pc) const noexcept {
+ALWAYS_INLINE u8 Position::count(const Piece pc) const noexcept {
     return count(color_of(pc), type_of(pc));
 }
 
-inline u8 Position::count() const noexcept { return popcount(pieces_bb()); }
+ALWAYS_INLINE u8 Position::count() const noexcept { return popcount(pieces_bb()); }
 
 template<PieceType PT>
-inline Square Position::square(const Color c) const noexcept {
+ALWAYS_INLINE Square Position::square(const Color c) const noexcept {
     assert(count(c, PT) == 1);
 
     return lsq(pieces_bb(c, PT));
 }
 
-inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq; }
+ALWAYS_INLINE Square Position::en_passant_sq() const noexcept { return st->enPassantSq; }
 
-inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
+ALWAYS_INLINE Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
-inline Color Position::active_color() const noexcept { return activeColor; }
+ALWAYS_INLINE Color Position::active_color() const noexcept { return activeColor; }
 
-inline u16 Position::ply() const noexcept { return ply_; }
+ALWAYS_INLINE u16 Position::ply() const noexcept { return ply_; }
 
-inline i32 Position::move_num() const noexcept {
+ALWAYS_INLINE i32 Position::move_num() const noexcept {
     return 1 + (ply() - int(active_color() == BLACK)) / 2;
 }
 
-inline CastlingRights Position::castling_rights_mask(const Square s) const noexcept {
+ALWAYS_INLINE CastlingRights Position::castling_rights_mask(const Square s) const noexcept {
     const auto sIdx = CastlingRightsIndices[s];
 
     return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx]
                                              : CastlingRights::NO_CASTLING;
 }
 
-inline CastlingRights Position::castling_rights_mask(const Square orgSq,
-                                                     const Square dstSq) const noexcept {
+ALWAYS_INLINE CastlingRights Position::castling_rights_mask(const Square orgSq,
+                                                            const Square dstSq) const noexcept {
     return castling_rights_mask(orgSq) | castling_rights_mask(dstSq);
 }
 
-inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
+ALWAYS_INLINE CastlingRights Position::castling_rights() const noexcept {
+    return st->castlingRights;
+}
 
-inline bool Position::has_castling_rights() const noexcept {
+ALWAYS_INLINE bool Position::has_castling_rights() const noexcept {
     return castling_rights() != CastlingRights::NO_CASTLING;
 }
 
-inline bool Position::has_castling_rights(const Color c, const CastlingSide cs) const noexcept {
+ALWAYS_INLINE bool Position::has_castling_rights(const Color        c,
+                                                 const CastlingSide cs) const noexcept {
     return (castling_rights() & make_cr(c, cs)) != CastlingRights::NO_CASTLING;
 }
 
 // Checks if squares between king and rook are empty
-inline bool Position::castling_full_path_clear(const Color        c,
-                                               const CastlingSide cs) const noexcept {
+ALWAYS_INLINE bool Position::castling_full_path_clear(const Color        c,
+                                                      const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return (castlings.fullPathBB[c][+cs] & pieces_bb()) == 0;
 }
 
 // Checks if the castling king path is attacked
-inline bool Position::castling_king_path_clear(const Color        c,
-                                               const CastlingSide cs) const noexcept {
+ALWAYS_INLINE bool Position::castling_king_path_clear(const Color        c,
+                                                      const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
-    return (castlings.kingPathBB[c][+cs] & acc_attacks_bb<KING>()) == 0;
+    return (castlings.kingPathBB[c][+cs] & acc_attacks_bb(KING)) == 0;
 }
 
-inline Square Position::castling_rook_sq(const Color c, const CastlingSide cs) const noexcept {
+ALWAYS_INLINE Square Position::castling_rook_sq(const Color        c,
+                                                const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return castlings.rookSq[c][+cs];
 }
 
-inline bool Position::castling_possible(const Color c, const CastlingSide cs) const noexcept {
+ALWAYS_INLINE bool Position::castling_possible(const Color        c,
+                                               const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return has_castling_rights(c, cs)
@@ -524,59 +530,58 @@ inline bool Position::castling_possible(const Color c, const CastlingSide cs) co
 // clang-format off
 
 // Computes bitboard of all x-ray sliding pieces which attack a given square.
-inline Bitboard Position::xslide_attackers_bb(const Square s) const noexcept {
+ALWAYS_INLINE Bitboard Position::xslide_attackers_bb(const Square s) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s);
     return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
          | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
 // Computes bitboard of all sliding pieces which attack a given square on occupancy.
-inline Bitboard Position::slide_attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
+ALWAYS_INLINE Bitboard Position::slide_attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
     return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
          | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
-inline Bitboard Position::slide_attackers_bb(const Square s) const noexcept {
+ALWAYS_INLINE Bitboard Position::slide_attackers_bb(const Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
 }
 // Computes bitboard of all pieces which attack a given square on occupancy
-inline Bitboard Position::attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
+ALWAYS_INLINE Bitboard Position::attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
          | (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
          | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s))
          | (pieces_bb(KNIGHT     ) & Attacks::pseudo_attacks_bb(KNIGHT, s))
          | (pieces_bb(KING       ) & Attacks::pseudo_attacks_bb(KING, s));
 }
-inline Bitboard Position::attackers_bb(const Square s) const noexcept {
+ALWAYS_INLINE Bitboard Position::attackers_bb(const Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
 
 // Checks if there are any slide attackers to 's'
-inline bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
+ALWAYS_INLINE bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
     return ((attackersBB & pieces_bb(QUEEN, BISHOP) & bAttacksBB)
           | (attackersBB & pieces_bb(QUEEN, ROOK)   & rAttacksBB)) != 0;
 }
-inline bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
+ALWAYS_INLINE bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, pieces_bb());
 }
 // Checks if there are any attackers to 's'
-inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
+ALWAYS_INLINE bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, occupancyBB)
         || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
                           | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s))))
           | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::pseudo_attacks_bb(KNIGHT, s))
           | (attackersBB & pieces_bb(KING         ) & Attacks::pseudo_attacks_bb(KING, s))) != 0;
 }
-inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
+ALWAYS_INLINE bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return attackers_exists(s, attackersBB, pieces_bb());
 }
 
 // clang-format on
 
 // Computes attacks from a piece type for a given color.
-template<PieceType PT>
-inline Bitboard Position::attacks_by_bb(const Color c) const noexcept {
-    if constexpr (PT == PAWN)
+ALWAYS_INLINE Bitboard Position::attacks_by_bb(const Color c, const PieceType pt) const noexcept {
+    if (pt == PAWN)
         return Attacks::pawn_attacks_bb(c, pieces_bb(c, PAWN));
     else
     {
@@ -584,107 +589,121 @@ inline Bitboard Position::attacks_by_bb(const Color c) const noexcept {
 
         Bitboard occupancyBB = pieces_bb() ^ square<KING>(~c);
 
-        Bitboard attackersBB = pieces_bb(c, PT);
+        Bitboard attackersBB = pieces_bb(c, pt);
         while (attackersBB != 0)
-            attacksBB |= Attacks::attacks_bb(PT, pop_lsq(attackersBB), occupancyBB);
+            attacksBB |= Attacks::attacks_bb(pt, pop_lsq(attackersBB), occupancyBB);
 
         return attacksBB;
     }
 }
 
-inline Bitboard Position::checkers_bb() const noexcept { return st->checkersBB; }
+ALWAYS_INLINE Bitboard Position::checkers_bb() const noexcept { return st->checkersBB; }
 
-inline Bitboard Position::checks_bb(const PieceType pt) const noexcept { return st->checksBB[pt]; }
+ALWAYS_INLINE Bitboard Position::checks_bb(const PieceType pt) const noexcept {
+    return st->checksBB[pt];
+}
 
-inline Bitboard Position::pinners_bb(const Color c) const noexcept { return st->pinnersBB[c]; }
+ALWAYS_INLINE Bitboard Position::pinners_bb(const Color c) const noexcept {
+    return st->pinnersBB[c];
+}
 
-inline Bitboard Position::pinners_bb() const noexcept {
+ALWAYS_INLINE Bitboard Position::pinners_bb() const noexcept {
     return pinners_bb(WHITE) | pinners_bb(BLACK);
 }
 
-inline Bitboard Position::blockers_bb(const Color c) const noexcept { return st->blockersBB[c]; }
+ALWAYS_INLINE Bitboard Position::blockers_bb(const Color c) const noexcept {
+    return st->blockersBB[c];
+}
 
-inline Bitboard Position::blockers_bb() const noexcept {
+ALWAYS_INLINE Bitboard Position::blockers_bb() const noexcept {
     return blockers_bb(WHITE) | blockers_bb(BLACK);
 }
 
-inline Bitboard Position::acc_attacks_bb() const noexcept {  //
-    return st->accAttacksBB[ALL];
+ALWAYS_INLINE Bitboard Position::acc_attacks_bb(PieceType pt) const noexcept {  //
+    return st->accAttacksBB[pt];
 }
-template<PieceType PT>
-inline Bitboard Position::acc_attacks_bb() const noexcept {  //
-    return st->accAttacksBB[PT];
-}
-inline Bitboard Position::acc_less_attacks_bb(const PieceType pt) const noexcept {
+ALWAYS_INLINE Bitboard Position::acc_less_attacks_bb(const PieceType pt) const noexcept {
     return st->accAttacksBB[pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
-inline Bitboard Position::threats_bb() const noexcept {
-    return acc_attacks_bb<KING>() & ~acc_attacks_bb();
+ALWAYS_INLINE Bitboard Position::threats_bb() const noexcept {
+    return acc_attacks_bb(KING) & ~acc_attacks_bb();
 }
 
-inline Key Position::raw_key() const noexcept { return st->key; }
+ALWAYS_INLINE Key Position::raw_key() const noexcept { return st->key; }
 
-inline Key Position::pawn_key(const Color c) const noexcept { return st->pawnKeys[c]; }
+ALWAYS_INLINE Key Position::pawn_key(const Color c) const noexcept { return st->pawnKeys[c]; }
 
-inline Key Position::pawn_key() const noexcept { return pawn_key(WHITE) ^ pawn_key(BLACK); }
+ALWAYS_INLINE Key Position::pawn_key() const noexcept { return pawn_key(WHITE) ^ pawn_key(BLACK); }
 
-inline Key Position::minor_key(const Color c) const noexcept { return st->nonPawnKeys[c][0]; }
+ALWAYS_INLINE Key Position::minor_key(const Color c) const noexcept {
+    return st->nonPawnKeys[c][0];
+}
 
-inline Key Position::minor_key() const noexcept { return minor_key(WHITE) ^ minor_key(BLACK); }
+ALWAYS_INLINE Key Position::minor_key() const noexcept {
+    return minor_key(WHITE) ^ minor_key(BLACK);
+}
 
-inline Key Position::major_key(const Color c) const noexcept { return st->nonPawnKeys[c][1]; }
+ALWAYS_INLINE Key Position::major_key(const Color c) const noexcept {
+    return st->nonPawnKeys[c][1];
+}
 
-inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
+ALWAYS_INLINE Key Position::major_key() const noexcept {
+    return major_key(WHITE) ^ major_key(BLACK);
+}
 
-inline Key Position::non_pawn_key() const noexcept {
+ALWAYS_INLINE Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
 }
 
-inline Key Position::material_key(const Color c) const noexcept { return st->materialKeys[c]; }
+ALWAYS_INLINE Key Position::material_key(const Color c) const noexcept {
+    return st->materialKeys[c];
+}
 
-inline Key Position::material_key() const noexcept {
+ALWAYS_INLINE Key Position::material_key() const noexcept {
     return material_key(WHITE) ^ material_key(BLACK);
 }
 
-inline Key Position::non_king_key() const noexcept {
+ALWAYS_INLINE Key Position::non_king_key() const noexcept {
     return pawn_key() ^ minor_key() ^ major_key();
 }
 
-inline bool Position::has_non_pawn(const Color c) const noexcept {
+ALWAYS_INLINE bool Position::has_non_pawn(const Color c) const noexcept {
     return pieces_bb(c, KNIGHT, BISHOP, ROOK, QUEEN) != 0;
 }
 
-inline Value Position::non_pawn_value() const noexcept {
+ALWAYS_INLINE Value Position::non_pawn_value() const noexcept {
     return non_pawn_value(WHITE) + non_pawn_value(BLACK);
 }
 
-inline u16 Position::rule50_count() const noexcept { return st->rule50Count; }
+ALWAYS_INLINE u16 Position::rule50_count() const noexcept { return st->rule50Count; }
 
-inline u16 Position::null_ply() const noexcept { return st->nullPly; }
+ALWAYS_INLINE u16 Position::null_ply() const noexcept { return st->nullPly; }
 
-inline i16 Position::repetition() const noexcept { return st->repetition; }
+ALWAYS_INLINE i16 Position::repetition() const noexcept { return st->repetition; }
 
-inline bool Position::has_castled(const Color c) const noexcept { return st->hasCastleds[c]; }
+ALWAYS_INLINE bool Position::has_castled(const Color c) const noexcept {
+    return st->hasCastleds[c];
+}
 
-inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
+ALWAYS_INLINE bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 
-inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
+ALWAYS_INLINE Piece Position::captured_pc() const noexcept { return st->capturedPc; }
 
-inline Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
+ALWAYS_INLINE Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
 
-inline bool Position::bishop_paired(const Color c) const noexcept {
+ALWAYS_INLINE bool Position::bishop_paired(const Color c) const noexcept {
     Bitboard bishops = pieces_bb(c, BISHOP);
     return (bishops & color_bb<WHITE>())  //
         && (bishops & color_bb<BLACK>());
 }
 
-inline bool Position::bishop_opposite() const noexcept {
+ALWAYS_INLINE bool Position::bishop_opposite() const noexcept {
     return count(WHITE, BISHOP) == 1  //
         && count(BLACK, BISHOP) == 1
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
-inline bool Position::dtz_is_dtm() const noexcept {
+ALWAYS_INLINE bool Position::dtz_is_dtm() const noexcept {
     if (pieces_bb(PAWN) != 0)
         return false;
 
@@ -692,13 +711,13 @@ inline bool Position::dtz_is_dtm() const noexcept {
     return pieceCount == 3 || (pieceCount == 4 && pieces_bb(QUEEN, ROOK) == 0);
 }
 
-inline usize Position::bucket() const noexcept { return (count() - 1) / 4; }
+ALWAYS_INLINE usize Position::bucket() const noexcept { return (count() - 1) / 4; }
 
-inline int Position::std_material() const noexcept {
+ALWAYS_INLINE int Position::std_material() const noexcept {
     return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
 }
 
-inline bool Position::capture(const Move m) const noexcept {
+ALWAYS_INLINE bool Position::capture(const Move m) const noexcept {
     assert(legal(m));
 
     const auto mt = m.type();
@@ -707,7 +726,7 @@ inline bool Position::capture(const Move m) const noexcept {
         || ((mt == Move::Type::NORMAL || mt == Move::Type::PROMOTION) && !empty(m.dst_sq()));
 }
 
-inline bool Position::capture_promo(const Move m) const noexcept {
+ALWAYS_INLINE bool Position::capture_promo(const Move m) const noexcept {
 
     if (capture(m))
         return true;
@@ -720,13 +739,13 @@ inline bool Position::capture_promo(const Move m) const noexcept {
         || (promotedPt == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0);
 }
 
-inline Piece Position::moved_pc(const Move m) const noexcept {
+ALWAYS_INLINE Piece Position::moved_pc(const Move m) const noexcept {
     assert(legal(m));
 
     return piece(m.org_sq());
 }
 
-inline Piece Position::captured_pc(const Move m) const noexcept {
+ALWAYS_INLINE Piece Position::captured_pc(const Move m) const noexcept {
     assert(legal(m));
     assert(m.type() != Move::Type::CASTLING);
 
@@ -734,13 +753,15 @@ inline Piece Position::captured_pc(const Move m) const noexcept {
                                                     : m.dst_sq() - pawn_spush(active_color()));
 }
 
-inline auto Position::captured_pt(const Move m) const noexcept { return type_of(captured_pc(m)); }
+ALWAYS_INLINE auto Position::captured_pt(const Move m) const noexcept {
+    return type_of(captured_pc(m));
+}
 
-inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE; }
+ALWAYS_INLINE void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE; }
 
-inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
+ALWAYS_INLINE void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
-inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dTs) noexcept {
+ALWAYS_INLINE void Position::put(const Square s, const Piece pc, DirtyThreats* const dTs) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
     const Bitboard sBB = square_bb(s);
@@ -753,7 +774,7 @@ inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dT
         update_piece_threats<true>(s, pc, dTs, true);
 }
 
-inline Piece Position::remove(const Square s, DirtyThreats* const dTs) noexcept {
+ALWAYS_INLINE Piece Position::remove(const Square s, DirtyThreats* const dTs) noexcept {
     assert(is_ok(s) && !empty(s));
 
     const Bitboard sBB = square_bb(s);
@@ -771,7 +792,9 @@ inline Piece Position::remove(const Square s, DirtyThreats* const dTs) noexcept 
     return pc;
 }
 
-inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* const dTs) noexcept {
+ALWAYS_INLINE Piece Position::move(const Square        s1,
+                                   const Square        s2,
+                                   DirtyThreats* const dTs) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
 
     const Bitboard s1s2BB = square_bb(s1) | square_bb(s2);
@@ -793,7 +816,9 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     return pc;
 }
 
-inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* const dTs) noexcept {
+ALWAYS_INLINE Piece Position::swap(const Square        s,
+                                   const Piece         newPc,
+                                   DirtyThreats* const dTs) noexcept {
 
     const Piece oldPc = remove(s);
 
@@ -846,11 +871,12 @@ void write_dirties(const PieceMap&     pieceMap,
 
 // Put newly threatened pieces
 template<bool ComputeRay>
-inline void Position::update_piece_threats(const Square              s,
-                                           const Piece               pc,
-                                           DirtyThreats* const       dTs,
-                                           const bool                put,
-                                           [[maybe_unused]] Bitboard noRayBB) const noexcept {
+ALWAYS_INLINE void
+Position::update_piece_threats(const Square              s,
+                               const Piece               pc,
+                               DirtyThreats* const       dTs,
+                               const bool                put,
+                               [[maybe_unused]] Bitboard noRayBB) const noexcept {
     const Bitboard occupancyBB          = pieces_bb();
     const Bitboard nAttacksBB           = Attacks::pseudo_attacks_bb(KNIGHT, s);
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
@@ -979,23 +1005,23 @@ inline void Position::update_piece_threats(const Square              s,
 #endif
 }
 
-inline constexpr State* Position::state() const noexcept { return st; }
+ALWAYS_INLINE constexpr State* Position::state() const noexcept { return st; }
 
 // Position::SEE
-inline bool Position::SEE::operator>=(const int threshold) const noexcept {
+ALWAYS_INLINE bool Position::SEE::operator>=(const int threshold) const noexcept {
     return pos.see_ge(move, threshold);
 }
-inline bool Position::SEE::operator>(const int threshold) const noexcept {
+ALWAYS_INLINE bool Position::SEE::operator>(const int threshold) const noexcept {
     return (*this >= threshold + 1);
 }
-inline bool Position::SEE::operator<=(const int threshold) const noexcept {
+ALWAYS_INLINE bool Position::SEE::operator<=(const int threshold) const noexcept {
     return !(*this > threshold);
 }
-inline bool Position::SEE::operator<(const int threshold) const noexcept {
+ALWAYS_INLINE bool Position::SEE::operator<(const int threshold) const noexcept {
     return !(*this >= threshold);
 }
 
-inline i16 rule50_threshold(const i16 r50 = -4) noexcept {
+ALWAYS_INLINE i16 rule50_threshold(const i16 r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
 
     return r50 + 2 * Position::DrawMoveCount;
