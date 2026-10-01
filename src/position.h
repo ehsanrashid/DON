@@ -223,6 +223,7 @@ class Position final {
 
     [[nodiscard]] int   material_std() const noexcept;
     [[nodiscard]] Value material() const noexcept;
+    [[nodiscard]] Value evaluate() const noexcept;
 
     // Static Exchange Evaluation:
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }

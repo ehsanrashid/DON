@@ -35,7 +35,7 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-alignas(64) static constexpr auto OFFSETS = []() constexpr noexcept {
+alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
     Array<u16, COLOR_NB * SQUARE_NB, PIECE_NB> offsets{};
 
     for (const Color c : {WHITE, BLACK})

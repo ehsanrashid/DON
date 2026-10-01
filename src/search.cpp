@@ -1129,7 +1129,7 @@ Value Worker::search(Position&    pos,
     }
 
     // Step 8. Razoring
-    // Razoring is disabled for PV nodes to avoid prematurely returning decisive scores.
+    // Razoring is enabled only for all nodes.
     if constexpr (AllNode)
     {
     // If eval is really low, confirm the fail low before pruning with qsearch.

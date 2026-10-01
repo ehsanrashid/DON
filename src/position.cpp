@@ -44,6 +44,7 @@ Cuckoos<0x2000> Cuckoos_;
 
 ConcurrentCache<Key, Value> NonPawnValueCache{32 * KB, 0.75f};
 ConcurrentCache<Key, Value> MaterialValueCache{16 * KB, 0.75f};
+ConcurrentCache<Key, Value> EvaluateCache{16 * KB, 0.75f};
 
 }  // namespace
 
@@ -57,6 +58,7 @@ void Position::init() noexcept {
 void Position::reset() noexcept {
     //NonPawnValueCache.reset();
     //MaterialValueCache.reset();
+    //EvaluateCache.reset();
 }
 
 void Position::clear() noexcept {
@@ -1388,7 +1390,16 @@ Value Position::non_pawn_value(const Color c) const noexcept {
 
 Value Position::material() const noexcept {
     return MaterialValueCache.access_or_build_with(
-      material_key(), [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
+      material_key(), [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
+}
+
+Value Position::evaluate() const noexcept {
+    return EvaluateCache.access_or_build_with(  //
+      raw_key(), [this]() noexcept -> Value {
+          const Color ac = active_color();
+          return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
+               + (non_pawn_value(ac) - non_pawn_value(~ac));
+      });
 }
 
 Key Position::key() const noexcept { return raw_key() ^ Zobrist_.mr50(rule50_count()); }

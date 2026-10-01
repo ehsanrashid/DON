@@ -242,9 +242,9 @@ usize Network::content_hash() const noexcept {
     return h;
 }
 
-NetworkOutput Network::evaluate(const Position&   pos,
-                                AccumulatorCache& accCache,
-                                AccumulatorStack& accStack) const noexcept {
+i32 Network::evaluate(const Position&   pos,
+                      AccumulatorCache& accCache,
+                      AccumulatorStack& accStack) const noexcept {
     constexpr usize Alignment = CACHE_LINE_SIZE;
 
     alignas(Alignment) Array<TransformedFeature, FeatureTransformer::BufferSize>
@@ -260,8 +260,7 @@ NetworkOutput Network::evaluate(const Position&   pos,
                                                          bucket, transformedFeatures, nnz);
     const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-    return {constexpr_round(double(psqt) / OUTPUT_SCALE),
-            constexpr_round(double(positional) / OUTPUT_SCALE)};
+    return constexpr_round(double(psqt + positional) / OUTPUT_SCALE);
 }
 
 NetworkTrace Network::trace(const Position&   pos,
@@ -284,8 +283,8 @@ NetworkTrace Network::trace(const Position&   pos,
                                                              bucket, transformedFeatures, nnz);
         const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-        netTrace.netOut[bucket] = {constexpr_round(double(psqt) / OUTPUT_SCALE),
-                                   constexpr_round(double(positional) / OUTPUT_SCALE)};
+        netTrace.nnue[bucket] = {constexpr_round(double(psqt) / OUTPUT_SCALE),
+                                 constexpr_round(double(positional) / OUTPUT_SCALE)};
     }
 
     return netTrace;

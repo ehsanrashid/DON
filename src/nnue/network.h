@@ -59,9 +59,9 @@ class Network final {
 
     usize content_hash() const noexcept;
 
-    NetworkOutput evaluate(const Position&   pos,
-                           AccumulatorCache& accCache,
-                           AccumulatorStack& accStack) const noexcept;
+    i32 evaluate(const Position&   pos,
+                 AccumulatorCache& accCache,
+                 AccumulatorStack& accStack) const noexcept;
 
     NetworkTrace trace(const Position&   pos,
                        AccumulatorCache& accCache,

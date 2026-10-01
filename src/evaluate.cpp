@@ -35,6 +35,36 @@
 
 namespace DON::Evaluate {
 
+namespace {
+
+// Normalize the raw evaluations to [-1024, 1024] to measure their correlation.
+constexpr i32 normalize_eval(const i32 eval) noexcept {
+    return constexpr_round(1024.0 * eval / (1024.0 + constexpr_abs(eval)));
+}
+
+Value scale_evaluation(const Position& pos, const i32 nnue, const i32 optimism) noexcept {
+
+    const Value eval = pos.evaluate();
+
+    // When NNUE and material agree (positive alignment), the position is straightforward;
+    // otherwise (negative alignment) it involves complex compensation. In a representative
+    // sample, alignment averages -1 or so, i.e. it is well-centered in [-2048, 2048].
+    const i32 alignment = constexpr_round(normalize_eval(eval) * normalize_eval(nnue) / 512.0);
+
+    const i32 v = constexpr_round(
+      // When winning, favor easy positions, and vice versa
+      (nnue + (nnue + 4 * optimism) * alignment / 65536.0)
+      // Scale the combined evaluation by total material
+      * (1.0 + pos.material() / 90649.0)
+      // Damp evaluation linearly based on the 50-move rule
+      * std::max(1.0 - pos.rule50_count() / 189.0, 0.0));
+
+    // Guarantee evaluation does not hit the table-base range
+    return in_range(v);
+}
+
+}  // namespace
+
 Value evaluate(const Position&         pos,
                const NNUE::Network&    network,
                NNUE::AccumulatorCache& accCache,
@@ -42,23 +72,7 @@ Value evaluate(const Position&         pos,
                i32                     optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    const auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
-
-    i32 nnue = psqt + positional;
-
-    const double complexity = constexpr_abs(double(psqt) - double(positional));
-    // Blend eval and optimism with complexity
-    optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
-    nnue     = constexpr_round(nnue * std::max(1.0 - complexity / 18236.0, 0.0));
-
-    const i32 v =
-      // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
-      constexpr_round((nnue + (nnue * pos.material() + optimism * 7675.0) / 91000.0)
-                      // Damp evaluation linearly based on the 50-move rule
-                      * std::max(1.0 - double(pos.rule50_count()) / 195.0, 0.0));
-
-    // Guarantee evaluation does not hit the table-base range
-    return in_range(v);
+    return scale_evaluation(pos, network.evaluate(pos, accCache, accStack), optimism);
 }
 
 namespace {
@@ -140,10 +154,8 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    const auto  baseNetOut = network.evaluate(pos, accCache, *accStack);
-    const Value baseValue  = pos.active_color() == WHITE
-                             ? +in_range(baseNetOut.psqt + baseNetOut.positional)
-                             : -in_range(baseNetOut.psqt + baseNetOut.positional);
+    auto baseNNUE = network.evaluate(pos, accCache, *accStack);
+    baseNNUE      = pos.active_color() == WHITE ? +baseNNUE : -baseNNUE;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -159,12 +171,10 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
                 accStack->reset();
 
-                const auto  newNetOut = network.evaluate(pos, accCache, *accStack);
-                const Value newValue  = pos.active_color() == WHITE
-                                        ? +in_range(newNetOut.psqt + newNetOut.positional)
-                                        : -in_range(newNetOut.psqt + newNetOut.positional);
+                auto newNNUE = network.evaluate(pos, accCache, *accStack);
+                newNNUE      = pos.active_color() == WHITE ? +newNNUE : -newNNUE;
 
-                v = baseValue - newValue;
+                v = baseNNUE - newNNUE;
 
                 pos.put(sq, pc);
             }
@@ -194,12 +204,12 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
     for (usize bucket = 0; bucket < NNUE::LAYER_STACKS; ++bucket)
     {
         oss << "|  " << bucket << "         |  ";
-        format_cp_aligned_dot(oss, netTrace.netOut[bucket].psqt, pos);
+        format_cp_aligned_dot(oss, netTrace.nnue[bucket].psqt, pos);
         oss << "   |  ";
-        format_cp_aligned_dot(oss, netTrace.netOut[bucket].positional, pos);
+        format_cp_aligned_dot(oss, netTrace.nnue[bucket].positional, pos);
         oss << "   |  ";
-        format_cp_aligned_dot(
-          oss, netTrace.netOut[bucket].psqt + netTrace.netOut[bucket].positional, pos);
+        format_cp_aligned_dot(oss, netTrace.nnue[bucket].psqt + netTrace.nnue[bucket].positional,
+                              pos);
         oss << "   |";
         if (bucket == netTrace.correctBucket)
             oss << " <-- this bucket is used";
@@ -248,11 +258,7 @@ std::string trace(const Position& pos, const NNUE::Network& network) noexcept {
 
     output.append(nnue_trace(p, network, *accCache)).push_back('\n');
 
-    auto [psqt, positional] = network.evaluate(p, *accCache, *accStack);
-
-    i32 v;
-
-    v = psqt + positional;
+    i32 v = network.evaluate(p, *accCache, *accStack);
 
     output.append("NNUE evaluation      : ")
       .append(fmt_int(v))
