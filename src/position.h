@@ -914,7 +914,7 @@ inline void Position::update_piece_threats(const Square              s,
     // clang-format off
     switch (pt)
     {
-    case PAWN   : threatenedBB = Attacks::pseudo_attacks_bb<PAWN>(s, color_of(pc)); break;
+    case PAWN   : threatenedBB = Attacks::pseudo_attacks_bb(PAWN, s, color_of(pc)); break;
     case KNIGHT : threatenedBB = nAttacksBB;                                        break;
     case BISHOP : threatenedBB = bAttacksBB;                                        break;
     case ROOK   : threatenedBB = rAttacksBB;                                        break;

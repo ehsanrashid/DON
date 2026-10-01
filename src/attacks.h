@@ -438,19 +438,8 @@ constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
-template<PieceType PT>
-constexpr Bitboard pseudo_attacks_bb(const Square s, [[maybe_unused]] const Color c) noexcept {
-    static_assert(is_ok(PT), "Unsupported piece type in pseudo_attacks_bb()");
-    assert(is_ok(s) && (PT != PAWN || is_ok(c)));
-
-    if constexpr (PT == PAWN)
-        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
-
-    return pseudo_attacks_bb<PT>(s);
-}
-
 constexpr Bitboard
-pseudo_attacks_bb(const Square s, PieceType pt, [[maybe_unused]] const Color c = NONE) noexcept {
+pseudo_attacks_bb(PieceType pt, const Square s, [[maybe_unused]] const Color c = NONE) noexcept {
     assert(is_ok(pt) && "Unsupported piece type in pseudo_attacks_bb()");
     assert(is_ok(s) && (pt != PAWN || is_ok(c)));
 
@@ -481,7 +470,7 @@ constexpr Bitboard pseudo_attacks_bb(const Square s, const Piece pc) noexcept {
     switch (type_of(pc))
     {
     case PAWN :
-        return pseudo_attacks_bb<PAWN>(s, color_of(pc));
+        return pseudo_attacks_bb(PAWN, s, color_of(pc));
     case KNIGHT :
         return pseudo_attacks_bb<KNIGHT>(s);
     case BISHOP :
@@ -613,7 +602,7 @@ attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexc
 constexpr Bitboard attacks_bb(const Square s, const Piece pc, const Bitboard occupancyBB) noexcept {
     assert(is_ok(s));
 
-    return type_of(pc) == PAWN ? pseudo_attacks_bb<PAWN>(s, color_of(pc))
+    return type_of(pc) == PAWN ? pseudo_attacks_bb(PAWN, s, color_of(pc))
                                : attacks_bb(s, type_of(pc), occupancyBB);
 }
 
@@ -636,8 +625,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBS = []() constexpr noexcep
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
-                if ((pseudo_attacks_bb(s1, pt) & s2) != 0)
-                    lineBBs[s1][s2] = (pseudo_attacks_bb(s1, pt) & pseudo_attacks_bb(s2, pt))
+                if ((pseudo_attacks_bb(pt, s1) & s2) != 0)
+                    lineBBs[s1][s2] = (pseudo_attacks_bb(pt, s1) & pseudo_attacks_bb(pt, s2))
                                     | square_bb(s1) | square_bb(s2);
 
     return lineBBs;

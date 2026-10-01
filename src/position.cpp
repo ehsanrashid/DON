@@ -334,7 +334,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         //   - there is no enemy Bishop, Rook or Queen pinning
         if ((pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac))) != 0
             && (empty(enPassantSq) && empty(enPassantSq + pawn_spush(ac)))
-            && (pieces_bb(ac, PAWN) & Attacks::pseudo_attacks_bb<PAWN>(enPassantSq, ~ac)) != 0
+            && (pieces_bb(ac, PAWN) & Attacks::pseudo_attacks_bb(PAWN, enPassantSq, ~ac)) != 0
             && enpassant_possible(ac, enPassantSq))
             st->enPassantSq = enPassantSq;
 
@@ -589,7 +589,7 @@ void Position::set_ext_state() noexcept {
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(kingSq, occupancyBB);
 
     // clang-format off
-    st->checksBB[PAWN  ] = Attacks::pseudo_attacks_bb<PAWN>(kingSq, ~ac);
+    st->checksBB[PAWN  ] = Attacks::pseudo_attacks_bb(PAWN, kingSq, ~ac);
     st->checksBB[KNIGHT] = Attacks::pseudo_attacks_bb<KNIGHT>(kingSq);
     st->checksBB[BISHOP] = bAttacksBB;
     st->checksBB[ROOK  ] = rAttacksBB;
@@ -621,7 +621,7 @@ bool Position::enpassant_possible(const Color     ac,
 
     const bool collect = epPawnsBBp != nullptr;
 
-    Bitboard epPawnsBB = pieces_bb(ac, PAWN) & Attacks::pseudo_attacks_bb<PAWN>(enPassantSq, ~ac);
+    Bitboard epPawnsBB = pieces_bb(ac, PAWN) & Attacks::pseudo_attacks_bb(PAWN, enPassantSq, ~ac);
 
     if (epPawnsBB == 0)
     {
@@ -1211,7 +1211,7 @@ bool Position::legal(const Move m) const noexcept {
                     || orgSq + pawn_dpush(ac) != dstSq  //
                     || !empty(dstSq) || !empty(dstSq - pawn_spush(ac)))
                 && (orgR >= RANK_7 || dstR >= RANK_8  // Capture
-                    || (pieces_bb(~ac) & Attacks::pseudo_attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
+                    || (pieces_bb(~ac) & Attacks::pseudo_attacks_bb(PAWN, orgSq, ac) & dstSq) == 0))
                 return false;
         }
         else
@@ -1228,7 +1228,7 @@ bool Position::legal(const Move m) const noexcept {
         if (type_of(movedPc) != PAWN  //
             || relative_rank(ac, orgSq) != RANK_7 || relative_rank(ac, dstSq) != RANK_8
             || ((orgSq + pawn_spush(ac) != dstSq || !empty(dstSq))
-                && (pieces_bb(~ac) & Attacks::pseudo_attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
+                && (pieces_bb(~ac) & Attacks::pseudo_attacks_bb(PAWN, orgSq, ac) & dstSq) == 0))
             return false;
         break;
     case Move::Type::EN_PASSANT :
@@ -1237,7 +1237,7 @@ bool Position::legal(const Move m) const noexcept {
             || en_passant_sq() != dstSq || rule50_count() != 0
             || (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) == 0  //
             || !empty(dstSq) || !empty(dstSq + pawn_spush(ac))         //
-            || (Attacks::pseudo_attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0
+            || (Attacks::pseudo_attacks_bb(PAWN, orgSq, ac) & dstSq) == 0
             || (pieces_bb(~ac)
                 & slide_attackers_bb(kingSq,
                                      pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
@@ -1349,7 +1349,7 @@ bool Position::fork(const Move m) const noexcept {
     {
     case PAWN :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(PAWN)
-                             & Attacks::pseudo_attacks_bb<PAWN>(m.dst_sq(), ac));
+                             & Attacks::pseudo_attacks_bb(PAWN, m.dst_sq(), ac));
     case KNIGHT :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(KNIGHT)
                              & Attacks::pseudo_attacks_bb<KNIGHT>(m.dst_sq()));

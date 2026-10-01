@@ -77,9 +77,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 threatTable.squareOffsets[+pc][s] = threatCount;
 
                 if (pt != PAWN)
-                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(s, pt));
+                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(pt, s));
                 else if (SQ_A2 <= s && s <= SQ_H7)
-                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb<PAWN>(s, c));
+                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(PAWN, s, c));
             }
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};

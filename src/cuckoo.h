@@ -107,7 +107,7 @@ class Cuckoos final {
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                     {
-                        if ((Attacks::pseudo_attacks_bb(s1, pt) & s2) != 0)
+                        if ((Attacks::pseudo_attacks_bb(pt, s1) & s2) != 0)
                         {
                             const Key  key = zobrist.turn()  //
                                            ^ zobrist.piece_square(c, pt, s1)

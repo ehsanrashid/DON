@@ -224,7 +224,7 @@ void init() noexcept {
 
             for (PieceType pt : {BISHOP, ROOK})
             {
-                if ((pseudo_attacks_bb(s1, pt) & s2BB) != 0)
+                if ((pseudo_attacks_bb(pt, s1) & s2BB) != 0)
                 {
                     // clang-format off
                     BETWEEN_BBS [s1][s2] = attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
