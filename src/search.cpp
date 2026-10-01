@@ -1261,6 +1261,7 @@ Value Worker::search(Position&    pos,
         {
             assert(pos.legal(move));
             assert(move == ttd.move || pos.see(move) >= probCutThreshold);
+            assert(pos.capture_promo(move));
 
             // Check for exclusion
             if (move == excludedMove)
@@ -1273,8 +1274,6 @@ Value Worker::search(Position&    pos,
                 if (!rootMoves.contains(pvIdx, pvEnd, move))
                     continue;
             }
-
-            assert(pos.capture_promo(move));
 
             do_move(pos, move, st, ss, true);
 
