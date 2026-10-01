@@ -105,8 +105,7 @@ class Position final {
     [[nodiscard]] u8 count(Piece pc) const noexcept;
     [[nodiscard]] u8 count() const noexcept;
 
-    template<PieceType PT>
-    [[nodiscard]] Square square(Color c) const noexcept;
+    [[nodiscard]] Square square(Color c, PieceType pt) const noexcept;
 
     [[nodiscard]] Square en_passant_sq() const noexcept;
     [[nodiscard]] Square captured_sq() const noexcept;
@@ -218,13 +217,11 @@ class Position final {
     [[nodiscard]] bool  has_rule50_high() const noexcept;
     [[nodiscard]] Piece captured_pc() const noexcept;
     [[nodiscard]] Piece promoted_pc() const noexcept;
-    [[nodiscard]] bool  bishop_paired(Color c) const noexcept;
-    [[nodiscard]] bool  bishop_opposite() const noexcept;
     [[nodiscard]] bool  dtz_is_dtm() const noexcept;
 
     [[nodiscard]] usize bucket() const noexcept;
 
-    [[nodiscard]] int   std_material() const noexcept;
+    [[nodiscard]] int   material_std() const noexcept;
     [[nodiscard]] Value material() const noexcept;
 
     // Static Exchange Evaluation:
@@ -447,11 +444,10 @@ ALWAYS_INLINE u8 Position::count(const Piece pc) const noexcept {
 
 ALWAYS_INLINE u8 Position::count() const noexcept { return popcount(pieces_bb()); }
 
-template<PieceType PT>
-ALWAYS_INLINE Square Position::square(const Color c) const noexcept {
-    assert(count(c, PT) == 1);
+ALWAYS_INLINE Square Position::square(const Color c, const PieceType pt) const noexcept {
+    assert(count(c, pt) == 1);
 
-    return lsq(pieces_bb(c, PT));
+    return lsq(pieces_bb(c, pt));
 }
 
 ALWAYS_INLINE Square Position::en_passant_sq() const noexcept { return st->enPassantSq; }
@@ -587,7 +583,7 @@ ALWAYS_INLINE Bitboard Position::attacks_by_bb(const Color c, const PieceType pt
     {
         Bitboard attacksBB = 0;
 
-        Bitboard occupancyBB = pieces_bb() ^ square<KING>(~c);
+        Bitboard occupancyBB = pieces_bb() ^ square(~c, KING);
 
         Bitboard attackersBB = pieces_bb(c, pt);
         while (attackersBB != 0)
@@ -691,18 +687,6 @@ ALWAYS_INLINE Piece Position::captured_pc() const noexcept { return st->captured
 
 ALWAYS_INLINE Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
 
-ALWAYS_INLINE bool Position::bishop_paired(const Color c) const noexcept {
-    Bitboard bishops = pieces_bb(c, BISHOP);
-    return (bishops & color_bb(WHITE))  //
-        && (bishops & color_bb(BLACK));
-}
-
-ALWAYS_INLINE bool Position::bishop_opposite() const noexcept {
-    return count(WHITE, BISHOP) == 1  //
-        && count(BLACK, BISHOP) == 1
-        && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
-}
-
 ALWAYS_INLINE bool Position::dtz_is_dtm() const noexcept {
     if (pieces_bb(PAWN) != 0)
         return false;
@@ -713,7 +697,7 @@ ALWAYS_INLINE bool Position::dtz_is_dtm() const noexcept {
 
 ALWAYS_INLINE usize Position::bucket() const noexcept { return (count() - 1) / 4; }
 
-ALWAYS_INLINE int Position::std_material() const noexcept {
+ALWAYS_INLINE int Position::material_std() const noexcept {
     return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
 }
 

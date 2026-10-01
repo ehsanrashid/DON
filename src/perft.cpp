@@ -92,7 +92,7 @@ void PerftData::classify(Position& pos, const Move m) noexcept {
                   pos.pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
                 dscCheck += int(
-                  (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
+                  (pos.slide_attackers_bb(pos.square(~ac, KING), occupancyBB) & pos.pieces_bb(ac))
                   != 0);
             }
             //else if (m.type() == Move::Type::CASTLING)

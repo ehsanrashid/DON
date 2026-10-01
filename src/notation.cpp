@@ -52,6 +52,7 @@ Score::Score(Value v, const Position& pos) noexcept {
 namespace {
 
 struct WinRateParams final {
+   public:
     double a, b;
 };
 
@@ -63,7 +64,7 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58
-    double m = std::clamp(pos.std_material(), 17, 78) / 58.0;
+    double m = std::clamp(pos.material_std(), 17, 78) / 58.0;
     // Return a = p_a(material) and b = p_b(material)
     double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
     double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];

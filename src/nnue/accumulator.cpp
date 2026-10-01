@@ -176,7 +176,7 @@ void AccumulatorStack::update_incremental_forward(const Color               pers
     assert(beg < size() && size() <= Size);
     assert(accumulators[beg].computed[perspective]);
 
-    const Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square(perspective, KING);
 
     for (usize idx = beg; ++idx < size();)
         update_incremental<true>(perspective, kingSq, featureTransformer, accumulators[idx - 1],
@@ -192,7 +192,7 @@ void AccumulatorStack::update_incremental_backward(const Color               per
     assert(end < size() && size() <= Size);
     assert(top().computed[perspective]);
 
-    const Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square(perspective, KING);
 
     for (usize idx = std::max(size(), usize{1}) - 1; idx-- > end;)
         update_incremental<false>(perspective, kingSq, featureTransformer, accumulators[idx + 1],
@@ -210,8 +210,8 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
     assert(accumulators[wBeg].computed[WHITE]);
     assert(accumulators[bBeg].computed[BLACK]);
 
-    const Square wKingSq = pos.square<KING>(WHITE);
-    const Square bKingSq = pos.square<KING>(BLACK);
+    const Square wKingSq = pos.square(WHITE, KING);
+    const Square bKingSq = pos.square(BLACK, KING);
     const usize  maxBeg  = std::max(wBeg, bBeg);
 
     // Catch up the lagging perspective, then traverse the common suffix once.
@@ -744,7 +744,7 @@ void update_refresh_cache(const Color               perspective,
                           const FeatureTransformer& featureTransformer,
                           Accumulator&              dstAcc,
                           AccumulatorCache&         accCache) noexcept {
-    const Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square(perspective, KING);
 
     auto& entry = accCache[kingSq][perspective];
 

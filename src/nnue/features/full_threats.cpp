@@ -238,7 +238,7 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 void FullThreats::append_active_indices(const Color     perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
-    const Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square(perspective, KING);
 
     const Bitboard occupancyBB = pos.pieces_bb();
     const Bitboard pTargetsBB  = pos.pieces_bb(KNIGHT, ROOK);
