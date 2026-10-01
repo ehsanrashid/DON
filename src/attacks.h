@@ -372,9 +372,9 @@ constexpr Bitboard king_attacks_bb(const Square s) noexcept {
 }
 
 // Computes sliding attack
-template<PieceType PT>
-constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB = 0) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
+constexpr Bitboard
+sliding_attacks_bb(const PieceType pt, const Square s, const Bitboard occupancyBB = 0) noexcept {
+    assert((pt == BISHOP || pt == ROOK) && "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
 
     constexpr Array<Direction, 2, 4> Directions{{
@@ -384,7 +384,7 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions[PT - BISHOP])
+    for (const Direction d : Directions[pt - BISHOP])
         for (Square sq = s; Bitboard destBB = destination_bb(sq, d); sq += d)
         {
             attacksBB |= destBB;
@@ -396,18 +396,25 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
     return attacksBB;
 }
 
-template<PieceType PT>
-constexpr Bitboard pseudo_attacks_bb_(const Square s) noexcept {
-    if constexpr (PT == KNIGHT)
+constexpr Bitboard pseudo_attacks_bb_(const PieceType pt, const Square s) noexcept {
+    assert(pt != PAWN);
+    assert(is_ok(s));
+
+    switch (pt)
+    {
+    case KNIGHT :
         return knight_attacks_bb(s);
-    if constexpr (PT == BISHOP)
-        return sliding_attacks_bb<BISHOP>(s, 0);
-    if constexpr (PT == ROOK)
-        return sliding_attacks_bb<ROOK>(s, 0);
-    if constexpr (PT == QUEEN)
-        return pseudo_attacks_bb_<BISHOP>(s) | pseudo_attacks_bb_<ROOK>(s);
-    if constexpr (PT == KING)
+    case BISHOP :
+        return sliding_attacks_bb(BISHOP, s, 0);
+    case ROOK :
+        return sliding_attacks_bb(ROOK, s, 0);
+    case QUEEN :
+        return sliding_attacks_bb(BISHOP, s, 0) | sliding_attacks_bb(ROOK, s, 0);
+    case KING :
         return king_attacks_bb(s);
+    default :;
+    }
+
     assert(false);
     UNREACHABLE();
     return 0;
@@ -420,11 +427,11 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constex
     {
         pseudoAttacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
         pseudoAttacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
-        pseudoAttacksBBs[s][KNIGHT] = pseudo_attacks_bb_<KNIGHT>(s);
-        pseudoAttacksBBs[s][BISHOP] = pseudo_attacks_bb_<BISHOP>(s);
-        pseudoAttacksBBs[s][ROOK]   = pseudo_attacks_bb_<ROOK>(s);
+        pseudoAttacksBBs[s][KNIGHT] = pseudo_attacks_bb_(KNIGHT, s);
+        pseudoAttacksBBs[s][BISHOP] = pseudo_attacks_bb_(BISHOP, s);
+        pseudoAttacksBBs[s][ROOK]   = pseudo_attacks_bb_(ROOK, s);
         pseudoAttacksBBs[s][QUEEN]  = pseudoAttacksBBs[s][BISHOP] | pseudoAttacksBBs[s][ROOK];
-        pseudoAttacksBBs[s][KING]   = pseudo_attacks_bb_<KING>(s);
+        pseudoAttacksBBs[s][KING]   = pseudo_attacks_bb_(KING, s);
     }
 
     return pseudoAttacksBBs;
@@ -464,30 +471,6 @@ pseudo_attacks_bb(PieceType pt, const Square s, [[maybe_unused]] const Color c =
     return 0;
 }
 
-constexpr Bitboard pseudo_attacks_bb(const Square s, const Piece pc) noexcept {
-    assert(is_ok(s));
-
-    switch (type_of(pc))
-    {
-    case PAWN :
-        return pseudo_attacks_bb(PAWN, s, color_of(pc));
-    case KNIGHT :
-        return pseudo_attacks_bb<KNIGHT>(s);
-    case BISHOP :
-        return pseudo_attacks_bb<BISHOP>(s);
-    case ROOK :
-        return pseudo_attacks_bb<ROOK>(s);
-    case QUEEN :
-        return pseudo_attacks_bb<QUEEN>(s);
-    case KING :
-        return pseudo_attacks_bb<KING>(s);
-    default :;
-    }
-    assert(false);
-    UNREACHABLE();
-    return 0;
-}
-
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
 
 // Sliding attacks within a rank, indexed by the slider's file and the
@@ -498,7 +481,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto RANK_ATTACKS = []() constexpr noe
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (u16 occ6 = 0; occ6 < 64; ++occ6)
-            rankAttacks[f][occ6] = u8(sliding_attacks_bb<ROOK>(Square(f), Bitboard{occ6} << 1));
+            rankAttacks[f][occ6] = u8(sliding_attacks_bb(ROOK, Square(f), Bitboard{occ6} << 1));
 
     return rankAttacks;
 }();
@@ -528,82 +511,58 @@ constexpr const DualMagic& dual_magic(const Square s) { return DUAL_MAGICS[s]; }
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
-template<PieceType PT>
-constexpr const Magic& magic(const Square s) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in magic()");
+constexpr const Magic& magic(const PieceType pt, const Square s) noexcept {
+    assert((pt == BISHOP || pt == ROOK) && "Unsupported piece type in magic()");
     assert(is_ok(s));
 
-    return MAGICS[s][PT - BISHOP];
+    return MAGICS[s][pt - BISHOP];
 }
 
 #endif
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue past an occupied square.
-template<PieceType PT>
-constexpr Bitboard attacks_bb(const Square                    s,
+constexpr Bitboard attacks_bb(const PieceType                 pt,
+                              const Square                    s,
                               [[maybe_unused]] const Bitboard occupancyBB) noexcept {
-    static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
+    assert(pt != PAWN);
     assert(is_ok(s));
 
-    if constexpr (PT == KNIGHT)
+    if (pt == KNIGHT)
         return pseudo_attacks_bb<KNIGHT>(s);
-    if constexpr (PT == KING)
+    if (pt == KING)
         return pseudo_attacks_bb<KING>(s);
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
     [[maybe_unused]] const auto [bAttacksBB, rAttacksBB] =
       dual_magic(s).attacks_bb_pair(occupancyBB);
 
-    if constexpr (PT == BISHOP)
+    switch (pt)
+    {
+    case BISHOP :
         return bAttacksBB;
-    if constexpr (PT == ROOK)
+    case ROOK :
         return rAttacksBB;
-    if constexpr (PT == QUEEN)
+    case QUEEN :
         return bAttacksBB | rAttacksBB;
+    default :;
+    }
 #else
-    if constexpr (PT == BISHOP || PT == ROOK)
-        return magic<PT>(s).attacks_bb(s, occupancyBB);
-    if constexpr (PT == QUEEN)
-        return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
+    switch (pt)
+    {
+    case BISHOP :
+    case ROOK :
+        return magic(pt, s).attacks_bb(s, occupancyBB);
+    case QUEEN :
+        return magic(BISHOP, s).attacks_bb(s, occupancyBB)
+             | magic(ROOK, s).attacks_bb(s, occupancyBB);
+    default :;
+    }
 #endif
 
     assert(false);
     UNREACHABLE();
     return 0;
-}
-
-// Returns the attacks by the given piece type.
-// Sliding piece attacks do not continue past an occupied square.
-constexpr Bitboard
-attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexcept {
-    assert(pt != PAWN);
-    assert(is_ok(s));
-
-    switch (pt)
-    {
-    case KNIGHT :
-        return pseudo_attacks_bb<KNIGHT>(s);
-    case BISHOP :
-        return attacks_bb<BISHOP>(s, occupancyBB);
-    case ROOK :
-        return attacks_bb<ROOK>(s, occupancyBB);
-    case QUEEN :
-        return attacks_bb<QUEEN>(s, occupancyBB);
-    case KING :
-        return pseudo_attacks_bb<KING>(s);
-    default :;
-    }
-    assert(false);
-    UNREACHABLE();
-    return 0;
-}
-
-constexpr Bitboard attacks_bb(const Square s, const Piece pc, const Bitboard occupancyBB) noexcept {
-    assert(is_ok(s));
-
-    return type_of(pc) == PAWN ? pseudo_attacks_bb(PAWN, s, color_of(pc))
-                               : attacks_bb(s, type_of(pc), occupancyBB);
 }
 
 constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square s) noexcept {
@@ -615,7 +574,7 @@ inline std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square   s,
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
     return dual_magic(s).attacks_bb_pair(occupancyBB);
 #else
-    return {attacks_bb<BISHOP>(s, occupancyBB), attacks_bb<ROOK>(s, occupancyBB)};
+    return {attacks_bb(BISHOP, s, occupancyBB), attacks_bb(ROOK, s, occupancyBB)};
 #endif
 }
 

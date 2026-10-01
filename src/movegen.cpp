@@ -309,7 +309,7 @@ Move* generate_piece_moves(const Position& pos,
         const Square   orgSq = AC == WHITE ? pop_lsq(bb) : pop_msq(bb);
         const Bitboard maskBB =
           (blockersBB & orgSq) == 0 ? FULL_BB : Attacks::line_bb(kingSq, orgSq);
-        const Bitboard dstBB = Attacks::attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
+        const Bitboard dstBB = Attacks::attacks_bb(PT, orgSq, occupancyBB) & maskBB & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }

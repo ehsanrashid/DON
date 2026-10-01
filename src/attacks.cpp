@@ -95,7 +95,7 @@ void init_magics() noexcept {
         assert(magic.attacksBBs != nullptr);
 
         // Get the pseudo attacks on an empty board
-        Bitboard pseudoAttacksBB = pseudo_attacks_bb(s, PT);
+        Bitboard pseudoAttacksBB = pseudo_attacks_bb(PT, s);
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
@@ -118,7 +118,7 @@ void init_magics() noexcept {
         Bitboard occupancyBB = 0;
         do
         {
-            Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
+            Bitboard slidingAttacksBB = sliding_attacks_bb(PT, s, occupancyBB);
 
     #if defined(USE_BMI2)
             magic.attacks_bb(occupancyBB, slidingAttacksBB);
@@ -227,8 +227,8 @@ void init() noexcept {
                 if ((pseudo_attacks_bb(pt, s1) & s2BB) != 0)
                 {
                     // clang-format off
-                    BETWEEN_BBS [s1][s2] = attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
-                    PASS_RAY_BBS[s1][s2] = attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB) | s2BB);
+                    BETWEEN_BBS [s1][s2] = attacks_bb(pt, s1, s2BB) &  attacks_bb(pt, s2, s1BB);
+                    PASS_RAY_BBS[s1][s2] = attacks_bb(pt, s1,    0) & (attacks_bb(pt, s2, s1BB) | s2BB);
                     // clang-format on
                 }
             }

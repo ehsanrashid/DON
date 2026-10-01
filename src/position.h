@@ -586,7 +586,7 @@ inline Bitboard Position::attacks_by_bb(const Color c) const noexcept {
 
         Bitboard attackersBB = pieces_bb(c, PT);
         while (attackersBB != 0)
-            attacksBB |= Attacks::attacks_bb<PT>(pop_lsq(attackersBB), occupancyBB);
+            attacksBB |= Attacks::attacks_bb(PT, pop_lsq(attackersBB), occupancyBB);
 
         return attacksBB;
     }

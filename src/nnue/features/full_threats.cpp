@@ -273,7 +273,7 @@ void FullThreats::append_active_indices(const Color     perspective,
             {
                 const Square orgSq = pop_lsq(attackerBB);
 
-                Bitboard attacksBB = Attacks::attacks_bb(orgSq, pt, occupancyBB) & targetsBB;
+                Bitboard attacksBB = Attacks::attacks_bb(pt, orgSq, occupancyBB) & targetsBB;
                 while (attacksBB != 0)
                 {
                     const Square dstSq      = pop_lsq(attacksBB);
