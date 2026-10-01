@@ -282,18 +282,42 @@ std::string version_info() noexcept {
 std::string compiler_info() noexcept {
     // Predefined macros hell:
     //
-    // __GNUC__                Compiler is GCC, Clang or ICX
-    // __clang__               Compiler is Clang or ICX
-    // __INTEL_LLVM_COMPILER   Compiler is ICX
-    // _MSC_VER                Compiler is MSVC
-    // _WIN32                  Building on Windows (any)
-    // _WIN64                  Building on Windows 64 bit
+    // __INTEL_LLVM_COMPILER    Intel oneAPI DPC++/C++ Compiler (ICX)
+    // __INTEL_COMPILER         Intel C++ Compiler (ICC/ICL)
+    // __clang__                Clang-based compiler: Clang or ICX
+    // __GNUC__                 GCC-compatible compiler: GCC, Clang or ICX
+    // _MSC_VER                 Microsoft Visual C++ (MSVC)
+    // __LCC__ + __e2k__        MCST LCC compiler targeting E2K
+    // __LCC__                  MCST LCC compiler
+    // __APPLE__                Apple platforms
+    // __CYGWIN__               Cygwin
+    // __MINGW64__              MinGW 64-bit
+    // __MINGW32__              MinGW 32-bit
+    // __ANDROID__              Android
+    // __linux__                Linux
+    // _WIN64                   Windows 64-bit
+    // _WIN32                   Windows (any)
 
     std::string compiler;
     compiler.reserve(256);
 
     compiler.append("\nCompiled by                : ");
-#if defined(__clang__)
+#if defined(__INTEL_LLVM_COMPILER)
+    compiler  //
+      .append("ICX ")
+    #if __INTEL_LLVM_COMPILER < 1000000L
+      .append(STRINGIFY(__INTEL_LLVM_COMPILER))
+    #else
+      .append(compiler_version(__INTEL_LLVM_COMPILER / 10000,        //
+                               (__INTEL_LLVM_COMPILER / 100) % 100,  //
+                               __INTEL_LLVM_COMPILER % 100))
+    #endif
+      ;
+#elif defined(__INTEL_COMPILER)
+    compiler  //
+      .append("ICC/ICL ")
+      .append(compiler_version(__INTEL_COMPILER / 100, __INTEL_COMPILER % 100, 0));
+#elif defined(__clang__)
     compiler  //
       .append("clang++ ")
       .append(compiler_version(__clang_major__, __clang_minor__, __clang_patchlevel__));
@@ -310,18 +334,11 @@ std::string compiler_info() noexcept {
       .append(std::to_string(_MSC_BUILD))
     #endif
       ;
-#elif defined(__INTEL_LLVM_COMPILER)
+#elif defined(__LCC__) && defined(__e2k__)  // MCST LCC targeting E2K
     compiler  //
-      .append("ICX ")
-    #if __INTEL_LLVM_COMPILER < 1000000L
-      .append(STRINGIFY(__INTEL_LLVM_COMPILER))
-    #else
-      .append(compiler_version(__INTEL_LLVM_COMPILER / 10000,        //
-                               (__INTEL_LLVM_COMPILER / 100) % 100,  //
-                               __INTEL_LLVM_COMPILER % 100))
-    #endif
-      ;
-#elif defined(__e2k__) && defined(__LCC__)
+      .append("MCST LCC E2K ")
+      .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__));
+#elif defined(__LCC__)                      // MCST LCC
     compiler  //
       .append("MCST LCC ")
       .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__));
