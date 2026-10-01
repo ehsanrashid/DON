@@ -86,7 +86,7 @@ struct NetworkOutput final {
 
 struct NetworkTrace final {
    public:
-    Array<NetworkOutput, LAYER_STACKS> netOut;
+    Array<NetworkOutput, LAYER_STACKS> nnue;
     usize                              correctBucket;
 };
 
