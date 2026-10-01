@@ -1260,8 +1260,7 @@ Value Worker::search(Position&    pos,
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.legal(move));
-            assert(pos.capture_promo(move)
-                   && (move == ttd.move || pos.see(move) >= probCutThreshold));
+            assert(move == ttd.move || pos.see(move) >= probCutThreshold);
 
             // Check for exclusion
             if (move == excludedMove)
@@ -1275,7 +1274,9 @@ Value Worker::search(Position&    pos,
                     continue;
             }
 
-            do_move(pos, move, st, ss);
+            assert(pos.capture_promo(move));
+
+            do_move(pos, move, st, ss, true);
 
             // Perform a preliminary qsearch to verify that the move holds
             Value probCutValue = -qsearch<false>(pos, ss + 1, -probCutBeta, -probCutBeta + 1);
@@ -1374,9 +1375,9 @@ Value Worker::search(Position&    pos,
 
         const Piece movedPc = pos.moved_pc(move);
 
-        const bool check      = pos.check(move);
         const bool capture    = pos.capture_promo(move);
         const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
+        const bool check      = pos.check(move);
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
@@ -1566,7 +1567,7 @@ Value Worker::search(Position&    pos,
         }
 
         // Step 17. Make the move
-        do_move(pos, move, st, ss, check);
+        do_move(pos, move, st, ss, capture, check);
 
         assert(capturedPt == type_of(pos.captured_pc()));
 
@@ -2072,13 +2073,12 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         ++moveCount;
 
-        bool check = pos.check(move);
+        const bool capture = pos.capture_promo(move);
+        const bool check   = pos.check(move);
 
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            bool capture = pos.capture_promo(move);
-
             // Futility pruning and moveCount pruning
             if (!check && move.dst_sq() != preSq && move.type() != Move::Type::PROMOTION
                 && !is_loss(baseFutility))
@@ -2118,7 +2118,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         }
 
         // Step 7. Make the move
-        do_move(pos, move, st, ss, check);
+        do_move(pos, move, st, ss, capture, check);
 
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
 
@@ -2189,8 +2189,12 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     return bestValue;
 }
 
-void Worker::do_move(
-  Position& pos, const Move m, State& st, Stack* const ss, const bool mayCheck) noexcept {
+void Worker::do_move(Position&    pos,
+                     const Move   m,
+                     State&       st,
+                     Stack* const ss,
+                     const bool   capture,
+                     const bool   mayCheck) noexcept {
     assert(ss != nullptr);
     // Speculative prefetch as early as possible
     const Key moveKey = pos.move_key(m);
@@ -2205,8 +2209,6 @@ void Worker::do_move(
     prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
-    const bool capture = pos.capture_promo(m);
-
     accStack.push(pos.do_move(m, st, mayCheck, this));
     assert(moveKey == pos.key());
 
@@ -2216,6 +2218,10 @@ void Worker::do_move(
     ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+movedPc][dstSq];
     ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+movedPc][dstSq];
     // clang-format on
+}
+
+void Worker::do_move(Position& pos, const Move m, State& st, Stack* const ss) noexcept {
+    do_move(pos, m, st, ss, pos.capture_promo(m));
 }
 
 void Worker::undo_move(Position& pos, const Move m) noexcept {
