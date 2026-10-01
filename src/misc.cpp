@@ -328,11 +328,11 @@ std::string compiler_info() noexcept {
       .append(".")
       .append(std::to_string(_MSC_BUILD))
     #endif
-#elif defined(__LCC__) && defined(__e2k__)  // MCST LCC targeting E2K
-      .append("MCST LCC E2K ")
-      .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__))
-#elif defined(__LCC__)                      // MCST LCC
-      .append("MCST LCC ")
+#elif defined(__LCC__)
+      .append("MCST LCC ")  // MCST LCC
+    #if defined(__e2k__)
+      .append("E2K ")  // MCST LCC targeting E2K
+    #endif
       .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__))
 #else
       .append("(unknown compiler)")
