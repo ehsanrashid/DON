@@ -282,36 +282,28 @@ std::string version_info() noexcept {
 std::string compiler_info() noexcept {
     // Predefined macros hell:
     //
-    // __GNUC__                Compiler is GCC, Clang or ICX
-    // __clang__               Compiler is Clang or ICX
-    // __INTEL_LLVM_COMPILER   Compiler is ICX
-    // _MSC_VER                Compiler is MSVC
-    // _WIN32                  Building on Windows (any)
-    // _WIN64                  Building on Windows 64 bit
+    // __INTEL_LLVM_COMPILER    Intel oneAPI DPC++/C++ Compiler (ICX)
+    // __INTEL_COMPILER         Intel C++ Compiler (ICC/ICL)
+    // __clang__                Clang-based compiler: Clang or ICX
+    // __GNUC__                 GCC or other GCC-compatible compiler: GCC, Clang or ICX
+    // _MSC_VER                 Microsoft Visual C++ (MSVC)
+    // __LCC__ + __e2k__        MCST LCC compiler targeting E2K
+    // __LCC__                  MCST LCC compiler
+    // __APPLE__                Apple platforms
+    // __CYGWIN__               Cygwin
+    // __MINGW64__              MinGW 64-bit
+    // __MINGW32__              MinGW 32-bit
+    // __ANDROID__              Android
+    // __linux__                Linux
+    // _WIN64                   Windows 64-bit
+    // _WIN32                   Windows (any)
 
     std::string compiler;
     compiler.reserve(256);
 
-    compiler.append("\nCompiled by                : ");
-#if defined(__clang__)
-    compiler  //
-      .append("clang++ ")
-      .append(compiler_version(__clang_major__, __clang_minor__, __clang_patchlevel__));
-#elif defined(__GNUC__)
-    compiler  //
-      .append("g++ (GNUC) ")
-      .append(compiler_version(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__));
-#elif defined(_MSC_VER)
-    compiler  //
-      .append("MSVC ")
-      .append(compiler_version(_MSC_VER / 100, _MSC_VER % 100, _MSC_FULL_VER % 100000))
-    #if defined(_MSC_BUILD)
-      .append(".")
-      .append(std::to_string(_MSC_BUILD))
-    #endif
-      ;
-#elif defined(__INTEL_LLVM_COMPILER)
-    compiler  //
+    compiler
+      .append("\nCompiled by                : ")
+#if defined(__INTEL_LLVM_COMPILER)
       .append("ICX ")
     #if __INTEL_LLVM_COMPILER < 1000000L
       .append(STRINGIFY(__INTEL_LLVM_COMPILER))
@@ -320,111 +312,137 @@ std::string compiler_info() noexcept {
                                (__INTEL_LLVM_COMPILER / 100) % 100,  //
                                __INTEL_LLVM_COMPILER % 100))
     #endif
+#elif defined(__INTEL_COMPILER)
+      .append("ICC/ICL ")
+      .append(compiler_version(__INTEL_COMPILER / 100, __INTEL_COMPILER % 100, 0))
+#elif defined(__clang__)
+      .append("clang++ ")
+      .append(compiler_version(__clang_major__, __clang_minor__, __clang_patchlevel__))
+#elif defined(__GNUC__)
+      .append("g++ (GNUC) ")
+      .append(compiler_version(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__))
+#elif defined(_MSC_VER)
+      .append("MSVC ")
+      .append(compiler_version(_MSC_VER / 100, _MSC_VER % 100, _MSC_FULL_VER % 100000))
+    #if defined(_MSC_BUILD)
+      .append(".")
+      .append(std::to_string(_MSC_BUILD))
+    #endif
+#elif defined(__LCC__)
+      .append("MCST LCC ")  // MCST LCC
+    #if defined(__e2k__)
+      .append("E2K ")  // MCST LCC targeting E2K
+    #endif
+      .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__))
+#else
+      .append("(unknown compiler)")
+#endif
       ;
-#elif defined(__e2k__) && defined(__LCC__)
-    compiler  //
-      .append("MCST LCC ")
-      .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__));
-#else
-    compiler.append("(unknown compiler)");
-#endif
 
-    compiler.append("\nCompiled on                : ");
+    compiler
+      .append("\nCompiled on                : ")
 #if defined(__APPLE__)
-    compiler.append("Apple");
+      .append("Apple")
 #elif defined(__CYGWIN__)
-    compiler.append("Cygwin");
+      .append("Cygwin")
 #elif defined(__MINGW64__)
-    compiler.append("MinGW64");
+      .append("MinGW64")
 #elif defined(__MINGW32__)
-    compiler.append("MinGW32");
+      .append("MinGW32")
 #elif defined(__ANDROID__)
-    compiler.append("Android");
+      .append("Android")
 #elif defined(__linux__)
-    compiler.append("Linux");
+      .append("Linux")
 #elif defined(_WIN64)
-    compiler.append("Microsoft Windows 64-bit");
+      .append("Microsoft Windows 64-bit")
 #elif defined(_WIN32)
-    compiler.append("Microsoft Windows 32-bit");
+      .append("Microsoft Windows 32-bit")
 #else
-    compiler.append("(unknown system)");
+      .append("(unknown system)")
 #endif
+      ;
 
-    compiler.append("\nCompilation architecture   : ");
+    compiler
+      .append("\nCompilation architecture   : ")
 #if defined(ARCH)
-    compiler.append(ARCH);
+      .append(ARCH)
 #else
-    compiler.append("(unknown architecture)");
+      .append("(unknown architecture)")
 #endif
+      ;
 
-    compiler.append("\nCompilation settings       : ");
+    compiler
+      .append("\nCompilation settings       : ")
 #if defined(IS_64BIT)
-    compiler.append("64-bit");
+      .append("64-bit")
 #else
-    compiler.append("32-bit");
+      .append("32-bit")
 #endif
 #if defined(USE_AVX512ICL)
-    compiler.append(" AVX-512-ICL");
+      .append(" AVX-512-ICL")
 #endif
 #if defined(USE_AVXVNNI)
-    compiler.append(" AVX-VNNI");
+      .append(" AVX-VNNI")
 #endif
 #if defined(USE_VNNI)
-    compiler.append(" VNNI");
+      .append(" VNNI")
 #endif
 #if defined(USE_AVX512)
-    compiler.append(" AVX-512");
+      .append(" AVX-512")
 #endif
 #if defined(USE_BMI2)
-    compiler.append(" BMI2");
+      .append(" BMI2")
     #if defined(USE_CMP)
-    compiler.append("-CMP");
+      .append("-CMP")
     #endif
 #endif
 #if defined(USE_AVX2)
-    compiler.append(" AVX2");
+      .append(" AVX2")
 #endif
 #if defined(USE_SSE41)
-    compiler.append(" SSE4.1");
+      .append(" SSE4.1")
 #endif
 #if defined(USE_SSSE3)
-    compiler.append(" SSSE3");
+      .append(" SSSE3")
 #endif
 #if defined(USE_SSE2)
-    compiler.append(" SSE2");
+      .append(" SSE2")
 #endif
 #if defined(USE_LASX)
-    compiler.append(" LASX");
+      .append(" LASX")
 #endif
 #if defined(USE_LSX)
-    compiler.append(" LSX");
+      .append(" LSX")
 #endif
 #if defined(USE_NEON_DOTPROD)
-    compiler.append(" NEON-DOTPROD");
+      .append(" NEON-DOTPROD")
 #endif
 #if defined(USE_NEON)
-    compiler.append(" NEON");
+      .append(" NEON")
 #endif
 #if defined(USE_RVV)
-    compiler.append(" RVV");
+      .append(" RVV")
 #endif
 #if defined(USE_POPCNT)
-    compiler.append(" POPCNT");
+      .append(" POPCNT")
 #endif
 #if defined(NO_TABLEBASES)
-    compiler.append(" NO-TABLEBASES");
+      .append(" NO-TABLEBASES")
 #endif
 
 #if !defined(NDEBUG)
-    compiler.append(" DEBUG");
+      .append(" DEBUG")
 #endif
+      ;
 
-    compiler.append("\nCompiler __VERSION__ macro : ");
+    compiler
+      .append("\nCompiler __VERSION__ macro : ")
 #if defined(__VERSION__)
-    compiler.append(__VERSION__);
+      .append(__VERSION__)
 #else
-    compiler.append("(unknown macro)");
+      .append("(unknown macro)")
 #endif
+      ;
 
     return compiler;
 }
