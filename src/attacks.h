@@ -246,42 +246,20 @@ struct Magic final {
 
 #endif
 
-template<Color C>
-constexpr Bitboard pawn_push_bb(const Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
+// Returns the squares pushed by pawns of the given color from the given bitboard
+ALWAYS_INLINE constexpr Bitboard pawn_push_bb(const Color c, const Bitboard pawns) noexcept {
+    assert(is_ok(c) && "Invalid color for pawn_push_bb()");
 
-    return shift_bb<pawn_spush(C)>(pawns);
-}
-constexpr Bitboard pawn_push_bb(const Bitboard pawns, const Color c) noexcept {
-    assert(is_ok(c));
-
-    return c == WHITE ? pawn_push_bb<WHITE>(pawns) : pawn_push_bb<BLACK>(pawns);
+    return shift_bb(pawn_spush(c), pawns);
 }
 
 // Returns the squares attacked by pawns of the given color from the given bitboard
-template<Color C>
-constexpr Bitboard pawn_attacks_bb(const Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
+ALWAYS_INLINE constexpr Bitboard pawn_attacks_bb(const Color c, const Bitboard pawns) noexcept {
+    assert(is_ok(c) && "Invalid color for pawn_attacks_bb()");
 
-    return shift_bb<(C == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_WEST)>(pawns)
-         | shift_bb<(C == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_EAST)>(pawns);
-}
-constexpr Bitboard pawn_attacks_bb(const Bitboard pawns, const Color c) noexcept {
-    assert(is_ok(c));
-
-    return c == WHITE ? pawn_attacks_bb<WHITE>(pawns) : pawn_attacks_bb<BLACK>(pawns);
-}
-
-template<Color C>
-constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_push_attacks_bb()");
-
-    return pawn_push_bb<C>(pawns) | pawn_attacks_bb<C>(pawns);
-}
-constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns, const Color c) noexcept {
-    assert(is_ok(c));
-
-    return c == WHITE ? pawn_push_attacks_bb<WHITE>(pawns) : pawn_push_attacks_bb<BLACK>(pawns);
+    return c == WHITE
+           ? shift_bb(Direction::NORTH_WEST, pawns) | shift_bb(Direction::NORTH_EAST, pawns)
+           : shift_bb(Direction::SOUTH_WEST, pawns) | shift_bb(Direction::SOUTH_EAST, pawns);
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr noexcept {
@@ -291,8 +269,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr no
     {
         const Bitboard fileBB  = file_bb(s);
         const Bitboard filesBB = fileBB                             //
-                               | shift_bb<Direction::EAST>(fileBB)  //
-                               | shift_bb<Direction::WEST>(fileBB);
+                               | shift_bb(Direction::EAST, fileBB)  //
+                               | shift_bb(Direction::WEST, fileBB);
         pawnPairBBs[s]         = filesBB & ~PROMOTION_RANKS_BB & ~square_bb(s);
     }
 
@@ -302,7 +280,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr no
 // Returns the squares that can host a pawn forming a "pawn pair" with a pawn on s.
 // own file plus adjacent files, restricted to ranks 2-7, excluding s.
 // The geometry is color-independent.
-constexpr Bitboard pawn_pair_bb(const Square s) noexcept {
+ALWAYS_INLINE constexpr Bitboard pawn_pair_bb(const Square s) noexcept {
     assert(is_ok(s));
 
     return PAWN_PAIR_BBS[s];
@@ -310,7 +288,8 @@ constexpr Bitboard pawn_pair_bb(const Square s) noexcept {
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-constexpr Bitboard destination_bb(const Square s, const Direction d, const u8 dist = 1) noexcept {
+ALWAYS_INLINE constexpr Bitboard
+destination_bb(const Square s, const Direction d, const u8 dist = 1) noexcept {
     assert(is_ok(s));
 
     Square destSq = s + d;
@@ -319,7 +298,7 @@ constexpr Bitboard destination_bb(const Square s, const Direction d, const u8 di
 }
 
 template<typename... Directions>
-constexpr Bitboard ray_bb(const Square s, const Directions... ds) noexcept {
+ALWAYS_INLINE constexpr Bitboard ray_bb(const Square s, const Directions... ds) noexcept {
     static_assert((std::is_same_v<Directions, Direction> && ...),
                   "All arguments must be Direction");
 
@@ -337,7 +316,7 @@ constexpr Bitboard ray_bb(const Square s, const Directions... ds) noexcept {
     return rayBB;
 }
 
-constexpr Bitboard knight_attacks_bb(const Square s) noexcept {
+ALWAYS_INLINE constexpr Bitboard knight_attacks_bb(const Square s) noexcept {
     assert(is_ok(s));
 
     constexpr Array<Direction, 8> Directions{
@@ -355,7 +334,7 @@ constexpr Bitboard knight_attacks_bb(const Square s) noexcept {
     return attacksBB;
 }
 
-constexpr Bitboard king_attacks_bb(const Square s) noexcept {
+ALWAYS_INLINE constexpr Bitboard king_attacks_bb(const Square s) noexcept {
     assert(is_ok(s));
 
     constexpr Array<Direction, 8> Directions{
@@ -372,9 +351,9 @@ constexpr Bitboard king_attacks_bb(const Square s) noexcept {
 }
 
 // Computes sliding attack
-template<PieceType PT>
-constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB = 0) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
+constexpr Bitboard
+sliding_attacks_bb(const PieceType pt, const Square s, const Bitboard occupancyBB = 0) noexcept {
+    assert((pt == BISHOP || pt == ROOK) && "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
 
     constexpr Array<Direction, 2, 4> Directions{{
@@ -384,7 +363,7 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions[PT - BISHOP])
+    for (const Direction d : Directions[pt - BISHOP])
         for (Square sq = s; Bitboard destBB = destination_bb(sq, d); sq += d)
         {
             attacksBB |= destBB;
@@ -396,18 +375,25 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
     return attacksBB;
 }
 
-template<PieceType PT>
-constexpr Bitboard pseudo_attacks_bb_(const Square s) noexcept {
-    if constexpr (PT == KNIGHT)
+ALWAYS_INLINE constexpr Bitboard pseudo_attacks_bb_(const PieceType pt, const Square s) noexcept {
+    assert(pt != PAWN);
+    assert(is_ok(s));
+
+    switch (pt)
+    {
+    case KNIGHT :
         return knight_attacks_bb(s);
-    if constexpr (PT == BISHOP)
-        return sliding_attacks_bb<BISHOP>(s, 0);
-    if constexpr (PT == ROOK)
-        return sliding_attacks_bb<ROOK>(s, 0);
-    if constexpr (PT == QUEEN)
-        return pseudo_attacks_bb_<BISHOP>(s) | pseudo_attacks_bb_<ROOK>(s);
-    if constexpr (PT == KING)
+    case BISHOP :
+        return sliding_attacks_bb(BISHOP, s, 0);
+    case ROOK :
+        return sliding_attacks_bb(ROOK, s, 0);
+    case QUEEN :
+        return sliding_attacks_bb(BISHOP, s, 0) | sliding_attacks_bb(ROOK, s, 0);
+    case KING :
         return king_attacks_bb(s);
+    default :;
+    }
+
     assert(false);
     UNREACHABLE();
     return 0;
@@ -418,85 +404,24 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constex
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        pseudoAttacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
-        pseudoAttacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
-        pseudoAttacksBBs[s][KNIGHT] = pseudo_attacks_bb_<KNIGHT>(s);
-        pseudoAttacksBBs[s][BISHOP] = pseudo_attacks_bb_<BISHOP>(s);
-        pseudoAttacksBBs[s][ROOK]   = pseudo_attacks_bb_<ROOK>(s);
+        pseudoAttacksBBs[s][WHITE]  = pawn_attacks_bb(WHITE, square_bb(s));
+        pseudoAttacksBBs[s][BLACK]  = pawn_attacks_bb(BLACK, square_bb(s));
+        pseudoAttacksBBs[s][KNIGHT] = pseudo_attacks_bb_(KNIGHT, s);
+        pseudoAttacksBBs[s][BISHOP] = pseudo_attacks_bb_(BISHOP, s);
+        pseudoAttacksBBs[s][ROOK]   = pseudo_attacks_bb_(ROOK, s);
         pseudoAttacksBBs[s][QUEEN]  = pseudoAttacksBBs[s][BISHOP] | pseudoAttacksBBs[s][ROOK];
-        pseudoAttacksBBs[s][KING]   = pseudo_attacks_bb_<KING>(s);
+        pseudoAttacksBBs[s][KING]   = pseudo_attacks_bb_(KING, s);
     }
 
     return pseudoAttacksBBs;
 }();
 
-template<u8 Idx>
-constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
-    assert(is_ok(s));
-
-    return PSEUDO_ATTACKS_BBS[s][Idx];
-}
-
 // Returns the pseudo attacks of the given piece type assuming an empty board
-template<PieceType PT>
-constexpr Bitboard pseudo_attacks_bb(const Square s, [[maybe_unused]] const Color c) noexcept {
-    static_assert(is_ok(PT), "Unsupported piece type in pseudo_attacks_bb()");
-    assert(is_ok(s) && (PT != PAWN || is_ok(c)));
-
-    if constexpr (PT == PAWN)
-        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
-
-    return pseudo_attacks_bb<PT>(s);
-}
-
-constexpr Bitboard
-pseudo_attacks_bb(const Square s, PieceType pt, [[maybe_unused]] const Color c = NONE) noexcept {
-    assert(is_ok(pt) && "Unsupported piece type in pseudo_attacks_bb()");
-    assert(is_ok(s) && (pt != PAWN || is_ok(c)));
-
-    switch (pt)
-    {
-    case PAWN :
-        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
-    case KNIGHT :
-        return pseudo_attacks_bb<KNIGHT>(s);
-    case BISHOP :
-        return pseudo_attacks_bb<BISHOP>(s);
-    case ROOK :
-        return pseudo_attacks_bb<ROOK>(s);
-    case QUEEN :
-        return pseudo_attacks_bb<QUEEN>(s);
-    case KING :
-        return pseudo_attacks_bb<KING>(s);
-    default :;
-    }
-    assert(false);
-    UNREACHABLE();
-    return 0;
-}
-
-constexpr Bitboard pseudo_attacks_bb(const Square s, const Piece pc) noexcept {
+ALWAYS_INLINE constexpr Bitboard pseudo_attacks_bb(const u8 idx, const Square s) noexcept {
     assert(is_ok(s));
+    assert(idx < PSEUDO_ATTACKS_BBS[s].size());
 
-    switch (type_of(pc))
-    {
-    case PAWN :
-        return pseudo_attacks_bb<PAWN>(s, color_of(pc));
-    case KNIGHT :
-        return pseudo_attacks_bb<KNIGHT>(s);
-    case BISHOP :
-        return pseudo_attacks_bb<BISHOP>(s);
-    case ROOK :
-        return pseudo_attacks_bb<ROOK>(s);
-    case QUEEN :
-        return pseudo_attacks_bb<QUEEN>(s);
-    case KING :
-        return pseudo_attacks_bb<KING>(s);
-    default :;
-    }
-    assert(false);
-    UNREACHABLE();
-    return 0;
+    return PSEUDO_ATTACKS_BBS[s][idx];
 }
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
@@ -509,7 +434,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto RANK_ATTACKS = []() constexpr noe
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (u16 occ6 = 0; occ6 < 64; ++occ6)
-            rankAttacks[f][occ6] = u8(sliding_attacks_bb<ROOK>(Square(f), Bitboard{occ6} << 1));
+            rankAttacks[f][occ6] = u8(sliding_attacks_bb(ROOK, Square(f), Bitboard{occ6} << 1));
 
     return rankAttacks;
 }();
@@ -533,100 +458,72 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto DUAL_MAGICS = []() constexpr noex
     return dualMagics;
 }();
 
-constexpr const DualMagic& dual_magic(const Square s) { return DUAL_MAGICS[s]; }
+ALWAYS_INLINE constexpr const DualMagic& dual_magic(const Square s) { return DUAL_MAGICS[s]; }
 
 #else
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
-template<PieceType PT>
-constexpr const Magic& magic(const Square s) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in magic()");
+ALWAYS_INLINE constexpr const Magic& magic(const PieceType pt, const Square s) noexcept {
+    assert((pt == BISHOP || pt == ROOK) && "Unsupported piece type in magic()");
     assert(is_ok(s));
 
-    return MAGICS[s][PT - BISHOP];
+    return MAGICS[s][pt - BISHOP];
 }
 
 #endif
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue past an occupied square.
-template<PieceType PT>
-constexpr Bitboard attacks_bb(const Square                    s,
-                              [[maybe_unused]] const Bitboard occupancyBB) noexcept {
-    static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
-    assert(is_ok(s));
-
-    if constexpr (PT == KNIGHT)
-        return pseudo_attacks_bb<KNIGHT>(s);
-    if constexpr (PT == KING)
-        return pseudo_attacks_bb<KING>(s);
-
-#if defined(USE_DUAL_HYPERBOLA_QUINT)
-    [[maybe_unused]] const auto [bAttacksBB, rAttacksBB] =
-      dual_magic(s).attacks_bb_pair(occupancyBB);
-
-    if constexpr (PT == BISHOP)
-        return bAttacksBB;
-    if constexpr (PT == ROOK)
-        return rAttacksBB;
-    if constexpr (PT == QUEEN)
-        return bAttacksBB | rAttacksBB;
-#else
-    if constexpr (PT == BISHOP || PT == ROOK)
-        return magic<PT>(s).attacks_bb(s, occupancyBB);
-    if constexpr (PT == QUEEN)
-        return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
-#endif
-
-    assert(false);
-    UNREACHABLE();
-    return 0;
-}
-
-// Returns the attacks by the given piece type.
-// Sliding piece attacks do not continue past an occupied square.
-constexpr Bitboard
-attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexcept {
+ALWAYS_INLINE constexpr Bitboard
+attacks_bb(const PieceType pt, const Square s, const Bitboard occupancyBB = 0) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
 
+    if (pt == KNIGHT || pt == KING)
+        return pseudo_attacks_bb(pt, s);
+
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+    const auto [bAttacksBB, rAttacksBB] = dual_magic(s).attacks_bb_pair(occupancyBB);
+
     switch (pt)
     {
-    case KNIGHT :
-        return pseudo_attacks_bb<KNIGHT>(s);
     case BISHOP :
-        return attacks_bb<BISHOP>(s, occupancyBB);
+        return bAttacksBB;
     case ROOK :
-        return attacks_bb<ROOK>(s, occupancyBB);
+        return rAttacksBB;
     case QUEEN :
-        return attacks_bb<QUEEN>(s, occupancyBB);
-    case KING :
-        return pseudo_attacks_bb<KING>(s);
+        return bAttacksBB | rAttacksBB;
     default :;
     }
+#else
+    switch (pt)
+    {
+    case BISHOP :
+    case ROOK :
+        return magic(pt, s).attacks_bb(s, occupancyBB);
+    case QUEEN :
+        return magic(BISHOP, s).attacks_bb(s, occupancyBB)
+             | magic(ROOK, s).attacks_bb(s, occupancyBB);
+    default :;
+    }
+#endif
+
     assert(false);
     UNREACHABLE();
     return 0;
 }
 
-constexpr Bitboard attacks_bb(const Square s, const Piece pc, const Bitboard occupancyBB) noexcept {
-    assert(is_ok(s));
-
-    return type_of(pc) == PAWN ? pseudo_attacks_bb<PAWN>(s, color_of(pc))
-                               : attacks_bb(s, type_of(pc), occupancyBB);
+ALWAYS_INLINE constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square s) noexcept {
+    return {pseudo_attacks_bb(BISHOP, s), pseudo_attacks_bb(ROOK, s)};
 }
 
-constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square s) noexcept {
-    return {pseudo_attacks_bb<BISHOP>(s), pseudo_attacks_bb<ROOK>(s)};
-}
-
-inline std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square   s,
-                                                     const Bitboard occupancyBB) noexcept {
+ALWAYS_INLINE std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square   s,
+                                                            const Bitboard occupancyBB) noexcept {
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
     return dual_magic(s).attacks_bb_pair(occupancyBB);
 #else
-    return {attacks_bb<BISHOP>(s, occupancyBB), attacks_bb<ROOK>(s, occupancyBB)};
+    return {attacks_bb(BISHOP, s, occupancyBB), attacks_bb(ROOK, s, occupancyBB)};
 #endif
 }
 
@@ -636,8 +533,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBS = []() constexpr noexcep
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
-                if ((pseudo_attacks_bb(s1, pt) & s2) != 0)
-                    lineBBs[s1][s2] = (pseudo_attacks_bb(s1, pt) & pseudo_attacks_bb(s2, pt))
+                if ((pseudo_attacks_bb(pt, s1) & s2) != 0)
+                    lineBBs[s1][s2] = (pseudo_attacks_bb(pt, s1) & pseudo_attacks_bb(pt, s2))
                                     | square_bb(s1) | square_bb(s2);
 
     return lineBBs;
@@ -647,14 +544,14 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBS = []() constexpr noexcep
 // passing through the squares s1 and s2.
 // If the given squares are not on a same file/rank/diagonal, it returns 0.
 // For instance, line_bb(SQ_C4, SQ_F7) will return bitboard with the A2-G8 diagonal.
-constexpr Bitboard line_bb(const Square s1, const Square s2) noexcept {
+ALWAYS_INLINE constexpr Bitboard line_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return LINE_BBS[s1][s2];
 }
 
 // Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
-constexpr bool aligned(const Square s1, const Square s2, const Square s3) noexcept {
+ALWAYS_INLINE constexpr bool aligned(const Square s1, const Square s2, const Square s3) noexcept {
     assert(is_ok(s3));
 
     return (line_bb(s1, s2) & s3) != 0;
@@ -669,21 +566,21 @@ alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> BETWEEN_BB
 // but between_bb(SQ_E6, SQ_F8) will return bitboard with the square F8.
 // This trick allows to generate non-king evasion moves faster:
 // the defending piece must either interpose itself to cover the check or capture the checking piece.
-constexpr Bitboard between_bb(const Square s1, const Square s2) noexcept {
+ALWAYS_INLINE constexpr Bitboard between_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return BETWEEN_BBS[s1][s2];
 }
 
 // Returns bitboard between the squares s1 and s2 (excluding s1 and s2).
-constexpr Bitboard between_ex_bb(const Square s1, const Square s2) noexcept {
+ALWAYS_INLINE constexpr Bitboard between_ex_bb(const Square s1, const Square s2) noexcept {
     return between_bb(s1, s2) ^ s2;
 }
 
 alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBS;
 
 // Returns bitboard representing the ray starting at s1 passing through s2.
-constexpr Bitboard pass_ray_bb(const Square s1, const Square s2) noexcept {
+ALWAYS_INLINE constexpr Bitboard pass_ray_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return PASS_RAY_BBS[s1][s2];

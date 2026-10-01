@@ -429,8 +429,6 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
         while (std::getline(ifs, fen))
             if (!is_whitespace(fen))
                 fens.emplace_back(fen);
-
-        ifs.close();
     }
 
     Strings commands;

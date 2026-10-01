@@ -20,6 +20,7 @@
 #include "half_ka_hm.h"
 
 #include <array>
+#include <initializer_list>
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
@@ -34,13 +35,29 @@ namespace DON::NNUE::Features {
 
 namespace {
 
+alignas(64) static constexpr auto OFFSETS = []() constexpr noexcept {
+    Array<u16, COLOR_NB * SQUARE_NB, PIECE_NB> offsets{};
+
+    for (const Color c : {WHITE, BLACK})
+    {
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        {
+            const u16 flip   = 56 * c;
+            const u16 orient = relative_sq(c, HalfKAHm::orientation(s));
+            for (usize pieceIndex = 0; pieceIndex < PIECE_NB; ++pieceIndex)
+                offsets[c * SQUARE_NB + s][pieceIndex] = HalfKAHm::PieceSquareIndices[c][pieceIndex]
+                                                       + HalfKAHm::KingBuckets[u8(s) ^ flip]
+                                                       + orient;
+        }
+    }
+
+    return offsets;
+}();
+
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE constexpr Index
 make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
-    const u8 relOrientation = relative_sq(perspective, HalfKAHm::orientation(kingSq));
-    return (static_cast<u8>(s) ^ relOrientation)             //
-         + HalfKAHm::PIECE_SQUARE_INDICES[perspective][+pc]  //
-         + HalfKAHm::KING_BUCKETS[relative_sq(perspective, kingSq)];
+    return Index(s) ^ OFFSETS[perspective * SQUARE_NB + kingSq][+pc];
 }
 
 }  // namespace
@@ -57,7 +74,7 @@ void HalfKAHm::append_map_changed_indices(const Color     perspective,
     const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
     const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
 
-    // PIECE_SQUARE_INDICES and KING_BUCKETS are multiples of 64,
+    // PieceSquareIndices and KingBuckets are multiples of 64,
     // while s and orient use only the low six bits.
     // Therefore no carry crosses bit 6, and
     // (s ^ orient) + psi[pc] + bucket == s ^ (psi[pc] + bucket + orient),
@@ -66,8 +83,8 @@ void HalfKAHm::append_map_changed_indices(const Color     perspective,
     const u16 orient = static_cast<u16>(orientation(kingSq)) ^ flip;
 
     // clang-format off
-    const __m512i psi       = _mm512_castsi256_si512(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(PIECE_SQUARE_INDICES[perspective].data())));
-    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(static_cast<u16>(KING_BUCKETS[static_cast<u8>(kingSq) ^ flip] + orient)));
+    const __m512i psi       = _mm512_castsi256_si512(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(PieceSquareIndices[perspective].data())));
+    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(static_cast<u16>(KingBuckets[static_cast<u8>(kingSq) ^ flip] + orient)));
 
     __m512i removedSquares = _mm512_maskz_compress_epi8(removedBB, ALL_SQUARES);
     __m512i removedPieces  = _mm512_maskz_compress_epi8(removedBB, oldPieceVec);

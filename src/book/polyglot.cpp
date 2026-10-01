@@ -512,8 +512,6 @@ bool PolyGlot::load(const fs::path& bookPath) noexcept {
         //DEBUG_LOG("Failed to read complete Book file " << filename);
     }
 
-    ifs.close();
-
     if (IS_LITTLE_ENDIAN)
         for (usize i = 0; i < entries.size(); ++i)
             swap_entry(&entries[i]);

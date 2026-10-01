@@ -1900,7 +1900,7 @@ void init() noexcept {
             if (A1D1D4Map[s1] == idx && (idx != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
-                    if (((Attacks::pseudo_attacks_bb<KING>(s1) | s1) & s2) != 0)
+                    if (((Attacks::pseudo_attacks_bb(KING, s1) | s1) & s2) != 0)
                         continue;  // Illegal position
 
                     else if (off_A1H8(s1) == 0 && off_A1H8(s2) > 0)

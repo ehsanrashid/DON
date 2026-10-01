@@ -172,7 +172,7 @@ class Thread final {
 // Schedule a job to be executed by this thread.
 // This function blocks only until the thread is ready to accept a new job.
 // The actual job execution happens asynchronously in idle_func().
-inline void Thread::run_custom_job(const JobFunc jobFn) noexcept {
+ALWAYS_INLINE void Thread::run_custom_job(const JobFunc jobFn) noexcept {
 
     std::unique_lock uniqueLock{mutex};
 
@@ -198,21 +198,21 @@ inline void Thread::run_custom_job(const JobFunc jobFn) noexcept {
 }
 
 // Wakes up the thread that will reset the worker
-inline void Thread::reset() noexcept {
+ALWAYS_INLINE void Thread::reset() noexcept {
     assert(worker != nullptr);
 
     run_custom_job([this]() { worker->reset(); });
 }
 
 // Wakes up the thread that will start the search on worker
-inline void Thread::start_search() noexcept {
+ALWAYS_INLINE void Thread::start_search() noexcept {
     assert(worker != nullptr);
 
     run_custom_job([this]() { worker->start_search(); });
 }
 
 // Blocks on the condition variable until the thread has finished job
-inline void Thread::wait_finish() noexcept {
+ALWAYS_INLINE void Thread::wait_finish() noexcept {
     std::unique_lock uniqueLock{mutex};
 
     condVar.wait(uniqueLock, [this]() noexcept -> bool { return !busy || dead; });
@@ -424,9 +424,9 @@ class Threads final {
     std::vector<NumaIndex>    threadBoundNumaNodes;
 };
 
-inline Threads::~Threads() noexcept { destroy(); }
+ALWAYS_INLINE Threads::~Threads() noexcept { destroy(); }
 
-inline void Threads::destroy() noexcept {
+ALWAYS_INLINE void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main-thread
     {
@@ -451,7 +451,7 @@ inline void Threads::destroy() noexcept {
     threadBoundNumaNodes.clear();
 }
 
-inline void Threads::reset() const noexcept {
+ALWAYS_INLINE void Threads::reset() const noexcept {
     if (empty())
         return;
 
@@ -464,13 +464,13 @@ inline void Threads::reset() const noexcept {
         manager->reset();
 }
 
-inline Thread* Threads::main_thread() const noexcept {
+ALWAYS_INLINE Thread* Threads::main_thread() const noexcept {
     std::shared_lock sharedLock{mutex};
 
     return !threads.empty() ? threads.front().get() : nullptr;
 }
 
-inline Manager* Threads::manager() const noexcept {
+ALWAYS_INLINE Manager* Threads::manager() const noexcept {
     std::shared_lock sharedLock{mutex};
 
     // Access the main thread directly because main_thread() would lock mutex again.
@@ -480,15 +480,15 @@ inline Manager* Threads::manager() const noexcept {
            : nullptr;
 }
 
-inline void Threads::start_search() const noexcept {
+ALWAYS_INLINE void Threads::start_search() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->start_search(); }, false);  // skip main
 }
 
-inline void Threads::wait_finish() const noexcept {
+ALWAYS_INLINE void Threads::wait_finish() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); }, false);  // skip main
 }
 
-inline void Threads::ensure_network_replicated() const noexcept {
+ALWAYS_INLINE void Threads::ensure_network_replicated() const noexcept {
     for_each_thread([](const Thread* th) noexcept { th->ensure_network_replicated(); });
 }
 

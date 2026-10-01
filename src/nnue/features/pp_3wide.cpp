@@ -78,7 +78,7 @@ ALWAYS_INLINE __m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
 void PP3Wide::append_active_indices(const Color     perspective,
                                     const Position& pos,
                                     IndexList&      active) noexcept {
-    const Square   kingSq   = pos.square<KING>(perspective);
+    const Square   kingSq   = pos.square(perspective, KING);
     const Bitboard wPawnsBB = pos.pieces_bb(WHITE, PAWN);
     const Bitboard bPawnsBB = pos.pieces_bb(BLACK, PAWN);
 

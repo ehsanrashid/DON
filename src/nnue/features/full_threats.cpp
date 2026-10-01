@@ -77,9 +77,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 threatTable.squareOffsets[+pc][s] = threatCount;
 
                 if (pt != PAWN)
-                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(s, pt));
+                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(pt, s));
                 else if (SQ_A2 <= s && s <= SQ_H7)
-                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb<PAWN>(s, c));
+                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(c, s));
             }
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
@@ -166,13 +166,13 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept -> auto {
         {
             const Bitboard s2MaskBB = square_bb(s2) - 1;
             // clang-format off
-            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<WHITE>(s1));
-            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<BLACK>(s1));
-            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<KNIGHT>(s1));
-            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<BISHOP>(s1));
-            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<ROOK>(s1));
-            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<QUEEN>(s1));
-            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb<KING>(s1));
+            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(WHITE, s1));
+            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(BLACK, s1));
+            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(KNIGHT, s1));
+            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(BISHOP, s1));
+            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(ROOK, s1));
+            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(QUEEN, s1));
+            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(KING, s1));
             // clang-format on
         }
 
@@ -238,7 +238,7 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 void FullThreats::append_active_indices(const Color     perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
-    const Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square(perspective, KING);
 
     const Bitboard occupancyBB = pos.pieces_bb();
     const Bitboard pTargetsBB  = pos.pieces_bb(KNIGHT, ROOK);
@@ -255,8 +255,8 @@ void FullThreats::append_active_indices(const Color     perspective,
             const auto lDir = c == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
             const auto rDir = c == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
-            const Bitboard lBB = shift_bb(pawnsBB, lDir) & pTargetsBB;
-            const Bitboard rBB = shift_bb(pawnsBB, rDir) & pTargetsBB;
+            const Bitboard lBB = shift_bb(lDir, pawnsBB) & pTargetsBB;
+            const Bitboard rBB = shift_bb(rDir, pawnsBB) & pTargetsBB;
 
             append_pawn_active_indices(lBB, lDir, perspective, pos, kingSq, attackerPc, active);
             append_pawn_active_indices(rBB, rDir, perspective, pos, kingSq, attackerPc, active);
@@ -273,7 +273,7 @@ void FullThreats::append_active_indices(const Color     perspective,
             {
                 const Square orgSq = pop_lsq(attackerBB);
 
-                Bitboard attacksBB = Attacks::attacks_bb(orgSq, pt, occupancyBB) & targetsBB;
+                Bitboard attacksBB = Attacks::attacks_bb(pt, orgSq, occupancyBB) & targetsBB;
                 while (attacksBB != 0)
                 {
                     const Square dstSq      = pop_lsq(attacksBB);
