@@ -178,12 +178,12 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
             return FENError{side + " has more than 8 pawns."};
         if (count(c, KING) != 1)
             return FENError{side + " has incorrect number of kings."};
-        if (count(c, PAWN)                                                           //
-              + std::max(count(c, KNIGHT) - 2, 0)                                    //
-              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
-              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
-              + std::max(count(c, ROOK) - 2, 0)                                      //
-              + std::max(count(c, QUEEN) - 1, 0)                                     //
+        if (count(c, PAWN)                                                         //
+              + std::max(count(c, KNIGHT) - 2, 0)                                  //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb(WHITE)) - 1, 0)  //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb(BLACK)) - 1, 0)  //
+              + std::max(count(c, ROOK) - 2, 0)                                    //
+              + std::max(count(c, QUEEN) - 1, 0)                                   //
             > 8)
             return FENError{side + " has too many promoted pieces."};
     }
@@ -2087,13 +2087,13 @@ bool Position::is_ok_() const noexcept {
         || popcount(pieces_bb(WHITE)) > 16 || popcount(pieces_bb(BLACK)) > 16)
         assert(false && "Position::is_ok_(): Bitboards");
 
-    for (PieceType p1 : PIECE_TYPES)
-        for (PieceType p2 : PIECE_TYPES)
+    for (const auto p1 : PIECE_TYPES)
+        for (const auto p2 : PIECE_TYPES)
             if (p1 != p2 && (pieces_bb(p1) & pieces_bb(p2)))
                 assert(false && "Position::is_ok_(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
+        for (const auto pt : PIECE_TYPES)
         {
             const Piece pc = make_piece(c, pt);
             if (auto cnt = count(c, pt);
@@ -2103,12 +2103,12 @@ bool Position::is_ok_() const noexcept {
         }
 
     for (Color c : {WHITE, BLACK})
-        if (count(c, PAWN)                                                           //
-              + std::max(count(c, KNIGHT) - 2, 0)                                    //
-              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
-              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
-              + std::max(count(c, ROOK) - 2, 0)                                      //
-              + std::max(count(c, QUEEN) - 1, 0)                                     //
+        if (count(c, PAWN)                                                         //
+              + std::max(count(c, KNIGHT) - 2, 0)                                  //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb(WHITE)) - 1, 0)  //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb(BLACK)) - 1, 0)  //
+              + std::max(count(c, ROOK) - 2, 0)                                    //
+              + std::max(count(c, QUEEN) - 1, 0)                                   //
             > 8)
             assert(false && "Position::is_ok_(): Piece Count");
 

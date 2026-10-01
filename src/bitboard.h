@@ -82,13 +82,12 @@ inline const __m512i ALL_SQUARES = _mm512_set_epi8(
 // clang-format on
 #endif
 
-template<Color C>
-constexpr Bitboard color_bb() noexcept {
-    static_assert(is_ok(C), "Invalid color for color_bb()");
-    return C == WHITE ? WHITE_BB : BLACK_BB;
+ALWAYS_INLINE constexpr Bitboard color_bb(const Color c) noexcept {
+    assert(is_ok(c) && "Invalid color for color_bb()");
+    return c == WHITE ? WHITE_BB : BLACK_BB;
 }
 
-constexpr Bitboard square_bb(Square s) noexcept {
+ALWAYS_INLINE constexpr Bitboard square_bb(const Square s) noexcept {
     assert(is_ok(s));
 
     return (Bitboard{1} << s);
@@ -96,45 +95,77 @@ constexpr Bitboard square_bb(Square s) noexcept {
 
 // Overloads of bitwise operators between bitboard and square for testing
 // whether a given bit is set in bitboard, and for setting and clearing bits.
-constexpr Bitboard  operator&(Bitboard b, Square s) noexcept { return b & square_bb(s); }
-constexpr Bitboard  operator|(Bitboard b, Square s) noexcept { return b | square_bb(s); }
-constexpr Bitboard  operator^(Bitboard b, Square s) noexcept { return b ^ square_bb(s); }
-constexpr Bitboard& operator&=(Bitboard& b, Square s) noexcept { return b &= square_bb(s); }
-constexpr Bitboard& operator|=(Bitboard& b, Square s) noexcept { return b |= square_bb(s); }
-constexpr Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b ^= square_bb(s); }
+ALWAYS_INLINE constexpr Bitboard operator&(const Bitboard b, const Square s) noexcept {
+    return b & square_bb(s);
+}
+ALWAYS_INLINE constexpr Bitboard operator|(const Bitboard b, const Square s) noexcept {
+    return b | square_bb(s);
+}
+ALWAYS_INLINE constexpr Bitboard operator^(const Bitboard b, const Square s) noexcept {
+    return b ^ square_bb(s);
+}
+ALWAYS_INLINE constexpr Bitboard& operator&=(Bitboard& b, const Square s) noexcept {
+    return b &= square_bb(s);
+}
+ALWAYS_INLINE constexpr Bitboard& operator|=(Bitboard& b, const Square s) noexcept {
+    return b |= square_bb(s);
+}
+ALWAYS_INLINE constexpr Bitboard& operator^=(Bitboard& b, const Square s) noexcept {
+    return b ^= square_bb(s);
+}
 
-constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & s; }
-constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | s; }
-constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ s; }
+ALWAYS_INLINE constexpr Bitboard operator&(const Square s, const Bitboard b) noexcept {
+    return b & s;
+}
+ALWAYS_INLINE constexpr Bitboard operator|(const Square s, const Bitboard b) noexcept {
+    return b | s;
+}
+ALWAYS_INLINE constexpr Bitboard operator^(const Square s, const Bitboard b) noexcept {
+    return b ^ s;
+}
 
-constexpr Bitboard operator|(Square s1, Square s2) noexcept {
+ALWAYS_INLINE constexpr Bitboard operator|(const Square s1, const Square s2) noexcept {
     return square_bb(s1) | square_bb(s2);
 }
 
 // Returns bitboard from list of squares
 template<typename... Squares>
-constexpr Bitboard make_bb(Squares... squares) noexcept {
+ALWAYS_INLINE constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
 }
 
 // Return bitboard representing all the squares on the given file
-constexpr Bitboard file_bb(File f) noexcept { return FILE_A_BB << (1 * f); }
-constexpr Bitboard file_bb(Square s) noexcept { return file_bb(file_of(s)); }
+ALWAYS_INLINE constexpr Bitboard file_bb(const File f) noexcept { return FILE_A_BB << (1 * f); }
+ALWAYS_INLINE constexpr Bitboard file_bb(const Square s) noexcept { return file_bb(file_of(s)); }
 
-constexpr Bitboard operator&(Bitboard b, File f) noexcept { return b & file_bb(f); }
-constexpr Bitboard operator|(Bitboard b, File f) noexcept { return b | file_bb(f); }
-constexpr Bitboard operator^(Bitboard b, File f) noexcept { return b ^ file_bb(f); }
+ALWAYS_INLINE constexpr Bitboard operator&(const Bitboard b, const File f) noexcept {
+    return b & file_bb(f);
+}
+ALWAYS_INLINE constexpr Bitboard operator|(const Bitboard b, const File f) noexcept {
+    return b | file_bb(f);
+}
+ALWAYS_INLINE constexpr Bitboard operator^(const Bitboard b, const File f) noexcept {
+    return b ^ file_bb(f);
+}
 
 // Return bitboard representing all the squares on the given rank
-constexpr Bitboard rank_bb(Rank r) noexcept { return RANK_1_BB << (8 * r); }
-constexpr Bitboard rank_bb(Square s) noexcept { return rank_bb(rank_of(s)); }
+ALWAYS_INLINE constexpr Bitboard rank_bb(const Rank r) noexcept { return RANK_1_BB << (8 * r); }
+ALWAYS_INLINE constexpr Bitboard rank_bb(const Square s) noexcept { return rank_bb(rank_of(s)); }
 
-constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r); }
-constexpr Bitboard operator|(Bitboard b, Rank r) noexcept { return b | rank_bb(r); }
-constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r); }
+ALWAYS_INLINE constexpr Bitboard operator&(const Bitboard b, const Rank r) noexcept {
+    return b & rank_bb(r);
+}
+ALWAYS_INLINE constexpr Bitboard operator|(const Bitboard b, const Rank r) noexcept {
+    return b | rank_bb(r);
+}
+ALWAYS_INLINE constexpr Bitboard operator^(const Bitboard b, const Rank r) noexcept {
+    return b ^ rank_bb(r);
+}
 
-constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
-constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
+ALWAYS_INLINE constexpr bool more_than_one(const Bitboard b) noexcept { return (b & (b - 1)) != 0; }
+ALWAYS_INLINE constexpr bool exactly_one(const Bitboard b) noexcept {
+    return b != 0 && !more_than_one(b);
+}
 
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
@@ -168,14 +199,14 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexce
 }();
 
 template<>
-constexpr u8 distance<Square>(const Square s1, const Square s2) noexcept {
+ALWAYS_INLINE constexpr u8 distance<Square>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return DISTANCES[s1][s2];
 }
 
 // Shifts bitboard as specified by the direction
-constexpr Bitboard shift_bb(const Direction d, const Bitboard b) noexcept {
+ALWAYS_INLINE constexpr Bitboard shift_bb(const Direction d, const Bitboard b) noexcept {
     switch (d)
     {
     case Direction::NORTH :
@@ -306,7 +337,7 @@ alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
 #endif
 
 // Counts the number of non-zero bits in the bitboard
-inline u8 popcount(const Bitboard b) noexcept {
+ALWAYS_INLINE u8 popcount(const Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)
     Array<u16, 4> b16;
@@ -326,7 +357,7 @@ inline u8 popcount(const Bitboard b) noexcept {
 }
 
 // Returns the least significant bit in the non-zero bitboard
-inline Square lsq(const Bitboard b) noexcept {
+ALWAYS_INLINE Square lsq(const Bitboard b) noexcept {
     assert(b != 0);
 
 #if defined(__GNUC__)  // GCC, Clang, ICX
@@ -353,7 +384,7 @@ inline Square lsq(const Bitboard b) noexcept {
 }
 
 // Returns the most significant bit in the non-zero bitboard
-inline Square msq(const Bitboard b) noexcept {
+ALWAYS_INLINE Square msq(const Bitboard b) noexcept {
     assert(b != 0);
 
 #if defined(__GNUC__)  // GCC, Clang, ICX

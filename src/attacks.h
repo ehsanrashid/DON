@@ -262,13 +262,6 @@ ALWAYS_INLINE constexpr Bitboard pawn_attacks_bb(const Color c, const Bitboard p
            : shift_bb(Direction::SOUTH_WEST, pawns) | shift_bb(Direction::SOUTH_EAST, pawns);
 }
 
-ALWAYS_INLINE constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns,
-                                                      const Color    c) noexcept {
-    assert(is_ok(c));
-
-    return pawn_push_bb(c, pawns) | pawn_attacks_bb(c, pawns);
-}
-
 alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr noexcept {
     Array<Bitboard, SQUARE_NB> pawnPairBBs{};
 

@@ -693,8 +693,8 @@ ALWAYS_INLINE Piece Position::promoted_pc() const noexcept { return st->promoted
 
 ALWAYS_INLINE bool Position::bishop_paired(const Color c) const noexcept {
     Bitboard bishops = pieces_bb(c, BISHOP);
-    return (bishops & color_bb<WHITE>())  //
-        && (bishops & color_bb<BLACK>());
+    return (bishops & color_bb(WHITE))  //
+        && (bishops & color_bb(BLACK));
 }
 
 ALWAYS_INLINE bool Position::bishop_opposite() const noexcept {
