@@ -31,6 +31,9 @@ TARGET_KERNEL := Linux
 OS := Android
 endif
 
+# Command to find an executable in shell's PATH
+FIND_EXE = $(shell command -v "$(1)" 2>/dev/null)
+
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -45,9 +48,6 @@ $(warning *** WINE_PATH is deprecated; use RUN_PREFIX instead. ***)
 endif
 endif
 endif
-
-# Command to detect an executable in shell's PATH
-FIND_EXE = $(shell command -v "$(1)" 2>/dev/null)
 
 ### Target Windows OS
 IS_WINDOWS := no
@@ -1202,9 +1202,8 @@ endif
 else \
 ifeq ($(COMP),mingw)
 LTO_FLAGS    := -flto -flto-partition=one
-# Use fixed parallel LTO; avoid the jobserver with MinGW.
-# -flto=auto      (unreliable with MinGW's linker)
-# -flto=jobserver (not supported for MinGW)
+# MinGW build deliberately uses fixed LTO parallelism rather than
+# relying on automatic or jobserver-controlled parallelism.
 LTO_LDFLAGS  := -flto=8 -save-temps
 endif
 
