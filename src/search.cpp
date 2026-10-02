@@ -1539,7 +1539,7 @@ Value Worker::search(Position&    pos,
 
                 if (!ss->inCheck && singularValue > ss->evalue)
                 {
-                    int bonus = constexpr_round((singularValue - ss->evalue) * singularDepth * 177.0 / 1024.0);
+                    int bonus = constexpr_round((singularValue - ss->evalue) * 664.0 / 1024.0);
                     bonus     = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
                     update_correction_histories(pos, ss, bonus);
                 }
@@ -2323,10 +2323,10 @@ void Worker::update_histories(const Position&             pos,
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0)
-              + int(bmTT) * 364;
+    int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0);
     if (bonus < 0)
         bonus = 0;
+    bonus += int(bmTT) * 364;
 
     const int malus = std::min(-235 + 968 * depth, +2244);
 
