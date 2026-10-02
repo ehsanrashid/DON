@@ -1539,7 +1539,7 @@ Value Worker::search(Position&    pos,
 
                 if (!ss->inCheck && singularValue > ss->evalue)
                 {
-                    int bonus = constexpr_round((singularValue - ss->evalue) * singularDepth * 177.0 / 1024.0);
+                    int bonus = constexpr_round((singularValue - ss->evalue) * 664.0 / 1024.0);
                     bonus     = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
                     update_correction_histories(pos, ss, bonus);
                 }
