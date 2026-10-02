@@ -2323,10 +2323,10 @@ void Worker::update_histories(const Position&             pos,
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0)
-              + int(bmTT) * 364;
+    int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0);
     if (bonus < 0)
         bonus = 0;
+    bonus += int(bmTT) * 364;
 
     const int malus = std::min(-235 + 968 * depth, +2244);
 
