@@ -125,7 +125,7 @@ void format_cp_aligned_dot(std::ostringstream& oss, const i32 val, const Positio
 // and a table for (PSQT, Layers) values bucket by bucket.
 std::string
 nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& accCache) noexcept {
-    constexpr std::string_view Sep{"+------------+------------+------------+------------+\n"};
+    constexpr std::string_view Sep{"+--------+------------+\n"};
 
     char board[3 * 8 + 1][8 * 8 + 2];
     std::memset(board, ' ', sizeof(board));
@@ -197,19 +197,13 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
     oss << "NNUE network contributions (Normalized, ";
     oss << to_string(pos.active_color()) << " to move):\n";
     oss << Sep;
-    oss << "|   Bucket   |  Material  | Positional |   Total    |\n";
-    oss << "|            |   (PSQT)   |  (Layers)  |            |\n";
+    oss << "| Bucket | Evaluation |\n";
     oss << Sep;
 
     for (usize bucket = 0; bucket < NNUE::LAYER_STACKS; ++bucket)
     {
-        oss << "|  " << bucket << "         |  ";
-        format_cp_aligned_dot(oss, netTrace.nnue[bucket].psqt, pos);
-        oss << "   |  ";
-        format_cp_aligned_dot(oss, netTrace.nnue[bucket].positional, pos);
-        oss << "   |  ";
-        format_cp_aligned_dot(oss, netTrace.nnue[bucket].psqt + netTrace.nnue[bucket].positional,
-                              pos);
+        oss << "|   " << bucket << "    |  ";
+        format_cp_aligned_dot(oss, netTrace.nnue[bucket], pos);
         oss << "   |";
         if (bucket == netTrace.correctBucket)
             oss << " <-- this bucket is used";
@@ -260,20 +254,20 @@ std::string trace(const Position& pos, const NNUE::Network& network) noexcept {
 
     i32 v = network.evaluate(p, *accCache, *accStack);
 
-    output.append("NNUE evaluation      : ")
+    output.append("NNUE evaluation    : ")
       .append(fmt_int(v))
       .append(" (side to move, internal units)\n");
 
     v = p.active_color() == WHITE ? +v : -v;
 
-    output.append("NNUE evaluation      : ")
+    output.append("NNUE evaluation    : ")
       .append(fmt_double(0.01 * to_cp(v, p)))
       .append(" (white side)\n");
 
     v = evaluate(p, network, *accCache, *accStack);
     v = p.active_color() == WHITE ? +v : -v;
 
-    output.append("Final evaluation     : ")
+    output.append("Final evaluation   : ")
       .append(fmt_double(0.01 * to_cp(v, p)))
       .append(" (white side) [with scaled NNUE, ...]\n");
 

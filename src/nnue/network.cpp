@@ -252,15 +252,12 @@ i32 Network::evaluate(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
-    const auto bucket = pos.bucket();
-
     NNZ<L1> nnz;
+    featureTransformer.transform(pos, accCache, accStack, transformedFeatures, nnz);
 
-    const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                         bucket, transformedFeatures, nnz);
-    const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
-
-    return constexpr_round(double(psqt + positional) / OUTPUT_SCALE);
+    const auto bucket = pos.bucket();
+    const auto nnue   = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
+    return constexpr_round(double(nnue) / OUTPUT_SCALE);
 }
 
 NetworkTrace Network::trace(const Position&   pos,
@@ -273,18 +270,15 @@ NetworkTrace Network::trace(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
+    NNZ<L1> nnz;
+    featureTransformer.transform(pos, accCache, accStack, transformedFeatures, nnz);
+
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
     for (Index bucket = 0; bucket < LAYER_STACKS; ++bucket)
     {
-        NNZ<L1> nnz;
-
-        const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                             bucket, transformedFeatures, nnz);
-        const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
-
-        netTrace.nnue[bucket] = {constexpr_round(double(psqt) / OUTPUT_SCALE),
-                                 constexpr_round(double(positional) / OUTPUT_SCALE)};
+        const auto nnue       = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
+        netTrace.nnue[bucket] = constexpr_round(double(nnue) / OUTPUT_SCALE);
     }
 
     return netTrace;
