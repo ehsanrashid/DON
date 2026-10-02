@@ -712,7 +712,9 @@ class Worker final {
     template<bool PVNode>
     Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcept;
 
-    void do_move(Position& pos, Move m, State& st, Stack* ss, bool mayCheck = true) noexcept;
+    void do_move(
+      Position& pos, Move m, State& st, Stack* ss, bool capture, bool mayCheck = true) noexcept;
+    void do_move(Position& pos, Move m, State& st, Stack* ss) noexcept;
     void undo_move(Position& pos, Move m) noexcept;
     void do_null_move(Position& pos, State& st, Stack* ss) noexcept;
     void undo_null_move(Position& pos) const noexcept;
