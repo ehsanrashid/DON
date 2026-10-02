@@ -142,7 +142,11 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == TimeAdjustDefault)
-            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), TimeAdjustMin);
+        {
+            timeAdjust = -0.4126 + 0.2862 * std::log10(remainTime);
+            if (timeAdjust < TimeAdjustMin)
+                timeAdjust = TimeAdjustMin;
+        }
 
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
@@ -155,7 +159,11 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == TimeAdjustDefault)
-            timeAdjust = std::max(-0.4141 + 0.3272 * std::log10(remainTime), TimeAdjustMin);
+        {
+            timeAdjust = -0.4141 + 0.3272 * std::log10(remainTime);
+            if (timeAdjust < TimeAdjustMin)
+                timeAdjust = TimeAdjustMin;
+        }
 
         optimumScale = timeAdjust
                      * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * logScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);

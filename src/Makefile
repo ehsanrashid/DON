@@ -596,12 +596,16 @@ GNU_LD := $(findstring GNU ld,$(LINKER_VERSION))
 ifneq ($(GNU_LD),)
 LDFLAGS  += -Wl,--no-as-needed
 endif
-# Determine GCC-compatible major version for non-Apple Clang
-GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = 'yes' ] && [ "$(CXX_IS_APPLE_CLANG)" = 'no' ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
-# Link std::filesystem explicitly for Linux Clang < 9
+# Determine the GCC-compatible major version reported by the compiler
+GCC_MAJOR = $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
+# Link std::filesystem explicitly for non-Apple Clang < 9
+ifeq ($(CXX_IS_CLANG),yes)
+ifeq ($(CXX_IS_APPLE_CLANG),no)
 ifneq ($(GCC_MAJOR),)
-ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
+ifeq ($(shell expr "$(GCC_MAJOR)" \< 9),1)
 LDLIBS += -lstdc++fs
+endif
+endif
 endif
 endif
 endif
@@ -674,7 +678,7 @@ ifeq ($(TARGET_KERNEL),Linux)
 CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 # Link std::filesystem explicitly for Clang < 11
 ifneq ($(CLANG_MAJOR),)
-ifeq ($(shell expr $(CLANG_MAJOR) \< 11),1)
+ifeq ($(shell expr "$(CLANG_MAJOR)" \< 11),1)
 LDLIBS += -lstdc++fs
 endif
 endif
@@ -876,7 +880,7 @@ ifneq ($(filter clang ndk,$(COMP)),)
 # Determine Clang major version
 CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 ifneq ($(CLANG_MAJOR),)
-ifeq ($(shell expr $(CLANG_MAJOR) \< 16),1)
+ifeq ($(shell expr "$(CLANG_MAJOR)" \< 16),1)
 CXXFLAGS += -fexperimental-new-pass-manager
 endif
 endif
@@ -1192,10 +1196,26 @@ ifeq ($(CXX_IS_CLANG),yes)
 LTO_FLAGS    := -flto=full
 # Native GCC
 else
-LTO_FLAGS    := -flto -flto-partition=one
+# lto-partition=balanced is much faster on multi-core systems and
+# has not been observed to reduce performance for gcc >= 14.
+# It is however not compatible with universal builds.
+LTO_PARTITION := balanced
+ifeq ($(UNIVERSAL_SLICE),true)
+LTO_PARTITION := one
+else \
+ifneq ($(GCC_MAJOR),)
+ifeq ($(shell expr "$(GCC_MAJOR)" \< 14),1)
+LTO_PARTITION := one
+endif
+endif
+LTO_FLAGS := -flto -flto-partition=$(LTO_PARTITION)
+ifeq ($(IS_WINDOWS),yes)
+LTO_JOB_FLAG  = -flto=auto
+else
 LTO_JOBSERVER_AUTH = --jobserver-auth=
 LTO_JOBSERVER = $(filter-out $(LTO_JOBSERVER_AUTH),$(filter $(LTO_JOBSERVER_AUTH)%,$(MAKEFLAGS)))
 LTO_JOB_FLAG  = $(if $(LTO_JOBSERVER),-flto=jobserver,-flto=auto)
+endif
 LTO_LDFLAGS   = $(LTO_JOB_FLAG) -save-temps
 endif
 # MinGW (requires GCC 10.1+ for LTO and static linking)
@@ -1804,7 +1824,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' \
+	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' UNIVERSAL_SLICE=true \
 		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
