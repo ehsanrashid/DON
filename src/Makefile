@@ -1824,7 +1824,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' \
+	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' UNIVERSAL_SLICE=true \
 		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
