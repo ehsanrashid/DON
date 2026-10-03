@@ -684,7 +684,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
     #if defined(MADV_HUGEPAGE)
-        (void) ::madvise(mappedMem, sizeof(T), MADV_HUGEPAGE);
+        ::madvise(mappedMem, sizeof(T), MADV_HUGEPAGE);
     #endif
 
         if (creator)
@@ -693,7 +693,7 @@ class SharedMemory final: public BaseSharedMemory {
             *mappedMem = value;
 
     #if defined(MADV_COLLAPSE)
-            (void) ::madvise(mappedMem, sizeof(T), MADV_COLLAPSE);
+            ::madvise(mappedMem, sizeof(T), MADV_COLLAPSE);
     #endif
         }
 
