@@ -1394,12 +1394,15 @@ Value Position::material() const noexcept {
 }
 
 Value Position::evaluate() const noexcept {
+    const Color ac          = active_color();
+    const Key   materialKey = material_key() ^ (ac == BLACK ? Zobrist_.turn() : Key{0});
     return EvaluateCache.access_or_build_with(  //
-      raw_key(), [this]() noexcept -> Value {
-          const Color ac = active_color();
-          return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
-               + (non_pawn_value(ac) - non_pawn_value(~ac));
-      });
+      materialKey,
+      [this](const Color _ac) noexcept -> Value {
+          return VALUE_PAWN * (count(_ac, PAWN) - count(~_ac, PAWN))
+               + (non_pawn_value(_ac) - non_pawn_value(~_ac));
+      },
+      ac);
 }
 
 Key Position::key() const noexcept { return raw_key() ^ Zobrist_.mr50(rule50_count()); }

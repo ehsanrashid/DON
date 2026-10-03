@@ -111,21 +111,22 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
 
     const TimePoint scaledTime = std::max<TimePoint>(clock.time / scaleFactor, 1);
 
-    // clang-format off
-
     // Maximum move horizon
-    u8 mtg = limit.movesToGo != 0 ? std::min(limit.movesToGo, MTGMax) : MTGMax;
+    u8 mtg = limit.movesToGo != 0 && limit.movesToGo < MTGMax ? limit.movesToGo : MTGMax;
 
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls keep the actual movestogo as horizon.
     if (mtg > 2 && scaledTime < 1000 && limit.movesToGo == 0)
         mtg = u8(std::max(0.05051 * scaledTime, 2.0));
 
+    // clang-format off
+
     // Make sure remainTime > 0 since use it as a divisor
     const TimePoint remainTime =
         TimePoint(std::max(
                     std::max(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, TimePoint{1})
-                  * options["TimePercent"] / 100.0, 1.0));
+                  * options["TimePercent"] / 100.0,
+                    1.0));
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -184,10 +185,11 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     //   can be vastly off, because if the opponent had done his last move before his time budget includes already
     //   the next cycle time increment but not our. This leads to a unnecessary big decrease in time usage which favors blunders.
     // Warning: don't remove this conditions.
-    if (!use_nodes_time() && limit.movesToGo != 1)
+    if (!use_nodes_time() && limit.movesToGo > 1)
     {
-        double timeAdvantage = (limit.clocks[ac].time - limit.clocks[~ac].time) / (1.0 + limit.clocks[ac].time + limit.clocks[~ac].time);
-        optimumScale *= 1.0 + 0.9 * std::min(timeAdvantage, 0.0);
+        const double timeAdvantage = (limit.clocks[ac].time - limit.clocks[~ac].time) / (1.0 + limit.clocks[ac].time + limit.clocks[~ac].time);
+        if (timeAdvantage < 0.0)
+            optimumScale *= 1.0 + 0.9 * timeAdvantage;
     }
 
     // Limit the maximum possible time for this move
