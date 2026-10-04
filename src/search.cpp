@@ -915,7 +915,7 @@ Value Worker::search(Position&    pos,
 
     ttd.value  = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move   = RootNode ? rootMoves[pvIdx][0] : ttd.hit ? legal_move(ttd.move, pos) : Move::None;
-    ss->ttHit  = ttd.hit;
+    ss->ttHit  = RootNode || ttd.hit;
     ss->ttMove = ttd.move;
     ss->ttPv   = exclude ? ss->ttPv : PVNode || (ttd.hit && ttd.pv);
 
@@ -1215,6 +1215,9 @@ Value Worker::search(Position&    pos,
                 ++ss->nmpFailHigh;
                 return nullValue;
             }
+
+            ss->ttHit  = RootNode || ttd.hit;
+            ss->ttMove = ttd.move;
         }
     }
     }
@@ -1506,6 +1509,8 @@ Value Worker::search(Position&    pos,
 
             const Value singularValue = search<~~T>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
 
+            ss->ttHit     = RootNode || ttd.hit;
+            ss->ttMove    = ttd.move;
             ss->moveCount = moveCount;
 
             if (singularValue <= singularAlpha)
@@ -1816,9 +1821,12 @@ Value Worker::search(Position&    pos,
             moveVectors[capture].push_back(move);
     }
 
+    assert(ss->inCheck == (pos.checkers_bb() != 0));
     assert(moveCount != 0 || !ss->inCheck || exclude
            || (MoveList<GenType::LEGAL, true>(pos).empty()));
-    assert(ss->moveCount == moveCount && ss->ttMove == ttd.move && ss->ttHit == ttd.hit);
+    assert(ss->moveCount == moveCount);
+    assert(ss->ttHit == (RootNode || ttd.hit));
+    assert(ss->ttMove == ttd.move);
 
     // Step 23. Check for mate and stalemate.
     // All legal moves have been searched and if there are no legal moves, it must be a mate or a stalemate.
@@ -1948,8 +1956,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if constexpr (PVNode)
     {
         ss->pv->clear();
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
         (ss + 1)->pv = &pv;
-
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
         // Update selDepth (selDepth from 1, ply from 0)
         const u16 newSelDepth = u16(ss->ply + u16{1});
         if (selDepth < newSelDepth)
@@ -1957,11 +1971,11 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Step 1. Initialize node
-    ss->inCheck = pos.checkers_bb() != 0;
+    const bool inCheck = pos.checkers_bb() != 0;
 
     // Step 2. Check for maximum ply reached or immediate draw
     if (ss->ply >= PLY_MAX || pos.is_draw(ss->ply))
-        return ss->ply >= PLY_MAX && !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
+        return ss->ply >= PLY_MAX && !inCheck ? evaluate(pos) : VALUE_DRAW;
 
     assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
@@ -1973,8 +1987,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
-    //const bool ttHit  = ttd.hit;
-    //const Move ttMove = ttd.move;
     const bool ttPv = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
@@ -1985,14 +1997,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             return ttd.value;
     }
 
-    const auto correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    const auto correctionValue = inCheck ? 0 : correction_value(pos, ss);
 
     Value evalue, bestValue;
 
     int baseFutility;
 
     // Step 4. Static evaluation of the position
-    if (ss->inCheck)
+    if (inCheck)
     {
         evalue = VALUE_NONE;
 
@@ -2065,7 +2077,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.legal(move));
-        assert(ss->inCheck || pos.capture_promo(move));
+        assert(inCheck || pos.capture_promo(move));
 
         ++moveCount;
 
@@ -2151,7 +2163,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (moveCount == 0)
     {
         // A special case: if in check and no legal moves were found, it is checkmate.
-        if (ss->inCheck)
+        if (inCheck)
         {
             assert(bestValue == -VALUE_INFINITE);
             assert((MoveList<GenType::LEGAL, true>(pos).empty()));
