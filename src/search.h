@@ -633,8 +633,9 @@ struct Stack final {
     u16   cutoffCount;
     u16   nmpFailHigh;
     bool  inCheck;
-    bool  pvTT;
-    bool  pvFollow;
+    bool  ttHit;
+    bool  ttPv;
+    bool  followPv;
 };
 
 // Worker does the actual search.
