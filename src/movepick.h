@@ -39,7 +39,7 @@ struct ExtMove final: public Move {
 
 static_assert(sizeof(ExtMove) == 8, "ExtMove size must be Move + int = 8 bytes");
 
-inline bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
+ALWAYS_INLINE bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
     return em1.value > em2.value;
 }
 

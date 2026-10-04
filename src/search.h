@@ -245,7 +245,7 @@ struct RootMove final {
     RootPVMoves pv, prePV;
 };
 
-inline bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
+ALWAYS_INLINE bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
     return rm1.tbRank > rm2.tbRank;
 }
 
