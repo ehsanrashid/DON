@@ -1301,7 +1301,7 @@ Value Worker::search(Position&    pos,
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttw.write(move, value_to_tt(probCutValue, ss->ply), evalue,
-                              std::min(Depth(probCutDepth + 1), DEPTH_MAX), Bound::LOWER, ss->pvTT);
+                              probCutDepth, Bound::LOWER, ss->pvTT);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window

@@ -200,7 +200,7 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
 template<typename Iterator>
 void partial_insertion_sort(const Iterator beg,
                             const Iterator end,
-                            const int      limit = std::numeric_limits<int>::min()) noexcept {
+                            const i32      limit = std::numeric_limits<i32>::min()) noexcept {
     if (end - beg < 2)
         return;
 

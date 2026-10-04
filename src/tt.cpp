@@ -225,7 +225,7 @@ void TTWriter::write(const Move  m,
                 tte = &ttc->entries[i];
     }
 
-    for (auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
+    for (const auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
         tte->reset();
 
     tte->save(key, m, v, ev, d, b, pv, generation);
@@ -346,9 +346,7 @@ bool TranspositionTable::load(const fs::path& hashPath, const Threads& threads) 
     }
 
     std::error_code ec;
-
-    usize fileSize = fs::file_size(hashPath, ec);
-
+    const usize     fileSize = fs::file_size(hashPath, ec);
     if (ec)
     {
         //DEBUG_LOG("Failed to stat Hash file " << hashPath << ": " << ec.message());
