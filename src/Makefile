@@ -1621,6 +1621,12 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c '$<' -o '$@'
 
+ifeq ($(COMP),gcc)
+ifneq ($(TARGET_KERNEL),Darwin)
+search.o: CXXFLAGS += -Wno-dangling-pointer
+endif
+endif
+
 # Clang PGO
 clang-profile-make:
 	$(MAKE) all EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)" $(EXTRA_PROFILE_FLAGS)' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate="$(PGO_PROFILE_DIR)"'

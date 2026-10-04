@@ -200,7 +200,7 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
 template<typename Iterator>
 void partial_insertion_sort(const Iterator beg,
                             const Iterator end,
-                            const int      limit = std::numeric_limits<int>::min()) noexcept {
+                            const i32      limit = std::numeric_limits<i32>::min()) noexcept {
     if (end - beg < 2)
         return;
 
@@ -615,7 +615,7 @@ MovePicker::Stage MovePicker::cur_stage() const noexcept { return curStage; }
 
 int MovePicker::threshold_value() const noexcept { return threshold; }
 
-ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
+bool MovePicker::good_capture_or_swap() noexcept {
     threshold = constexpr_round(cur->value / 18.0);
     if (pos.see(*cur) >= -threshold)
         return true;
@@ -624,8 +624,6 @@ ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     return false;
 }
 
-ALWAYS_INLINE bool MovePicker::above_threshold_capture() const noexcept {
-    return pos.see(*cur) >= threshold;
-}
+bool MovePicker::above_threshold_capture() const noexcept { return pos.see(*cur) >= threshold; }
 
 }  // namespace DON

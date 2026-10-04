@@ -429,9 +429,7 @@ bool PolyGlot::load(const fs::path& bookPath) noexcept {
     filename = bookPath.string();
 
     std::error_code ec;
-
-    usize fileSize = fs::file_size(bookPath, ec);
-
+    const usize     fileSize = fs::file_size(bookPath, ec);
     if (ec)
     {
         //DEBUG_LOG("Failed to stat Book file " << filename << ": " << ec.message());

@@ -37,19 +37,19 @@ class PolyGlot final {
    public:
     struct Entry final {
        public:
-        constexpr bool operator==(const Entry& e) const noexcept {
+        bool operator==(const Entry& e) const noexcept {
             return key == e.key && move == e.move && weight == e.weight;
         }
-        constexpr bool operator!=(const Entry& e) const noexcept { return !(*this == e); }
+        bool operator!=(const Entry& e) const noexcept { return !(*this == e); }
 
-        constexpr bool operator<(const Entry& e) const noexcept {
+        bool operator<(const Entry& e) const noexcept {
             return key != e.key       ? key < e.key
                  : weight != e.weight ? weight < e.weight
                                       : move < e.move;
         }
-        constexpr bool operator>(const Entry& e) const noexcept { return (e < *this); }
-        constexpr bool operator<=(const Entry& e) const noexcept { return !(e < *this); }
-        constexpr bool operator>=(const Entry& e) const noexcept { return !(*this < e); }
+        bool operator>(const Entry& e) const noexcept { return (e < *this); }
+        bool operator<=(const Entry& e) const noexcept { return !(e < *this); }
+        bool operator>=(const Entry& e) const noexcept { return !(*this < e); }
 
         Key key;
         u16 move;

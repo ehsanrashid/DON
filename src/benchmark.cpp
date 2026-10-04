@@ -417,9 +417,9 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
         constexpr usize AverageFenLen = 64;
 
-        usize epdFileSize = fs::file_size(epdFile);
+        const usize epdFileSize = fs::file_size(epdFile);
 
-        usize estimatedFens = epdFileSize / AverageFenLen;
+        const usize estimatedFens = epdFileSize / AverageFenLen;
 
         fens.reserve(estimatedFens);
 
