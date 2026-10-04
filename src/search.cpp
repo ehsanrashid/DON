@@ -829,15 +829,15 @@ Value Worker::search(Position&    pos,
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= DEPTH_MAX));
     assert(rootDepth > DEPTH_ZERO);
 
-    const usize prePly = (ss - 1)->ply;
-
     // Step 1. Initialize node
+    const usize prePly = RootNode ? 0 : (ss - 1)->ply;
+
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->followPv =
-      RootNode
-      || ((ss - 1)->followPv && (prePly < iterPrePV.size() && (ss - 1)->move == iterPrePV[prePly]));
+    ss->followPv  = RootNode
+                 || ((ss - 1)->followPv  //
+                     && (prePly < iterPrePV.size() && (ss - 1)->move == iterPrePV[prePly]));
 
     if constexpr (!RootNode)
     {
@@ -2006,6 +2006,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
     else
     {
+        Value ssEvalue;
         // clang-format off
     if (ttd.hit)
     {
@@ -2015,7 +2016,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (!is_valid(evalue))
             evalue = evaluate(pos);
 
-        ss->evalue = bestValue = adjust_eval_value(evalue, correctionValue);
+        ssEvalue = bestValue = adjust_eval_value(evalue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && !is_decisive(ttd.value)
@@ -2026,7 +2027,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     {
         evalue = evaluate(pos);
 
-        ss->evalue = bestValue = adjust_eval_value(evalue, correctionValue);
+        ssEvalue = bestValue = adjust_eval_value(evalue, correctionValue);
     }
 
     // Stand pat. Return immediately if bestValue is at least beta
@@ -2044,7 +2045,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (alpha < bestValue)
         alpha = bestValue;
 
-    baseFutility = 306 + ss->evalue;
+    baseFutility = 306 + ssEvalue;
         // clang-format on
     }
 
