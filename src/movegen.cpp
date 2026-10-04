@@ -295,15 +295,11 @@ Move* generate_piece_moves(const Position& pos,
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    Bitboard bb = pos.pieces_bb(AC, PT);
-
-    if (bb == 0)
-        return moves;
-
     const Square   kingSq      = pos.square(AC, KING);
     const Bitboard occupancyBB = pos.pieces_bb();
     const Bitboard blockersBB  = pos.blockers_bb(AC);
 
+    Bitboard bb = pos.pieces_bb(AC, PT);
     while (bb != 0)
     {
         const Square   orgSq = AC == WHITE ? pop_lsq(bb) : pop_msq(bb);
@@ -327,12 +323,10 @@ Move* generate_king_moves(const Position& pos,
 
     const Square kingSq = pos.square(AC, KING);
 
-    Bitboard dstBB =
-      Attacks::pseudo_attacks_bb(KING, kingSq) & ~pos.acc_attacks_bb(KING) & targetBB;
-
-    while (dstBB != 0)
+    Bitboard bb = Attacks::pseudo_attacks_bb(KING, kingSq) & ~pos.acc_attacks_bb(KING) & targetBB;
+    while (bb != 0)
     {
-        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(bb) : pop_msq(bb);
 
         *moves++ = Move{kingSq, dstSq};
 

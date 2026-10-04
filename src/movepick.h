@@ -34,18 +34,13 @@ struct ExtMove final: public Move {
    public:
     using Move::operator=;
 
-    constexpr bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    constexpr bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
-    constexpr bool operator<=(const ExtMove& em) const noexcept { return !(em < *this); }
-    constexpr bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
-
     i32 value;
 };
 
 static_assert(sizeof(ExtMove) == 8, "ExtMove size must be Move + int = 8 bytes");
 
-constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
-    return em1 > em2;
+inline bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
+    return em1.value > em2.value;
 }
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.

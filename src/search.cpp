@@ -707,7 +707,7 @@ void Worker::iterative_deepening() noexcept {
                     }
                 }
 
-                // Finally, we mark all loss scores from partially searched moves as a bound.
+                // Finally, mark all loss scores from partially searched moves as a bound
                 for (usize i = pvIdx + 1; i < multiPV; ++i)
                     if (rootMoves[i].is_exact_loss())
                         rootMoves[i].bound = Bound::LOWER;

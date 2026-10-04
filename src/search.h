@@ -194,31 +194,21 @@ struct RootMove final {
     RootMove() noexcept = default;
     explicit RootMove(Move m) noexcept { push_back(m); }
 
-    friend bool operator==(const RootMove& rm, Move m) noexcept {
-        return !rm.pv.empty() && rm.pv.front() == m;
-    }
-    friend bool operator!=(const RootMove& rm, Move m) noexcept { return !(rm == m); }
-    friend bool operator==(Move m, const RootMove& rm) noexcept { return (rm == m); }
-    friend bool operator!=(Move m, const RootMove& rm) noexcept { return !(rm == m); }
+    bool operator==(const Move m) const noexcept { return !pv.empty() && pv.front() == m; }
+    bool operator!=(const Move m) const noexcept { return !(*this == m); }
 
-    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !rm1.pv.empty() && !rm2.pv.empty() && rm1.pv.front() == rm2.pv.front();
+    bool operator==(const RootMove& rm) const noexcept {
+        return !pv.empty() && !rm.pv.empty() && pv.front() == rm.pv.front();
     }
-    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !(rm1 == rm2);
-    }
+    bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
 
     // Sort in descending order
-    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return rm1.value != rm2.value ? rm1.value > rm2.value : rm1.preValue > rm2.preValue;
+    bool operator<(const RootMove& rm) const noexcept {
+        return value != rm.value ? value > rm.value : preValue > rm.preValue;
     }
-    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
-    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !(rm2 < rm1);
-    }
-    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !(rm1 < rm2);
-    }
+    bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
+    bool operator<=(const RootMove& rm) const noexcept { return !(rm < *this); }
+    bool operator>=(const RootMove& rm) const noexcept { return !(*this < rm); }
 
     [[nodiscard]] bool is_inexact() const noexcept {
         return bound == Bound::LOWER || bound == Bound::UPPER;
@@ -255,7 +245,7 @@ struct RootMove final {
     RootPVMoves pv, prePV;
 };
 
-constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
+inline bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
     return rm1.tbRank > rm2.tbRank;
 }
 
