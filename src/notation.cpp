@@ -45,7 +45,7 @@ Score::Score(Value v, const Position& pos) noexcept {
     else
     {
         int ply = VALUE_MATE - constexpr_abs(v);
-        score   = Mate{(v > 0 ? ply + 1 : -ply) / 2};
+        score   = Mate{(v > 0 ? 1 + ply : 0 - ply) / 2};
     }
 }
 

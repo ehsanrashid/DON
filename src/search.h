@@ -485,11 +485,11 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    [[nodiscard]] constexpr bool enabled() const noexcept;
+    [[nodiscard]] bool enabled() const noexcept;
 
-    [[nodiscard]] constexpr bool time_to_pick(Depth depth) const noexcept;
+    [[nodiscard]] bool time_to_pick(Depth depth) const noexcept;
 
-    [[nodiscard]] constexpr Value weakness() const noexcept;
+    [[nodiscard]] Value weakness() const noexcept;
 
     Move pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
 

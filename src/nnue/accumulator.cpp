@@ -249,34 +249,34 @@ enum class Op : u8 {
 #if defined(USE_RVV)
 using Tile = vint16m8_t;
 
-ALWAYS_INLINE Tile load_tile(const i16* const src, const Index j) noexcept {
+ALWAYS_INLINE void load_tile(const i16* const src, const Index j, Tile& tile) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
-    return __riscv_vle16_v_i16m8(src + j, vl);
+    tile     = __riscv_vle16_v_i16m8(src + j, vl);
 }
 
-ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& acc) noexcept {
+ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& tile) noexcept {
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
-    __riscv_vse16_v_i16m8(dst + j, acc, vl);
+    __riscv_vse16_v_i16m8(dst + j, tile, vl);
 }
 
 ALWAYS_INLINE void increment_index(Index& j) noexcept { j += __riscv_vsetvl_e16m8(Dimensions - j); }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
+ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize      vl     = __riscv_vsetvl_e16m8(Dimensions - j);
     vint16m8_t srcVec = __riscv_vle16_v_i16m8(src + j, vl);
     if constexpr (op == Op::Add)
-        acc = __riscv_vadd_vv_i16m8(acc, srcVec, vl);
+        tile = __riscv_vadd_vv_i16m8(tile, srcVec, vl);
     else
-        acc = __riscv_vsub_vv_i16m8(acc, srcVec, vl);
+        tile = __riscv_vsub_vv_i16m8(tile, srcVec, vl);
 }
 
 template<Op op>
 ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
                                          const FeatureTransformer&       ft,
                                          const Index                     j,
-                                         Tile&                           acc) noexcept {
+                                         Tile&                           tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
     for (Index i = 0; i < in.size(); ++i)
@@ -285,9 +285,9 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
           reinterpret_cast<const i8*>(&ft.threatAndPpWeights[in[i] * Dimensions + j]);
         vint8m4_t weightVec = __riscv_vle8_v_i8m4(column, vl);
         if constexpr (op == Op::Add)
-            acc = __riscv_vwadd_wv_i16m8(acc, weightVec, vl);
+            tile = __riscv_vwadd_wv_i16m8(tile, weightVec, vl);
         else
-            acc = __riscv_vwsub_wv_i16m8(acc, weightVec, vl);
+            tile = __riscv_vwsub_wv_i16m8(tile, weightVec, vl);
     }
 }
 
@@ -302,39 +302,37 @@ struct Tile final {
     SIMD::vec_t inner[Tiling::RegCount];
 };
 
-ALWAYS_INLINE Tile load_tile(const i16* const src, const Index j) noexcept {
-    Tile  acc;
+ALWAYS_INLINE void load_tile(const i16* const src, const Index j, Tile& tile) noexcept {
     auto* column = reinterpret_cast<const SIMD::vec_t*>(&src[j]);
     for (Index k = 0; k < Tiling::RegCount; ++k)
-        acc[k] = column[k];
-    return acc;
+        tile[k] = column[k];
 }
 
-ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& acc) noexcept {
+ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& tile) noexcept {
     auto* column = reinterpret_cast<SIMD::vec_t*>(&dst[j]);
     for (Index k = 0; k < Tiling::RegCount; ++k)
-        column[k] = acc[k];
+        column[k] = tile[k];
 }
 
 ALWAYS_INLINE void increment_index(Index& j) noexcept { j += Tiling::TileHeight; }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& acc) noexcept {
+ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
 
     const auto* column = reinterpret_cast<const SIMD::vec_t*>(src + j);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         if constexpr (op == Op::Add)
-            acc[k] = vec_add_16(acc[k], column[k]);
+            tile[k] = vec_add_16(tile[k], column[k]);
         else
-            acc[k] = vec_sub_16(acc[k], column[k]);
+            tile[k] = vec_sub_16(tile[k], column[k]);
 }
 
 template<Op op>
 ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
                                          const FeatureTransformer&       ft,
                                          const Index                     j,
-                                         Tile&                           acc) noexcept {
+                                         Tile&                           tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     // clang-format off
     for (Index i = 0; i < in.size(); ++i)
@@ -346,13 +344,13 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
         {
             if constexpr (op == Op::Add)
             {
-                acc[k + 0] = vaddw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
-                acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
+                tile[k + 0] = vaddw_s8(tile[k + 0], vget_low_s8(column[k / 2]));
+                tile[k + 1] = vaddw_high_s8(tile[k + 1], column[k / 2]);
             }
             else
             {
-                acc[k + 0] = vsubw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
-                acc[k + 1] = vsubw_high_s8(acc[k + 1], column[k / 2]);
+                tile[k + 0] = vsubw_s8(tile[k + 0], vget_low_s8(column[k / 2]));
+                tile[k + 1] = vsubw_high_s8(tile[k + 1], column[k / 2]);
             }
         }
 
@@ -363,13 +361,13 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
 
             if constexpr (op == Op::Add)
             {
-                acc[k + 0] = vec_add_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));
-                acc[k + 1] = vec_add_16(acc[k + 1], __lsx_vexth_h_b(weight));
+                tile[k + 0] = vec_add_16(tile[k + 0], __lsx_vsllwil_h_b(weight, 0));
+                tile[k + 1] = vec_add_16(tile[k + 1], __lsx_vexth_h_b(weight));
             }
             else
             {
-                acc[k + 0] = vec_sub_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));
-                acc[k + 1] = vec_sub_16(acc[k + 1], __lsx_vexth_h_b(weight));
+                tile[k + 0] = vec_sub_16(tile[k + 0], __lsx_vsllwil_h_b(weight, 0));
+                tile[k + 1] = vec_sub_16(tile[k + 1], __lsx_vexth_h_b(weight));
             }
         }
 
@@ -377,9 +375,9 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
         for (Index k = 0; k < Tiling::RegCount; ++k)
         {
             if constexpr (op == Op::Add)
-                acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
+                tile[k] = vec_add_16(tile[k], vec_convert_8_16(column[k]));
             else
-                acc[k] = vec_sub_16(acc[k], vec_convert_8_16(column[k]));
+                tile[k] = vec_sub_16(tile[k], vec_convert_8_16(column[k]));
         }
     #endif
     }
@@ -392,7 +390,7 @@ template<Op op, bool Incremental = false>
 ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
                                       const FeatureTransformer&    ft,
                                       const Index                  j,
-                                      Tile&                        acc) noexcept {
+                                      Tile&                        tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     // Use the loop below for scalar builds to avoid spurious GCC uninitialized warnings.
 #if defined(VECTOR) || defined(USE_RVV)
@@ -400,15 +398,15 @@ ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
     {
         assert(in.size() == 1 || in.size() == 2);
 
-        apply<op>(&ft.weights[in[0] * Dimensions], j, acc);
+        apply<op>(&ft.weights[in[0] * Dimensions], j, tile);
         if (in.size() > 1)
-            apply<op>(&ft.weights[in[1] * Dimensions], j, acc);
+            apply<op>(&ft.weights[in[1] * Dimensions], j, tile);
         return;
     }
 #endif
 
     for (Index i = 0; i < in.size(); ++i)
-        apply<op>(&ft.weights[in[i] * Dimensions], j, acc);
+        apply<op>(&ft.weights[in[i] * Dimensions], j, tile);
 }
 
 }  // namespace
@@ -605,31 +603,31 @@ void update_hybrid(const Color               perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    Tile acc;
+    Tile tile;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
-        acc = load_tile(newEntry.accumulation.data(), j);
+        load_tile(newEntry.accumulation.data(), j, tile);
 
-        apply_psq_features<Op::Sub>(newRemove, featureTransformer, j, acc);
-        apply_psq_features<Op::Add>(newAdd, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub>(newRemove, featureTransformer, j, tile);
+        apply_psq_features<Op::Add>(newAdd, featureTransformer, j, tile);
 
-        store_tile(newEntry.accumulation.data(), j, acc);
+        store_tile(newEntry.accumulation.data(), j, tile);
 
         // adding the old accumulator adds (most of) the threats and pp weights that needed
-        apply<Op::Add>(srcAccm.data(), j, acc);
+        apply<Op::Add>(srcAccm.data(), j, tile);
         // But have added a whole bunch of psq weights for the wrong king bucket which
         // need to remove first remove the cached psq accumulation for the old king position...
-        apply<Op::Sub>(oldEntry.accumulation.data(), j, acc);
+        apply<Op::Sub>(oldEntry.accumulation.data(), j, tile);
 
         // ... then adjust
-        apply_psq_features<Op::Add>(oldRemove, featureTransformer, j, acc);
-        apply_psq_features<Op::Sub>(oldAdd, featureTransformer, j, acc);
+        apply_psq_features<Op::Add>(oldRemove, featureTransformer, j, tile);
+        apply_psq_features<Op::Sub>(oldAdd, featureTransformer, j, tile);
 
-        apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
-        apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
+        apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, tile);
+        apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, tile);
 
-        store_tile(dstAccm.data(), j, acc);
+        store_tile(dstAccm.data(), j, tile);
     }
 
     newEntry.pieceMap = curPieceMap;
@@ -670,20 +668,20 @@ void update_refresh_cache(const Color               perspective,
 
     dstAcc.computed[perspective] = true;
 
-    Tile acc;
+    Tile tile;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
-        acc = load_tile(entry.accumulation.data(), j);
+        load_tile(entry.accumulation.data(), j, tile);
 
-        apply_psq_features<Op::Sub>(removed, featureTransformer, j, acc);
-        apply_psq_features<Op::Add>(added, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub>(removed, featureTransformer, j, tile);
+        apply_psq_features<Op::Add>(added, featureTransformer, j, tile);
 
-        store_tile(entry.accumulation.data(), j, acc);
+        store_tile(entry.accumulation.data(), j, tile);
 
-        apply_threat_features<Op::Add>(active, featureTransformer, j, acc);
+        apply_threat_features<Op::Add>(active, featureTransformer, j, tile);
 
-        store_tile(dstAcc.accumulation[perspective].data(), j, acc);
+        store_tile(dstAcc.accumulation[perspective].data(), j, tile);
     }
 }
 
@@ -698,19 +696,19 @@ void apply_combined(Color                           perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    Tile acc;
+    Tile tile;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
-        acc = load_tile(srcAccm.data(), j);
+        load_tile(srcAccm.data(), j, tile);
 
-        apply_psq_features<Op::Sub, true>(psqRemoved, featureTransformer, j, acc);
-        apply_psq_features<Op::Add, true>(psqAdded, featureTransformer, j, acc);
+        apply_psq_features<Op::Sub, true>(psqRemoved, featureTransformer, j, tile);
+        apply_psq_features<Op::Add, true>(psqAdded, featureTransformer, j, tile);
 
-        apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, acc);
-        apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, acc);
+        apply_threat_features<Op::Sub>(thrRemoved, featureTransformer, j, tile);
+        apply_threat_features<Op::Add>(thrAdded, featureTransformer, j, tile);
 
-        store_tile(dstAccm.data(), j, acc);
+        store_tile(dstAccm.data(), j, tile);
     }
 }
 

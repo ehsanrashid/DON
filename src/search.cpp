@@ -1109,7 +1109,7 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    int absCorrectionValue = constexpr_abs(correctionValue);
+    const auto absCorrectionValue = constexpr_abs(correctionValue);
 
     const PieceSqHistory* contHistory[CONT_HISTORY_COUNT];
 
@@ -1206,7 +1206,7 @@ Value Worker::search(Position&    pos,
             // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+            const Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -1378,12 +1378,12 @@ Value Worker::search(Position&    pos,
         const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
         const bool check      = pos.check(move);
 
-        // Calculate new depth for this move
-        Depth newDepth = depth - 1;
-
-        int deltaRatio = constexpr_ceil(577.0 * (beta - alpha) / rootDelta);
+        const int deltaRatio = constexpr_ceil(577.0 * (beta - alpha) / rootDelta);
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
+
+        // Calculate new depth for this move
+        Depth newDepth = depth - 1;
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
         r += int(ss->ttPv) * 929;
@@ -1628,7 +1628,7 @@ Value Worker::search(Position&    pos,
                 redDepth = 1;
             redDepth += int(PVNode);
 
-            i16 reduction = newDepth - redDepth;
+            const i16 reduction = newDepth - redDepth;
 
             value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
 
@@ -1637,9 +1637,9 @@ Value Worker::search(Position&    pos,
             if (value > alpha)
             {
                 // If the value was good enough search deeper
-                bool extend = redDepth < newDepth && value > 53 + bestValue;
+                const bool extend = redDepth < newDepth && value > 53 + bestValue;
                 // If the value was bad enough search shallower
-                bool reduce = value < 8 + bestValue;
+                const bool reduce = value < 8 + bestValue;
 
                 // Adjust full-depth search based on LMR value
                 newDepth += int(extend) - int(reduce);
@@ -1773,10 +1773,10 @@ Value Worker::search(Position&    pos,
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes & 0xE) == 0
-                && !is_win(constexpr_abs(value) + 1);
+        const bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes & 0xE) == 0
+                      && !is_win(constexpr_abs(value) + 1);
 
-        Value incValue = value + int(inc);
+        const Value incValue = value + int(inc);
 
         if (bestValue < incValue)
         {
@@ -2904,13 +2904,11 @@ void Skill::init(const Options& options) noexcept {
     bestMove = Move::None;
 }
 
-constexpr bool Skill::enabled() const noexcept { return level < LevelMax; }
+bool Skill::enabled() const noexcept { return level < LevelMax; }
 
-constexpr bool Skill::time_to_pick(const Depth depth) const noexcept {
-    return depth == 1 + Depth(level);
-}
+bool Skill::time_to_pick(const Depth depth) const noexcept { return depth == 1 + Depth(level); }
 
-constexpr Value Skill::weakness() const noexcept { return Value(2.0 * (3.0 * LevelMax - level)); }
+Value Skill::weakness() const noexcept { return Value(2.0 * (3.0 * LevelMax - level)); }
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
