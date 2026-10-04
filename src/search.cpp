@@ -1956,14 +1956,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if constexpr (PVNode)
     {
         ss->pv->clear();
-#if defined(__GNUC__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
         (ss + 1)->pv = &pv;
-#if defined(__GNUC__)
-    #pragma GCC diagnostic pop
-#endif
+
         // Update selDepth (selDepth from 1, ply from 0)
         const u16 newSelDepth = u16(ss->ply + u16{1});
         if (selDepth < newSelDepth)

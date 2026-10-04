@@ -1618,6 +1618,8 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c '$<' -o '$@'
 
+search.o: CXXFLAGS += -Wno-dangling-pointer
+
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c '$<' -o '$@'
 
