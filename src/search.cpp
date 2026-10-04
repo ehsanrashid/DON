@@ -829,6 +829,16 @@ Value Worker::search(Position&    pos,
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= DEPTH_MAX));
     assert(rootDepth > DEPTH_ZERO);
 
+    const usize prePly = (ss - 1)->ply;
+
+    // Step 1. Initialize node
+    ss->inCheck   = pos.checkers_bb() != 0;
+    ss->moveCount = 0;
+    ss->history   = 0;
+    ss->followPv =
+      RootNode
+      || ((ss - 1)->followPv && (prePly < iterPrePV.size() && (ss - 1)->move == iterPrePV[prePly]));
+
     if constexpr (!RootNode)
     {
         // Dive into quiescence search when depth <= DEPTH_ZERO
@@ -864,16 +874,6 @@ Value Worker::search(Position&    pos,
         if (selDepth < newSelDepth)
             selDepth = newSelDepth;
     }
-
-    const usize prePly = (ss - 1)->ply;
-
-    // Step 1. Initialize node
-    ss->inCheck   = pos.checkers_bb() != 0;
-    ss->moveCount = 0;
-    ss->history   = 0;
-    ss->followPv =
-      RootNode
-      || ((ss - 1)->followPv && (prePly < iterPrePV.size() && (ss - 1)->move == iterPrePV[prePly]));
 
     if constexpr (!RootNode)
     {
