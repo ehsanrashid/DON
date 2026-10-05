@@ -492,7 +492,7 @@ template<Index TransformedFeatureWidth, Index HalfDimensions>
 struct Tiling final {
    private:
     // Use __m* types as template arguments, which causes GCC to emit warnings about losing some attribute information.
-    // This is irrelevant to us as only take their size, so the following pragma are harmless.
+    // This is irrelevant as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wignored-attributes"

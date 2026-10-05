@@ -123,8 +123,10 @@ void format_cp_aligned_dot(std::ostringstream& oss, const i32 val, const Positio
 
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
-std::string
-nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& accCache) noexcept {
+std::string nnue_trace(Position&               pos,
+                       const NNUE::Network&    network,
+                       NNUE::AccumulatorCache& accCache,
+                       NNUE::AccumulatorStack& accStack) noexcept {
     constexpr std::string_view Sep{"+--------+------------+\n"};
 
     char board[3 * 8 + 1][8 * 8 + 2];
@@ -148,13 +150,11 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
 
-    auto accStack = std::make_unique<NNUE::AccumulatorStack>();
-
-    accStack->reset();
+    accStack.reset();
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto baseNNUE = network.evaluate(pos, accCache, *accStack);
+    auto baseNNUE = network.evaluate(pos, accCache, accStack);
     baseNNUE      = pos.active_color() == WHITE ? +baseNNUE : -baseNNUE;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
@@ -169,9 +169,9 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
             {
                 pos.remove(sq);
 
-                accStack->reset();
+                accStack.reset();
 
-                auto newNNUE = network.evaluate(pos, accCache, *accStack);
+                auto newNNUE = network.evaluate(pos, accCache, accStack);
                 newNNUE      = pos.active_color() == WHITE ? +newNNUE : -newNNUE;
 
                 v = baseNNUE - newNNUE;
@@ -190,9 +190,9 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
         oss << row << '\n';
     oss << '\n';
 
-    accStack->reset();
+    accStack.reset();
 
-    const auto netTrace = network.trace(pos, accCache, *accStack);
+    const auto netTrace = network.trace(pos, accCache, accStack);
 
     oss << "NNUE network contributions (Normalized, ";
     oss << to_string(pos.active_color()) << " to move):\n";
@@ -250,7 +250,9 @@ std::string trace(const Position& pos, const NNUE::Network& network) noexcept {
     std::string output;
     output.reserve(3 * KB);
 
-    output.append(nnue_trace(p, network, *accCache)).push_back('\n');
+    output.append(nnue_trace(p, network, *accCache, *accStack)).push_back('\n');
+
+    accStack->reset();
 
     i32 v = network.evaluate(p, *accCache, *accStack);
 

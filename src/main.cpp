@@ -64,12 +64,10 @@ int main(const int argc, const char* const argv[]) noexcept {
         command.reserve(KB / 2);
 
         for (usize i = 1; i < arguments.size(); ++i)
-        {
-            if (!command.empty())
-                command.push_back(' ');
+            command.append(arguments[i]).push_back(' ');
 
-            command.append(arguments[i]);
-        }
+        if (!command.empty())
+            command.pop_back();  // remove trailing space
 
         uci.execute(command);
     }

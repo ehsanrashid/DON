@@ -208,10 +208,12 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeMaxValue));
 }
 
-void TimeManager::advance_time_nodes(i64 nodes) noexcept {
+void TimeManager::advance_time_nodes(const i64 nodes) noexcept {
     assert(use_nodes_time());
 
-    timeNodes = std::max(timeNodes - nodes, i64{0});
+    timeNodes -= nodes;
+    if (timeNodes < 0)
+        timeNodes = 0;
 }
 
 }  // namespace DON

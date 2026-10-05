@@ -485,11 +485,11 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    [[nodiscard]] constexpr bool enabled() const noexcept;
+    [[nodiscard]] bool enabled() const noexcept;
 
-    [[nodiscard]] constexpr bool time_to_pick(Depth depth) const noexcept;
+    [[nodiscard]] bool time_to_pick(Depth depth) const noexcept;
 
-    [[nodiscard]] constexpr Value weakness() const noexcept;
+    [[nodiscard]] Value weakness() const noexcept;
 
     Move pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
 
@@ -613,7 +613,7 @@ enum class NT : u8 {
     ROOT = 6,
 };
 
-constexpr NT operator~(NT nt) noexcept { return NT((static_cast<u8>(nt) ^ 1) & 1); }
+constexpr NT operator~(const NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.

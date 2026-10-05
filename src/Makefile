@@ -1200,7 +1200,7 @@ else
 # has not been observed to reduce performance for gcc >= 14.
 # It is however not compatible with universal builds.
 LTO_PARTITION := balanced
-ifeq ($(UNIVERSAL_SLICE),true)
+ifeq ($(IS_UNIVERSAL_SLICE),yes)
 LTO_PARTITION := one
 else \
 ifneq ($(GCC_MAJOR),)
@@ -1621,8 +1621,8 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c '$<' -o '$@'
 
-ifeq ($(COMP),gcc)
 ifneq ($(TARGET_KERNEL),Darwin)
+ifneq ($(filter gcc mingw,$(COMP)),)
 search.o: CXXFLAGS += -Wno-dangling-pointer
 endif
 endif
@@ -1830,7 +1830,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' UNIVERSAL_SLICE=true \
+	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' IS_UNIVERSAL_SLICE=yes \
 		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
