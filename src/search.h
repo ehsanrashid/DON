@@ -613,7 +613,7 @@ enum class NT : u8 {
     ROOT = 6,
 };
 
-constexpr NT operator~(NT nt) noexcept { return NT((static_cast<u8>(nt) ^ 1) & 1); }
+constexpr NT operator~(const NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.

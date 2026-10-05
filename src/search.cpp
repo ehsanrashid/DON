@@ -1942,6 +1942,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
 
+    // Step 1. Initialize node
+    const bool inCheck = pos.checkers_bb() != 0;
+
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
     {
@@ -1963,9 +1966,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (selDepth < newSelDepth)
             selDepth = newSelDepth;
     }
-
-    // Step 1. Initialize node
-    const bool inCheck = pos.checkers_bb() != 0;
 
     // Step 2. Check for maximum ply reached or immediate draw
     if (ss->ply >= PLY_MAX || pos.is_draw(ss->ply))

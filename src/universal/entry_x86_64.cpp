@@ -171,9 +171,7 @@ void maybe_promote_thread_to_avx512() noexcept {
     int        supported = 0;
     DON::usize len       = sizeof(supported);
     if (::sysctlbyname("hw.optional.avx512f", &supported, &len, nullptr, 0) == 0 && supported)
-    {
         asm volatile(".byte 0x62, 0xf1, 0x7d, 0x48, 0x6f, 0xc0");  // vmovdqa32 zmm0,zmm0
-    }
 #endif
 }
 
