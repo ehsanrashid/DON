@@ -1368,7 +1368,7 @@ Value Worker::search(Position&    pos,
             (ss + 1)->pv = nullptr;
         }
 
-        const bool mTT = move == ttd.move;
+        const bool ttM = move == ttd.move;
 
         const Square dstSq = move.dst_sq();
 
@@ -1494,7 +1494,7 @@ Value Worker::search(Position&    pos,
         if constexpr (!RootNode)
         {
             // clang-format off
-        if (!exclude && mTT && depth > 5 + int(ss->ttPv) && !seekMate && is_valid(ttd.value) && !is_decisive(ttd.value)
+        if (!exclude && ttM && depth > 5 + int(ss->ttPv) && !seekMate && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
             const int singularMargin = constexpr_round((59.0 + int(!PVNode && ss->ttPv) * 66.0) * depth / 63.0);
@@ -1600,7 +1600,7 @@ Value Worker::search(Position&    pos,
             r += 264 + int(AllNode) * 1138 + int(ss->cutoffCount > 2) * 1095;
         // Decrease reduction for first picked move (ttMove)
         else
-            r -= int(mTT) * 2179;
+            r -= int(ttM) * 2179;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 439.0 / 4096.0);
@@ -1672,7 +1672,7 @@ Value Worker::search(Position&    pos,
                 (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
-                if (newDepth <= DEPTH_ZERO && mTT
+                if (newDepth <= DEPTH_ZERO && ttM
                     && (ttd.depth > 1
                         || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
                     newDepth = 1;
@@ -1843,13 +1843,13 @@ Value Worker::search(Position&    pos,
         // If there is a move that produces search value greater than alpha update the history of searched moves
         if (bestMove != Move::None)
         {
-            bool bmTT = bestMove == ttd.move;
+            bool ttBm = bestMove == ttd.move;
 
-            update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, moveVectors);
+            update_histories<PVNode>(pos, ss, depth, bestMove, ttBm, moveVectors);
 
             if constexpr (!PVNode)
             {
-                ttMoveHistory << (bmTT ? +918 : -747);
+                ttMoveHistory << (ttBm ? +918 : -747);
             }
         }
         // If prior move is valid, that caused the fail low
@@ -2319,7 +2319,7 @@ void Worker::update_histories(const Position&             pos,
                               Stack* const                ss,
                               const Depth                 depth,
                               const Move                  bestMove,
-                              const bool                  bmTT,
+                              const bool                  ttBm,
                               const Array<MoveVector, 2>& moveVectors) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
@@ -2327,7 +2327,7 @@ void Worker::update_histories(const Position&             pos,
     int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0);
     if (bonus < 0)
         bonus = 0;
-    bonus += int(bmTT) * 364;
+    bonus += int(ttBm) * 364;
 
     const int malus = std::min(-235 + 968 * depth, +2244);
 

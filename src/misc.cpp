@@ -1056,11 +1056,11 @@ void MMapGuard::dismiss() noexcept {
     mappedSize = MMAP_SIZE_INVALID;
 }
 
-UniqueFd::UniqueFd(const int fdi) noexcept :
-    fd{fdi} {}
+UniqueFd::UniqueFd(const int fd_) noexcept :
+    fd{fd_} {}
 
 UniqueFd::UniqueFd(UniqueFd&& uniqueFd) noexcept :
-    fd{uniqueFd.release()} {}
+    UniqueFd{uniqueFd.release()} {}
 
 UniqueFd& UniqueFd::operator=(UniqueFd&& uniqueFd) noexcept {
     if (this == &uniqueFd)

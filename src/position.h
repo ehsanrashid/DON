@@ -222,7 +222,7 @@ class Position final {
     [[nodiscard]] usize bucket() const noexcept;
 
     [[nodiscard]] int   material_std() const noexcept;
-    [[nodiscard]] Value material() const noexcept;
+    [[nodiscard]] Value material_value() const noexcept;
     [[nodiscard]] Value evaluate() const noexcept;
 
     // Static Exchange Evaluation:

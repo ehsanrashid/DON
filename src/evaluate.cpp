@@ -55,7 +55,7 @@ Value scale_evaluation(const Position& pos, const i32 nnue, const i32 optimism) 
       // When winning, favor easy positions, and vice versa
       (nnue + (nnue + 4 * optimism) * alignment / 65536.0)
       // Scale the combined evaluation by total material
-      * (1.0 + pos.material() / 90649.0)
+      * (1.0 + pos.material_value() / 90649.0)
       // Damp evaluation linearly based on the 50-move rule
       * std::max(1.0 - pos.rule50_count() / 189.0, 0.0));
 

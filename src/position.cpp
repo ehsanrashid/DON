@@ -42,8 +42,8 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-ConcurrentCache<Key, Value> NonPawnValueCache{32 * KB, 0.75f};
-ConcurrentCache<Key, Value> MaterialValueCache{16 * KB, 0.75f};
+ConcurrentCache<Key, Value> NonPawnCache{32 * KB, 0.75f};
+ConcurrentCache<Key, Value> MaterialCache{16 * KB, 0.75f};
 ConcurrentCache<Key, Value> EvaluateCache{16 * KB, 0.75f};
 
 }  // namespace
@@ -56,8 +56,8 @@ void Position::init() noexcept {
 }
 
 void Position::reset() noexcept {
-    //NonPawnValueCache.reset();
-    //MaterialValueCache.reset();
+    //NonPawnCache.reset();
+    //MaterialCache.reset();
     //EvaluateCache.reset();
 }
 
@@ -1375,7 +1375,7 @@ bool Position::fork(const Move m) const noexcept {
 }
 
 Value Position::non_pawn_value(const Color c) const noexcept {
-    return NonPawnValueCache.access_or_build_with(
+    return NonPawnCache.access_or_build_with(
       material_key(c),
       [this](const Color _c) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
@@ -1388,8 +1388,8 @@ Value Position::non_pawn_value(const Color c) const noexcept {
       c);
 }
 
-Value Position::material() const noexcept {
-    return MaterialValueCache.access_or_build_with(
+Value Position::material_value() const noexcept {
+    return MaterialCache.access_or_build_with(
       material_key(), [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
 }
 
