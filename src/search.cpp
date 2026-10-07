@@ -1179,15 +1179,13 @@ Value Worker::search(Position&    pos,
     {
         assert(preMove != Move::Null);
 
-        // Null move dynamic reduction
-        Depth R = 7 + depth / 3;
         const int evalDiff = constexpr_ceil((ss->evalue - beta) / 256.0);
-        if (evalDiff > 0)
-            R += evalDiff;
+        // Null move dynamic reduction
+        const Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0);
 
         do_null_move(pos, st, ss);
 
-        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        const Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
