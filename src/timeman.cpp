@@ -56,12 +56,15 @@ void TimeManager::reset() noexcept {
     cyclicBudget = 0;
 }
 
-void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) noexcept {
+void TimeManager::init(const Color    c,
+                       const i16      ply,
+                       const Options& options,
+                       Limit&         limit) noexcept {
     // If have no time, no need to fully initialize TM.
     // start-time is used by move-time and Nodes-Time is used in elapsed calls.
     startTime = limit.startTime;
 
-    auto& clock = limit.clocks[ac];
+    auto& clock = limit.clocks[c];
 
     const u64 NodesTime = options["NodesTime"];
 
@@ -187,7 +190,7 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     // Warning: don't remove this conditions.
     if (!use_nodes_time() && limit.movesToGo > 1)
     {
-        const double timeAdvantage = (limit.clocks[ac].time - limit.clocks[~ac].time) / (1.0 + limit.clocks[ac].time + limit.clocks[~ac].time);
+        const double timeAdvantage = (limit.clocks[c].time - limit.clocks[~c].time) / (1.0 + limit.clocks[c].time + limit.clocks[~c].time);
         if (timeAdvantage < 0.0)
             optimumScale *= 1.0 + 0.9 * timeAdvantage;
     }

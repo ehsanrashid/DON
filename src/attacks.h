@@ -316,6 +316,36 @@ ALWAYS_INLINE constexpr Bitboard ray_bb(const Square s, const Directions... ds) 
     return rayBB;
 }
 
+alignas(CACHE_LINE_SIZE) inline constexpr auto DIAG_BBS = []() constexpr noexcept {
+    Array<Bitboard, SQUARE_NB> diagBBs{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        diagBBs[s] = ray_bb(s, Direction::NORTH_EAST, Direction::SOUTH_WEST) | s;
+
+    return diagBBs;
+}();
+
+ALWAYS_INLINE constexpr Bitboard diag_bb(const Square s) noexcept {
+    assert(is_ok(s));
+
+    return DIAG_BBS[s];
+}
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto ANTI_DIAG_BBS = []() constexpr noexcept {
+    Array<Bitboard, SQUARE_NB> antiDiagBBs{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        antiDiagBBs[s] = ray_bb(s, Direction::NORTH_WEST, Direction::SOUTH_EAST) | s;
+
+    return antiDiagBBs;
+}();
+
+ALWAYS_INLINE constexpr Bitboard anti_diag_bb(const Square s) noexcept {
+    assert(is_ok(s));
+
+    return ANTI_DIAG_BBS[s];
+}
+
 ALWAYS_INLINE constexpr Bitboard knight_attacks_bb(const Square s) noexcept {
     assert(is_ok(s));
 
@@ -579,7 +609,7 @@ ALWAYS_INLINE constexpr Bitboard between_ex_bb(const Square s1, const Square s2)
 
 alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBS;
 
-// Returns bitboard representing the ray starting at s1 passing through s2.
+// Returns bitboard representing the ray starting at s1 passing through s2, excluding s1.
 ALWAYS_INLINE constexpr Bitboard pass_ray_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 

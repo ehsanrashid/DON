@@ -688,66 +688,57 @@ class Move {
     static constexpr u16 PromoMask = (1u << 2) - 1;
     static constexpr u16 TypeMask  = ((1u << 2) - 1) << TypeShift;
 
-    Move() noexcept = default;
-    explicit constexpr Move(const u16 d) noexcept :
-        data(d) {}
-    constexpr Move(const Square orgSq, const Square dstSq, const Type mt = Type::NORMAL) noexcept :
-        data((u16(mt) << TypeShift)        //
-             | (u16(orgSq) << OrgSqShift)  //
-             | (u16(dstSq) << DstSqShift)) {
-        assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
-    }
+    static Move normal(Square orgSq, Square dstSq) noexcept;
+    static Move
+    promotion(Square orgSq, Square dstSq, PieceType promoPt = PieceType::QUEEN) noexcept;
+    static Move enpassant(Square orgSq, Square dstSq) noexcept;
+    static Move castling(Square orgSq, Square dstSq) noexcept;
 
-    constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
-        data((u16(Type::PROMOTION) << TypeShift)      //
-             | (u16(promoPt - KNIGHT) << PromoShift)  //
-             | (u16(orgSq) << OrgSqShift)             //
-             | (u16(dstSq) << DstSqShift)) {
-        assert(DON::is_ok(orgSq) && DON::is_ok(dstSq) && KNIGHT <= promoPt && promoPt <= QUEEN);
-    }
+    Move() noexcept = default;
+    explicit Move(u16 d) noexcept;
+    Move(Square orgSq, Square dstSq, Type mt = Type::NORMAL) noexcept;
+    Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept;
 
     // Accessors: extract parts of the move
-    [[nodiscard]] constexpr Square org_sq() const noexcept {
+    [[nodiscard]] Square org_sq() const noexcept {
         assert(is_ok());
 
         return Square((data >> OrgSqShift) & SqMask);
     }
 
-    [[nodiscard]] constexpr Square dst_sq() const noexcept {
+    [[nodiscard]] Square dst_sq() const noexcept {
         assert(is_ok());
 
         return Square((data >> DstSqShift) & SqMask);
     }
 
-    [[nodiscard]] constexpr Type type() const noexcept {
-        return Type((data & TypeMask) >> TypeShift);
-    }
+    [[nodiscard]] Type type() const noexcept { return Type((data & TypeMask) >> TypeShift); }
 
-    [[nodiscard]] constexpr PieceType promotion_type() const noexcept {
+    [[nodiscard]] PieceType promotion_type() const noexcept {
         return PieceType(((data >> PromoShift) & PromoMask) + KNIGHT);
     }
 
-    [[nodiscard]] constexpr Value promotion_value() const noexcept {
+    [[nodiscard]] Value promotion_value() const noexcept {
         return type() == Type::PROMOTION  //
                ? piece_value(promotion_type()) - VALUE_PAWN
                : VALUE_ZERO;
     }
 
-    [[nodiscard]] constexpr char promotion_char() const noexcept {
+    [[nodiscard]] char promotion_char() const noexcept {
         assert(type() == Type::PROMOTION);
 
         return to_char(promotion_type());
     }
 
-    [[nodiscard]] constexpr u16 raw() const noexcept { return data; }
+    [[nodiscard]] u16 raw() const noexcept { return data; }
 
-    constexpr bool operator==(const Move m) const noexcept { return data == m.data; }
-    constexpr bool operator!=(const Move m) const noexcept { return !(*this == m); }
+    bool operator==(const Move m) const noexcept { return data == m.data; }
+    bool operator!=(const Move m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    [[nodiscard]] constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
+    [[nodiscard]] bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
 
-    [[nodiscard]] constexpr Move reverse() const noexcept {
+    [[nodiscard]] Move reverse() const noexcept {
         assert(type() == Type::NORMAL);
 
         return Move{dst_sq(), org_sq()};
@@ -761,9 +752,45 @@ class Move {
     u16 data;
 };
 
+ALWAYS_INLINE Move Move::normal(Square orgSq, Square dstSq) noexcept {
+    return Move{orgSq, dstSq, Type::NORMAL};
+}
+
+ALWAYS_INLINE Move Move::promotion(const Square    orgSq,
+                                   const Square    dstSq,
+                                   const PieceType promoPt) noexcept {
+    return Move{orgSq, dstSq, promoPt};
+}
+
+ALWAYS_INLINE Move Move::enpassant(const Square orgSq, const Square dstSq) noexcept {
+    return Move{orgSq, dstSq, Type::EN_PASSANT};
+}
+
+ALWAYS_INLINE Move Move::castling(const Square orgSq, const Square dstSq) noexcept {
+    return Move{orgSq, dstSq, Type::CASTLING};
+}
+
+ALWAYS_INLINE Move::Move(const u16 d) noexcept :
+    data(d) {}
+
+ALWAYS_INLINE Move::Move(const Square orgSq, const Square dstSq, const Type mt) noexcept :
+    Move((u16(mt) << TypeShift)        //
+         | (u16(orgSq) << OrgSqShift)  //
+         | (u16(dstSq) << DstSqShift)) {
+    assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
+}
+
+ALWAYS_INLINE Move::Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
+    Move((u16(Type::PROMOTION) << TypeShift)      //
+         | (u16(promoPt - KNIGHT) << PromoShift)  //
+         | (u16(orgSq) << OrgSqShift)             //
+         | (u16(dstSq) << DstSqShift)) {
+    assert(DON::is_ok(orgSq) && DON::is_ok(dstSq) && KNIGHT <= promoPt && promoPt <= QUEEN);
+}
+
 // **Define the constexpr static members outside the class**
-inline constexpr Move Move::None{0x000};
-inline constexpr Move Move::Null{0xFFF};
+inline const Move Move::None{0x000};
+inline const Move Move::Null{0xFFF};
 
 using Moves = std::vector<Move>;
 
@@ -795,53 +822,35 @@ struct DirtyThreats final {
         static constexpr u16 AddMask = (1u << 1) - 1;
 
         Threat() noexcept = default;
-        explicit constexpr Threat(const u32 d) noexcept :
-            data(d) {}
-        constexpr Threat(const bool   add,
-                         const Piece  threatenedPc,
-                         const Piece  pc,
-                         const Square threatenedSq,
-                         const Square sq) noexcept :
-            data((u32(add) << AddShift)                      //
-                 | (u32(threatenedPc) << ThreatenedPcShift)  //
-                 | (u32(pc) << PcShift)                      //
-                 | (u32(threatenedSq) << ThreatenedSqShift)  //
-                 | (u32(sq) << SqShift)) {}
+        explicit Threat(u32 d) noexcept;
+        Threat(bool add, Piece threatenedPc, Piece pc, Square threatenedSq, Square sq) noexcept;
 
-        constexpr Square sq() const noexcept {  //
+        Square sq() const noexcept {  //
             return Square((data >> SqShift) & SqMask);
         }
-        constexpr Square threatened_sq() const noexcept {
+        Square threatened_sq() const noexcept {
             return Square((data >> ThreatenedSqShift) & SqMask);
         }
-        constexpr Piece pc() const noexcept {  //
+        Piece pc() const noexcept {  //
             return Piece((data >> PcShift) & PcMask);
         }
-        constexpr Piece threatened_pc() const noexcept {
-            return Piece((data >> ThreatenedPcShift) & PcMask);
-        }
-        constexpr bool add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
+        Piece threatened_pc() const noexcept { return Piece((data >> ThreatenedPcShift) & PcMask); }
+        bool  add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
 
-        constexpr u32 raw() const noexcept { return data; }
+        u32 raw() const noexcept { return data; }
 
        private:
         u32 data;
     };
 
-    void add(const bool   put,
-             const Piece  threatenedPc,
-             const Piece  pc,
-             const Square threatenedSq,
-             const Square sq) noexcept {
-        threats_.emplace_back(put, threatenedPc, pc, threatenedSq, sq);
-    }
+    void add(bool put, Piece threatenedPc, Piece pc, Square threatenedSq, Square sq) noexcept;
 
     [[nodiscard]] const Threat* begin() const noexcept { return threats_.begin(); }
     [[nodiscard]] const Threat* end() const noexcept { return threats_.end(); }
 
     [[nodiscard]] bool empty() const noexcept { return threats_.empty(); }
 
-    [[nodiscard]] Threat* make_space(const u8 space) noexcept { return threats_.make_space(space); }
+    [[nodiscard]] Threat* make_space(u8 space) noexcept;
 
    private:
     // A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
@@ -855,6 +864,32 @@ struct DirtyThreats final {
 
     ThreatVector threats_;
 };
+
+ALWAYS_INLINE DirtyThreats::Threat::Threat(const u32 d) noexcept :
+    data(d) {}
+
+ALWAYS_INLINE DirtyThreats::Threat::Threat(const bool   add,
+                                           const Piece  threatenedPc,
+                                           const Piece  pc,
+                                           const Square threatenedSq,
+                                           const Square sq) noexcept :
+    Threat((u32(add) << AddShift)                      //
+           | (u32(threatenedPc) << ThreatenedPcShift)  //
+           | (u32(pc) << PcShift)                      //
+           | (u32(threatenedSq) << ThreatenedSqShift)  //
+           | (u32(sq) << SqShift)) {}
+
+ALWAYS_INLINE void DirtyThreats::add(const bool   put,
+                                     const Piece  threatenedPc,
+                                     const Piece  pc,
+                                     const Square threatenedSq,
+                                     const Square sq) noexcept {
+    threats_.emplace_back(put, threatenedPc, pc, threatenedSq, sq);
+}
+
+ALWAYS_INLINE DirtyThreats::Threat* DirtyThreats::make_space(const u8 space) noexcept {
+    return threats_.make_space(space);
+}
 
 struct DirtyPawnPairs final {
    public:

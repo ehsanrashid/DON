@@ -78,7 +78,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
         const Square orgSq = dstSq - D;
 
-        *moves++ = Move{orgSq, dstSq};
+        *moves++ = Move::normal(orgSq, dstSq);
     }
 #endif
 
@@ -106,20 +106,20 @@ Move* splat_promotion_moves(Bitboard       dstBB,
 
         if constexpr (All || Capture)
         {
-            *moves++ = Move{orgSq, dstSq, QUEEN};
+            *moves++ = Move::promotion(orgSq, dstSq, QUEEN);
 
             if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move{orgSq, dstSq, KNIGHT};
+                *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
         }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move{orgSq, dstSq, ROOK};
+            *moves++ = Move::promotion(orgSq, dstSq, ROOK);
 
-            *moves++ = Move{orgSq, dstSq, BISHOP};
+            *moves++ = Move::promotion(orgSq, dstSq, BISHOP);
 
             if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move{orgSq, dstSq, KNIGHT};
+                *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
         }
     }
 
@@ -166,7 +166,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
-        *moves++ = Move{orgSq, dstSq};
+        *moves++ = Move::normal(orgSq, dstSq);
     }
 #endif
 
@@ -266,7 +266,7 @@ Move* generate_pawns_moves(const Position& pos,
             {
                 const Square orgSq = AC == WHITE ? pop_lsq(epPawnsBB) : pop_msq(epPawnsBB);
 
-                *moves++ = Move{orgSq, enPassantSq, Move::Type::EN_PASSANT};
+                *moves++ = Move::enpassant(orgSq, enPassantSq);
             }
         }
     }
@@ -329,7 +329,7 @@ Move* generate_king_moves(const Position& pos,
     {
         const Square dstSq = AC == WHITE ? pop_lsq(bb) : pop_msq(bb);
 
-        *moves++ = Move{kingSq, dstSq};
+        *moves++ = Move::normal(kingSq, dstSq);
 
         if constexpr (Any)
             return moves;
@@ -346,7 +346,7 @@ Move* generate_king_moves(const Position& pos,
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
                            && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)) != 0);
 
-                    *moves++ = Move{kingSq, pos.castling_rook_sq(AC, cs), Move::Type::CASTLING};
+                    *moves++ = Move::castling(kingSq, pos.castling_rook_sq(AC, cs));
 
                     if constexpr (Any)
                         return moves;
