@@ -1155,7 +1155,8 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->ttPv && !exclude && depth < 19 - int(seekMate) * 13 && (ttmNone || ttmCapture) && !is_win(ttEvalue) && !is_loss(beta))
+    if (!ss->ttPv && !exclude && depth < 19 - int(seekMate) * 13 && (ttmNone || ttmCapture)
+        && ttEvalue >= beta && !is_win(ttEvalue) && !is_loss(beta))
     {
         // Compute base futility
         const int baseFutility = std::min(45 + 4 * depth, 85) - int(!ttd.hit) * 20;
