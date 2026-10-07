@@ -22,6 +22,14 @@
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)
 OS := $(or $(shell uname -o 2>/dev/null),Linux)
+else \
+ifeq ($(KERNEL),Darwin)
+OS := Darwin
+else \
+ifneq ($(filter MINGW% MSYS% CYGWIN%,$(KERNEL)),)
+OS := Windows_NT
+else
+OS := $(KERNEL)
 endif
 
 ### Target operating system (may differ from KERNEL when cross-compiling)
