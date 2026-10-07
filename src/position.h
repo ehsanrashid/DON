@@ -140,7 +140,8 @@ class Position final {
     [[nodiscard]] bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
     // Attacks from a piece type
-    [[nodiscard]] Bitboard attacks_by_bb(Color c, PieceType pt) const noexcept;
+    [[nodiscard]] Bitboard
+    attacks_by_bb(Color c, PieceType pt, Bitboard occupancyBB) const noexcept;
 
     // Doing and undoing moves
 
@@ -577,14 +578,14 @@ ALWAYS_INLINE bool Position::attackers_exists(const Square s, const Bitboard att
 // clang-format on
 
 // Computes attacks from a piece type for a given color.
-ALWAYS_INLINE Bitboard Position::attacks_by_bb(const Color c, const PieceType pt) const noexcept {
+ALWAYS_INLINE Bitboard Position::attacks_by_bb(const Color     c,
+                                               const PieceType pt,
+                                               const Bitboard  occupancyBB) const noexcept {
     if (pt == PAWN)
         return Attacks::pawn_attacks_bb(c, pieces_bb(c, PAWN));
     else
     {
         Bitboard attacksBB = 0;
-
-        Bitboard occupancyBB = pieces_bb() ^ square(~c, KING);
 
         Bitboard attackersBB = pieces_bb(c, pt);
         while (attackersBB != 0)

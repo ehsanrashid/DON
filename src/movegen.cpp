@@ -247,25 +247,26 @@ Move* generate_pawns_moves(const Position& pos,
         const Bitboard rCapBB = shift_bb(RCap, notR7PawnsBB) & enemyBB;
         moves                 = splat_pawn_moves<AC, RCap>(rCapBB, moves);
 
-        if (is_ok(pos.en_passant_sq()))
+        const Square enPassantSq = pos.en_passant_sq();
+
+        if (is_ok(enPassantSq))
         {
-            assert(relative_rank(AC, pos.en_passant_sq()) == RANK_6);
-            assert((pos.pieces_bb(~AC, PAWN) & (pos.en_passant_sq() - Push1)) != 0);
+            assert(relative_rank(AC, enPassantSq) == RANK_6);
+            assert((pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1)) != 0);
             assert(pos.rule50_count() == 0);
             assert((notR7PawnsBB & relative_rank(AC, RANK_5)) != 0);
 
             // An en-passant capture cannot resolve a discovered check
-            assert(!Evasion || (targetBB & (pos.en_passant_sq() + Push1)) == 0);
+            assert(!Evasion || (targetBB & (enPassantSq + Push1)) == 0);
 
-            Bitboard epPawnsBB =
-              notR7PawnsBB & Attacks::pseudo_attacks_bb(~AC, pos.en_passant_sq());
+            Bitboard epPawnsBB = notR7PawnsBB & Attacks::pseudo_attacks_bb(~AC, enPassantSq);
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)
             {
                 const Square orgSq = AC == WHITE ? pop_lsq(epPawnsBB) : pop_msq(epPawnsBB);
 
-                *moves++ = Move{orgSq, pos.en_passant_sq(), Move::Type::EN_PASSANT};
+                *moves++ = Move{orgSq, enPassantSq, Move::Type::EN_PASSANT};
             }
         }
     }

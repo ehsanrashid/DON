@@ -196,6 +196,7 @@ enum class Direction : i8 {
 };
 
 constexpr auto operator+(const Direction d) noexcept { return i8(d); }
+constexpr auto operator-(const Direction d) noexcept { return Direction(-i8(d)); }
 
 constexpr Direction operator+(const Direction d1, const Direction d2) noexcept {
     return Direction(+d1 + +d2);

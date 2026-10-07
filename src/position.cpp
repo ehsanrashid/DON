@@ -598,20 +598,24 @@ void Position::set_ext_state() noexcept {
     st->checksBB[QUEEN ] = st->checksBB[BISHOP] | st->checksBB[ROOK];
     st->checksBB[KING  ] = 0;
 
-    st->accAttacksBB[NO_PIECE_TYPE] = 0;
-    st->accAttacksBB[PAWN  ] = attacks_by_bb(~ac, PAWN  );
-    st->accAttacksBB[KNIGHT] = attacks_by_bb(~ac, KNIGHT) | acc_attacks_bb(PAWN  );
-    st->accAttacksBB[BISHOP] = attacks_by_bb(~ac, BISHOP) | acc_attacks_bb(KNIGHT);
-    st->accAttacksBB[ROOK  ] = attacks_by_bb(~ac, ROOK  ) | acc_attacks_bb(BISHOP);
-    st->accAttacksBB[QUEEN ] = attacks_by_bb(~ac, QUEEN ) | acc_attacks_bb(ROOK  );
-    st->accAttacksBB[KING  ] = attacks_by_bb(~ac, KING  ) | acc_attacks_bb(QUEEN );
+    const Bitboard ownOccupancyBB = occupancyBB ^ square(ac, KING);
 
-    st->accAttacksBB[ALL   ] = attacks_by_bb(ac, PAWN  )
-                             | attacks_by_bb(ac, KNIGHT)
-                             | attacks_by_bb(ac, BISHOP)
-                             | attacks_by_bb(ac, ROOK  )
-                             | attacks_by_bb(ac, QUEEN )
-                             | attacks_by_bb(ac, KING  );
+    st->accAttacksBB[NO_PIECE_TYPE] = 0;
+    st->accAttacksBB[PAWN  ] = attacks_by_bb(~ac, PAWN  , ownOccupancyBB);
+    st->accAttacksBB[KNIGHT] = attacks_by_bb(~ac, KNIGHT, ownOccupancyBB) | acc_attacks_bb(PAWN  );
+    st->accAttacksBB[BISHOP] = attacks_by_bb(~ac, BISHOP, ownOccupancyBB) | acc_attacks_bb(KNIGHT);
+    st->accAttacksBB[ROOK  ] = attacks_by_bb(~ac, ROOK  , ownOccupancyBB) | acc_attacks_bb(BISHOP);
+    st->accAttacksBB[QUEEN ] = attacks_by_bb(~ac, QUEEN , ownOccupancyBB) | acc_attacks_bb(ROOK  );
+    st->accAttacksBB[KING  ] = attacks_by_bb(~ac, KING  , ownOccupancyBB) | acc_attacks_bb(QUEEN );
+
+    const Bitboard oppOccupancyBB = occupancyBB ^ square(~ac, KING);
+
+    st->accAttacksBB[ALL   ] = attacks_by_bb(ac, PAWN  , oppOccupancyBB)
+                             | attacks_by_bb(ac, KNIGHT, oppOccupancyBB)
+                             | attacks_by_bb(ac, BISHOP, oppOccupancyBB)
+                             | attacks_by_bb(ac, ROOK  , oppOccupancyBB)
+                             | attacks_by_bb(ac, QUEEN , oppOccupancyBB)
+                             | attacks_by_bb(ac, KING  , oppOccupancyBB);
     // clang-format on
 }
 
