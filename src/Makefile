@@ -61,15 +61,23 @@ endif
 IS_WINDOWS := no
 ifeq ($(OS),Windows_NT)
 # Android NDK is never treated as Windows
-ifneq ($(filter-out ndk,$(COMP)),)
+ifneq ($(COMP),ndk)
 IS_WINDOWS := yes
-endif
-else \
 ifeq ($(COMP),mingw)
-IS_WINDOWS := yes
-ifeq ($(RUN_PREFIX),)
+ifeq ($(strip $(RUN_PREFIX)),)
 RUN_PREFIX := $(call FIND_EXE,wine)
 endif
+endif
+endif
+endif
+
+ifeq ($(IS_WINDOWS),yes)
+OS_NAME := Windows
+else \
+ifeq ($(TARGET_KERNEL),Darwin)
+OS_NAME := macOS
+else
+OS_NAME := Linux
 endif
 
 ### Executable name
@@ -81,15 +89,6 @@ ifneq ($(findstring wasm,$(ARCH)),)
 EXE := $(NAME).js
 else
 EXE := $(NAME)
-endif
-
-ifeq ($(IS_WINDOWS),yes)
-OS_NAME := Windows
-else \
-ifeq ($(TARGET_KERNEL),Darwin)
-OS_NAME := macOS
-else
-OS_NAME := Linux
 endif
 
 ### Installation dir definitions
