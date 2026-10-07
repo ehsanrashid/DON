@@ -1032,12 +1032,15 @@ Value Worker::search(Position&    pos,
                         return ttd.value;
                 }
             }
-            // Case B: No cutoff, but the depth was sufficient. Compare the aspiration window to the bound.
-            // Check whether the stored inexact TT value is inconsistent with the current aspiration window-bound.
-            else if (depth > 5 && ttd.bound != Bound::EXACT
-                     && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
-                // Penalize the entry since its bound is now no longer useful for this window-bound.
+            // Case B: No cutoff was produced, but the search was deep enough that
+            // the bound points in the wrong direction for the current window.
+            else if (depth > 5)
+            {
+                assert(ttd.bound != Bound::EXACT);
+                assert(is_ok(ttd.bound & fail_bound(ttd.value < beta)));
+                // Penalize the entry because its bound is now no longer useful for the current window.
                 ttw.penalize(1);
+            }
         }
     }
 
@@ -1368,7 +1371,7 @@ Value Worker::search(Position&    pos,
             (ss + 1)->pv = nullptr;
         }
 
-        const bool ttM = move == ttd.move;
+        const bool ttm = move == ttd.move;
 
         const Square dstSq = move.dst_sq();
 
@@ -1494,7 +1497,7 @@ Value Worker::search(Position&    pos,
         if constexpr (!RootNode)
         {
             // clang-format off
-        if (!exclude && ttM && depth > 5 + int(ss->ttPv) && !seekMate && is_valid(ttd.value) && !is_decisive(ttd.value)
+        if (!exclude && ttm && depth > 5 + int(ss->ttPv) && !seekMate && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
             const int singularMargin = constexpr_round((59.0 + int(!PVNode && ss->ttPv) * 66.0) * depth / 63.0);
@@ -1600,7 +1603,7 @@ Value Worker::search(Position&    pos,
             r += 264 + int(AllNode) * 1138 + int(ss->cutoffCount > 2) * 1095;
         // Decrease reduction for first picked move (ttMove)
         else
-            r -= int(ttM) * 2179;
+            r -= int(ttm) * 2179;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 439.0 / 4096.0);
@@ -1672,10 +1675,12 @@ Value Worker::search(Position&    pos,
                 (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
-                if (newDepth <= DEPTH_ZERO && ttM
-                    && (ttd.depth > 1
-                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
-                    newDepth = 1;
+                if (ttm && newDepth < 1)
+                {
+                    if (ttd.depth > 1
+                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value)))
+                        newDepth = 1;
+                }
 
                 value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
             }
@@ -1837,7 +1842,7 @@ Value Worker::search(Position&    pos,
     else
     {
         // Adjust best value for fail high cases
-        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+        if (bestValue >= beta && !is_win(bestValue) && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, depth, depth + 1);
 
         // If there is a move that produces search value greater than alpha update the history of searched moves
@@ -1855,8 +1860,16 @@ Value Worker::search(Position&    pos,
         // If prior move is valid, that caused the fail low
         else if (preOk)
         {
+            // Bonus for prior capture move
+            if (preCapture)
+            {
+                auto capturedPt = type_of(pos.captured_pc());
+                assert(capturedPt != NO_PIECE_TYPE);
+
+                update_capture_history(pos[preSq], preSq, capturedPt, 892);
+            }
             // Bonus for prior quiet move
-            if (!preCapture)
+            else
             {
                 // Bonus scale ranges from 0 to roughly 2.3M, overflows happen for multipliers larger than 900
                 int bonusScale =
@@ -1883,14 +1896,6 @@ Value Worker::search(Position&    pos,
                 if (preNonPawn)
                     update_pawn_history(pos, pos[preSq], preSq,
                                         constexpr_round(bonus * 1296.0 / 32768.0));
-            }
-            // Bonus for prior capture move
-            else
-            {
-                auto capturedPt = type_of(pos.captured_pc());
-                assert(capturedPt != NO_PIECE_TYPE);
-
-                update_capture_history(pos[preSq], preSq, capturedPt, 892);
             }
         }
     }
@@ -2033,7 +2038,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+        if (!is_win(bestValue) && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, 441.0, 1024.0);
 
         if (!ttd.hit)
@@ -2179,7 +2184,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Adjust best value for fail high cases
-    if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+    if (bestValue >= beta && !is_win(bestValue) && !is_loss(beta))
         bestValue = blend_values(bestValue, beta, 462.0, 1024.0);
 
     // Step 11. Write gathered information in transposition table.
