@@ -95,10 +95,10 @@ void init_magics() noexcept {
         assert(magic.attacksBBs != nullptr);
 
         // Get the pseudo attacks on an empty board
-        Bitboard pseudoAttacksBB = pseudo_attacks_bb(PT, s);
+        const Bitboard pseudoAttacksBB = pseudo_attacks_bb(PT, s);
 
         // Board edges are not considered in the relevant occupancies
-        Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
+        const Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
 
         // Compute the mask of relevant occupancy bits for the square and piece type
         magic.maskBB = pseudoAttacksBB & ~edgesBB;
@@ -118,7 +118,7 @@ void init_magics() noexcept {
         Bitboard occupancyBB = 0;
         do
         {
-            Bitboard slidingAttacksBB = sliding_attacks_bb(PT, s, occupancyBB);
+            const Bitboard slidingAttacksBB = sliding_attacks_bb(PT, s, occupancyBB);
 
     #if defined(USE_BMI2)
             magic.attacks_bb(occupancyBB, slidingAttacksBB);
@@ -154,25 +154,23 @@ void init_magics() noexcept {
         // Find a magic for square picking up an (almost) random number
         // until find the one that passes the verification test.
         // This is trial−and−error iteration.
-        while (true)
+        for (u16 i = 0; i < size;)
         {
+            ++cnt;
+
             // Pick a candidate magic until it is "sparse enough"
             do
                 magic.magicBB = prng.sparse_rand<Bitboard>();
             while (popcount((magic.magicBB * magic.maskBB) >> 56) < 6);
-
-            ++cnt;
-
-            bool magicOk = true;
 
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
             // Note that build up the database for square as a side effect of verifying the magic.
             // Keep track of the attempt count and save it in epoch[], little speed-up
             // trick to avoid resetting magic.attacksBBs[] after every failed attempt.
-            for (u16 i = 0; i < size; ++i)
+            for (i = 0; i < size; ++i)
             {
-                u16 idx = magic.index(occupancyBBs[i]);
+                const u16 idx = magic.index(occupancyBBs[i]);
 
                 if (epoch[idx] < cnt)
                 {
@@ -180,14 +178,8 @@ void init_magics() noexcept {
                     magic.attacksBBs[idx] = referenceBBs[i];
                 }
                 else if (magic.attacksBBs[idx] != referenceBBs[i])
-                {
-                    magicOk = false;
                     break;
-                }
             }
-
-            if (magicOk)
-                break;
         }
     #endif
     }

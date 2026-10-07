@@ -2292,6 +2292,7 @@ void Worker::update_pawn_history(const Position& pos,
 
     atomicHistories.pawn_entry(pos)[+pc][dstSq] << bonus;
 }
+
 void Worker::update_pawn_history(const Position& pos, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
