@@ -2168,8 +2168,9 @@ Position::operator std::string() const noexcept {
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
             const auto pc = piece(make_square(f, r));
+
             str
-              .append(" | ")
+              .append(" | ")  //
               //.push_back(to_char(pc));
               .append(to_utf8(pc));
         }
