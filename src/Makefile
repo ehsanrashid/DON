@@ -59,17 +59,16 @@ endif
 
 ### Target Windows OS
 IS_WINDOWS := no
-
-ifeq ($(COMP),mingw)
-IS_WINDOWS := yes
-ifeq ($(strip $(RUN_PREFIX)),)
-RUN_PREFIX := $(call FIND_EXE,wine)
-endif
-else \
 ifeq ($(OS),Windows_NT)
 # Android NDK is never treated as Windows
 ifneq ($(COMP),ndk)
 IS_WINDOWS := yes
+endif
+else \
+ifeq ($(COMP),mingw)
+IS_WINDOWS := yes
+ifeq ($(strip $(RUN_PREFIX)),)
+RUN_PREFIX := $(call FIND_EXE,wine)
 endif
 endif
 

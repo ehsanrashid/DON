@@ -126,8 +126,8 @@ void splat_promotion(const Color     ac,
 }
 
 // Splat moves
-template<bool Any>
-void splat(const Color ac, const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
+template<Color AC, bool Any>
+void splat(const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     // clang-format off
@@ -144,7 +144,7 @@ void splat(const Color ac, const Square orgSq, Bitboard dstBB, Move*& moves) noe
 
     __m512i      packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DstSqShift));
 
-    if (ac == BLACK)
+    if constexpr (AC == BLACK)
     {
         // Reverse the first 'count' 16-bit moves.
         //
@@ -164,7 +164,7 @@ void splat(const Color ac, const Square orgSq, Bitboard dstBB, Move*& moves) noe
 #else
     while (dstBB != 0)
     {
-        const Square dstSq = ac == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         *moves++ = Move::normal(orgSq, dstSq);
 
@@ -203,9 +203,9 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     const Square   kingSq     = pos.square(AC, KING);
     const Bitboard blockersBB = pos.blockers_bb(AC);
 
-    const Bitboard PushableBB = ~blockersBB | file_bb(kingSq);
-    const Bitboard LCaptureBB = ~blockersBB | Attacks::anti_diag_bb(kingSq);
-    const Bitboard RCaptureBB = ~blockersBB | Attacks::diag_bb(kingSq);
+    const Bitboard PushableBB    = ~blockersBB | file_bb(kingSq);
+    const Bitboard LCapturableBB = ~blockersBB | Attacks::anti_diag_bb(kingSq);
+    const Bitboard RCapturableBB = ~blockersBB | Attacks::diag_bb(kingSq);
 
     const Bitboard pawnsBB      = pos.pieces_bb(AC, PAWN);
     const Bitboard yesR7PawnsBB = pawnsBB & Rank7BB;
@@ -225,11 +225,11 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     {
         const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
-        const Bitboard lCapBB = shift_bb(LCapDir, yesR7PawnsBB & LCaptureBB) & enemyBB;
+        const Bitboard lCapBB = shift_bb(LCapDir, yesR7PawnsBB & LCapturableBB) & enemyBB;
 
         splat_promotion<GT, true>(AC, knightChecksBB, LCapDir, lCapBB, moves);
 
-        const Bitboard rCapBB = shift_bb(RCapDir, yesR7PawnsBB & RCaptureBB) & enemyBB;
+        const Bitboard rCapBB = shift_bb(RCapDir, yesR7PawnsBB & RCapturableBB) & enemyBB;
 
         splat_promotion<GT, true>(AC, knightChecksBB, RCapDir, rCapBB, moves);
 
@@ -263,11 +263,11 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     // Standard and en-passant captures
     if constexpr (!Quiet)
     {
-        const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCaptureBB) & enemyBB;
+        const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCapturableBB) & enemyBB;
 
         splat_pawn<AC>(LCapDir, lCapBB, moves);
 
-        const Bitboard rCapBB = shift_bb(RCapDir, notR7PawnsBB & RCaptureBB) & enemyBB;
+        const Bitboard rCapBB = shift_bb(RCapDir, notR7PawnsBB & RCapturableBB) & enemyBB;
 
         splat_pawn<AC>(RCapDir, rCapBB, moves);
 
@@ -285,9 +285,9 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
 
             const Bitboard epBB = square_bb(enPassantSq);
 
-            Bitboard epPawnsBB = notR7PawnsBB & Rank5BB                    //
-                               & ((shift_bb(-LCapDir, epBB) & LCaptureBB)  //
-                                  | (shift_bb(-RCapDir, epBB) & RCaptureBB));
+            Bitboard epPawnsBB = notR7PawnsBB & Rank5BB                       //
+                               & ((shift_bb(-LCapDir, epBB) & LCapturableBB)  //
+                                  | (shift_bb(-RCapDir, epBB) & RCapturableBB));
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)
@@ -324,7 +324,8 @@ void generate_piece(const Position& pos,
 
         const Move* const pMoves = moves;
 
-        splat<Any>(ac, orgSq, dstBB, moves);
+        ac == WHITE ? splat<WHITE, Any>(orgSq, dstBB, moves)
+                    : splat<BLACK, Any>(orgSq, dstBB, moves);
 
         if constexpr (Any)
         {
@@ -348,7 +349,8 @@ void generate_piece(const Position& pos,
 
         const Move* const pMoves = moves;
 
-        splat<Any>(ac, orgSq, dstBB, moves);
+        ac == WHITE ? splat<WHITE, Any>(orgSq, dstBB, moves)
+                    : splat<BLACK, Any>(orgSq, dstBB, moves);
 
         if constexpr (Any)
         {
@@ -398,7 +400,8 @@ void generate_king(const Position& pos,
     const Bitboard dstBB = Attacks::pseudo_attacks_bb(KING, kingSq)  //
                          & ~pos.acc_attacks_bb(KING) & targetBB;
 
-    splat<Any>(ac, kingSq, dstBB, moves);
+    ac == WHITE ? splat<WHITE, Any>(kingSq, dstBB, moves)  //
+                : splat<BLACK, Any>(kingSq, dstBB, moves);
 }
 
 }  // namespace
