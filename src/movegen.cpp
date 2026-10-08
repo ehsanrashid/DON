@@ -171,7 +171,9 @@ Move* splat(const Color ac, const Square orgSq, Bitboard dstBB, Move* RESTRICT m
         *moves++ = Move::normal(orgSq, dstSq);
 
         if constexpr (Any)
-            return moves;
+        {
+            break;
+        }
     }
 #endif
 
@@ -210,7 +212,9 @@ Move* generate_pawn(const Position& pos,
     Bitboard enemyBB = pos.pieces_bb(~ac);
 
     if constexpr (Evasion)
+    {
         enemyBB &= targetBB;
+    }
 
     const Move* RESTRICT rMoves = moves;
     Move* RESTRICT       wMoves = moves;
@@ -231,7 +235,10 @@ Move* generate_pawn(const Position& pos,
         Bitboard push1BB = shift_bb(Push1, yesR7PawnsBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
+        {
             push1BB &= Attacks::between_bb(pos.square(ac, KING), lsq(pos.checkers_bb()));
+        }
+
         moves = splat_promotion<GT, false>(ac, knightChecksBB, Push1, push1BB, moves);
     }
 
@@ -256,10 +263,12 @@ Move* generate_pawn(const Position& pos,
     if constexpr (!Quiet)
     {
         const Bitboard lCapBB = shift_bb(LCap, notR7PawnsBB) & enemyBB;
-        moves                 = splat_pawn(ac, LCap, lCapBB, moves);
+
+        moves = splat_pawn(ac, LCap, lCapBB, moves);
 
         const Bitboard rCapBB = shift_bb(RCap, notR7PawnsBB) & enemyBB;
-        moves                 = splat_pawn(ac, RCap, rCapBB, moves);
+
+        moves = splat_pawn(ac, RCap, rCapBB, moves);
 
         const Square enPassantSq = pos.en_passant_sq();
 
@@ -318,33 +327,35 @@ Move* generate_piece(const Position& pos,
 
     Bitboard bb;
 
-    // Pinned knights can't move
-    if constexpr (PT == BISHOP || PT == ROOK || PT == QUEEN)
-    {
-        bb = piecesBB & blockersBB;
-        while (bb != 0)
-        {
-            const Square   orgSq = ac == WHITE ? pop_lsq(bb) : pop_msq(bb);
-            const Bitboard dstBB = Attacks::attacks_bb(PT, orgSq, occupancyBB)
-                                 & Attacks::line_bb(kingSq, orgSq) & targetBB;
-
-            const Move* const RESTRICT pMoves = moves;
-
-            moves = splat<Any>(ac, orgSq, dstBB, moves);
-
-            if constexpr (Any)
-            {
-                if (pMoves != moves)
-                    break;
-            }
-        }
-    }
-
     bb = piecesBB & ~blockersBB;
     while (bb != 0)
     {
         const Square   orgSq = ac == WHITE ? pop_lsq(bb) : pop_msq(bb);
         const Bitboard dstBB = Attacks::attacks_bb(PT, orgSq, occupancyBB) & targetBB;
+
+        const Move* const RESTRICT pMoves = moves;
+
+        moves = splat<Any>(ac, orgSq, dstBB, moves);
+
+        if constexpr (Any)
+        {
+            if (pMoves != moves)
+                break;
+        }
+    }
+
+    // Pinned knights can't move; only pinned sliders can move
+    if constexpr (PT == KNIGHT)
+    {
+        return moves;
+    }
+
+    bb = piecesBB & blockersBB;
+    while (bb != 0)
+    {
+        const Square   orgSq = ac == WHITE ? pop_lsq(bb) : pop_msq(bb);
+        const Bitboard dstBB = Attacks::attacks_bb(PT, orgSq, occupancyBB)  //
+                             & Attacks::line_bb(kingSq, orgSq) & targetBB;
 
         const Move* const RESTRICT pMoves = moves;
 
@@ -375,25 +386,13 @@ Move* generate_king(const Position& pos,
 
     const Square kingSq = pos.square(ac, KING);
 
-    const Bitboard dstBB =
-      Attacks::pseudo_attacks_bb(KING, kingSq) & ~pos.acc_attacks_bb(KING) & targetBB;
-
-    const Move* const RESTRICT pMoves = moves;
-
-    moves = splat<Any>(ac, kingSq, dstBB, moves);
-
-    if constexpr (Any)
-    {
-        if (pMoves != moves)
-            return moves;
-    }
-
     if constexpr (Castle)
     {
         assert(pos.checkers_bb() == 0);
 
         if (pos.has_castling_rights() && pos.has_castling_rights(ac, CastlingSide::ANY))
             for (const CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
+            {
                 if (pos.castling_possible(ac, cs))
                 {
                     assert(is_ok(pos.castling_rook_sq(ac, cs))
@@ -402,9 +401,17 @@ Move* generate_king(const Position& pos,
                     *moves++ = Move::castling(kingSq, pos.castling_rook_sq(ac, cs));
 
                     if constexpr (Any)
+                    {
                         return moves;
+                    }
                 }
+            }
     }
+
+    const Bitboard dstBB = Attacks::pseudo_attacks_bb(KING, kingSq)  //
+                         & ~pos.acc_attacks_bb(KING) & targetBB;
+
+    moves = splat<Any>(ac, kingSq, dstBB, moves);
 
     return moves;
 }
