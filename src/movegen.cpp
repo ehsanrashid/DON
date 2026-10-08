@@ -42,19 +42,6 @@ void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     // clang-format off
-    // Reverse the first 1..8 packed 16-bit moves.
-    alignas(16) constexpr Array<u8, 9, 16> ReverseShuffleBytes{{
-      {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-      {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-      {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-      {4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-      {6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-      {8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-      {10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80},
-      {12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80},
-      {14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1}  //
-    }};
-
     const u8 count = popcount(dstBB);
     assert(count <= 8);  // <= 8 pawns per side
 
@@ -66,6 +53,19 @@ void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
 
     if constexpr (AC == BLACK)
     {
+        // Reverse the first 1..8 packed 16-bit moves.
+        alignas(16) constexpr Array<u8, 9, 16> ReverseShuffleBytes{{
+          {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+          {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+          {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+          {4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+          {6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+          {8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+          {10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80},
+          {12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80},
+          {14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1}  //
+        }};
+
         const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(ReverseShuffleBytes[count].data()));
         packedMoves = _mm_shuffle_epi8(packedMoves, shuffle);
     }
@@ -96,7 +96,6 @@ void splat_promotion(const Color     ac,
             || dir == Direction::NORTH_WEST || dir == Direction::SOUTH_WEST)
            && "Unsupported direction in splat_promotion()");
 
-    constexpr bool All     = GT == GenType::ENCOUNTER || GT == GenType::EVASION;
     constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
     constexpr bool Quiet   = GT == GenType::ENC_QUIET || GT == GenType::EVA_QUIET;
 
@@ -105,7 +104,7 @@ void splat_promotion(const Color     ac,
         const Square dstSq = ac == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
         const Square orgSq = dstSq - dir;
 
-        if constexpr (All || Capture)
+        if constexpr (Capture)
         {
             *moves++ = Move::promotion(orgSq, dstSq, QUEEN);
 
@@ -113,7 +112,7 @@ void splat_promotion(const Color     ac,
                 *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
         }
 
-        if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
+        if constexpr ((Capture && Enemy) || (Quiet && !Enemy))
         {
             *moves++ = Move::promotion(orgSq, dstSq, ROOK);
 
@@ -131,13 +130,8 @@ void splat(const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     // clang-format off
-    alignas(CACHE_LINE_SIZE) constexpr Array<u16, 32> ReverseIndices{
-      31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
-      15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0
-    };
-
     const u8 count = popcount(dstBB);
-    assert(count <= 32);  // Q can attack up to 27 squares
+    assert(count <= 32);  // At most 32 destinations are supported (Q can attack up to 27 squares)
 
     const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQ_ZERO).raw());
     const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
@@ -146,6 +140,11 @@ void splat(const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
 
     if constexpr (AC == BLACK)
     {
+        alignas(CACHE_LINE_SIZE) constexpr Array<u16, 32> ReverseIndices{
+            31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+            15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0
+        };
+
         // Reverse the first 'count' 16-bit moves.
         //
         // ReverseIndices - (32 - count)
@@ -180,15 +179,14 @@ void splat(const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
 
 template<Color AC, GenType GT>
 void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) noexcept {
-    static_assert(
-      GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
-        || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
-      "Unsupported generate type in generate()");
+    static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
+                    || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
+                  "Unsupported generate type in generate()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
     // clang-format off
-    constexpr bool Evasion = GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
     constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
     constexpr bool Quiet   = GT == GenType::ENC_QUIET || GT == GenType::EVA_QUIET;
+    constexpr bool Evasion = GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
 
     constexpr Direction Push1Dir = pawn_spush(AC);
     constexpr Direction Push2Dir = pawn_dpush(AC);
@@ -243,25 +241,8 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
         splat_promotion<GT, false>(AC, knightChecksBB, Push1Dir, push1BB, moves);
     }
 
-    // Single and double pawn pushes, no promotions
-    if constexpr (!Capture)
-    {
-        Bitboard push1BB = shift_bb(Push1Dir, notR7PawnsBB & PushableBB) & emptyBB;
-        Bitboard push2BB = shift_bb(Push1Dir, push1BB & Rank3BB) & emptyBB;
-
-        // Consider only blocking squares
-        if constexpr (Evasion)
-        {
-            push1BB &= targetBB;
-            push2BB &= targetBB;
-        }
-
-        splat_pawn<AC>(Push1Dir, push1BB, moves);
-        splat_pawn<AC>(Push2Dir, push2BB, moves);
-    }
-
     // Standard and en-passant captures
-    if constexpr (!Quiet)
+    if constexpr (Capture)
     {
         const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCapturableBB) & enemyBB;
 
@@ -297,6 +278,23 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
                 *moves++ = Move::enpassant(orgSq, enPassantSq);
             }
         }
+    }
+
+    // Single and double pawn pushes, no promotions
+    if constexpr (Quiet)
+    {
+        Bitboard push1BB = shift_bb(Push1Dir, notR7PawnsBB & PushableBB) & emptyBB;
+        Bitboard push2BB = shift_bb(Push1Dir, push1BB & Rank3BB) & emptyBB;
+
+        // Consider only blocking squares
+        if constexpr (Evasion)
+        {
+            push1BB &= targetBB;
+            push2BB &= targetBB;
+        }
+
+        splat_pawn<AC>(Push1Dir, push1BB, moves);
+        splat_pawn<AC>(Push2Dir, push2BB, moves);
     }
 }
 
@@ -365,13 +363,12 @@ void generate_king(const Position& pos,
                    const Color     ac,
                    const Bitboard  targetBB,
                    Move*&          moves) noexcept {
-    static_assert(
-      GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
-        || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
-      "Unsupported generate type in generate_king()");
+    static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
+                    || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
+                  "Unsupported generate type in generate_king()");
     assert(popcount(pos.checkers_bb()) <= 2);
 
-    constexpr bool Castle = GT == GenType::ENCOUNTER || GT == GenType::ENC_QUIET;
+    constexpr bool Castle = GT == GenType::ENC_QUIET;
 
     const Square kingSq = pos.square(ac, KING);
 
@@ -406,23 +403,19 @@ void generate_king(const Position& pos,
 
 }  // namespace
 
-// <ENCOUNTER  > Generates all legal captures and non-captures moves
 // <ENC_CAPTURE> Generates all legal captures and promotions moves
 // <ENC_QUIET  > Generates all legal non-captures and castling moves
-// <EVASION    > Generates all legal check evasions moves
 // <EVA_CAPTURE> Generates all legal check evasions captures and promotions moves
 // <EVA_QUIET  > Generates all legal check evasions non-captures moves
 template<GenType GT, bool Any>
 void generate(const Position& pos, Move*& moves) noexcept {
-    static_assert(
-      GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
-        || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
-      "Unsupported generate type in generate()");
-    assert((GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
-           == (pos.checkers_bb() != 0));
+    static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
+                    || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
+                  "Unsupported generate type in generate()");
+    assert((GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET) == (pos.checkers_bb() != 0));
 
     // clang-format off
-    constexpr bool Evasion = GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
+    constexpr bool Evasion = GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
 
     const Color ac = pos.active_color();
 
@@ -432,10 +425,8 @@ void generate(const Position& pos, Move*& moves) noexcept {
     {
         switch (GT)
         {
-        case GenType::ENCOUNTER   : targetBB = ~pos.pieces_bb(ac);                                                   break;
         case GenType::ENC_CAPTURE : targetBB =  pos.pieces_bb(~ac);                                                  break;
         case GenType::ENC_QUIET   : targetBB = ~pos.pieces_bb();                                                     break;
-        case GenType::EVASION     : targetBB = Attacks::between_bb(pos.square(ac, KING), lsq(pos.checkers_bb()));    break;
         case GenType::EVA_CAPTURE : targetBB = pos.checkers_bb();                                                    break;
         case GenType::EVA_QUIET   : targetBB = Attacks::between_ex_bb(pos.square(ac, KING), lsq(pos.checkers_bb())); break;
         }
@@ -478,7 +469,6 @@ void generate(const Position& pos, Move*& moves) noexcept {
     {
         switch (GT)
         {
-        case GenType::EVASION     : targetBB = ~pos.pieces_bb(ac);  break;
         case GenType::EVA_CAPTURE : targetBB =  pos.pieces_bb(~ac); break;
         case GenType::EVA_QUIET   : targetBB = ~pos.pieces_bb();    break;
         }
@@ -490,26 +480,37 @@ void generate(const Position& pos, Move*& moves) noexcept {
 
 // Explicit template instantiations:
 // clang-format off
-template void generate<GenType::ENCOUNTER, false>(const Position& pos, Move*& moves) noexcept;
-template void generate<GenType::ENCOUNTER, true >(const Position& pos, Move*& moves) noexcept;
 template void generate<GenType::ENC_CAPTURE, false>(const Position& pos, Move*& moves) noexcept;
 template void generate<GenType::ENC_QUIET  , false>(const Position& pos, Move*& moves) noexcept;
-
-template void generate<GenType::EVASION, false>(const Position& pos, Move*& moves) noexcept;
-template void generate<GenType::EVASION, true >(const Position& pos, Move*& moves) noexcept;
 template void generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move*& moves) noexcept;
 template void generate<GenType::EVA_QUIET  , false>(const Position& pos, Move*& moves) noexcept;
 
 // <LEGAL> Generates all legal moves
 template<>
 void generate<GenType::LEGAL, false>(const Position& pos, Move*& moves) noexcept {
-    return pos.checkers_bb() != 0 ? generate<GenType::EVASION  , false>(pos, moves)
-                                  : generate<GenType::ENCOUNTER, false>(pos, moves);
+    if (pos.checkers_bb() == 0)
+    {
+        generate<GenType::ENC_CAPTURE, false>(pos, moves);
+        generate<GenType::ENC_QUIET  , false>(pos, moves);
+    }
+    else
+    {
+        generate<GenType::EVA_CAPTURE, false>(pos, moves);
+        generate<GenType::EVA_QUIET  , false>(pos, moves);
+    }
 }
 template<>
 void generate<GenType::LEGAL, true >(const Position& pos, Move*& moves) noexcept {
-    return pos.checkers_bb() != 0 ? generate<GenType::EVASION  , true>(pos, moves)
-                                  : generate<GenType::ENCOUNTER, true>(pos, moves);
+    if (pos.checkers_bb() == 0)
+    {
+        generate<GenType::ENC_CAPTURE, true>(pos, moves);
+        generate<GenType::ENC_QUIET, true>(pos, moves);
+    }
+    else
+    {
+        generate<GenType::EVA_CAPTURE, true>(pos, moves);
+        generate<GenType::EVA_QUIET  , true>(pos, moves);
+    }
 }
 // clang-format on
 

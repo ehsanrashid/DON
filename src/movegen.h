@@ -28,19 +28,15 @@ namespace DON {
 class Position;
 
 enum class GenType : u8 {
-    ENCOUNTER,
     ENC_CAPTURE,
     ENC_QUIET,
-    EVASION,
     EVA_CAPTURE,
     EVA_QUIET,
     LEGAL
 };
 
-// <ENCOUNTER  > Generates all legal captures and non-captures moves
 // <ENC_CAPTURE> Generates all legal captures and promotions moves
 // <ENC_QUIET  > Generates all legal non-captures and castling moves
-// <EVASION    > Generates all legal check evasions moves
 // <EVA_CAPTURE> Generates all legal check evasions captures and promotions moves
 // <EVA_QUIET  > Generates all legal check evasions non-captures moves
 template<GenType GT, bool Any = false>
