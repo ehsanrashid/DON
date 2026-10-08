@@ -1381,11 +1381,11 @@ bool Position::fork(const Move m) const noexcept {
 Value Position::non_pawn_value(const Color c) const noexcept {
     return NonPawnCache.access_or_build_with(
       material_key(c),
-      [this](const Color _c) noexcept -> Value {
+      [this](const Color c_) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
 
           for (const auto pt : NON_PAWN_PIECE_TYPES)
-              nonPawnValue += piece_value(pt) * count(_c, pt);
+              nonPawnValue += piece_value(pt) * count(c_, pt);
 
           return nonPawnValue;
       },
@@ -1399,12 +1399,12 @@ Value Position::material_value() const noexcept {
 
 Value Position::evaluate() const noexcept {
     const Color ac          = active_color();
-    const Key   materialKey = material_key() ^ (ac == BLACK ? Zobrist_.turn() : Key{0});
+    const Key   materialKey = material_key() ^ (ac == BLACK ? Zobrist_.turn() : 0);
     return EvaluateCache.access_or_build_with(  //
       materialKey,
-      [this](const Color _ac) noexcept -> Value {
-          return VALUE_PAWN * (count(_ac, PAWN) - count(~_ac, PAWN))
-               + (non_pawn_value(_ac) - non_pawn_value(~_ac));
+      [this](const Color ac_) noexcept -> Value {
+          return VALUE_PAWN * (count(ac_, PAWN) - count(~ac_, PAWN))
+               + (non_pawn_value(ac_) - non_pawn_value(~ac_));
       },
       ac);
 }
