@@ -318,23 +318,6 @@ Move* generate_piece(const Position& pos,
 
     Bitboard bb;
 
-    bb = piecesBB & ~blockersBB;
-    while (bb != 0)
-    {
-        const Square   orgSq = ac == WHITE ? pop_lsq(bb) : pop_msq(bb);
-        const Bitboard dstBB = Attacks::attacks_bb(PT, orgSq, occupancyBB) & targetBB;
-
-        const Move* const RESTRICT pMoves = moves;
-
-        moves = splat<Any>(ac, orgSq, dstBB, moves);
-
-        if constexpr (Any)
-        {
-            if (pMoves != moves)
-                break;
-        }
-    }
-
     // Pinned knights can't move
     if constexpr (PT == BISHOP || PT == ROOK || PT == QUEEN)
     {
@@ -354,6 +337,23 @@ Move* generate_piece(const Position& pos,
                 if (pMoves != moves)
                     break;
             }
+        }
+    }
+
+    bb = piecesBB & ~blockersBB;
+    while (bb != 0)
+    {
+        const Square   orgSq = ac == WHITE ? pop_lsq(bb) : pop_msq(bb);
+        const Bitboard dstBB = Attacks::attacks_bb(PT, orgSq, occupancyBB) & targetBB;
+
+        const Move* const RESTRICT pMoves = moves;
+
+        moves = splat<Any>(ac, orgSq, dstBB, moves);
+
+        if constexpr (Any)
+        {
+            if (pMoves != moves)
+                break;
         }
     }
 
