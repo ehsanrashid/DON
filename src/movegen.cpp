@@ -32,15 +32,12 @@ namespace DON {
 namespace {
 namespace {
 // Splat pawn moves
-Move* splat_pawn_moves(const Color     ac,
-                       const Direction d,
-                       Bitboard        dstBB,
-                       Move* RESTRICT  moves) noexcept {
+Move* splat_pawn(const Color ac, const Direction d, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     assert((d == Direction::NORTH || d == Direction::SOUTH               //
             || d == Direction::NORTH_2 || d == Direction::SOUTH_2        //
             || d == Direction::NORTH_EAST || d == Direction::SOUTH_EAST  //
             || d == Direction::NORTH_WEST || d == Direction::SOUTH_WEST)
-           && "Unsupported direction in splat_pawn_moves()");
+           && "Unsupported direction in splat_pawn()");
 
 #if defined(USE_AVX512ICL)
     // clang-format off
@@ -89,15 +86,15 @@ Move* splat_pawn_moves(const Color     ac,
 
 // Splat promotion moves
 template<GenType GT, bool Enemy>
-Move* splat_promotion_moves(const Color     ac,
-                            const Bitboard  knightChecksBB,
-                            const Direction d,
-                            Bitboard        dstBB,
-                            Move* RESTRICT  moves) noexcept {
+Move* splat_promotion(const Color     ac,
+                      const Bitboard  knightChecksBB,
+                      const Direction d,
+                      Bitboard        dstBB,
+                      Move* RESTRICT  moves) noexcept {
     assert((d == Direction::NORTH || d == Direction::SOUTH               //
             || d == Direction::NORTH_EAST || d == Direction::SOUTH_EAST  //
             || d == Direction::NORTH_WEST || d == Direction::SOUTH_WEST)
-           && "Unsupported direction in splat_promotion_moves()");
+           && "Unsupported direction in splat_promotion()");
 
     constexpr bool All     = GT == GenType::ENCOUNTER || GT == GenType::EVASION;
     constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
@@ -132,10 +129,7 @@ Move* splat_promotion_moves(const Color     ac,
 
 // Splat moves
 template<bool Any>
-Move* splat_moves(const Color    ac,
-                  const Square   orgSq,
-                  Bitboard       dstBB,
-                  Move* RESTRICT moves) noexcept {
+Move* splat(const Color ac, const Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     // clang-format off
@@ -187,10 +181,10 @@ Move* splat_moves(const Color    ac,
 }  // namespace
 
 template<GenType GT>
-Move* generate(const Position& pos,
-               const Color     ac,
-               const Bitboard  targetBB,
-               Move* RESTRICT  moves) noexcept {
+Move* generate_pawn(const Position& pos,
+                    const Color     ac,
+                    const Bitboard  targetBB,
+                    Move* RESTRICT  moves) noexcept {
     static_assert(
       GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
         || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
@@ -227,16 +221,18 @@ Move* generate(const Position& pos,
         const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
         const Bitboard lCapBB = shift_bb(LCap, yesR7PawnsBB) & enemyBB;
-        moves = splat_promotion_moves<GT, true>(ac, knightChecksBB, LCap, lCapBB, moves);
+
+        moves = splat_promotion<GT, true>(ac, knightChecksBB, LCap, lCapBB, moves);
 
         const Bitboard rCapBB = shift_bb(RCap, yesR7PawnsBB) & enemyBB;
-        moves = splat_promotion_moves<GT, true>(ac, knightChecksBB, RCap, rCapBB, moves);
+
+        moves = splat_promotion<GT, true>(ac, knightChecksBB, RCap, rCapBB, moves);
 
         Bitboard push1BB = shift_bb(Push1, yesR7PawnsBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
             push1BB &= Attacks::between_bb(pos.square(ac, KING), lsq(pos.checkers_bb()));
-        moves = splat_promotion_moves<GT, false>(ac, knightChecksBB, Push1, push1BB, moves);
+        moves = splat_promotion<GT, false>(ac, knightChecksBB, Push1, push1BB, moves);
     }
 
     // Single and double pawn pushes, no promotions
@@ -252,18 +248,18 @@ Move* generate(const Position& pos,
             push2BB &= targetBB;
         }
 
-        moves = splat_pawn_moves(ac, Push1, push1BB, moves);
-        moves = splat_pawn_moves(ac, Push2, push2BB, moves);
+        moves = splat_pawn(ac, Push1, push1BB, moves);
+        moves = splat_pawn(ac, Push2, push2BB, moves);
     }
 
     // Standard and en-passant captures
     if constexpr (!Quiet)
     {
         const Bitboard lCapBB = shift_bb(LCap, notR7PawnsBB) & enemyBB;
-        moves                 = splat_pawn_moves(ac, LCap, lCapBB, moves);
+        moves                 = splat_pawn(ac, LCap, lCapBB, moves);
 
         const Bitboard rCapBB = shift_bb(RCap, notR7PawnsBB) & enemyBB;
-        moves                 = splat_pawn_moves(ac, RCap, rCapBB, moves);
+        moves                 = splat_pawn(ac, RCap, rCapBB, moves);
 
         const Square enPassantSq = pos.en_passant_sq();
 
@@ -307,12 +303,12 @@ Move* generate(const Position& pos,
 }
 
 template<PieceType PT, bool Any>
-Move* generate(const Position& pos,
-               const Color     ac,
-               const Bitboard  targetBB,
-               Move* RESTRICT  moves) noexcept {
+Move* generate_piece(const Position& pos,
+                     const Color     ac,
+                     const Bitboard  targetBB,
+                     Move* RESTRICT  moves) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
-                  "Unsupported piece type in generate()");
+                  "Unsupported piece type in generate_piece()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
     const Square   kingSq      = pos.square(ac, KING);
@@ -330,7 +326,7 @@ Move* generate(const Position& pos,
 
         const Move* const RESTRICT pMoves = moves;
 
-        moves = splat_moves<Any>(ac, orgSq, dstBB, moves);
+        moves = splat<Any>(ac, orgSq, dstBB, moves);
 
         if constexpr (Any)
         {
@@ -351,7 +347,7 @@ Move* generate(const Position& pos,
 
             const Move* const RESTRICT pMoves = moves;
 
-            moves = splat_moves<Any>(ac, orgSq, dstBB, moves);
+            moves = splat<Any>(ac, orgSq, dstBB, moves);
 
             if constexpr (Any)
             {
@@ -365,14 +361,14 @@ Move* generate(const Position& pos,
 }
 
 template<GenType GT, bool Any>
-Move* generate(const Position& pos,
-               const Color     ac,
-               const Bitboard  targetBB,
-               Move* RESTRICT  moves) noexcept {
+Move* generate_king(const Position& pos,
+                    const Color     ac,
+                    const Bitboard  targetBB,
+                    Move* RESTRICT  moves) noexcept {
     static_assert(
       GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
         || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
-      "Unsupported generate type in generate()");
+      "Unsupported generate type in generate_king()");
     assert(popcount(pos.checkers_bb()) <= 2);
 
     constexpr bool Castle = GT == GenType::ENCOUNTER || GT == GenType::ENC_QUIET;
@@ -384,7 +380,7 @@ Move* generate(const Position& pos,
 
     const Move* const RESTRICT pMoves = moves;
 
-    moves = splat_moves<Any>(ac, kingSq, dstBB, moves);
+    moves = splat<Any>(ac, kingSq, dstBB, moves);
 
     if constexpr (Any)
     {
@@ -451,27 +447,27 @@ Move* generate(const Position& pos, Move* RESTRICT moves) noexcept {
         }
 
         const Move* const RESTRICT pMoves = moves;
-        moves = generate<GT    >(pos, ac, targetBB, moves);
+        moves = generate_pawn<GT          >(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
             if (pMoves != moves) return moves;
         }
-        moves = generate<KNIGHT, Any>(pos, ac, targetBB, moves);
+        moves = generate_piece<KNIGHT, Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
             if (pMoves != moves) return moves;
         }
-        moves = generate<BISHOP, Any>(pos, ac, targetBB, moves);
+        moves = generate_piece<BISHOP, Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
             if (pMoves != moves) return moves;
         }
-        moves = generate<ROOK, Any  >(pos, ac, targetBB, moves);
+        moves = generate_piece<ROOK  , Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
             if (pMoves != moves) return moves;
         }
-        moves = generate<QUEEN, Any >(pos, ac, targetBB, moves);
+        moves = generate_piece<QUEEN , Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
             if (pMoves != moves) return moves;
@@ -489,7 +485,7 @@ Move* generate(const Position& pos, Move* RESTRICT moves) noexcept {
     }
     // clang-format on
 
-    moves = generate<GT, Any>(pos, ac, targetBB, moves);
+    moves = generate_king<GT, Any>(pos, ac, targetBB, moves);
 
     return moves;
 }
