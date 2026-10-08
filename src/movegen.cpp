@@ -201,6 +201,7 @@ Move* generate_pawn(const Position& pos, const Bitboard targetBB, Move* RESTRICT
     constexpr Direction RCap  = AC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
     constexpr Bitboard Rank3BB = rank_bb(relative_rank(AC, RANK_3));
+    constexpr Bitboard Rank5BB = rank_bb(relative_rank(AC, RANK_5));
     constexpr Bitboard Rank7BB = rank_bb(relative_rank(AC, RANK_7));
     // clang-format on
 
@@ -282,16 +283,16 @@ Move* generate_pawn(const Position& pos, const Bitboard targetBB, Move* RESTRICT
             assert(relative_rank(AC, enPassantSq) == RANK_6);
             assert((pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1)) != 0);
             assert(pos.rule50_count() == 0);
-            assert((notR7PawnsBB & relative_rank(AC, RANK_5)) != 0);
+            assert((notR7PawnsBB & Rank5BB) != 0);
 
             // An en-passant capture cannot resolve a discovered check
             assert(!Evasion || (targetBB & (enPassantSq + Push1)) == 0);
 
             const Bitboard epBB = square_bb(enPassantSq);
 
-            Bitboard epPawnsBB = notR7PawnsBB
-                               & ((shift_bb(-RCap, epBB) & LCaptureBB)  //
-                                  | (shift_bb(-LCap, epBB) & RCaptureBB));
+            Bitboard epPawnsBB = notR7PawnsBB & Rank5BB                 //
+                               & ((shift_bb(-LCap, epBB) & LCaptureBB)  //
+                                  | (shift_bb(-RCap, epBB) & RCaptureBB));
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)
