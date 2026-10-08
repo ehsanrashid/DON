@@ -33,11 +33,11 @@ namespace {
 namespace {
 // Splat pawn moves
 template<Color AC>
-void splat_pawn(const Direction d, Bitboard dstBB, Move*& moves) noexcept {
-    assert((d == Direction::NORTH || d == Direction::SOUTH               //
-            || d == Direction::NORTH_2 || d == Direction::SOUTH_2        //
-            || d == Direction::NORTH_EAST || d == Direction::SOUTH_EAST  //
-            || d == Direction::NORTH_WEST || d == Direction::SOUTH_WEST)
+void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
+    assert((dir == Direction::NORTH || dir == Direction::SOUTH               //
+            || dir == Direction::NORTH_2 || dir == Direction::SOUTH_2        //
+            || dir == Direction::NORTH_EAST || dir == Direction::SOUTH_EAST  //
+            || dir == Direction::NORTH_WEST || dir == Direction::SOUTH_WEST)
            && "Unsupported direction in splat_pawn()");
 
 #if defined(USE_AVX512ICL)
@@ -59,7 +59,7 @@ void splat_pawn(const Direction d, Bitboard dstBB, Move*& moves) noexcept {
     assert(count <= 8);  // <= 8 pawns per side
 
     const __m128i dstSquares = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(static_cast<__mmask64>(dstBB), ALL_SQUARES)));
-    const __m128i orgSquares = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+d));
+    const __m128i orgSquares = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+dir));
 
     __m128i      packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::OrgSqShift),
                                             _mm_slli_epi16(dstSquares, Move::DstSqShift));
@@ -77,7 +77,7 @@ void splat_pawn(const Direction d, Bitboard dstBB, Move*& moves) noexcept {
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
-        const Square orgSq = dstSq - d;
+        const Square orgSq = dstSq - dir;
 
         *moves++ = Move::normal(orgSq, dstSq);
     }
@@ -88,12 +88,12 @@ void splat_pawn(const Direction d, Bitboard dstBB, Move*& moves) noexcept {
 template<GenType GT, bool Enemy>
 void splat_promotion(const Color     ac,
                      const Bitboard  knightChecksBB,
-                     const Direction d,
+                     const Direction dir,
                      Bitboard        dstBB,
                      Move*&          moves) noexcept {
-    assert((d == Direction::NORTH || d == Direction::SOUTH               //
-            || d == Direction::NORTH_EAST || d == Direction::SOUTH_EAST  //
-            || d == Direction::NORTH_WEST || d == Direction::SOUTH_WEST)
+    assert((dir == Direction::NORTH || dir == Direction::SOUTH               //
+            || dir == Direction::NORTH_EAST || dir == Direction::SOUTH_EAST  //
+            || dir == Direction::NORTH_WEST || dir == Direction::SOUTH_WEST)
            && "Unsupported direction in splat_promotion()");
 
     constexpr bool All     = GT == GenType::ENCOUNTER || GT == GenType::EVASION;
@@ -103,7 +103,7 @@ void splat_promotion(const Color     ac,
     while (dstBB != 0)
     {
         const Square dstSq = ac == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
-        const Square orgSq = dstSq - d;
+        const Square orgSq = dstSq - dir;
 
         if constexpr (All || Capture)
         {
@@ -190,10 +190,10 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
     constexpr bool Quiet   = GT == GenType::ENC_QUIET || GT == GenType::EVA_QUIET;
 
-    constexpr Direction Push1 = pawn_spush(AC);
-    constexpr Direction Push2 = pawn_dpush(AC);
-    constexpr Direction LCap  = AC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
-    constexpr Direction RCap  = AC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
+    constexpr Direction Push1Dir = pawn_spush(AC);
+    constexpr Direction Push2Dir = pawn_dpush(AC);
+    constexpr Direction LCapDir  = AC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
+    constexpr Direction RCapDir  = AC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
     constexpr Bitboard Rank3BB = rank_bb(relative_rank(AC, RANK_3));
     constexpr Bitboard Rank5BB = rank_bb(relative_rank(AC, RANK_5));
@@ -225,29 +225,29 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     {
         const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
-        const Bitboard lCapBB = shift_bb(LCap, yesR7PawnsBB & LCaptureBB) & enemyBB;
+        const Bitboard lCapBB = shift_bb(LCapDir, yesR7PawnsBB & LCaptureBB) & enemyBB;
 
-        splat_promotion<GT, true>(AC, knightChecksBB, LCap, lCapBB, moves);
+        splat_promotion<GT, true>(AC, knightChecksBB, LCapDir, lCapBB, moves);
 
-        const Bitboard rCapBB = shift_bb(RCap, yesR7PawnsBB & RCaptureBB) & enemyBB;
+        const Bitboard rCapBB = shift_bb(RCapDir, yesR7PawnsBB & RCaptureBB) & enemyBB;
 
-        splat_promotion<GT, true>(AC, knightChecksBB, RCap, rCapBB, moves);
+        splat_promotion<GT, true>(AC, knightChecksBB, RCapDir, rCapBB, moves);
 
-        Bitboard push1BB = shift_bb(Push1, yesR7PawnsBB & PushableBB) & emptyBB;
+        Bitboard push1BB = shift_bb(Push1Dir, yesR7PawnsBB & PushableBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
         {
             push1BB &= Attacks::between_bb(kingSq, lsq(pos.checkers_bb()));
         }
 
-        splat_promotion<GT, false>(AC, knightChecksBB, Push1, push1BB, moves);
+        splat_promotion<GT, false>(AC, knightChecksBB, Push1Dir, push1BB, moves);
     }
 
     // Single and double pawn pushes, no promotions
     if constexpr (!Capture)
     {
-        Bitboard push1BB = shift_bb(Push1, notR7PawnsBB & PushableBB) & emptyBB;
-        Bitboard push2BB = shift_bb(Push1, push1BB & Rank3BB) & emptyBB;
+        Bitboard push1BB = shift_bb(Push1Dir, notR7PawnsBB & PushableBB) & emptyBB;
+        Bitboard push2BB = shift_bb(Push1Dir, push1BB & Rank3BB) & emptyBB;
 
         // Consider only blocking squares
         if constexpr (Evasion)
@@ -256,38 +256,38 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
             push2BB &= targetBB;
         }
 
-        splat_pawn<AC>(Push1, push1BB, moves);
-        splat_pawn<AC>(Push2, push2BB, moves);
+        splat_pawn<AC>(Push1Dir, push1BB, moves);
+        splat_pawn<AC>(Push2Dir, push2BB, moves);
     }
 
     // Standard and en-passant captures
     if constexpr (!Quiet)
     {
-        const Bitboard lCapBB = shift_bb(LCap, notR7PawnsBB & LCaptureBB) & enemyBB;
+        const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCaptureBB) & enemyBB;
 
-        splat_pawn<AC>(LCap, lCapBB, moves);
+        splat_pawn<AC>(LCapDir, lCapBB, moves);
 
-        const Bitboard rCapBB = shift_bb(RCap, notR7PawnsBB & RCaptureBB) & enemyBB;
+        const Bitboard rCapBB = shift_bb(RCapDir, notR7PawnsBB & RCaptureBB) & enemyBB;
 
-        splat_pawn<AC>(RCap, rCapBB, moves);
+        splat_pawn<AC>(RCapDir, rCapBB, moves);
 
         const Square enPassantSq = pos.en_passant_sq();
 
         if (is_ok(enPassantSq))
         {
             assert(relative_rank(AC, enPassantSq) == RANK_6);
-            assert((pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1)) != 0);
+            assert((pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1Dir)) != 0);
             assert(pos.rule50_count() == 0);
             assert((notR7PawnsBB & Rank5BB) != 0);
 
             // An en-passant capture cannot resolve a discovered check
-            assert(!Evasion || (targetBB & (enPassantSq + Push1)) == 0);
+            assert(!Evasion || (targetBB & (enPassantSq + Push1Dir)) == 0);
 
             const Bitboard epBB = square_bb(enPassantSq);
 
-            Bitboard epPawnsBB = notR7PawnsBB & Rank5BB                 //
-                               & ((shift_bb(-LCap, epBB) & LCaptureBB)  //
-                                  | (shift_bb(-RCap, epBB) & RCaptureBB));
+            Bitboard epPawnsBB = notR7PawnsBB & Rank5BB                    //
+                               & ((shift_bb(-LCapDir, epBB) & LCaptureBB)  //
+                                  | (shift_bb(-RCapDir, epBB) & RCaptureBB));
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)

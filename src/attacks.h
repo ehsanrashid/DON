@@ -289,16 +289,16 @@ ALWAYS_INLINE constexpr Bitboard pawn_pair_bb(const Square s) noexcept {
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
 ALWAYS_INLINE constexpr Bitboard
-destination_bb(const Square s, const Direction d, const u8 dist = 1) noexcept {
+destination_bb(const Square s, const Direction dir, const u8 dist = 1) noexcept {
     assert(is_ok(s));
 
-    Square destSq = s + d;
+    Square destSq = s + dir;
 
     return is_ok(destSq) && distance(s, destSq) <= dist ? square_bb(destSq) : 0;
 }
 
 template<typename... Directions>
-ALWAYS_INLINE constexpr Bitboard ray_bb(const Square s, const Directions... ds) noexcept {
+ALWAYS_INLINE constexpr Bitboard ray_bb(const Square s, const Directions... dirs) noexcept {
     static_assert((std::is_same_v<Directions, Direction> && ...),
                   "All arguments must be Direction");
 
@@ -306,12 +306,12 @@ ALWAYS_INLINE constexpr Bitboard ray_bb(const Square s, const Directions... ds) 
 
     Bitboard rayBB = 0;
 
-    const auto add_ray_bb = [&](const Direction d) noexcept {
-        for (Square sq = s; Bitboard destBB = destination_bb(sq, d); sq += d)
+    const auto add_ray_bb = [&](const Direction dir) noexcept {
+        for (Square sq = s; Bitboard destBB = destination_bb(sq, dir); sq += dir)
             rayBB |= destBB;
     };
 
-    (add_ray_bb(ds), ...);
+    (add_ray_bb(dirs), ...);
 
     return rayBB;
 }
@@ -358,8 +358,8 @@ ALWAYS_INLINE constexpr Bitboard knight_attacks_bb(const Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions)
-        attacksBB |= destination_bb(s, d, 2);
+    for (const Direction dir : Directions)
+        attacksBB |= destination_bb(s, dir, 2);
 
     return attacksBB;
 }
@@ -374,8 +374,8 @@ ALWAYS_INLINE constexpr Bitboard king_attacks_bb(const Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions)
-        attacksBB |= destination_bb(s, d);
+    for (const Direction dir : Directions)
+        attacksBB |= destination_bb(s, dir);
 
     return attacksBB;
 }
@@ -393,8 +393,8 @@ sliding_attacks_bb(const PieceType pt, const Square s, const Bitboard occupancyB
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions[pt - BISHOP])
-        for (Square sq = s; Bitboard destBB = destination_bb(sq, d); sq += d)
+    for (const Direction dir : Directions[pt - BISHOP])
+        for (Square sq = s; Bitboard destBB = destination_bb(sq, dir); sq += dir)
         {
             attacksBB |= destBB;
             // Stop if occupied - sliding blocked

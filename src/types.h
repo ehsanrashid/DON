@@ -195,18 +195,20 @@ enum class Direction : i8 {
     NORTH_2 = NORTH + NORTH,
 };
 
-constexpr auto operator+(const Direction d) noexcept { return i8(d); }
-constexpr auto operator-(const Direction d) noexcept { return Direction(-i8(d)); }
+constexpr auto operator+(const Direction dir) noexcept { return i8(dir); }
+constexpr auto operator-(const Direction dir) noexcept { return Direction(-i8(dir)); }
 
-constexpr Direction operator+(const Direction d1, const Direction d2) noexcept {
-    return Direction(+d1 + +d2);
+constexpr Direction operator+(const Direction dir1, const Direction dir2) noexcept {
+    return Direction(+dir1 + +dir2);
 }
-constexpr Direction operator-(const Direction d1, const Direction d2) noexcept {
-    return Direction(+d1 - +d2);
+constexpr Direction operator-(const Direction dir1, const Direction dir2) noexcept {
+    return Direction(+dir1 - +dir2);
 }
 
-constexpr Direction operator*(const Direction d, const int i) noexcept { return Direction(i * +d); }
-constexpr Direction operator*(const int i, const Direction d) noexcept { return d * i; }
+constexpr Direction operator*(const Direction dir, const int i) noexcept {
+    return Direction(i * +dir);
+}
+constexpr Direction operator*(const int i, const Direction dir) noexcept { return dir * i; }
 
 // Additional operators for File
 constexpr File  operator+(const File f, const int i) noexcept { return File(u8(f) + i); }
@@ -223,14 +225,14 @@ constexpr i8    operator-(const Rank r1, const Rank r2) noexcept { return u8(r1)
 // Additional operators for Square to add a Direction
 constexpr Square operator+(const Square s, const int i) noexcept { return Square(u8(s) + i); }
 constexpr Square operator-(const Square s, const int i) noexcept { return Square(u8(s) - i); }
-constexpr Square operator+(const Square s, const Direction d) noexcept {
-    return Square(s + int(d));
+constexpr Square operator+(const Square s, const Direction dir) noexcept {
+    return Square(s + int(dir));
 }
-constexpr Square operator-(const Square s, const Direction d) noexcept {
-    return Square(s - int(d));
+constexpr Square operator-(const Square s, const Direction dir) noexcept {
+    return Square(s - int(dir));
 }
-constexpr Square& operator+=(Square& s, const Direction d) noexcept { return s = s + d; }
-constexpr Square& operator-=(Square& s, const Direction d) noexcept { return s = s - d; }
+constexpr Square& operator+=(Square& s, const Direction dir) noexcept { return s = s + dir; }
+constexpr Square& operator-=(Square& s, const Direction dir) noexcept { return s = s - dir; }
 
 [[nodiscard]] constexpr bool is_ok(const File f) noexcept { return (f <= FILE_H); }
 
