@@ -44,7 +44,7 @@ enum class GenType : u8 {
 // <EVA_CAPTURE> Generates all legal check evasions captures and promotions moves
 // <EVA_QUIET  > Generates all legal check evasions non-captures moves
 template<GenType GT, bool Any = false>
-Move* generate(const Position& pos, Move* RESTRICT moves) noexcept;
+Move* generate(const Position& pos, Move* moves) noexcept;
 
 // MoveList struct wraps the generate() function and returns a convenient list of moves.
 // Using MoveList is sometimes preferable to directly calling the lower level generate() function.
