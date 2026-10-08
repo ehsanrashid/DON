@@ -179,7 +179,7 @@ void splat(const Color ac, const Square orgSq, Bitboard dstBB, Move*& moves) noe
 }  // namespace
 
 template<Color AC, GenType GT>
-Move* generate_pawn(const Position& pos, const Bitboard targetBB, Move* moves) noexcept {
+void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) noexcept {
     static_assert(
       GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
         || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
@@ -298,15 +298,13 @@ Move* generate_pawn(const Position& pos, const Bitboard targetBB, Move* moves) n
             }
         }
     }
-
-    return moves;
 }
 
 template<PieceType PT, bool Any>
-Move* generate_piece(const Position& pos,
-                     const Color     ac,
-                     const Bitboard  targetBB,
-                     Move*           moves) noexcept {
+void generate_piece(const Position& pos,
+                    const Color     ac,
+                    const Bitboard  targetBB,
+                    Move*&          moves) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
@@ -331,14 +329,14 @@ Move* generate_piece(const Position& pos,
         if constexpr (Any)
         {
             if (pMoves != moves)
-                break;
+                return;
         }
     }
 
     // Pinned knights can't move; only pinned sliders can move
     if constexpr (PT == KNIGHT)
     {
-        return moves;
+        return;
     }
 
     bb = piecesBB & blockersBB;
@@ -355,18 +353,16 @@ Move* generate_piece(const Position& pos,
         if constexpr (Any)
         {
             if (pMoves != moves)
-                break;
+                return;
         }
     }
-
-    return moves;
 }
 
 template<GenType GT, bool Any>
-Move* generate_king(const Position& pos,
-                    const Color     ac,
-                    const Bitboard  targetBB,
-                    Move*           moves) noexcept {
+void generate_king(const Position& pos,
+                   const Color     ac,
+                   const Bitboard  targetBB,
+                   Move*&          moves) noexcept {
     static_assert(
       GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
         || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
@@ -393,7 +389,7 @@ Move* generate_king(const Position& pos,
 
                     if constexpr (Any)
                     {
-                        return moves;
+                        return;
                     }
                 }
             }
@@ -403,8 +399,6 @@ Move* generate_king(const Position& pos,
                          & ~pos.acc_attacks_bb(KING) & targetBB;
 
     splat<Any>(ac, kingSq, dstBB, moves);
-
-    return moves;
 }
 
 }  // namespace
@@ -416,7 +410,7 @@ Move* generate_king(const Position& pos,
 // <EVA_CAPTURE> Generates all legal check evasions captures and promotions moves
 // <EVA_QUIET  > Generates all legal check evasions non-captures moves
 template<GenType GT, bool Any>
-Move* generate(const Position& pos, Move* moves) noexcept {
+void generate(const Position& pos, Move*& moves) noexcept {
     static_assert(
       GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
         || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
@@ -424,12 +418,11 @@ Move* generate(const Position& pos, Move* moves) noexcept {
     assert((GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
            == (pos.checkers_bb() != 0));
 
-    constexpr bool Evasion =
-      GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
+    // clang-format off
+    constexpr bool Evasion = GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
 
     const Color ac = pos.active_color();
 
-    // clang-format off
     Bitboard targetBB;
     // Skip generating non-king moves when in double check
     if (!Evasion || !more_than_one(pos.checkers_bb()))
@@ -446,31 +439,35 @@ Move* generate(const Position& pos, Move* moves) noexcept {
 
         const Move* const pMoves = moves;
 
-        moves = ac == WHITE ? generate_pawn<WHITE, GT>(pos, targetBB, moves)
-                            : generate_pawn<BLACK, GT>(pos, targetBB, moves);
+        ac == WHITE ? generate_pawn<WHITE, GT>(pos, targetBB, moves)
+                    : generate_pawn<BLACK, GT>(pos, targetBB, moves);
         if constexpr (Any)
         {
-            if (pMoves != moves) return moves;
+            if (pMoves != moves) return;
         }
-        moves = generate_piece<KNIGHT, Any>(pos, ac, targetBB, moves);
+
+        generate_piece<KNIGHT, Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
-            if (pMoves != moves) return moves;
+            if (pMoves != moves) return;
         }
-        moves = generate_piece<BISHOP, Any>(pos, ac, targetBB, moves);
+
+        generate_piece<BISHOP, Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
-            if (pMoves != moves) return moves;
+            if (pMoves != moves) return;
         }
-        moves = generate_piece<ROOK  , Any>(pos, ac, targetBB, moves);
+
+        generate_piece<ROOK  , Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
-            if (pMoves != moves) return moves;
+            if (pMoves != moves) return;
         }
-        moves = generate_piece<QUEEN , Any>(pos, ac, targetBB, moves);
+
+        generate_piece<QUEEN , Any>(pos, ac, targetBB, moves);
         if constexpr (Any)
         {
-            if (pMoves != moves) return moves;
+            if (pMoves != moves) return;
         }
     }
 
@@ -485,34 +482,32 @@ Move* generate(const Position& pos, Move* moves) noexcept {
     }
     // clang-format on
 
-    moves = generate_king<GT, Any>(pos, ac, targetBB, moves);
-
-    return moves;
+    generate_king<GT, Any>(pos, ac, targetBB, moves);
 }
 
 // Explicit template instantiations:
 // clang-format off
-template Move* generate<GenType::ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
-template Move* generate<GenType::ENCOUNTER, true >(const Position& pos, Move* moves) noexcept;
-template Move* generate<GenType::ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
-template Move* generate<GenType::ENC_QUIET  , false>(const Position& pos, Move* moves) noexcept;
+template void generate<GenType::ENCOUNTER, false>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::ENCOUNTER, true >(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::ENC_CAPTURE, false>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::ENC_QUIET  , false>(const Position& pos, Move*& moves) noexcept;
 
-template Move* generate<GenType::EVASION, false>(const Position& pos, Move* moves) noexcept;
-template Move* generate<GenType::EVASION, true >(const Position& pos, Move* moves) noexcept;
-template Move* generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
-template Move* generate<GenType::EVA_QUIET  , false>(const Position& pos, Move* moves) noexcept;
-// clang-format on
+template void generate<GenType::EVASION, false>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::EVASION, true >(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::EVA_QUIET  , false>(const Position& pos, Move*& moves) noexcept;
 
 // <LEGAL> Generates all legal moves
 template<>
-Move* generate<GenType::LEGAL, false>(const Position& pos, Move* moves) noexcept {
-    return pos.checkers_bb() != 0 ? generate<GenType::EVASION, false>(pos, moves)
+void generate<GenType::LEGAL, false>(const Position& pos, Move*& moves) noexcept {
+    return pos.checkers_bb() != 0 ? generate<GenType::EVASION  , false>(pos, moves)
                                   : generate<GenType::ENCOUNTER, false>(pos, moves);
 }
 template<>
-Move* generate<GenType::LEGAL, true>(const Position& pos, Move* moves) noexcept {
-    return pos.checkers_bb() != 0 ? generate<GenType::EVASION, true>(pos, moves)
+void generate<GenType::LEGAL, true >(const Position& pos, Move*& moves) noexcept {
+    return pos.checkers_bb() != 0 ? generate<GenType::EVASION  , true>(pos, moves)
                                   : generate<GenType::ENCOUNTER, true>(pos, moves);
 }
+// clang-format on
 
 }  // namespace DON
