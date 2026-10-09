@@ -42,8 +42,8 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-ConcurrentCache<Key, Value> NonPawnValueCache{32 * KB, 0.75f};
-ConcurrentCache<Key, Value> MaterialValueCache{16 * KB, 0.75f};
+ConcurrentCache<Key, Value> NonPawnCache{32 * KB, 0.75f};
+ConcurrentCache<Key, Value> MaterialCache{16 * KB, 0.75f};
 ConcurrentCache<Key, Value> EvaluateCache{16 * KB, 0.75f};
 
 }  // namespace
@@ -56,9 +56,9 @@ void Position::init() noexcept {
 }
 
 void Position::reset() noexcept {
-    //NonPawnValueCache.reset();
-    //MaterialValueCache.reset();
-    //EvaluateCache.reset();
+    NonPawnCache.reset();
+    MaterialCache.reset();
+    EvaluateCache.reset();
 }
 
 void Position::clear() noexcept {
@@ -598,20 +598,24 @@ void Position::set_ext_state() noexcept {
     st->checksBB[QUEEN ] = st->checksBB[BISHOP] | st->checksBB[ROOK];
     st->checksBB[KING  ] = 0;
 
-    st->accAttacksBB[NO_PIECE_TYPE] = 0;
-    st->accAttacksBB[PAWN  ] = attacks_by_bb(~ac, PAWN  );
-    st->accAttacksBB[KNIGHT] = attacks_by_bb(~ac, KNIGHT) | acc_attacks_bb(PAWN  );
-    st->accAttacksBB[BISHOP] = attacks_by_bb(~ac, BISHOP) | acc_attacks_bb(KNIGHT);
-    st->accAttacksBB[ROOK  ] = attacks_by_bb(~ac, ROOK  ) | acc_attacks_bb(BISHOP);
-    st->accAttacksBB[QUEEN ] = attacks_by_bb(~ac, QUEEN ) | acc_attacks_bb(ROOK  );
-    st->accAttacksBB[KING  ] = attacks_by_bb(~ac, KING  ) | acc_attacks_bb(QUEEN );
+    const Bitboard ownOccupancyBB = occupancyBB ^ square(ac, KING);
 
-    st->accAttacksBB[ALL   ] = attacks_by_bb(ac, PAWN  )
-                             | attacks_by_bb(ac, KNIGHT)
-                             | attacks_by_bb(ac, BISHOP)
-                             | attacks_by_bb(ac, ROOK  )
-                             | attacks_by_bb(ac, QUEEN )
-                             | attacks_by_bb(ac, KING  );
+    st->accAttacksBB[NO_PIECE_TYPE] = 0;
+    st->accAttacksBB[PAWN  ] = attacks_by_bb(~ac, PAWN  , ownOccupancyBB);
+    st->accAttacksBB[KNIGHT] = attacks_by_bb(~ac, KNIGHT, ownOccupancyBB) | acc_attacks_bb(PAWN  );
+    st->accAttacksBB[BISHOP] = attacks_by_bb(~ac, BISHOP, ownOccupancyBB) | acc_attacks_bb(KNIGHT);
+    st->accAttacksBB[ROOK  ] = attacks_by_bb(~ac, ROOK  , ownOccupancyBB) | acc_attacks_bb(BISHOP);
+    st->accAttacksBB[QUEEN ] = attacks_by_bb(~ac, QUEEN , ownOccupancyBB) | acc_attacks_bb(ROOK  );
+    st->accAttacksBB[KING  ] = attacks_by_bb(~ac, KING  , ownOccupancyBB) | acc_attacks_bb(QUEEN );
+
+    const Bitboard oppOccupancyBB = occupancyBB ^ square(~ac, KING);
+
+    st->accAttacksBB[ALL   ] = attacks_by_bb(ac, PAWN  , oppOccupancyBB)
+                             | attacks_by_bb(ac, KNIGHT, oppOccupancyBB)
+                             | attacks_by_bb(ac, BISHOP, oppOccupancyBB)
+                             | attacks_by_bb(ac, ROOK  , oppOccupancyBB)
+                             | attacks_by_bb(ac, QUEEN , oppOccupancyBB)
+                             | attacks_by_bb(ac, KING  , oppOccupancyBB);
     // clang-format on
 }
 
@@ -1375,32 +1379,32 @@ bool Position::fork(const Move m) const noexcept {
 }
 
 Value Position::non_pawn_value(const Color c) const noexcept {
-    return NonPawnValueCache.access_or_build_with(
+    return NonPawnCache.access_or_build_with(
       material_key(c),
-      [this](const Color _c) noexcept -> Value {
+      [this](const Color c_) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
 
           for (const auto pt : NON_PAWN_PIECE_TYPES)
-              nonPawnValue += piece_value(pt) * count(_c, pt);
+              nonPawnValue += piece_value(pt) * count(c_, pt);
 
           return nonPawnValue;
       },
       c);
 }
 
-Value Position::material() const noexcept {
-    return MaterialValueCache.access_or_build_with(
+Value Position::material_value() const noexcept {
+    return MaterialCache.access_or_build_with(
       material_key(), [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
 }
 
 Value Position::evaluate() const noexcept {
     const Color ac          = active_color();
-    const Key   materialKey = material_key() ^ (ac == BLACK ? Zobrist_.turn() : Key{0});
+    const Key   materialKey = material_key() ^ (ac == BLACK ? Zobrist_.turn() : 0);
     return EvaluateCache.access_or_build_with(  //
       materialKey,
-      [this](const Color _ac) noexcept -> Value {
-          return VALUE_PAWN * (count(_ac, PAWN) - count(~_ac, PAWN))
-               + (non_pawn_value(_ac) - non_pawn_value(~_ac));
+      [this](const Color ac_) noexcept -> Value {
+          return VALUE_PAWN * (count(ac_, PAWN) - count(~ac_, PAWN))
+               + (non_pawn_value(ac_) - non_pawn_value(~ac_));
       },
       ac);
 }
@@ -1800,6 +1804,8 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist_.turn();
 
+    const Bitboard occupancyBB = pieces_bb();
+
     for (u16 i = 3; i <= end; i += 2)
     {
         iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist_.turn();
@@ -1821,7 +1827,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         assert(m != Move::None);
 
         // Move path is obstructed
-        if ((pieces_bb() & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
+        if ((occupancyBB & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
 #if !defined(NDEBUG)
@@ -2164,8 +2170,9 @@ Position::operator std::string() const noexcept {
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
             const auto pc = piece(make_square(f, r));
+
             str
-              .append(" | ")
+              .append(" | ")  //
               //.push_back(to_char(pc));
               .append(to_utf8(pc));
         }

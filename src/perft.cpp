@@ -421,7 +421,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
 
     if (RootNode)
     {
-        std::cout << "Sum          :";
+        std::cout << "Total        :";
         std::cout << std::right << std::setfill('.');
         std::cout << std::setw(16) << perftData.nodes;
 

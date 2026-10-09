@@ -1032,12 +1032,15 @@ Value Worker::search(Position&    pos,
                         return ttd.value;
                 }
             }
-            // Case B: No cutoff, but the depth was sufficient. Compare the aspiration window to the bound.
-            // Check whether the stored inexact TT value is inconsistent with the current aspiration window-bound.
-            else if (depth > 5 && ttd.bound != Bound::EXACT
-                     && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
-                // Penalize the entry since its bound is now no longer useful for this window-bound.
+            // Case B: No cutoff was produced, but the search was deep enough that
+            // the bound points in the wrong direction for the current window.
+            else if (depth > 5)
+            {
+                assert(ttd.bound != Bound::EXACT);
+                assert(is_ok(ttd.bound & fail_bound(ttd.value < beta)));
+                // Penalize the entry because its bound is now no longer useful for the current window.
                 ttw.penalize(1);
+            }
         }
     }
 
@@ -1152,18 +1155,23 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->ttPv && !exclude && depth < 19 - int(seekMate) * 13 && (ttmNone || ttmCapture) && !is_win(ttEvalue) && !is_loss(beta))
+    if (!ss->ttPv && !exclude && depth < 19 - int(seekMate) * 13 && (ttmNone || ttmCapture)
+        && ttEvalue >= beta && !is_win(ttEvalue) && !is_loss(beta))
     {
         // Compute base futility
         const int baseFutility = std::min(45 + 4 * depth, 85) - int(!ttd.hit) * 20;
         // Compute futility
-        int futility = baseFutility * depth
-                     - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
-                     + constexpr_ceil(absCorrectionValue / 198435.0);
-        if (futility < 0)
-            futility = 0;
+        const int futility = baseFutility * depth
+                           - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
+                           + constexpr_ceil(absCorrectionValue / 198435.0);
+
         if (ttEvalue - futility >= beta)
-            return blend_values(beta, ttEvalue, 661.0, 1024.0);
+        {
+            if (ttEvalue > beta)
+                ttEvalue = blend_values(beta, ttEvalue, 661.0, 1024.0);
+
+            return ttEvalue;
+        }
     }
     }
 
@@ -1175,15 +1183,13 @@ Value Worker::search(Position&    pos,
     {
         assert(preMove != Move::Null);
 
-        // Null move dynamic reduction
-        Depth R = 7 + depth / 3;
         const int evalDiff = constexpr_ceil((ss->evalue - beta) / 256.0);
-        if (evalDiff > 0)
-            R += evalDiff;
+        // Null move dynamic reduction
+        const Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0);
 
         do_null_move(pos, st, ss);
 
-        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        const Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
@@ -1368,7 +1374,7 @@ Value Worker::search(Position&    pos,
             (ss + 1)->pv = nullptr;
         }
 
-        const bool mTT = move == ttd.move;
+        const bool ttm = move == ttd.move;
 
         const Square dstSq = move.dst_sq();
 
@@ -1494,7 +1500,7 @@ Value Worker::search(Position&    pos,
         if constexpr (!RootNode)
         {
             // clang-format off
-        if (!exclude && mTT && depth > 5 + int(ss->ttPv) && !seekMate && is_valid(ttd.value) && !is_decisive(ttd.value)
+        if (!exclude && ttm && depth > 5 + int(ss->ttPv) && !seekMate && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
             const int singularMargin = constexpr_round((59.0 + int(!PVNode && ss->ttPv) * 66.0) * depth / 63.0);
@@ -1600,7 +1606,7 @@ Value Worker::search(Position&    pos,
             r += 264 + int(AllNode) * 1138 + int(ss->cutoffCount > 2) * 1095;
         // Decrease reduction for first picked move (ttMove)
         else
-            r -= int(mTT) * 2179;
+            r -= int(ttm) * 2179;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 439.0 / 4096.0);
@@ -1672,10 +1678,12 @@ Value Worker::search(Position&    pos,
                 (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
-                if (newDepth <= DEPTH_ZERO && mTT
-                    && (ttd.depth > 1
-                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
-                    newDepth = 1;
+                if (ttm && newDepth < 1)
+                {
+                    if (ttd.depth > 1
+                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value)))
+                        newDepth = 1;
+                }
 
                 value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
             }
@@ -1843,20 +1851,28 @@ Value Worker::search(Position&    pos,
         // If there is a move that produces search value greater than alpha update the history of searched moves
         if (bestMove != Move::None)
         {
-            bool bmTT = bestMove == ttd.move;
+            bool ttBm = bestMove == ttd.move;
 
-            update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, moveVectors);
+            update_histories<PVNode>(pos, ss, depth, bestMove, ttBm, moveVectors);
 
             if constexpr (!PVNode)
             {
-                ttMoveHistory << (bmTT ? +918 : -747);
+                ttMoveHistory << (ttBm ? +918 : -747);
             }
         }
         // If prior move is valid, that caused the fail low
         else if (preOk)
         {
+            // Bonus for prior capture move
+            if (preCapture)
+            {
+                auto capturedPt = type_of(pos.captured_pc());
+                assert(capturedPt != NO_PIECE_TYPE);
+
+                update_capture_history(pos[preSq], preSq, capturedPt, 892);
+            }
             // Bonus for prior quiet move
-            if (!preCapture)
+            else
             {
                 // Bonus scale ranges from 0 to roughly 2.3M, overflows happen for multipliers larger than 900
                 int bonusScale =
@@ -1883,14 +1899,6 @@ Value Worker::search(Position&    pos,
                 if (preNonPawn)
                     update_pawn_history(pos, pos[preSq], preSq,
                                         constexpr_round(bonus * 1296.0 / 32768.0));
-            }
-            // Bonus for prior capture move
-            else
-            {
-                auto capturedPt = type_of(pos.captured_pc());
-                assert(capturedPt != NO_PIECE_TYPE);
-
-                update_capture_history(pos[preSq], preSq, capturedPt, 892);
             }
         }
     }
@@ -2033,7 +2041,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+        assert(!is_decisive(bestValue));
+
+        if (bestValue > beta && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, 441.0, 1024.0);
 
         if (!ttd.hit)
@@ -2288,6 +2298,7 @@ void Worker::update_pawn_history(const Position& pos,
 
     atomicHistories.pawn_entry(pos)[+pc][dstSq] << bonus;
 }
+
 void Worker::update_pawn_history(const Position& pos, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
@@ -2319,7 +2330,7 @@ void Worker::update_histories(const Position&             pos,
                               Stack* const                ss,
                               const Depth                 depth,
                               const Move                  bestMove,
-                              const bool                  bmTT,
+                              const bool                  ttBm,
                               const Array<MoveVector, 2>& moveVectors) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
@@ -2327,7 +2338,7 @@ void Worker::update_histories(const Position&             pos,
     int bonus = std::min(-81 + 133 * depth, +1487) + constexpr_round((ss - 1)->history / 28.0);
     if (bonus < 0)
         bonus = 0;
-    bonus += int(bmTT) * 364;
+    bonus += int(ttBm) * 364;
 
     const int malus = std::min(-235 + 968 * depth, +2244);
 

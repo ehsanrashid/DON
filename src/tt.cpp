@@ -377,15 +377,15 @@ bool TranspositionTable::load(const fs::path& hashPath, const Threads& threads) 
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr usize ChunkSize = (2 * MB / TT_CLUSTER_SIZE) * TT_CLUSTER_SIZE;
 
-    usize DataSize = clusterCount * TT_CLUSTER_SIZE;
+    const usize dataSize = clusterCount * TT_CLUSTER_SIZE;
 
     auto* data = reinterpret_cast<char*>(clusters);
 
     usize readedSize = 0;
 
-    while (readedSize < DataSize)
+    while (readedSize < dataSize)
     {
-        std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
+        std::streamsize readSize = std::min(ChunkSize, dataSize - readedSize);
 
         ifs.read(data + readedSize, readSize);
 
@@ -409,7 +409,7 @@ bool TranspositionTable::load(const fs::path& hashPath, const Threads& threads) 
         return false;
     }
 
-    return readedSize == DataSize && ifs.good();
+    return readedSize == dataSize && ifs.good();
 }
 
 bool TranspositionTable::save(const fs::path& hashPath) const noexcept {
@@ -434,15 +434,15 @@ bool TranspositionTable::save(const fs::path& hashPath) const noexcept {
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr usize ChunkSize = (2 * MB / TT_CLUSTER_SIZE) * TT_CLUSTER_SIZE;
 
-    usize DataSize = clusterCount * TT_CLUSTER_SIZE;
+    const usize dataSize = clusterCount * TT_CLUSTER_SIZE;
 
     const auto* data = reinterpret_cast<const char*>(clusters);
 
     usize writtenSize = 0;
 
-    while (writtenSize < DataSize)
+    while (writtenSize < dataSize)
     {
-        std::streamsize writeSize = std::min(ChunkSize, DataSize - writtenSize);
+        std::streamsize writeSize = std::min(ChunkSize, dataSize - writtenSize);
 
         ofs.write(data + writtenSize, writeSize);
 
@@ -454,7 +454,7 @@ bool TranspositionTable::save(const fs::path& hashPath) const noexcept {
 
     ofs.flush();
 
-    return writtenSize == DataSize && ofs.good();
+    return writtenSize == dataSize && ofs.good();
 }
 
 }  // namespace DON

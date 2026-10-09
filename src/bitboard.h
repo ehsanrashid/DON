@@ -206,8 +206,8 @@ ALWAYS_INLINE constexpr u8 distance<Square>(const Square s1, const Square s2) no
 }
 
 // Shifts bitboard as specified by the direction
-ALWAYS_INLINE constexpr Bitboard shift_bb(const Direction d, const Bitboard b) noexcept {
-    switch (d)
+ALWAYS_INLINE constexpr Bitboard shift_bb(const Direction dir, const Bitboard b) noexcept {
+    switch (dir)
     {
     case Direction::NORTH :
         return b << +Direction::NORTH;

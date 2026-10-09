@@ -43,7 +43,7 @@ ALWAYS_INLINE bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) n
     return em1.value > em2.value;
 }
 
-// MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
+// MovePicker class is used to pick one legal move at a time from the given current position.
 // The most important method is next_move(), which returns a new legal move each time it is called,
 // until there are no moves left, when Move::None is returned. In order to improve the efficiency of the
 // alpha-beta algorithm, MovePicker attempts to return the moves which are most likely to get a cut-off first.
@@ -124,10 +124,12 @@ class MovePicker final {
     template<GenType GT>
     iterator score(const MoveList<GT>& moveList) noexcept;
 
+    bool remove(Move m) noexcept;
+
     template<typename Predicate>
     bool select(Predicate pred) noexcept;
 
-    [[nodiscard]] bool good_capture_or_swap() noexcept;
+    [[nodiscard]] bool good_capture_or_store_bad() noexcept;
 
     [[nodiscard]] bool above_threshold_capture() const noexcept;
 

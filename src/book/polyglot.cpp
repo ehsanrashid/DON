@@ -384,16 +384,16 @@ void swap_entry(PolyGlot::Entry* const e) noexcept {
 // DON:
 // bit  0- 5: destiny square (from 0 to 63)
 // bit  6-11: origin square (from 0 to 63)
-// bit 12-13: promotion piece type (from KNIGHT = 0 to QUEEN = 3)
+// bit 12-13: promotion piece type (from KNIGHT = 2 to QUEEN = 5)
 // bit 14-15: special move flag
 Move pg_to_move(const u16 pgMove, MoveList<GenType::LEGAL>& legalMoveList) noexcept {
 
-    Move move(pgMove);
+    Move move{pgMove};
 
-    if (u16 pt = (move.raw() >> Move::PromoShift) & 7; pt != 0)
-        move = Move{move.org_sq(), move.dst_sq(), static_cast<PieceType>(pt + 1)};
+    if (const u16 pt = (move.raw() >> Move::PromoShift) & 7; pt != 0)
+        move = Move::promotion(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    u16 moveRaw = move.raw() & ~Move::TypeMask;
+    const u16 moveRaw = move.raw() & ~Move::TypeMask;
 
     for (const Move m : legalMoveList)
         if ((m.raw() & ~Move::TypeMask) == moveRaw)

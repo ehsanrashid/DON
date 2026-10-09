@@ -38,8 +38,6 @@ constexpr usize INSERTION_SORT_THRESHOLD = 52;
 // Threshold for considering a move "good enough" to be sorted to the front
 constexpr i32 GOOD_QUIET_THRESHOLD = -14000;
 
-ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
-
 #if defined(USE_AVX512)
 // Broadcast an ExtMove's move and value across all 16 lanes
 void splat_extmove(const ExtMove& em, __m512i& moves, __m512i& values) noexcept {
@@ -333,6 +331,8 @@ void MovePicker::init() noexcept {
     cur    = moves.data();
     curEnd = score(moveList);
 
+    remove(ttMove);
+
     adaptive_stable_sort(cur, curEnd);
 }
 
@@ -481,14 +481,28 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
     return itr;
 }
 
+bool MovePicker::remove(const Move m) noexcept {
+
+    if (m == Move::None)
+        return false;
+
+    const auto itr = std::find(cur, curEnd, m);
+
+    if (itr == curEnd)
+        return false;
+
+    // Remove the element while preserving the order and shrinking the range
+    std::copy(itr + 1, curEnd--, itr);
+    return true;
+}
+
 template<typename Predicate>
 bool MovePicker::select(Predicate pred) noexcept {
 
-    for (; cur != curEnd; ++cur)
-        if (*cur != ttMove && pred())
-            return true;
+    while (cur != curEnd && !pred())
+        ++cur;
 
-    return false;
+    return cur != curEnd;
 }
 
 Move MovePicker::next_move() noexcept {
@@ -520,14 +534,18 @@ STAGE_SWITCH:
         goto STAGE_SWITCH;
 
     case Stage::ENC_GOOD_CAPTURE :
-        if (select([this]() noexcept -> bool { return good_capture_or_swap(); }))
+        if (select([this]() noexcept -> bool { return good_capture_or_store_bad(); }))
             return *cur++;
 
         if (!skipQuiets)
         {
             MoveList<GenType::ENC_QUIET> moveList(pos);
 
-            badQuietEnd = curEnd = score(moveList);
+            curEnd = score(moveList);
+
+            remove(ttMove);
+
+            badQuietEnd = curEnd;
 
             partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
         }
@@ -536,18 +554,15 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        for (; !skipQuiets && cur != curEnd; ++cur)
-            if (*cur != ttMove)
-            {
-                // Good quiet threshold
-                if (cur->value < GOOD_QUIET_THRESHOLD)
-                    // Remaining quiets are bad
-                    break;
+        if (!skipQuiets)
+        {
+            // Return a good quiet move if available.
+            if (cur != curEnd && cur->value >= GOOD_QUIET_THRESHOLD)
                 return *cur++;
-            }
 
-        // Mark the beginning of bad quiets
-        badQuietBeg = cur;
+            // Remaining quiets are bad; mark their beginning
+            badQuietBeg = cur;
+        }
 
         // Prepare the pointers to loop over the bad captures
         cur    = moves.data();
@@ -557,7 +572,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_BAD_CAPTURE :
-        if (select(always_true))
+        if (cur != curEnd)
             return *cur++;
 
         if (!skipQuiets)
@@ -573,19 +588,24 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
-        if (!skipQuiets && select(always_true))
-            return *cur++;
+        if (!skipQuiets)
+        {
+            if (cur != curEnd)
+                return *cur++;
+        }
 
         return Move::None;
 
     case Stage::EVA_CAPTURE :
-        if (select(always_true))
+        if (cur != curEnd)
             return *cur++;
 
         {
             MoveList<GenType::EVA_QUIET> moveList(pos);
 
             curEnd = score(moveList);
+
+            remove(ttMove);
 
             insertion_sort(cur, curEnd);
         }
@@ -595,7 +615,7 @@ STAGE_SWITCH:
 
     case Stage::EVA_QUIET :
     case Stage::QS_CAPTURE :
-        if (select(always_true))
+        if (cur != curEnd)
             return *cur++;
 
         return Move::None;
@@ -615,10 +635,12 @@ MovePicker::Stage MovePicker::cur_stage() const noexcept { return curStage; }
 
 int MovePicker::threshold_value() const noexcept { return threshold; }
 
-bool MovePicker::good_capture_or_swap() noexcept {
+bool MovePicker::good_capture_or_store_bad() noexcept {
     threshold = constexpr_round(cur->value / 18.0);
+
     if (pos.see(*cur) >= -threshold)
         return true;
+
     // Store bad captures
     std::iter_swap(badCaptureEnd++, cur);
     return false;
