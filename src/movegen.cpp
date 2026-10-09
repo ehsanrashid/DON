@@ -210,13 +210,7 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     const Bitboard notR7PawnsBB = pawnsBB & ~Rank7BB;
 
     const Bitboard emptyBB = ~pos.pieces_bb();
-
-    Bitboard enemyBB = pos.pieces_bb(~AC);
-
-    if constexpr (Evasion)
-    {
-        enemyBB &= targetBB;
-    }
+    const Bitboard enemyBB = pos.pieces_bb(~AC) & (Evasion ? targetBB : FULL_BB);
 
     // Promotions and under-promotions
     if (yesR7PawnsBB != 0)

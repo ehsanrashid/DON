@@ -1804,6 +1804,8 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist_.turn();
 
+    const Bitboard occupancyBB = pieces_bb();
+
     for (u16 i = 3; i <= end; i += 2)
     {
         iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist_.turn();
@@ -1825,7 +1827,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         assert(m != Move::None);
 
         // Move path is obstructed
-        if ((pieces_bb() & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
+        if ((occupancyBB & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
 #if !defined(NDEBUG)
