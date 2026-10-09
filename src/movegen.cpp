@@ -223,21 +223,18 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     {
         const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
-        const Bitboard lCapBB = shift_bb(LCapDir, yesR7PawnsBB & LCapturableBB) & enemyBB;
+        const Bitboard lCapBB  = shift_bb(LCapDir, yesR7PawnsBB & LCapturableBB) & enemyBB;
+        const Bitboard rCapBB  = shift_bb(RCapDir, yesR7PawnsBB & RCapturableBB) & enemyBB;
+        Bitboard       push1BB = shift_bb(Push1Dir, yesR7PawnsBB & PushableBB) & emptyBB;
 
-        splat_promotion<GT, true>(AC, knightChecksBB, LCapDir, lCapBB, moves);
-
-        const Bitboard rCapBB = shift_bb(RCapDir, yesR7PawnsBB & RCapturableBB) & enemyBB;
-
-        splat_promotion<GT, true>(AC, knightChecksBB, RCapDir, rCapBB, moves);
-
-        Bitboard push1BB = shift_bb(Push1Dir, yesR7PawnsBB & PushableBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
         {
             push1BB &= Attacks::between_bb(kingSq, lsq(pos.checkers_bb()));
         }
 
+        splat_promotion<GT, true>(AC, knightChecksBB, LCapDir, lCapBB, moves);
+        splat_promotion<GT, true>(AC, knightChecksBB, RCapDir, rCapBB, moves);
         splat_promotion<GT, false>(AC, knightChecksBB, Push1Dir, push1BB, moves);
     }
 
