@@ -2041,7 +2041,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        assert(!is_win(bestValue));
+        assert(!is_decisive(bestValue));
 
         if (bestValue > beta && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, 441.0, 1024.0);

@@ -829,15 +829,15 @@ struct DirtyThreats final {
 
         // clang-format off
 
-        Square sq() const noexcept { return Square((data >> SqShift) & SqMask); }
+        [[nodiscard]] Square sq() const noexcept { return Square((data >> SqShift) & SqMask); }
 
-        Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqShift) & SqMask); }
+        [[nodiscard]] Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqShift) & SqMask); }
 
-        Piece pc() const noexcept { return Piece((data >> PcShift) & PcMask); }
+        [[nodiscard]] Piece pc() const noexcept { return Piece((data >> PcShift) & PcMask); }
 
-        Piece threatened_pc() const noexcept { return Piece((data >> ThreatenedPcShift) & PcMask); }
+        [[nodiscard]] Piece threatened_pc() const noexcept { return Piece((data >> ThreatenedPcShift) & PcMask); }
 
-        bool  add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
+        [[nodiscard]] bool  add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
 
         // clang-format on
 
