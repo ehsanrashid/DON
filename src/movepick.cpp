@@ -333,6 +333,8 @@ void MovePicker::init() noexcept {
     cur    = moves.data();
     curEnd = score(moveList);
 
+    remove(ttMove);
+
     adaptive_stable_sort(cur, curEnd);
 }
 
@@ -481,11 +483,26 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
     return itr;
 }
 
+bool MovePicker::remove(const Move m) noexcept {
+
+    if (m == Move::None)
+        return false;
+
+    const auto itr = std::find(cur, curEnd, m);
+
+    if (itr == curEnd)
+        return false;
+
+    std::copy(itr + 1, curEnd, itr);
+    --curEnd;
+    return true;
+}
+
 template<typename Predicate>
 bool MovePicker::select(Predicate pred) noexcept {
 
     for (; cur != curEnd; ++cur)
-        if (*cur != ttMove && pred())
+        if (pred())
             return true;
 
     return false;
@@ -527,7 +544,11 @@ STAGE_SWITCH:
         {
             MoveList<GenType::ENC_QUIET> moveList(pos);
 
-            badQuietEnd = curEnd = score(moveList);
+            curEnd = score(moveList);
+
+            remove(ttMove);
+
+            badQuietEnd = curEnd;
 
             partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
         }
@@ -536,17 +557,11 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        for (; !skipQuiets && cur != curEnd; ++cur)
-            if (*cur != ttMove)
-            {
-                // Good quiet threshold
-                if (cur->value < GOOD_QUIET_THRESHOLD)
-                    // Remaining quiets are bad
-                    break;
-                return *cur++;
-            }
+        // Return a good quiet move if available.
+        if (!skipQuiets && cur != curEnd && cur->value >= GOOD_QUIET_THRESHOLD)
+            return *cur++;
 
-        // Mark the beginning of bad quiets
+        // Remaining quiets are bad; mark their beginning
         badQuietBeg = cur;
 
         // Prepare the pointers to loop over the bad captures
@@ -586,6 +601,8 @@ STAGE_SWITCH:
             MoveList<GenType::EVA_QUIET> moveList(pos);
 
             curEnd = score(moveList);
+
+            remove(ttMove);
 
             insertion_sort(cur, curEnd);
         }

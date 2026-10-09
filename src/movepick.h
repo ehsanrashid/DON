@@ -124,6 +124,8 @@ class MovePicker final {
     template<GenType GT>
     iterator score(const MoveList<GT>& moveList) noexcept;
 
+    bool remove(Move m) noexcept;
+
     template<typename Predicate>
     bool select(Predicate pred) noexcept;
 
