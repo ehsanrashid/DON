@@ -56,9 +56,9 @@ void Position::init() noexcept {
 }
 
 void Position::reset() noexcept {
-    //NonPawnCache.reset();
-    //MaterialCache.reset();
-    //EvaluateCache.reset();
+    NonPawnCache.reset();
+    MaterialCache.reset();
+    EvaluateCache.reset();
 }
 
 void Position::clear() noexcept {
