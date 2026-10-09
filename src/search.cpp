@@ -1161,13 +1161,17 @@ Value Worker::search(Position&    pos,
         // Compute base futility
         const int baseFutility = std::min(45 + 4 * depth, 85) - int(!ttd.hit) * 20;
         // Compute futility
-        int futility = baseFutility * depth
-                     - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
-                     + constexpr_ceil(absCorrectionValue / 198435.0);
-        if (futility < 0)
-            futility = 0;
+        const int futility = baseFutility * depth
+                           - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
+                           + constexpr_ceil(absCorrectionValue / 198435.0);
+
         if (ttEvalue - futility >= beta)
-            return blend_values(beta, ttEvalue, 661.0, 1024.0);
+        {
+            if (ttEvalue > beta)
+                ttEvalue = blend_values(beta, ttEvalue, 661.0, 1024.0);
+
+            return ttEvalue;
+        }
     }
     }
 
@@ -1841,7 +1845,7 @@ Value Worker::search(Position&    pos,
     else
     {
         // Adjust best value for fail high cases
-        if (bestValue >= beta && !is_win(bestValue) && !is_loss(beta))
+        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, depth, depth + 1);
 
         // If there is a move that produces search value greater than alpha update the history of searched moves
@@ -2037,7 +2041,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (!is_win(bestValue) && !is_loss(beta))
+        assert(!is_win(bestValue));
+
+        if (bestValue > beta && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, 441.0, 1024.0);
 
         if (!ttd.hit)
@@ -2183,7 +2189,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Adjust best value for fail high cases
-    if (bestValue >= beta && !is_win(bestValue) && !is_loss(beta))
+    if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
         bestValue = blend_values(bestValue, beta, 462.0, 1024.0);
 
     // Step 11. Write gathered information in transposition table.
