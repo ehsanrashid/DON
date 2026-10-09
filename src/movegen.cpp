@@ -31,6 +31,50 @@ namespace DON {
 
 namespace {
 namespace {
+
+enum class PromotionType : u8 {
+    None,
+    Queen,
+    Under,
+    All
+};
+
+// Splat promotion moves
+template<Color AC, PromotionType PT>
+void splat_promotion(const Bitboard  knightChecksBB,
+                     const Direction dir,
+                     Bitboard        dstBB,
+                     Move*&          moves) noexcept {
+    assert((dir == Direction::NORTH || dir == Direction::SOUTH               //
+            || dir == Direction::NORTH_EAST || dir == Direction::SOUTH_EAST  //
+            || dir == Direction::NORTH_WEST || dir == Direction::SOUTH_WEST)
+           && "Unsupported direction in splat_promotion()");
+
+    while (dstBB != 0)
+    {
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
+        const Square orgSq = dstSq - dir;
+
+        if constexpr (PT == PromotionType::All || PT == PromotionType::Queen)
+        {
+            *moves++ = Move::promotion(orgSq, dstSq, QUEEN);
+
+            if ((knightChecksBB & dstSq) != 0)
+                *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
+        }
+
+        if constexpr (PT == PromotionType::All || PT == PromotionType::Under)
+        {
+            *moves++ = Move::promotion(orgSq, dstSq, ROOK);
+
+            *moves++ = Move::promotion(orgSq, dstSq, BISHOP);
+
+            if ((knightChecksBB & dstSq) == 0)
+                *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
+        }
+    }
+}
+
 // Splat pawn moves
 template<Color AC>
 void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
@@ -82,45 +126,6 @@ void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
         *moves++ = Move::normal(orgSq, dstSq);
     }
 #endif
-}
-
-// Splat promotion moves
-template<Color AC, GenType GT, bool Enemy>
-void splat_promotion(const Bitboard  knightChecksBB,
-                     const Direction dir,
-                     Bitboard        dstBB,
-                     Move*&          moves) noexcept {
-    assert((dir == Direction::NORTH || dir == Direction::SOUTH               //
-            || dir == Direction::NORTH_EAST || dir == Direction::SOUTH_EAST  //
-            || dir == Direction::NORTH_WEST || dir == Direction::SOUTH_WEST)
-           && "Unsupported direction in splat_promotion()");
-
-    constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
-    constexpr bool Quiet   = GT == GenType::ENC_QUIET || GT == GenType::EVA_QUIET;
-
-    while (dstBB != 0)
-    {
-        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
-        const Square orgSq = dstSq - dir;
-
-        if constexpr (Capture)
-        {
-            *moves++ = Move::promotion(orgSq, dstSq, QUEEN);
-
-            if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
-        }
-
-        if constexpr ((Capture && Enemy) || (Quiet && !Enemy))
-        {
-            *moves++ = Move::promotion(orgSq, dstSq, ROOK);
-
-            *moves++ = Move::promotion(orgSq, dstSq, BISHOP);
-
-            if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
-        }
-    }
 }
 
 // Splat moves
@@ -231,9 +236,11 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
             push1BB &= Attacks::between_bb(kingSq, lsq(pos.checkers_bb()));
         }
 
-        splat_promotion<AC, GT, true>(knightChecksBB, LCapDir, lCapBB, moves);
-        splat_promotion<AC, GT, true>(knightChecksBB, RCapDir, rCapBB, moves);
-        splat_promotion<AC, GT, false>(knightChecksBB, Push1Dir, push1BB, moves);
+        // clang-format off
+        splat_promotion<AC, Capture ? PromotionType::All   : PromotionType::None >(knightChecksBB, LCapDir , lCapBB , moves);
+        splat_promotion<AC, Capture ? PromotionType::All   : PromotionType::None >(knightChecksBB, RCapDir , rCapBB , moves);
+        splat_promotion<AC, Capture ? PromotionType::Queen : PromotionType::Under>(knightChecksBB, Push1Dir, push1BB, moves);
+        // clang-format on
     }
 
     // Standard and en-passant captures
