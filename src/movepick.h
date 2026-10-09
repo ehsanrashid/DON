@@ -129,7 +129,7 @@ class MovePicker final {
     template<typename Predicate>
     bool select(Predicate pred) noexcept;
 
-    [[nodiscard]] bool good_capture_or_swap() noexcept;
+    [[nodiscard]] bool good_capture_or_store_bad() noexcept;
 
     [[nodiscard]] bool above_threshold_capture() const noexcept;
 
