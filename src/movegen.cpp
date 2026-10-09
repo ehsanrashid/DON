@@ -233,7 +233,15 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
         // Consider only blocking and capture squares
         if constexpr (Evasion)
         {
-            push1BB &= Attacks::between_bb(kingSq, lsq(pos.checkers_bb()));
+            if constexpr (Capture)
+            {
+                assert(targetBB != 0);
+                push1BB &= Attacks::between_bb(kingSq, lsq(targetBB));
+            }
+            else
+            {
+                push1BB &= targetBB;
+            }
         }
 
         // clang-format off
