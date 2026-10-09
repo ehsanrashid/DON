@@ -85,9 +85,8 @@ void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
 }
 
 // Splat promotion moves
-template<GenType GT, bool Enemy>
-void splat_promotion(const Color     ac,
-                     const Bitboard  knightChecksBB,
+template<Color AC, GenType GT, bool Enemy>
+void splat_promotion(const Bitboard  knightChecksBB,
                      const Direction dir,
                      Bitboard        dstBB,
                      Move*&          moves) noexcept {
@@ -101,7 +100,7 @@ void splat_promotion(const Color     ac,
 
     while (dstBB != 0)
     {
-        const Square dstSq = ac == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
         const Square orgSq = dstSq - dir;
 
         if constexpr (Capture)
@@ -141,8 +140,8 @@ void splat(const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
     if constexpr (AC == BLACK)
     {
         alignas(CACHE_LINE_SIZE) constexpr Array<u16, 32> ReverseIndices{
-            31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
-            15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0
+          31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+          15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0
         };
 
         // Reverse the first 'count' 16-bit moves.
@@ -181,7 +180,7 @@ template<Color AC, GenType GT>
 void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) noexcept {
     static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
                     || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
-                  "Unsupported generate type in generate()");
+                  "Unsupported generate type in generate_pawn()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
     // clang-format off
     constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
@@ -210,7 +209,12 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     const Bitboard notR7PawnsBB = pawnsBB & ~Rank7BB;
 
     const Bitboard emptyBB = ~pos.pieces_bb();
-    const Bitboard enemyBB = pos.pieces_bb(~AC) & (Evasion ? targetBB : FULL_BB);
+    Bitboard       enemyBB = pos.pieces_bb(~AC);
+
+    if constexpr (Evasion)
+    {
+        enemyBB &= targetBB;
+    }
 
     // Promotions and under-promotions
     if (yesR7PawnsBB != 0)
@@ -227,20 +231,18 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
             push1BB &= Attacks::between_bb(kingSq, lsq(pos.checkers_bb()));
         }
 
-        splat_promotion<GT, true>(AC, knightChecksBB, LCapDir, lCapBB, moves);
-        splat_promotion<GT, true>(AC, knightChecksBB, RCapDir, rCapBB, moves);
-        splat_promotion<GT, false>(AC, knightChecksBB, Push1Dir, push1BB, moves);
+        splat_promotion<AC, GT, true>(knightChecksBB, LCapDir, lCapBB, moves);
+        splat_promotion<AC, GT, true>(knightChecksBB, RCapDir, rCapBB, moves);
+        splat_promotion<AC, GT, false>(knightChecksBB, Push1Dir, push1BB, moves);
     }
 
     // Standard and en-passant captures
     if constexpr (Capture)
     {
         const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCapturableBB) & enemyBB;
-
-        splat_pawn<AC>(LCapDir, lCapBB, moves);
-
         const Bitboard rCapBB = shift_bb(RCapDir, notR7PawnsBB & RCapturableBB) & enemyBB;
 
+        splat_pawn<AC>(LCapDir, lCapBB, moves);
         splat_pawn<AC>(RCapDir, rCapBB, moves);
 
         const Square enPassantSq = pos.en_passant_sq();
