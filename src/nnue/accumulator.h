@@ -21,7 +21,6 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
-#include <utility>
 
 #include "../misc.h"
 #include "../types.h"
@@ -46,9 +45,9 @@ static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
 
 struct Accumulator final: public BaseAccumulator {
    public:
-    void set(Dirties&& d) noexcept {
-        dirties = std::move(d);
+    void clear() noexcept {
         computed.fill(false);
+        dirties = {};
     }
 
     Dirties dirties;
@@ -100,7 +99,7 @@ struct AccumulatorStack final {
 
     void reset() noexcept;
 
-    void push(Dirties&& dirties) noexcept;
+    Dirties& push() noexcept;
 
     void pop() noexcept;
 
@@ -115,6 +114,8 @@ struct AccumulatorStack final {
                   AccumulatorCache&         accCache) noexcept;
 
    private:
+    void push_and_clear() noexcept;
+
     void evaluate(Color                     perspective,
                   const Position&           pos,
                   const FeatureTransformer& featureTransformer,

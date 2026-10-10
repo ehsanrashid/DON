@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cstddef>  // for offsetof()
 #include <cstring>  // for memset()
-#include <utility>  // for move()
 
 #include "../bitboard.h"
 #include "../misc.h"
@@ -53,14 +52,15 @@ AccumulatorCache::operator[](const Square s) const noexcept {
 }
 
 void AccumulatorStack::reset() noexcept {
-    accumulators[0].set({});
-    size_ = 1;
+    size_ = 0;
+    push_and_clear();
 }
 
-void AccumulatorStack::push(Dirties&& dirties) noexcept {
+Dirties& AccumulatorStack::push() noexcept {
     assert(size() < Size);
 
-    accumulators[size_++].set(std::move(dirties));
+    push_and_clear();
+    return top().dirties;
 }
 
 void AccumulatorStack::pop() noexcept {
@@ -74,6 +74,8 @@ usize AccumulatorStack::size() const noexcept { return size_; }
 Accumulator& AccumulatorStack::top() noexcept { return accumulators[size() - 1]; }
 
 const Accumulator& AccumulatorStack::top() const noexcept { return accumulators[size() - 1]; }
+
+void AccumulatorStack::push_and_clear() noexcept { accumulators[size_++].clear(); }
 
 namespace {
 

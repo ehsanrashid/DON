@@ -626,7 +626,7 @@ void Worker::iterative_deepening() noexcept {
                     && (alpha >= bestValue || bestValue >= beta))
                     manager->show_pv(*this, rootDepth);
 
-                // In case of failing low/high increase aspiration window and research, otherwise exit
+                // On fail-low/high, adjust the aspiration window and re-search; otherwise exit
                 if (bestValue <= alpha)
                 {
                     assert(alpha > -VALUE_INFINITE);
@@ -2222,7 +2222,8 @@ void Worker::do_move(Position&    pos,
     prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
-    accStack.push(pos.do_move<true>(m, st, mayCheck, this));
+    Dirties& dirties = accStack.push();
+    pos.do_move(m, st, mayCheck, this, &dirties);
     assert(moveKey == pos.key());
 
     ++nodes;

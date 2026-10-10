@@ -696,17 +696,17 @@ bool Position::enpassant_possible(const Color     ac,
     return epPossible;
 }
 
-template<bool Do, bool Emit>
+template<bool Do>
 void Position::do_castling(const Color    ac,
                            Square         kingOrgSq,
                            Square&        kingDstSq,
                            Square&        rookOrgSq,
                            Square&        rookDstSq,
                            Dirties* const dirties) noexcept {
-    assert(!Do || !Emit || dirties != nullptr);
+    assert(Do || dirties == nullptr);
 
-    [[maybe_unused]] auto* const dP  = Do && Emit ? &dirties->dirtyPiece : nullptr;
-    [[maybe_unused]] auto* const dTs = Do && Emit ? &dirties->dirtyThreats : nullptr;
+    auto* const dP  = Do && dirties != nullptr ? &dirties->dirtyPiece : nullptr;
+    auto* const dTs = Do && dirties != nullptr ? &dirties->dirtyThreats : nullptr;
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
     kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
@@ -721,7 +721,7 @@ void Position::do_castling(const Color    ac,
 
     if constexpr (Do)
     {
-        if constexpr (Emit)
+        if (dP != nullptr)
         {
             dP->dstSq     = kingDstSq;
             dP->removedSq = rookOrgSq;
@@ -733,18 +733,18 @@ void Position::do_castling(const Color    ac,
     }
     // Remove rook first since squares could overlap in Chess960
     if (rookMoved)
-        remove(Do ? rookOrgSq : rookDstSq, Emit ? dTs : nullptr);
+        remove(Do ? rookOrgSq : rookDstSq, dTs);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, Emit ? dTs : nullptr);
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, dTs);
     if (rookMoved)
-        put(Do ? rookDstSq : rookOrgSq, rookPc, Emit ? dTs : nullptr);
+        put(Do ? rookDstSq : rookOrgSq, rookPc, dTs);
 }
 
-template<bool Emit>
-Dirties Position::do_move(const Move          m,
-                          State&              newSt,
-                          const bool          mayCheck,
-                          const Worker* const worker) noexcept {
+void Position::do_move(const Move          m,
+                       State&              newSt,
+                       const bool          mayCheck,
+                       const Worker* const worker,
+                       Dirties* const      dirties) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -773,19 +773,19 @@ Dirties Position::do_move(const Move          m,
            || (color_of(capturedPc) == (mt != Move::Type::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
 
-    Dirties dirties;
+    auto* const dP   = dirties != nullptr ? &dirties->dirtyPiece : nullptr;
+    auto* const dTs  = dirties != nullptr ? &dirties->dirtyThreats : nullptr;
+    auto* const dPps = dirties != nullptr ? &dirties->dirtyPawnPairs : nullptr;
 
-    [[maybe_unused]] auto* const dP   = &dirties.dirtyPiece;
-    [[maybe_unused]] auto* const dTs  = &dirties.dirtyThreats;
-    [[maybe_unused]] auto* const dPps = &dirties.dirtyPawnPairs;
-
-    if constexpr (Emit)
+    if (dP != nullptr)
     {
         dP->movedPc = movedPc;
         dP->orgSq   = orgSq;
         dP->dstSq   = dstSq;
         dP->addedSq = SQ_NONE;
-
+    }
+    if (dPps != nullptr)
+    {
         dPps->before[WHITE] = pieces_bb(WHITE, PAWN);
         dPps->before[BLACK] = pieces_bb(BLACK, PAWN);
     }
@@ -816,7 +816,7 @@ Dirties Position::do_move(const Move          m,
         capture    = false;
 
         Square rookOrgSq, rookDstSq;
-        do_castling<true, Emit>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, Emit ? &dirties : nullptr);
+        do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, dirties);
         assert(rookOrgSq == m.dst_sq());
 
         movedKey          = Zobrist_.piece_square(ac, movedPt, orgSq)  //
@@ -873,8 +873,11 @@ Dirties Position::do_move(const Move          m,
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        dP->removedSq = capturedSq;
-        dP->removedPc = capturedPc;
+        if (dP != nullptr)
+        {
+            dP->removedSq = capturedSq;
+            dP->removedPc = capturedPc;
+        }
 
         st->capturedSq = dstSq;
 
@@ -905,9 +908,12 @@ Dirties Position::do_move(const Move          m,
             //movedPc    = promotedPc;
             movedPt    = promotedPt;
 
-            dP->dstSq   = SQ_NONE;
-            dP->addedSq = dstSq;
-            dP->addedPc = promotedPc;
+            if (dP != nullptr)
+            {
+                dP->dstSq   = SQ_NONE;
+                dP->addedSq = dstSq;
+                dP->addedPc = promotedPc;
+            }
 
             const Key promotedKey = Zobrist_.piece_square(ac, promotedPt, dstSq);
 
@@ -967,24 +973,24 @@ Dirties Position::do_move(const Move          m,
     {
         if (promotion)
         {
-            remove(orgSq, Emit ? dTs : nullptr);
+            remove(orgSq, dTs);
             if (capture)
-                swap(dstSq, promotedPc, Emit ? dTs : nullptr);
+                swap(dstSq, promotedPc, dTs);
             else
-                put(dstSq, promotedPc, Emit ? dTs : nullptr);
+                put(dstSq, promotedPc, dTs);
         }
         else if (enPassant)
         {
-            remove(capturedSq, Emit ? dTs : nullptr);
-            move(orgSq, dstSq, Emit ? dTs : nullptr);
+            remove(capturedSq, dTs);
+            move(orgSq, dstSq, dTs);
         }
         else if (capture)
         {
-            remove(orgSq, Emit ? dTs : nullptr);
-            swap(dstSq, movedPc, Emit ? dTs : nullptr);
+            remove(orgSq, dTs);
+            swap(dstSq, movedPc, dTs);
         }
         else  // Quiet move
-            move(orgSq, dstSq, Emit ? dTs : nullptr);
+            move(orgSq, dstSq, dTs);
     }
 
     // Compute checkers (if move may check)
@@ -1018,7 +1024,7 @@ Dirties Position::do_move(const Move          m,
             prefetch(worker->transpositionTable.cluster(key()));
     }
 
-    if constexpr (Emit)
+    if (dPps != nullptr)
     {
         dPps->after[WHITE] = pieces_bb(WHITE, PAWN);
         dPps->after[BLACK] = pieces_bb(BLACK, PAWN);
@@ -1045,9 +1051,8 @@ Dirties Position::do_move(const Move          m,
     st->capturedPc = capturedPc;
     st->promotedPc = promotedPc;
 
-    if constexpr (Emit)
+    if (dP != nullptr)
     {
-
         assert(is_ok(dP->movedPc));
         assert(is_ok(dP->orgSq));
         assert(is_ok(dP->dstSq) ^ !(!promotion));
@@ -1056,15 +1061,7 @@ Dirties Position::do_move(const Move          m,
     }
 
     assert(is_ok_());
-
-    return dirties;
 }
-
-// Explicit template instantiations:
-template Dirties
-Position::do_move<false>(Move m, State& newSt, bool mayCheck, const Worker* worker) noexcept;
-template Dirties
-Position::do_move<true>(Move m, State& newSt, bool mayCheck, const Worker* worker) noexcept;
 
 void Position::undo_move(const Move m) noexcept {
 
