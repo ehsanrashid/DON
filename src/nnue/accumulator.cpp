@@ -53,14 +53,16 @@ AccumulatorCache::operator[](const Square s) const noexcept {
 }
 
 void AccumulatorStack::reset() noexcept {
-    accumulators[0].set({});
+    accumulators[0].clear();
     size_ = 1;
 }
 
-void AccumulatorStack::push(Dirties&& dirties) noexcept {
+Dirties& AccumulatorStack::push() noexcept {
     assert(size() < Size);
 
-    accumulators[size_++].set(std::move(dirties));
+    auto& accumulator = accumulators[size_++];
+    accumulator.clear();
+    return accumulator.dirties;
 }
 
 void AccumulatorStack::pop() noexcept {

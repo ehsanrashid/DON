@@ -46,9 +46,9 @@ static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
 
 struct Accumulator final: public BaseAccumulator {
    public:
-    void set(Dirties&& d) noexcept {
-        dirties = std::move(d);
+    void clear() noexcept {
         computed.fill(false);
+        dirties = {};
     }
 
     Dirties dirties;
@@ -100,7 +100,7 @@ struct AccumulatorStack final {
 
     void reset() noexcept;
 
-    void push(Dirties&& dirties) noexcept;
+    Dirties& push() noexcept;
 
     void pop() noexcept;
 
