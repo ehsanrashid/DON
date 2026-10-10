@@ -508,16 +508,16 @@ void Threads::start(const Position& pos,
 
     RootMoves rootMoves;
 
-    MoveList<GenType::LEGAL> legalMoveList(pos);
+    MoveList<GenType::ALL> moveList(pos);
 
     if (!limit.searchMoves.empty())
     {
         for (const auto& move : limit.searchMoves)
         {
-            if (rootMoves.size() == legalMoveList.size())
+            if (rootMoves.size() == moveList.size())
                 break;
 
-            const Move m = mix_to_move(move, p, legalMoveList);
+            const Move m = mix_to_move(move, p, moveList);
 
             if (m == Move::None || rootMoves.contains(m))
                 continue;
@@ -527,7 +527,7 @@ void Threads::start(const Position& pos,
     }
     else
     {
-        for (const Move m : legalMoveList)
+        for (const Move m : moveList)
             rootMoves.emplace_back(m);
     }
 
@@ -538,7 +538,7 @@ void Threads::start(const Position& pos,
             if (rootMoves.empty())
                 break;
 
-            const Move m = mix_to_move(move, p, legalMoveList);
+            const Move m = mix_to_move(move, p, moveList);
 
             if (m == Move::None || !rootMoves.contains(m))
                 continue;

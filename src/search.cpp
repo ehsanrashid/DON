@@ -332,7 +332,7 @@ void Worker::start_search() noexcept {
             rootPos.do_move(bookBestMove, st, true, this);
 
             RootMoves orms;
-            for (const Move m : MoveList<GenType::LEGAL>(rootPos))
+            for (const Move m : MoveList<GenType::ALL>(rootPos))
                 orms.emplace_back(m);
 
             Move bookPonderMove = PGBook.probe(rootPos, orms, options);
@@ -1831,7 +1831,7 @@ Value Worker::search(Position&    pos,
 
     assert(ss->inCheck == (pos.checkers_bb() != 0));
     assert(moveCount != 0 || !ss->inCheck || exclude
-           || (MoveList<GenType::LEGAL, true>(pos).empty()));
+           || (MoveList<GenType::ALL, true>(pos).empty()));
     assert(ss->moveCount == moveCount);
     assert(ss->ttHit == (RootNode || ttd.hit));
     assert(ss->ttMove == ttd.move);
@@ -2171,7 +2171,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (inCheck)
         {
             assert(bestValue == -VALUE_INFINITE);
-            assert((MoveList<GenType::LEGAL, true>(pos).empty()));
+            assert((MoveList<GenType::ALL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
         else
@@ -2183,7 +2183,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 // No pawn pushes available
                 && (Attacks::pawn_push_bb(ac, pos.pieces_bb(ac, PAWN)) & ~pos.pieces_bb()) == 0
                 && !pos.has_non_pawn(ac)  //
-                && MoveList<GenType::LEGAL, true>(pos).empty())
+                && MoveList<GenType::ALL, true>(pos).empty())
                 bestValue = VALUE_DRAW;
         }
     }
@@ -2222,7 +2222,7 @@ void Worker::do_move(Position&    pos,
     prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
-    accStack.push(pos.do_move(m, st, mayCheck, this));
+    accStack.push(pos.do_move<true>(m, st, mayCheck, this));
     assert(moveKey == pos.key());
 
     ++nodes;
@@ -2485,9 +2485,9 @@ bool Worker::ponder_move_extracted() noexcept {
     if (!rootPos.is_draw(1))
     {
         // Legal moves for the opponent
-        MoveList<GenType::LEGAL> legalMoveList(rootPos);
+        MoveList<GenType::ALL> moveList(rootPos);
 
-        if (!legalMoveList.empty())
+        if (!moveList.empty())
         {
             Move ponderMove;
 
@@ -2495,7 +2495,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
             ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
-            if (ponderMove == Move::None || !legalMoveList.contains(ponderMove))
+            if (ponderMove == Move::None || !moveList.contains(ponderMove))
             {
                 ponderMove = Move::None;
 
@@ -2526,8 +2526,8 @@ bool Worker::ponder_move_extracted() noexcept {
 
                 if (ponderMove == Move::None)
                 {
-                    std::uniform_int_distribution<usize> distribution(0, legalMoveList.size() - 1);
-                    ponderMove = *(legalMoveList.begin() + distribution(prng));
+                    std::uniform_int_distribution<usize> distribution(0, moveList.size() - 1);
+                    ponderMove = *(moveList.begin() + distribution(prng));
                 }
             }
 
@@ -2583,7 +2583,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::ALL>(rootPos))
             rms.emplace_back(m);
 
         const auto tbCfg =
@@ -2630,7 +2630,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::ALL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2638,7 +2638,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const Move om : MoveList<GenType::LEGAL>(rootPos))
+            for (const Move om : MoveList<GenType::ALL>(rootPos))
                 rm.tbRank -= 1 + int(rootPos.capture(om)) * 99;
 
             rootPos.undo_move(m);
