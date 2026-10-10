@@ -79,13 +79,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
     return reductions;
 }();
 
-constexpr int reduction(const Depth depth,
-                        const u16   moveCount,
-                        const int   deltaRatio,
-                        const bool  improve) noexcept {
+constexpr int reduction(const Depth depth, const u16 moveCount, const bool improve) noexcept {
     int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
-    return 982 + reductionScale - deltaRatio
-         + int(!improve) * constexpr_ceil(reductionScale * 197.0 / 512.0);
+    return 948 + reductionScale + int(!improve) * constexpr_ceil(reductionScale * 197.0 / 512.0);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -597,9 +593,6 @@ void Worker::iterative_deepening() noexcept {
             while (true)
             {
                 ss->cutoffCount = 0;
-
-                rootDelta = beta - alpha;
-                assert(rootDelta != 0);
 
                 // Reduce search depth according to fail-highs and research count.
                 const Depth penaltyDepth =
@@ -1384,12 +1377,16 @@ Value Worker::search(Position&    pos,
         const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
         const bool check      = pos.check(move);
 
-        const int deltaRatio = constexpr_ceil(577.0 * (beta - alpha) / rootDelta);
-
-        int r = reduction(depth, moveCount, deltaRatio, improve);
-
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
+
+        int r = reduction(depth, moveCount, improve);
+
+        // Decrease reduction for PvNodes
+        if constexpr (PVNode)
+        {
+            r -= 512;
+        }
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
         r += int(ss->ttPv) * 929;
