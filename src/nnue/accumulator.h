@@ -115,6 +115,8 @@ struct AccumulatorStack final {
                   AccumulatorCache&         accCache) noexcept;
 
    private:
+    void push_and_clear() noexcept;
+
     void evaluate(Color                     perspective,
                   const Position&           pos,
                   const FeatureTransformer& featureTransformer,
