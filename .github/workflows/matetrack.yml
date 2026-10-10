@@ -126,10 +126,10 @@ jobs:
         working-directory: matetrack
         timeout-minutes: 30
         run: |
-          python advancepvs.py --targetMate -2 --outFile mates2all.epd > /dev/null
+          python advancepvs.py --targetMate -2 --outFile mates2all.epd >/dev/null
           head -n 1003 mates2all.epd > mates2head.epd
           python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2head.epd --mate 0 | tee matecheck1gm.out
-          ! grep "issues were detected" matecheck1gm.out > /dev/null
+          ! grep "issues were detected" matecheck1gm.out >/dev/null
           total=$(grep "Total FENs:" matecheck1gm.out | awk '{print $3}')
           bmates=$(grep "Best mates:" matecheck1gm.out | awk '{print $3}')
           if [ $bmates -ne $total ]; then
@@ -141,7 +141,7 @@ jobs:
         working-directory: matetrack
         timeout-minutes: 30
         run: |
-          python advancepvs.py --targetMate -2 --outFile mates2all.epd > /dev/null
+          python advancepvs.py --targetMate -2 --outFile mates2all.epd >/dev/null
           head -n 1003 mates2all.epd > mates2head.epd
           python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2head.epd --mate 0 --threads 4 | tee matecheck4gm.out
           ! grep "issues were detected" matecheck4gm.out >/dev/null

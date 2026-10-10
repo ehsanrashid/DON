@@ -626,7 +626,7 @@ void Worker::iterative_deepening() noexcept {
                     && (alpha >= bestValue || bestValue >= beta))
                     manager->show_pv(*this, rootDepth);
 
-                // In case of failing low/high increase aspiration window and research, otherwise exit
+                // On fail-low/high, adjust the aspiration window and re-search; otherwise exit
                 if (bestValue <= alpha)
                 {
                     assert(alpha > -VALUE_INFINITE);

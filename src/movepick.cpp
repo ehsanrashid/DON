@@ -524,10 +524,10 @@ STAGE_SWITCH:
         }
         else
         {
-            if (curStage == Stage::ENC_GOOD_CAPTURE)
-                badCaptureEnd = moves.data();
-
             init<GenType::ENC_CAPTURE>();
+
+            if (curStage == Stage::ENC_GOOD_CAPTURE)
+                badCaptureEnd = cur;
         }
 
         // Init done, now dispatch
