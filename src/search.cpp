@@ -1148,7 +1148,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->ttPv && !exclude && (ttmNone || ttmCapture) && ttEvalue >= beta && !is_win(ttEvalue) && !is_loss(beta)
+    if (!ss->ttPv && !exclude && (ttmNone || ttmCapture) && ttEvalue >= beta && !is_decisive(ttEvalue)
         && depth < 19 - int(seekMate) * 13)
     {
         // Compute base futility
@@ -1160,7 +1160,7 @@ Value Worker::search(Position&    pos,
 
         if (ttEvalue - futility >= beta)
         {
-            if (ttEvalue > beta)
+            if (ttEvalue > beta && !is_loss(beta))
                 ttEvalue = blend_values(beta, ttEvalue, 661.0, 1024.0);
 
             return ttEvalue;
