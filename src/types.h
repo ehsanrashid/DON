@@ -584,7 +584,7 @@ inline constexpr usize CASTLING_RIGHTS_NB = 16;
 
 // Bound type for alpha-beta search
 enum class Bound : u8 {
-    NONE = 0,
+    NONE,
     UPPER,
     LOWER,
     EXACT = UPPER | LOWER
@@ -592,9 +592,7 @@ enum class Bound : u8 {
 
 inline constexpr usize BOUND_NB = 4;
 
-constexpr bool is_ok(const Bound bound) noexcept {
-    return (Bound::UPPER <= bound && bound <= Bound::EXACT);
-}
+constexpr bool is_ok(const Bound bound) noexcept { return bound != Bound::NONE; }
 
 [[nodiscard]] constexpr std::string_view to_string(const Bound bound) noexcept {
     switch (bound)
