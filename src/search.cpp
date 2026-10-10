@@ -79,13 +79,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
     return reductions;
 }();
 
-constexpr int reduction(const Depth depth,
-                        const u16   moveCount,
-                        const int   deltaRatio,
-                        const bool  improve) noexcept {
+constexpr int reduction(const Depth depth, const u16 moveCount, const bool improve) noexcept {
     int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
-    return 982 + reductionScale - deltaRatio
-         + int(!improve) * constexpr_ceil(reductionScale * 197.0 / 512.0);
+    return 948 + reductionScale + int(!improve) * constexpr_ceil(reductionScale * 197.0 / 512.0);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -597,9 +593,6 @@ void Worker::iterative_deepening() noexcept {
             while (true)
             {
                 ss->cutoffCount = 0;
-
-                rootDelta = beta - alpha;
-                assert(rootDelta != 0);
 
                 // Reduce search depth according to fail-highs and research count.
                 const Depth penaltyDepth =
@@ -1155,8 +1148,8 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->ttPv && !exclude && depth < 19 - int(seekMate) * 13 && (ttmNone || ttmCapture)
-        && ttEvalue >= beta && !is_win(ttEvalue) && !is_loss(beta))
+    if (!ss->ttPv && !exclude && (ttmNone || ttmCapture) && ttEvalue >= beta && !is_decisive(ttEvalue)
+        && depth < 19 - int(seekMate) * 13)
     {
         // Compute base futility
         const int baseFutility = std::min(45 + 4 * depth, 85) - int(!ttd.hit) * 20;
@@ -1167,7 +1160,7 @@ Value Worker::search(Position&    pos,
 
         if (ttEvalue - futility >= beta)
         {
-            if (ttEvalue > beta)
+            if (ttEvalue > beta && !is_loss(beta))
                 ttEvalue = blend_values(beta, ttEvalue, 661.0, 1024.0);
 
             return ttEvalue;
@@ -1384,12 +1377,16 @@ Value Worker::search(Position&    pos,
         const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
         const bool check      = pos.check(move);
 
-        const int deltaRatio = constexpr_ceil(577.0 * (beta - alpha) / rootDelta);
-
-        int r = reduction(depth, moveCount, deltaRatio, improve);
-
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
+
+        int r = reduction(depth, moveCount, improve);
+
+        // Decrease reduction for PvNodes
+        if constexpr (PVNode)
+        {
+            r -= 512;
+        }
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
         r += int(ss->ttPv) * 929;
@@ -2027,8 +2024,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ssEvalue = bestValue = adjust_eval_value(evalue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && !is_decisive(ttd.value)
-            && is_ok(ttd.bound & fail_bound(ttd.value > bestValue)))
+        if (is_valid(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > bestValue)) && !is_decisive(ttd.value))
             bestValue = ttd.value;
     }
     else

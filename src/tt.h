@@ -107,6 +107,9 @@ class TranspositionTable final {
     // Must be called at the beginning of each root search to track entry aging
     void advance_generation() const noexcept;
 
+    // Returns TT size in MiB
+    usize size() const noexcept;
+
     // Sets the size of the transposition table, measured in megabytes (MB).
     // Transposition table consists of even number of clusters.
     void resize(usize ttSize, const Threads& threads) noexcept;
