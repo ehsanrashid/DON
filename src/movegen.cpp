@@ -411,10 +411,10 @@ void generate_king(const Position& pos,
 
 }  // namespace
 
-// <ENC_CAPTURE> Generates all legal captures and promotions moves
-// <ENC_QUIET  > Generates all legal non-captures and castling moves
-// <EVA_CAPTURE> Generates all legal check evasions captures and promotions moves
-// <EVA_QUIET  > Generates all legal check evasions non-captures moves
+// <ENC_CAPTURE> Generates all legal queen promotions and captures
+// <ENC_QUIET  > Generates all legal underpromotions, non-captures, and castling
+// <EVA_CAPTURE> Generates all legal check-evasion queen promotions and captures
+// <EVA_QUIET  > Generates all legal check-evasion underpromotions and non-captures
 template<GenType GT, bool Any>
 void generate(const Position& pos, Move*& moves) noexcept {
     static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
@@ -493,9 +493,9 @@ template void generate<GenType::ENC_QUIET  , false>(const Position& pos, Move*& 
 template void generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move*& moves) noexcept;
 template void generate<GenType::EVA_QUIET  , false>(const Position& pos, Move*& moves) noexcept;
 
-// <LEGAL> Generates all legal moves
+// <ALL> Generates all legal
 template<>
-void generate<GenType::LEGAL, false>(const Position& pos, Move*& moves) noexcept {
+void generate<GenType::ALL, false>(const Position& pos, Move*& moves) noexcept {
     if (pos.checkers_bb() == 0)
     {
         generate<GenType::ENC_CAPTURE, false>(pos, moves);
@@ -508,7 +508,7 @@ void generate<GenType::LEGAL, false>(const Position& pos, Move*& moves) noexcept
     }
 }
 template<>
-void generate<GenType::LEGAL, true >(const Position& pos, Move*& moves) noexcept {
+void generate<GenType::ALL, true >(const Position& pos, Move*& moves) noexcept {
     if (pos.checkers_bb() == 0)
     {
         generate<GenType::ENC_CAPTURE, true>(pos, moves);

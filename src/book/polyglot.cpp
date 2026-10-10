@@ -386,7 +386,7 @@ void swap_entry(PolyGlot::Entry* const e) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type (from KNIGHT = 2 to QUEEN = 5)
 // bit 14-15: special move flag
-Move pg_to_move(const u16 pgMove, MoveList<GenType::LEGAL>& legalMoveList) noexcept {
+Move pg_to_move(const u16 pgMove, MoveList<GenType::ALL>& moveList) noexcept {
 
     Move move{pgMove};
 
@@ -395,7 +395,7 @@ Move pg_to_move(const u16 pgMove, MoveList<GenType::LEGAL>& legalMoveList) noexc
 
     const u16 moveRaw = move.raw() & ~Move::TypeMask;
 
-    for (const Move m : legalMoveList)
+    for (const Move m : moveList)
         if ((m.raw() & ~Move::TypeMask) == moveRaw)
             return m;
 
@@ -598,7 +598,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (candidates.empty())
         return Move::None;
 
-    MoveList<GenType::LEGAL> legalMoveList(pos);
+    MoveList<GenType::ALL> moveList(pos);
 
     u32 maxWeight = 0;
     u64 sumWeight = 0;
@@ -623,7 +623,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
                   << std::setw(2) << ++cnt
                   << " key: "    << u64_to_hex_prefix(candidate.key)
                   << std::left << std::setfill(' ')
-                  << " move: "   << std::setw(8) << move_to_san(pg_to_move(candidate.move, legalMoveList), pos)
+                  << " move: "   << std::setw(8) << move_to_san(pg_to_move(candidate.move, moveList), pos)
                   << std::right << std::setfill('0')
                   << " weight: " << std::setw(5) << candidate.weight
                   << " learn: "  << std::setw(2) << candidate.learn
@@ -645,7 +645,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
             {
                 bestWeight = candidate.weight;
 
-                move = pg_to_move(candidate.move, legalMoveList);
+                move = pg_to_move(candidate.move, moveList);
 
                 if (rootMoves.contains(move))
                     bestMove = move;
@@ -663,7 +663,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
             if (randWeight < sumWeight)
             {
-                move = pg_to_move(candidate.move, legalMoveList);
+                move = pg_to_move(candidate.move, moveList);
 
                 if (rootMoves.contains(move))
                 {
@@ -680,7 +680,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
         for (const auto& candidate : candidates)
         {
-            move = pg_to_move(candidate.move, legalMoveList);
+            move = pg_to_move(candidate.move, moveList);
 
             if (rootMoves.contains(move))
             {
@@ -699,7 +699,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     for (const auto& candidate : candidates)
     {
-        move = pg_to_move(candidate.move, legalMoveList);
+        move = pg_to_move(candidate.move, moveList);
 
         if (move != candidateMoves[0])
             candidateMoves.push_back(move);

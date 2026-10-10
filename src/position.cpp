@@ -1775,9 +1775,9 @@ bool Position::is_draw(const i16  ply,
       is_repetition(ply)
       // Draw by 50-move rule
       || (useRule50 && rule50_count() >= 2 * DrawMoveCount
-          && (checkers_bb() == 0 || !MoveList<GenType::LEGAL, true>(*this).empty()))
+          && (checkers_bb() == 0 || !MoveList<GenType::ALL, true>(*this).empty()))
       // Draw by Stalemate
-      || (useStalemate && checkers_bb() == 0 && MoveList<GenType::LEGAL, true>(*this).empty());
+      || (useStalemate && checkers_bb() == 0 && MoveList<GenType::ALL, true>(*this).empty());
 }
 
 bool Position::has_repeated() const noexcept {
@@ -1835,7 +1835,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         if (empty(m.org_sq()))
             m = m.reverse();
 
-        assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
+        assert(legal(m));
 #endif
         if (i16(i) < ply
             // For nodes before or at the root, check that the move is
