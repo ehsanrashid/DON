@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cstddef>  // for offsetof()
 #include <cstring>  // for memset()
-#include <utility>  // for move()
 
 #include "../bitboard.h"
 #include "../misc.h"

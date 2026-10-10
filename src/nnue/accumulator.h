@@ -21,7 +21,6 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
-#include <utility>
 
 #include "../misc.h"
 #include "../types.h"
