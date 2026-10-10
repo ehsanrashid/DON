@@ -249,6 +249,13 @@ void TranspositionTable::advance_generation() const noexcept {
     generation8 &= GENERATION_MASK;
 }
 
+// Returns the size of the transposition table, measured in megabytes
+usize TranspositionTable::size() const noexcept {
+    assert(clusterCount * TT_CLUSTER_SIZE % MB == 0);
+
+    return clusterCount * TT_CLUSTER_SIZE / MB;
+}
+
 void TranspositionTable::resize(const usize ttSize, const Threads& threads) noexcept {
     free();
 
@@ -377,7 +384,7 @@ bool TranspositionTable::load(const fs::path& hashPath, const Threads& threads) 
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr usize ChunkSize = (2 * MB / TT_CLUSTER_SIZE) * TT_CLUSTER_SIZE;
 
-    const usize dataSize = clusterCount * TT_CLUSTER_SIZE;
+    const usize dataSize = size() * MB;
 
     auto* data = reinterpret_cast<char*>(clusters);
 
@@ -434,7 +441,7 @@ bool TranspositionTable::save(const fs::path& hashPath) const noexcept {
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr usize ChunkSize = (2 * MB / TT_CLUSTER_SIZE) * TT_CLUSTER_SIZE;
 
-    const usize dataSize = clusterCount * TT_CLUSTER_SIZE;
+    const usize dataSize = size() * MB;
 
     const auto* data = reinterpret_cast<const char*>(clusters);
 
