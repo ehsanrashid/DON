@@ -148,6 +148,7 @@ class Position final {
     // Makes a move, and saves all necessary information to new state.
     // Also prefetch tt and histories for the new position.
     // The move is assumed to be legal.
+    template<bool Emit = false>
     Dirties
     do_move(Move m, State& newSt, bool mayCheck = true, const Worker* worker = nullptr) noexcept;
     // Unmakes a move, restoring the position to its exact state before the move was made.
@@ -355,7 +356,7 @@ class Position final {
 
     // Helper used to do/undo a castling move.
     // This is a bit tricky in Chess960 where org/dst squares can overlap.
-    template<bool Do>
+    template<bool Do, bool Emit = false>
     void do_castling(Color    ac,
                      Square   kingOrgSq,
                      Square&  kingDstSq,
