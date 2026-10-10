@@ -40,9 +40,9 @@ enum class PromotionType : u8 {
 
 // Splat promotion moves
 template<Color AC, PromotionType PT>
-void splat_promotion(const Bitboard  knightChecksBB,
+void splat_promotion(Bitboard        dstBB,
                      const Direction dir,
-                     Bitboard        dstBB,
+                     const Bitboard  knightChecksBB,
                      Move*&          moves) noexcept {
     assert((dir == Direction::NORTH || dir == Direction::SOUTH               //
             || dir == Direction::NORTH_EAST || dir == Direction::SOUTH_EAST  //
@@ -76,7 +76,7 @@ void splat_promotion(const Bitboard  knightChecksBB,
 
 // Splat pawn moves
 template<Color AC>
-void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
+void splat_pawn(Bitboard dstBB, const Direction dir, Move*& moves) noexcept {
     assert((dir == Direction::NORTH || dir == Direction::SOUTH               //
             || dir == Direction::NORTH_2 || dir == Direction::SOUTH_2        //
             || dir == Direction::NORTH_EAST || dir == Direction::SOUTH_EAST  //
@@ -129,7 +129,7 @@ void splat_pawn(const Direction dir, Bitboard dstBB, Move*& moves) noexcept {
 
 // Splat moves
 template<Color AC, bool Any>
-void splat(const Square orgSq, Bitboard dstBB, Move*& moves) noexcept {
+void splat(Bitboard dstBB, const Square orgSq, Move*& moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     // clang-format off
@@ -231,23 +231,15 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
         const Bitboard promoLCapBB = shift_bb(LCapDir, yesR7PawnsBB & LCapturableBB) & enemyBB;
         const Bitboard promoRCapBB = shift_bb(RCapDir, yesR7PawnsBB & RCapturableBB) & enemyBB;
 
-        // Consider only blocking and capture squares
-        if constexpr (Evasion)
-        {
-            assert(targetBB != 0);
-            promoPush1BB &= Attacks::between_bb(kingSq, lsq(targetBB));
-        }
-
         // Queen promotions and Non-queen promotions
-        splat_promotion<AC, PromotionType::All>(knightChecksBB, LCapDir, promoLCapBB, moves);
-        splat_promotion<AC, PromotionType::All>(knightChecksBB, RCapDir, promoRCapBB, moves);
-        splat_promotion<AC, PromotionType::Queen>(knightChecksBB, Push1Dir, promoPush1BB, moves);
+        splat_promotion<AC, PromotionType::All>(promoLCapBB, LCapDir, knightChecksBB, moves);
+        splat_promotion<AC, PromotionType::All>(promoRCapBB, RCapDir, knightChecksBB, moves);
 
         const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCapturableBB) & enemyBB;
         const Bitboard rCapBB = shift_bb(RCapDir, notR7PawnsBB & RCapturableBB) & enemyBB;
 
-        splat_pawn<AC>(LCapDir, lCapBB, moves);
-        splat_pawn<AC>(RCapDir, rCapBB, moves);
+        splat_pawn<AC>(lCapBB, LCapDir, moves);
+        splat_pawn<AC>(rCapBB, RCapDir, moves);
 
         const Square enPassantSq = pos.en_passant_sq();
 
@@ -275,6 +267,15 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
                 *moves++ = Move::enpassant(orgSq, enPassantSq);
             }
         }
+
+        // Consider only blocking and capture squares
+        if constexpr (Evasion)
+        {
+            assert(targetBB != 0);
+            promoPush1BB &= Attacks::between_bb(kingSq, lsq(targetBB));
+        }
+
+        splat_promotion<AC, PromotionType::Queen>(promoPush1BB, Push1Dir, knightChecksBB, moves);
     }
 
     // Single and double pawn pushes, no promotions
@@ -287,7 +288,7 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
         }
 
         // Non-queen promotions
-        splat_promotion<AC, PromotionType::NonQueen>(knightChecksBB, Push1Dir, promoPush1BB, moves);
+        splat_promotion<AC, PromotionType::NonQueen>(promoPush1BB, Push1Dir, knightChecksBB, moves);
 
         Bitboard push1BB = shift_bb(Push1Dir, notR7PawnsBB & PushableBB) & emptyBB;
         Bitboard push2BB = shift_bb(Push1Dir, push1BB & Rank3BB) & emptyBB;
@@ -299,8 +300,8 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
             push2BB &= targetBB;
         }
 
-        splat_pawn<AC>(Push1Dir, push1BB, moves);
-        splat_pawn<AC>(Push2Dir, push2BB, moves);
+        splat_pawn<AC>(push1BB, Push1Dir, moves);
+        splat_pawn<AC>(push2BB, Push2Dir, moves);
     }
 }
 
@@ -328,8 +329,8 @@ void generate_piece(const Position& pos,
 
         const Move* const pMoves = moves;
 
-        ac == WHITE ? splat<WHITE, Any>(orgSq, dstBB, moves)
-                    : splat<BLACK, Any>(orgSq, dstBB, moves);
+        ac == WHITE ? splat<WHITE, Any>(dstBB, orgSq, moves)
+                    : splat<BLACK, Any>(dstBB, orgSq, moves);
 
         if constexpr (Any)
         {
@@ -353,8 +354,8 @@ void generate_piece(const Position& pos,
 
         const Move* const pMoves = moves;
 
-        ac == WHITE ? splat<WHITE, Any>(orgSq, dstBB, moves)
-                    : splat<BLACK, Any>(orgSq, dstBB, moves);
+        ac == WHITE ? splat<WHITE, Any>(dstBB, orgSq, moves)
+                    : splat<BLACK, Any>(dstBB, orgSq, moves);
 
         if constexpr (Any)
         {
@@ -364,17 +365,12 @@ void generate_piece(const Position& pos,
     }
 }
 
-template<GenType GT, bool Any>
+template<bool Castle, bool Any>
 void generate_king(const Position& pos,
                    const Color     ac,
                    const Bitboard  targetBB,
                    Move*&          moves) noexcept {
-    static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
-                    || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
-                  "Unsupported generate type in generate_king()");
     assert(popcount(pos.checkers_bb()) <= 2);
-
-    constexpr bool Castle = GT == GenType::ENC_QUIET;
 
     const Square kingSq = pos.square(ac, KING);
 
@@ -403,8 +399,8 @@ void generate_king(const Position& pos,
     const Bitboard dstBB = Attacks::pseudo_attacks_bb(KING, kingSq)  //
                          & ~pos.acc_attacks_bb(KING) & targetBB;
 
-    ac == WHITE ? splat<WHITE, Any>(kingSq, dstBB, moves)  //
-                : splat<BLACK, Any>(kingSq, dstBB, moves);
+    ac == WHITE ? splat<WHITE, Any>(dstBB, kingSq, moves)  //
+                : splat<BLACK, Any>(dstBB, kingSq, moves);
 }
 
 }  // namespace
@@ -481,7 +477,7 @@ void generate(const Position& pos, Move*& moves) noexcept {
     }
     // clang-format on
 
-    generate_king<GT, Any>(pos, ac, targetBB, moves);
+    generate_king<GT == GenType::ENC_QUIET, Any>(pos, ac, targetBB, moves);
 }
 
 // Explicit template instantiations:
