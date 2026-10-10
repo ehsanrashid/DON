@@ -733,11 +733,11 @@ void Position::do_castling(const Color    ac,
     }
     // Remove rook first since squares could overlap in Chess960
     if (rookMoved)
-        remove(Do ? rookOrgSq : rookDstSq, Emit ? dTs : nullptr);
+        remove(Do ? rookOrgSq : rookDstSq, dTs);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, Emit ? dTs : nullptr);
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, dTs);
     if (rookMoved)
-        put(Do ? rookDstSq : rookOrgSq, rookPc, Emit ? dTs : nullptr);
+        put(Do ? rookDstSq : rookOrgSq, rookPc, dTs);
 }
 
 template<bool Emit>
@@ -775,9 +775,9 @@ Dirties Position::do_move(const Move          m,
 
     Dirties dirties;
 
-    [[maybe_unused]] auto* const dP   = &dirties.dirtyPiece;
-    [[maybe_unused]] auto* const dTs  = &dirties.dirtyThreats;
-    [[maybe_unused]] auto* const dPps = &dirties.dirtyPawnPairs;
+    [[maybe_unused]] auto* const dP   = Emit ? &dirties.dirtyPiece : nullptr;
+    [[maybe_unused]] auto* const dTs  = Emit ? &dirties.dirtyThreats : nullptr;
+    [[maybe_unused]] auto* const dPps = Emit ? &dirties.dirtyPawnPairs : nullptr;
 
     if constexpr (Emit)
     {
@@ -873,8 +873,11 @@ Dirties Position::do_move(const Move          m,
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        dP->removedSq = capturedSq;
-        dP->removedPc = capturedPc;
+        if constexpr (Emit)
+        {
+            dP->removedSq = capturedSq;
+            dP->removedPc = capturedPc;
+        }
 
         st->capturedSq = dstSq;
 
@@ -905,9 +908,12 @@ Dirties Position::do_move(const Move          m,
             //movedPc    = promotedPc;
             movedPt    = promotedPt;
 
-            dP->dstSq   = SQ_NONE;
-            dP->addedSq = dstSq;
-            dP->addedPc = promotedPc;
+            if constexpr (Emit)
+            {
+                dP->dstSq   = SQ_NONE;
+                dP->addedSq = dstSq;
+                dP->addedPc = promotedPc;
+            }
 
             const Key promotedKey = Zobrist_.piece_square(ac, promotedPt, dstSq);
 
@@ -967,24 +973,24 @@ Dirties Position::do_move(const Move          m,
     {
         if (promotion)
         {
-            remove(orgSq, Emit ? dTs : nullptr);
+            remove(orgSq, dTs);
             if (capture)
-                swap(dstSq, promotedPc, Emit ? dTs : nullptr);
+                swap(dstSq, promotedPc, dTs);
             else
-                put(dstSq, promotedPc, Emit ? dTs : nullptr);
+                put(dstSq, promotedPc, dTs);
         }
         else if (enPassant)
         {
-            remove(capturedSq, Emit ? dTs : nullptr);
-            move(orgSq, dstSq, Emit ? dTs : nullptr);
+            remove(capturedSq, dTs);
+            move(orgSq, dstSq, dTs);
         }
         else if (capture)
         {
-            remove(orgSq, Emit ? dTs : nullptr);
-            swap(dstSq, movedPc, Emit ? dTs : nullptr);
+            remove(orgSq, dTs);
+            swap(dstSq, movedPc, dTs);
         }
         else  // Quiet move
-            move(orgSq, dstSq, Emit ? dTs : nullptr);
+            move(orgSq, dstSq, dTs);
     }
 
     // Compute checkers (if move may check)
@@ -1047,7 +1053,6 @@ Dirties Position::do_move(const Move          m,
 
     if constexpr (Emit)
     {
-
         assert(is_ok(dP->movedPc));
         assert(is_ok(dP->orgSq));
         assert(is_ok(dP->dstSq) ^ !(!promotion));
