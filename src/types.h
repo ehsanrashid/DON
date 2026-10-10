@@ -91,6 +91,14 @@ static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 inline constexpr u16 MOVE_MAX = 256;
 inline constexpr u16 PLY_MAX  = 254;
 
+constexpr usize HASH_MAX =
+#if defined(IS_64BIT)
+  usize{0x2000000}
+#else
+  usize{0x800}
+#endif
+;
+
 // Maximum signed 16-bit value: 2**15 - 1
 inline constexpr u16 RULE50_COUNT_MAX = std::numeric_limits<i16>::max();
 
