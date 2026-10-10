@@ -2222,7 +2222,9 @@ void Worker::do_move(Position&    pos,
     prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
-    accStack.push(pos.do_move<true>(m, st, mayCheck, this));
+    Dirties dirties;
+    pos.do_move(m, st, mayCheck, this, &dirties);
+    accStack.push(std::move(dirties));
     assert(moveKey == pos.key());
 
     ++nodes;
