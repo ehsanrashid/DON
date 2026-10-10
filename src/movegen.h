@@ -35,10 +35,10 @@ enum class GenType : u8 {
     ALL
 };
 
-// <ENC_CAPTURE> Generates all legal queen-promotions and captures
-// <ENC_QUIET  > Generates all legal underpromotions, non-captures, and castling
-// <EVA_CAPTURE> Generates all legal check-evasion queen-promotions and captures
-// <EVA_QUIET  > Generates all legal check-evasion underpromotions and non-captures
+// <ENC_CAPTURE> Generates all legal queen promotions and captures
+// <ENC_QUIET  > Generates all legal non-queen promotions, non-captures, and castling
+// <EVA_CAPTURE> Generates all legal check-evasion queen promotions and captures
+// <EVA_QUIET  > Generates all legal check-evasion non-queen promotions and non-captures
 template<GenType GT, bool Any = false>
 void generate(const Position& pos, Move*& moves) noexcept;
 

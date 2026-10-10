@@ -33,9 +33,8 @@ namespace {
 namespace {
 
 enum class PromotionType : u8 {
-    None,
     Queen,
-    Under,
+    NonQueen,
     All
 };
 
@@ -63,7 +62,7 @@ void splat_promotion(const Bitboard  knightChecksBB,
                 *moves++ = Move::promotion(orgSq, dstSq, KNIGHT);
         }
 
-        if constexpr (PT == PromotionType::All || PT == PromotionType::Under)
+        if constexpr (PT == PromotionType::All || PT == PromotionType::NonQueen)
         {
             *moves++ = Move::promotion(orgSq, dstSq, ROOK);
 
@@ -214,46 +213,36 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     const Bitboard notR7PawnsBB = pawnsBB & ~Rank7BB;
 
     const Bitboard emptyBB = ~pos.pieces_bb();
-    Bitboard       enemyBB = pos.pieces_bb(~AC);
 
-    if constexpr (Evasion)
-    {
-        enemyBB &= targetBB;
-    }
+    const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
-    // Promotions and under-promotions
-    if (yesR7PawnsBB != 0)
-    {
-        const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
-
-        const Bitboard lCapBB  = shift_bb(LCapDir, yesR7PawnsBB & LCapturableBB) & enemyBB;
-        const Bitboard rCapBB  = shift_bb(RCapDir, yesR7PawnsBB & RCapturableBB) & enemyBB;
-        Bitboard       push1BB = shift_bb(Push1Dir, yesR7PawnsBB & PushableBB) & emptyBB;
-
-        // Consider only blocking and capture squares
-        if constexpr (Evasion)
-        {
-            if constexpr (Capture)
-            {
-                assert(targetBB != 0);
-                push1BB &= Attacks::between_bb(kingSq, lsq(targetBB));
-            }
-            else
-            {
-                push1BB &= targetBB;
-            }
-        }
-
-        // clang-format off
-        splat_promotion<AC, Capture ? PromotionType::All   : PromotionType::None >(knightChecksBB, LCapDir , lCapBB , moves);
-        splat_promotion<AC, Capture ? PromotionType::All   : PromotionType::None >(knightChecksBB, RCapDir , rCapBB , moves);
-        splat_promotion<AC, Capture ? PromotionType::Queen : PromotionType::Under>(knightChecksBB, Push1Dir, push1BB, moves);
-        // clang-format on
-    }
+    Bitboard promoPush1BB = shift_bb(Push1Dir, yesR7PawnsBB & PushableBB) & emptyBB;
 
     // Standard and en-passant captures
     if constexpr (Capture)
     {
+        Bitboard enemyBB = pos.pieces_bb(~AC);
+
+        if constexpr (Evasion)
+        {
+            enemyBB &= targetBB;
+        }
+
+        const Bitboard promoLCapBB = shift_bb(LCapDir, yesR7PawnsBB & LCapturableBB) & enemyBB;
+        const Bitboard promoRCapBB = shift_bb(RCapDir, yesR7PawnsBB & RCapturableBB) & enemyBB;
+
+        // Consider only blocking and capture squares
+        if constexpr (Evasion)
+        {
+            assert(targetBB != 0);
+            promoPush1BB &= Attacks::between_bb(kingSq, lsq(targetBB));
+        }
+
+        // Queen promotions and Non-queen promotions
+        splat_promotion<AC, PromotionType::All>(knightChecksBB, LCapDir, promoLCapBB, moves);
+        splat_promotion<AC, PromotionType::All>(knightChecksBB, RCapDir, promoRCapBB, moves);
+        splat_promotion<AC, PromotionType::Queen>(knightChecksBB, Push1Dir, promoPush1BB, moves);
+
         const Bitboard lCapBB = shift_bb(LCapDir, notR7PawnsBB & LCapturableBB) & enemyBB;
         const Bitboard rCapBB = shift_bb(RCapDir, notR7PawnsBB & RCapturableBB) & enemyBB;
 
@@ -291,6 +280,15 @@ void generate_pawn(const Position& pos, const Bitboard targetBB, Move*& moves) n
     // Single and double pawn pushes, no promotions
     if constexpr (Quiet)
     {
+        // Consider only blocking squares
+        if constexpr (Evasion)
+        {
+            promoPush1BB &= targetBB;
+        }
+
+        // Non-queen promotions
+        splat_promotion<AC, PromotionType::NonQueen>(knightChecksBB, Push1Dir, promoPush1BB, moves);
+
         Bitboard push1BB = shift_bb(Push1Dir, notR7PawnsBB & PushableBB) & emptyBB;
         Bitboard push2BB = shift_bb(Push1Dir, push1BB & Rank3BB) & emptyBB;
 
@@ -412,9 +410,9 @@ void generate_king(const Position& pos,
 }  // namespace
 
 // <ENC_CAPTURE> Generates all legal queen promotions and captures
-// <ENC_QUIET  > Generates all legal underpromotions, non-captures, and castling
+// <ENC_QUIET  > Generates all legal non-queen promotions, non-captures, and castling
 // <EVA_CAPTURE> Generates all legal check-evasion queen promotions and captures
-// <EVA_QUIET  > Generates all legal check-evasion underpromotions and non-captures
+// <EVA_QUIET  > Generates all legal check-evasion non-queen promotions and non-captures
 template<GenType GT, bool Any>
 void generate(const Position& pos, Move*& moves) noexcept {
     static_assert(GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
