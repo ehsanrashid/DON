@@ -122,14 +122,14 @@ class CAPABILITY("mutex") ReaderPreferredSharedMutex final {
         bool wakeWriter;
         {
             std::lock_guard lock(stateMutex);
-            wakeWriter = (--activeReaders == 0);
+            wakeWriter = --activeReaders == 0;
         }
 
         if (wakeWriter)
             writers.notify_one();
     }
 
-    bool try_lock() {
+    bool try_lock() TRY_ACQUIRE(true) {
         std::lock_guard lock(stateMutex);
         if (writerActive || activeReaders != 0)
             return false;
@@ -138,7 +138,7 @@ class CAPABILITY("mutex") ReaderPreferredSharedMutex final {
         return true;
     }
 
-    bool try_lock_shared() {
+    bool try_lock_shared() TRY_ACQUIRE_SHARED(true) {
         std::lock_guard lock(stateMutex);
         if (writerActive)
             return false;
@@ -172,19 +172,42 @@ class CAPABILITY("mutex") WriterPreferredSharedMutex final {
         std::unique_lock lock(stateMutex);
         ++waitingWriters;
 
+        // try
+        // {
         writers.wait(lock, [this] { return !writerActive && activeReaders == 0; });
+        // } catch (...)
+        // {
+        //     --waitingWriters;
+
+        //     const bool wakeWriter  = waitingWriters != 0 && !writerActive && activeReaders == 0;
+        //     const bool wakeReaders = waitingWriters == 0 && !writerActive;
+
+        //     lock.unlock();
+
+        //     if (wakeWriter)
+        //         writers.notify_one();
+        //     else if (wakeReaders)
+        //         readers.notify_all();
+
+        //     throw;
+        // }
 
         --waitingWriters;
         writerActive = true;
     }
 
     void unlock() RELEASE() {
+        bool wakeWriter;
         {
             std::lock_guard lock(stateMutex);
             writerActive = false;
+            wakeWriter   = waitingWriters != 0;
         }
-        writers.notify_one();
-        readers.notify_all();
+
+        if (wakeWriter)
+            writers.notify_one();
+        else
+            readers.notify_all();
     }
 
     void lock_shared() ACQUIRE_SHARED() {
@@ -205,18 +228,22 @@ class CAPABILITY("mutex") WriterPreferredSharedMutex final {
             writers.notify_one();
     }
 
-    bool try_lock() {
+    bool try_lock() TRY_ACQUIRE(true) {
         std::lock_guard lock(stateMutex);
-        if (writerActive || activeReaders != 0)
+
+        if (writerActive || activeReaders != 0 || waitingWriters != 0)
             return false;
+
         writerActive = true;
         return true;
     }
 
-    bool try_lock_shared() {
+    bool try_lock_shared() TRY_ACQUIRE_SHARED(true) {
         std::lock_guard lock(stateMutex);
+
         if (writerActive || waitingWriters != 0)
             return false;
+
         ++activeReaders;
         return true;
     }
@@ -240,13 +267,28 @@ class CAPABILITY("mutex") WriterPreferredSharedMutex final {
     usize                   waitingWriters = 0;
 };
 
+// A fair shared mutex that preserves queue order between writers and reader batches.
+// Consecutive readers may acquire shared access together, including through try_lock_shared(),
+// provided no writer is active or ahead of them in the queue.
 class CAPABILITY("mutex") FairSharedMutex final {
    private:
-    struct Waiter {
+    class WaitQueue;
+
+    // A node in the wait queue representing a waiting thread.
+    struct Waiter final {
+        explicit Waiter(bool shared_) noexcept :
+            shared(shared_) {}
+
+       private:
+        Waiter() noexcept = delete;
+
+        bool    shared;
         Waiter* next = nullptr;
-        //bool    shared;
+
+        friend class WaitQueue;
     };
 
+    // A simple FIFO queue to manage waiting threads.
     class WaitQueue final {
        public:
         void enqueue(Waiter& waiter) noexcept {
@@ -259,15 +301,49 @@ class CAPABILITY("mutex") FairSharedMutex final {
         }
 
         void dequeue(Waiter& waiter) noexcept {
-            head = waiter.next;
+            Waiter* prev = nullptr;
+            auto*   cur  = head;
 
-            if (empty())
-                tail = nullptr;
+            while (cur != nullptr && cur != &waiter)
+            {
+                prev = cur;
+                cur  = cur->next;
+            }
+
+            if (cur == nullptr)
+                return;
+
+            if (prev != nullptr)
+                prev->next = cur->next;
+            else
+                head = cur->next;
+
+            if (tail == cur)
+                tail = prev;
+
+            cur->next = nullptr;
         }
 
         Waiter* front() const noexcept { return head; }
 
+        // Returns true if the front of the queue is a writer.
+        bool front_is_writer() const noexcept { return head != nullptr && !head->shared; }
+
         bool empty() const noexcept { return head == nullptr; }
+
+        // Returns true if there is a writer in the queue before the specified waiter.
+        bool has_writer(const Waiter* until = nullptr) const noexcept {
+            for (auto* cur = head; cur != nullptr; cur = cur->next)
+            {
+                if (cur == until)
+                    break;
+
+                if (!cur->shared)
+                    return true;
+            }
+
+            return false;
+        }
 
        private:
         Waiter* head = nullptr;
@@ -276,9 +352,7 @@ class CAPABILITY("mutex") FairSharedMutex final {
 
    public:
     void lock() ACQUIRE() {
-        Waiter waiter;
-        //waiter.shared = false;
-
+        Waiter           waiter(false);
         std::unique_lock lock(stateMutex);
 
         ++waitingWriters;
@@ -303,17 +377,19 @@ class CAPABILITY("mutex") FairSharedMutex final {
     }
 
     void lock_shared() ACQUIRE_SHARED() {
-        Waiter waiter;
-        //waiter.shared = true;
+        Waiter waiter(true);
 
         std::unique_lock lock(stateMutex);
         waitQueue.enqueue(waiter);
 
-        changed.wait(lock,
-                     [this, &waiter] { return !writerActive && waitQueue.front() == &waiter; });
+        changed.wait(
+          // Check writers before waiter
+          lock, [this, &waiter] { return !writerActive && !waitQueue.has_writer(&waiter); });
 
         waitQueue.dequeue(waiter);
         ++activeReaders;
+
+        lock.unlock();
         changed.notify_all();
     }
 
@@ -326,7 +402,7 @@ class CAPABILITY("mutex") FairSharedMutex final {
         changed.notify_all();
     }
 
-    bool try_lock() {
+    bool try_lock() TRY_ACQUIRE(true) {
         std::lock_guard lock(stateMutex);
 
         if (writerActive || activeReaders != 0 || !waitQueue.empty())
@@ -336,10 +412,10 @@ class CAPABILITY("mutex") FairSharedMutex final {
         return true;
     }
 
-    bool try_lock_shared() {
+    bool try_lock_shared() TRY_ACQUIRE_SHARED(true) {
         std::lock_guard lock(stateMutex);
-
-        if (writerActive || !waitQueue.empty())
+        // If there is a writer active or waiting, we cannot acquire the lock shared.
+        if (writerActive || waitQueue.front_is_writer())
             return false;
 
         ++activeReaders;
