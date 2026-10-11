@@ -148,7 +148,7 @@ void TTEntry::save(const u16   k,
     else if (depth() > 4 && bound() != Bound::EXACT)
     {
         const auto val = value();
-        if (constexpr_abs(val) < VALUE_INFINITE && is_decisive(val))
+        if (-VALUE_INFINITE < val && val < +VALUE_INFINITE && is_decisive(val))
             penalize(1);
     }
 }

@@ -960,9 +960,9 @@ Value Worker::search(Position&    pos,
     {
         evalue = evaluate(pos);
 
-        ss->evalue = ttEvalue = adjust_eval_value(evalue, correctionValue);
-
         ttw.write(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::NONE, ss->ttPv);
+
+        ss->evalue = ttEvalue = adjust_eval_value(evalue, correctionValue);
     }
 
     // Set up the improve and worsen flags.
@@ -1011,7 +1011,7 @@ Value Worker::search(Position&    pos,
                                                          * rule50_threshold(-4)))
                 {
                     // If the depth is big enough, verify that the ttMove is really a good move
-                    if (depth >= 7 && !ttmNone && !is_decisive(ttd.value) && pos.legal(ttd.move))
+                    if (depth > 6 && !ttmNone && !is_decisive(ttd.value) && pos.legal(ttd.move))
                     {
                         pos.do_move(ttd.move, st);
                         auto [ottd, ottw] = transpositionTable.probe(pos.key());
@@ -1148,7 +1148,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->ttPv && !exclude && (ttmNone || ttmCapture) && ttEvalue >= beta && !is_decisive(ttEvalue)
+    if (!exclude && !ss->ttPv && (ttmNone || ttmCapture) && ttEvalue >= beta && !is_decisive(ttEvalue)
         && depth < 19 - int(seekMate) * 13)
     {
         // Compute base futility
@@ -1709,17 +1709,14 @@ Value Worker::search(Position&    pos,
 
             rm.nodes += newNodes;
 
-            u64 preEMA = rm.nodes - newNodes;
-            if (preEMA < 1)
-                preEMA = 1;
+            const u64 diffNodes = rm.nodes - newNodes;
+            const u64 preEMA    = diffNodes != 0 ? diffNodes : u64{1};
 
             const u64 weight = std::clamp((WEIGHT_SCALE * newNodes * CHI_DENOMINATOR)
                                             / (newNodes * CHI_DENOMINATOR + preEMA * CHI_NUMERATOR),
                                           WEIGHT_MIN, WEIGHT_MAX);
 
-            u64 sqrWeight = weight;
-            if (sqrWeight > 16)
-                sqrWeight = 16;
+            const u64 sqrWeight = weight < 16 ? weight : u64{16};
 
             if (rm.avgValue == -VALUE_INFINITE)
                 rm.avgValue = value;
@@ -1913,7 +1910,7 @@ Value Worker::search(Position&    pos,
 
     // Step 24. Write gathered information in transposition table.
     // The static evaluation is saved as it was before adjustment by correction history.
-    if ((!RootNode || pvIdx == 0) && !exclude)
+    if (!exclude && (!RootNode || pvIdx == 0))
         ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue,
                   moveCount != 0 ? depth : std::min(Depth(depth + 6), DEPTH_MAX),
                   bestValue >= beta                  ? Bound::LOWER
@@ -2031,6 +2028,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     {
         evalue = evaluate(pos);
 
+        assert(!ttPv);
+        ttw.write(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::NONE, ttPv);
+
         ssEvalue = bestValue = adjust_eval_value(evalue, correctionValue);
     }
 
@@ -2043,7 +2043,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = blend_values(bestValue, beta, 441.0, 1024.0);
 
         if (!ttd.hit)
-            ttw.write(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::LOWER, false);
+        {
+            assert(!ttPv);
+            ttw.write(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::LOWER, ttPv);
+        }
 
         return bestValue;
     }
