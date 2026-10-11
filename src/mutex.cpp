@@ -18,6 +18,7 @@
 #include "mutex.h"
 
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>

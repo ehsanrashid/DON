@@ -235,23 +235,7 @@ class FairSharedMutex
 #endif
   final {
    private:
-    class WaitQueue;
-
-    // A node in the wait queue representing a waiting thread.
-    struct Waiter final {
-        explicit Waiter(bool shared_) noexcept;
-
-        bool is_writer() const noexcept;
-
-       private:
-        Waiter() noexcept = delete;
-
-        const bool shared;
-
-        Waiter* next = nullptr;
-
-        friend class WaitQueue;
-    };
+    struct Waiter;
 
     // A simple FIFO queue to manage waiting threads.
     class WaitQueue final {
@@ -274,6 +258,22 @@ class FairSharedMutex
         Waiter* front_ = nullptr;
         Waiter* back_  = nullptr;
         usize   size_  = 0;
+    };
+
+    // A node in the wait queue representing a waiting thread.
+    struct Waiter final {
+        explicit Waiter(bool shared_) noexcept;
+
+        bool is_writer() const noexcept;
+
+       private:
+        Waiter() noexcept = delete;
+
+        const bool shared;
+
+        Waiter* next = nullptr;
+
+        friend class WaitQueue;
     };
 
    public:
