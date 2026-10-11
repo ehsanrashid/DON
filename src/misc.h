@@ -187,14 +187,6 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
-constexpr usize HASH_MAX =
-#if defined(IS_64BIT)
-  0x2000000U
-#else
-  0x800U
-#endif
-  ;
-
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\v\f\r"};
 
@@ -258,7 +250,8 @@ constexpr int constexpr_round(const double d) noexcept {
 }
 
 // Computes ln(1 + d) for f in (-1, sqrt(2)-1] via the identity
-//   ln(1+d) = 2 * atanh(s),   s = d / (d + 2.0)
+// ln(1 + d) = 2 * atanh(s),   s = d / (d + 2.0)
+// ln(1 + d) = 2 * (s + s^3/3 + s^5/5 + ...), s = d / (d + 2).
 //
 // After the sqrt(2) range reduction below, |s| <= (sqrt(2)-1)/(sqrt(2)+1)
 // = 3 - 2*sqrt(2) ≈ 0.1716, so the series needs only ~10 terms for full
@@ -319,7 +312,7 @@ constexpr double constexpr_log(double x) noexcept {
         ++exponent;
     }
 
-    // f = x - 1  in  (-0.293, 0.414)
+    // f = x - 1, approximately in (-0.293, 0.414), with |f| <= ~0.414.
     return constexpr_log1p_log(x - 1.0) + exponent * LN2;
 }
 

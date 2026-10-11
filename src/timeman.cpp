@@ -30,11 +30,12 @@ namespace DON {
 namespace {
 
 i64 time_nodes(const i64 time, const u64 nodesTime) noexcept {
+    assert(time >= 0);
     assert(nodesTime != 0);
 
-    return u64(time) <= u64(TimeManager::TimeMax) / nodesTime  //
-           ? i64(u64(time) * nodesTime)
-           : TimeManager::TimeMax;
+    return i64(u64(time) <= u64(TimeManager::TimeMax) / nodesTime  //
+                 ? u64(time) * nodesTime
+                 : TimeManager::TimeMax);
 }
 
 }  // namespace

@@ -91,6 +91,14 @@ static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 inline constexpr u16 MOVE_MAX = 256;
 inline constexpr u16 PLY_MAX  = 254;
 
+constexpr usize HASH_MAX =
+#if defined(IS_64BIT)
+  usize{0x2000000}
+#else
+  usize{0x800}
+#endif
+;
+
 // Maximum signed 16-bit value: 2**15 - 1
 inline constexpr u16 RULE50_COUNT_MAX = std::numeric_limits<i16>::max();
 
@@ -576,7 +584,7 @@ inline constexpr usize CASTLING_RIGHTS_NB = 16;
 
 // Bound type for alpha-beta search
 enum class Bound : u8 {
-    NONE = 0,
+    NONE,
     UPPER,
     LOWER,
     EXACT = UPPER | LOWER
@@ -584,9 +592,7 @@ enum class Bound : u8 {
 
 inline constexpr usize BOUND_NB = 4;
 
-constexpr bool is_ok(const Bound bound) noexcept {
-    return (Bound::UPPER <= bound && bound <= Bound::EXACT);
-}
+constexpr bool is_ok(const Bound bound) noexcept { return bound != Bound::NONE; }
 
 [[nodiscard]] constexpr std::string_view to_string(const Bound bound) noexcept {
     switch (bound)

@@ -42,9 +42,9 @@ class TimeManager final {
 
     [[nodiscard]] bool use_nodes_time() const noexcept;
 
-    // NodesFunc&& allows binding to temporaries without copying
-    template<typename NodesFunc>
-    [[nodiscard]] TimePoint elapsed(NodesFunc&& nodes) const noexcept {
+    // Nodes&& allows binding to temporaries without copying
+    template<typename Nodes>
+    [[nodiscard]] TimePoint elapsed(Nodes&& nodes) const noexcept {
         return use_nodes_time() ? TimePoint(nodes()) : elapsed();
     }
 

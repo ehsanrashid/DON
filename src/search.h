@@ -778,7 +778,6 @@ class Worker final {
     Depth rootDepth;
     usize multiPV, pvIdx, pvEnd;
     u16   selDepth;
-    u16   rootDelta;
     i16   nmpPly;
 
     Array<i32, COLOR_NB> optimism;
