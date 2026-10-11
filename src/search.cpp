@@ -2024,7 +2024,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ssEvalue = bestValue = adjust_eval_value(evalue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > bestValue)) && !is_decisive(ttd.value))
+        if (is_valid(ttd.value) && !is_decisive(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > bestValue)))
             bestValue = ttd.value;
     }
     else
@@ -2034,11 +2034,11 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ssEvalue = bestValue = adjust_eval_value(evalue, correctionValue);
     }
 
+    assert(!is_decisive(bestValue));
+
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        assert(!is_decisive(bestValue));
-
         if (bestValue > beta && !is_loss(beta))
             bestValue = blend_values(bestValue, beta, 441.0, 1024.0);
 
