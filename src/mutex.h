@@ -21,7 +21,6 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-#include <shared_mutex>
 #include <thread>
 
 #if defined(__i386__) || defined(_M_IX86)
@@ -40,7 +39,7 @@
 
 namespace DON {
 
-inline void spin_pause() noexcept {
+inline void cpu_relax() noexcept {
 #if defined(X86)
     #if defined(_MSC_VER)
     //__asm {}
@@ -58,10 +57,21 @@ inline void spin_pause() noexcept {
 #endif
 }
 
-// A lightweight spin mutex that busy-waits until the lock becomes available.
-class CAPABILITY("mutex") SpinMutex final {
+// A lightweight mutex that spins while waiting for the lock to become available.
+// Periodically yields or sleeps under contention to reduce CPU usage.
+#if !defined(__INTELLISENSE__)
+class CAPABILITY("mutex") SpinMutex
+#else
+class SpinMutex
+#endif
+  final {
    public:
-    void lock() noexcept ACQUIRE() {
+#if !defined(__INTELLISENSE__)
+    void lock() noexcept ACQUIRE()
+#else
+    void lock() noexcept
+#endif
+    {
         usize spins  = 0;
         usize yields = 0;
         bool  expected;
@@ -69,7 +79,7 @@ class CAPABILITY("mutex") SpinMutex final {
         {
             while (locked.load(std::memory_order_relaxed))
             {
-                spin_pause();
+                cpu_relax();
 
                 // Yield occasionally to reduce CPU usage under contention.
                 if (++spins == 512)
@@ -92,194 +102,306 @@ class CAPABILITY("mutex") SpinMutex final {
                                                std::memory_order_relaxed));
     }
 
-    void unlock() noexcept RELEASE() { locked.store(false, std::memory_order_release); }
+#if !defined(__INTELLISENSE__)
+    void unlock() noexcept RELEASE()
+#else
+    void unlock() noexcept
+#endif
+    {
+        locked.store(false, std::memory_order_release);
+    }
 
    private:
     std::atomic<bool> locked{false};
 };
 
-class CAPABILITY("mutex") ReaderPreferredSharedMutex final {
+// A shared mutex that gives priority to readers over waiting writers.
+// New readers may acquire the mutex while a writer is waiting,
+// which can cause writer starvation under continuous reader contention.
+#if !defined(__INTELLISENSE__)
+class CAPABILITY("mutex") ReaderPreferredSharedMutex
+#else
+class ReaderPreferredSharedMutex
+#endif
+  final {
    public:
-    void lock() noexcept ACQUIRE() {
-        std::unique_lock lock(stateMutex);
-        //++waitingWriters;
+#if !defined(__INTELLISENSE__)
+    void lock() noexcept ACQUIRE()
+#else
+    void lock() noexcept
+#endif
+    {
+        std::unique_lock lock(mutex);
 
-        writers.wait(lock, [this] { return !writerActive && activeReaders == 0; });
+        //++waitingWriterCount;
 
-        //--waitingWriters;
+        writerCondVar.wait(lock, [this]() noexcept -> bool {
+            return !writerActive            // No active writer
+                && activeReaderCount == 0;  // No active readers
+        });
+
+        //--waitingWriterCount;
+
         writerActive = true;
     }
 
-    void unlock() noexcept RELEASE() {
+#if !defined(__INTELLISENSE__)
+    bool try_lock() noexcept TRY_ACQUIRE(true)
+#else
+    bool try_lock() noexcept
+#endif
+    {
+        std::lock_guard lock(mutex);
+
+        if (writerActive                // An active writer
+            || activeReaderCount != 0)  // Active readers
+            return false;
+
+        writerActive = true;
+        return true;
+    }
+
+#if !defined(__INTELLISENSE__)
+    void unlock() noexcept RELEASE()
+#else
+    void unlock() noexcept
+#endif
+    {
         {
-            std::lock_guard lock(stateMutex);
+            std::lock_guard lock(mutex);
+
             writerActive = false;
         }
 
-        readers.notify_all();
-        writers.notify_one();
+        readerCondVar.notify_all();
+        writerCondVar.notify_one();
     }
 
-    void lock_shared() noexcept ACQUIRE_SHARED() {
-        std::unique_lock lock(stateMutex);
-        readers.wait(lock, [this] { return !writerActive; });
+#if !defined(__INTELLISENSE__)
+    void lock_shared() noexcept ACQUIRE_SHARED()
+#else
+    void lock_shared() noexcept
+#endif
+    {
+        std::unique_lock lock(mutex);
 
-        ++activeReaders;
+        readerCondVar.wait(lock, [this]() noexcept -> bool {
+            return !writerActive;  // No active writer
+        });
+
+        ++activeReaderCount;
     }
 
-    void unlock_shared() noexcept RELEASE_SHARED() {
+#if !defined(__INTELLISENSE__)
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true)
+#else
+    bool try_lock_shared() noexcept
+#endif
+    {
+        std::lock_guard lock(mutex);
+
+        if (writerActive)  // An active writer
+            return false;
+
+        ++activeReaderCount;
+        return true;
+    }
+
+#if !defined(__INTELLISENSE__)
+    void unlock_shared() noexcept RELEASE_SHARED()
+#else
+    void unlock_shared() noexcept
+#endif
+    {
         bool wakeWriter;
         {
-            std::lock_guard lock(stateMutex);
-            wakeWriter = --activeReaders == 0;
+            std::lock_guard lock(mutex);
+
+            wakeWriter = --activeReaderCount == 0;
         }
 
         if (wakeWriter)
-            writers.notify_one();
+            writerCondVar.notify_one();
     }
 
-    bool try_lock() noexcept TRY_ACQUIRE(true) {
-        std::lock_guard lock(stateMutex);
-        if (writerActive || activeReaders != 0)
-            return false;
-
-        writerActive = true;
-        return true;
+    usize active_reader_count() const noexcept {
+        std::lock_guard lock(mutex);
+        return activeReaderCount;
     }
 
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true) {
-        std::lock_guard lock(stateMutex);
-        if (writerActive)
-            return false;
-
-        ++activeReaders;
-        return true;
-    }
-
-    usize active_readers() const noexcept {
-        std::lock_guard lock(stateMutex);
-        return activeReaders;
-    }
-
-    //usize waiting_writers() const noexcept {
-    //    std::lock_guard lock(stateMutex);
-    //    return waitingWriters;
+    //usize waiting_writer_count() const noexcept {
+    //    std::lock_guard lock(mutex);
+    //    return waitingWriterCount;
     //}
 
    private:
-    mutable std::mutex      stateMutex;
-    bool                    writerActive = false;
-    std::condition_variable readers;
-    std::condition_variable writers;
-    usize                   activeReaders = 0;
-    //usize                   waitingWriters = 0;
+    mutable std::mutex      mutex;
+    std::condition_variable readerCondVar;
+    std::condition_variable writerCondVar;
+    // clang-format off
+#if !defined(__INTELLISENSE__)
+    bool  writerActive       GUARDED_BY(mutex) = false;
+    usize activeReaderCount  GUARDED_BY(mutex) = 0;
+    //usize waitingWriterCount GUARDED_BY(mutex) = 0;
+#else
+    bool  writerActive       = false;
+    usize activeReaderCount  = 0;
+    //usize waitingWriterCount = 0;
+#endif
+    // clang-format on
 };
 
-class CAPABILITY("mutex") WriterPreferredSharedMutex final {
+// A shared mutex that gives priority to waiting writers over new readers.
+// New readers wait while a writer is waiting, which can cause reader
+// starvation under continuous writer contention.
+#if !defined(__INTELLISENSE__)
+class CAPABILITY("mutex") WriterPreferredSharedMutex
+#else
+class WriterPreferredSharedMutex
+#endif
+  final {
    public:
-    void lock() noexcept ACQUIRE() {
-        std::unique_lock lock(stateMutex);
-        ++waitingWriters;
+#if !defined(__INTELLISENSE__)
+    void lock() noexcept ACQUIRE()
+#else
+    void lock() noexcept
+#endif
+    {
+        std::unique_lock lock(mutex);
 
-        //try
-        //{
-        writers.wait(lock, [this] { return !writerActive && activeReaders == 0; });
-        //} catch (...)
-        //{
-        //    --waitingWriters;
-        //
-        //    const bool wakeWriter  = waitingWriters != 0 && !writerActive && activeReaders == 0;
-        //    const bool wakeReaders = waitingWriters == 0 && !writerActive;
-        //
-        //    lock.unlock();
-        //
-        //    if (wakeWriter)
-        //        writers.notify_one();
-        //    else if (wakeReaders)
-        //        readers.notify_all();
-        //
-        //    throw;
-        //}
+        ++waitingWriterCount;
 
-        --waitingWriters;
+        writerCondVar.wait(lock, [this]() noexcept -> bool {
+            return !writerActive  // No active writer
+                // waitingWriterCount includes this writer; checking for zero would deadlock.
+                && activeReaderCount == 0;  // No active readers
+        });
+
+        --waitingWriterCount;
         writerActive = true;
     }
 
-    void unlock() noexcept RELEASE() {
+#if !defined(__INTELLISENSE__)
+    bool try_lock() noexcept TRY_ACQUIRE(true)
+#else
+    bool try_lock() noexcept
+#endif
+    {
+        std::lock_guard lock(mutex);
+
+        if (writerActive                // An active writer
+            || waitingWriterCount != 0  // Waiting writers; don't bypass them
+            || activeReaderCount != 0)  // Active readers
+            return false;
+
+        writerActive = true;
+        return true;
+    }
+
+#if !defined(__INTELLISENSE__)
+    void unlock() noexcept RELEASE()
+#else
+    void unlock() noexcept
+#endif
+    {
         bool wakeWriter;
         {
-            std::lock_guard lock(stateMutex);
+            std::lock_guard lock(mutex);
+
             writerActive = false;
-            wakeWriter   = waitingWriters != 0;
+            wakeWriter   = waitingWriterCount != 0;
         }
 
         if (wakeWriter)
-            writers.notify_one();
+            writerCondVar.notify_one();
         else
-            readers.notify_all();
+            readerCondVar.notify_all();
     }
 
-    void lock_shared() noexcept ACQUIRE_SHARED() {
-        std::unique_lock lock(stateMutex);
-        readers.wait(lock, [this] { return !writerActive && waitingWriters == 0; });
+#if !defined(__INTELLISENSE__)
+    void lock_shared() noexcept ACQUIRE_SHARED()
+#else
+    void lock_shared() noexcept
+#endif
+    {
+        std::unique_lock lock(mutex);
 
-        ++activeReaders;
+        readerCondVar.wait(lock, [this]() noexcept -> bool {
+            return !writerActive
+                && waitingWriterCount == 0;  // Allow concurrent readers may coexist
+        });
+
+        ++activeReaderCount;
     }
 
-    void unlock_shared() noexcept RELEASE_SHARED() {
+#if !defined(__INTELLISENSE__)
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true)
+#else
+    bool try_lock_shared() noexcept
+#endif
+    {
+        std::lock_guard lock(mutex);
+
+        if (writerActive || waitingWriterCount != 0)  // Allow concurrent readers may coexist
+            return false;
+
+        ++activeReaderCount;
+        return true;
+    }
+
+#if !defined(__INTELLISENSE__)
+    void unlock_shared() noexcept RELEASE_SHARED()
+#else
+    void unlock_shared() noexcept
+#endif
+    {
         bool wakeWriter;
         {
-            std::lock_guard lock(stateMutex);
-            wakeWriter = --activeReaders == 0;
+            std::lock_guard lock(mutex);
+
+            wakeWriter = --activeReaderCount == 0;
         }
 
         if (wakeWriter)
-            writers.notify_one();
+            writerCondVar.notify_one();
     }
 
-    bool try_lock() noexcept TRY_ACQUIRE(true) {
-        std::lock_guard lock(stateMutex);
-
-        if (writerActive || activeReaders != 0 || waitingWriters != 0)
-            return false;
-
-        writerActive = true;
-        return true;
+    usize active_reader_count() const noexcept {
+        std::lock_guard lock(mutex);
+        return activeReaderCount;
     }
 
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true) {
-        std::lock_guard lock(stateMutex);
-
-        if (writerActive || waitingWriters != 0)
-            return false;
-
-        ++activeReaders;
-        return true;
-    }
-
-    usize active_readers() const noexcept {
-        std::lock_guard lock(stateMutex);
-        return activeReaders;
-    }
-
-    usize waiting_writers() const noexcept {
-        std::lock_guard lock(stateMutex);
-        return waitingWriters;
+    usize waiting_writer_count() const noexcept {
+        std::lock_guard lock(mutex);
+        return waitingWriterCount;
     }
 
    private:
-    mutable std::mutex      stateMutex;
-    bool                    writerActive = false;
-    std::condition_variable readers;
-    std::condition_variable writers;
-    usize                   activeReaders  = 0;
-    usize                   waitingWriters = 0;
+    mutable std::mutex      mutex;
+    std::condition_variable readerCondVar;
+    std::condition_variable writerCondVar;
+    // clang-format off
+#if !defined(__INTELLISENSE__)
+    usize activeReaderCount  GUARDED_BY(mutex) = 0;
+    usize waitingWriterCount GUARDED_BY(mutex) = 0;
+    bool  writerActive       GUARDED_BY(mutex) = false;
+#else
+    usize activeReaderCount  = 0;
+    usize waitingWriterCount = 0;
+    bool  writerActive       = false;
+#endif
+    // clang-format on
 };
 
 // A fair shared mutex that preserves queue order between writers and reader batches.
 // Consecutive queued readers may acquire shared access together. try_lock_shared() succeeds
 // only when no writer is active or waiting.
-class CAPABILITY("mutex") FairSharedMutex final {
+#if !defined(__INTELLISENSE__)
+class CAPABILITY("mutex") FairSharedMutex
+#else
+class FairSharedMutex
+#endif
+  final {
    private:
     class WaitQueue;
 
@@ -291,7 +413,8 @@ class CAPABILITY("mutex") FairSharedMutex final {
        private:
         Waiter() noexcept = delete;
 
-        bool    shared;
+        const bool shared;
+
         Waiter* next = nullptr;
 
         friend class WaitQueue;
@@ -356,95 +479,145 @@ class CAPABILITY("mutex") FairSharedMutex final {
     };
 
    public:
-    void lock() noexcept ACQUIRE() {
-        Waiter           waiter(false);
-        std::unique_lock lock(stateMutex);
+#if !defined(__INTELLISENSE__)
+    void lock() noexcept ACQUIRE()
+#else
+    void lock() noexcept
+#endif
+    {
+        Waiter writer(false);
 
-        ++waitingWriters;
-        waitQueue.enqueue(waiter);
+        std::unique_lock lock(mutex);
 
-        changed.wait(lock, [this, &waiter] {
-            return !writerActive && activeReaders == 0 && waitQueue.front() == &waiter;
+        ++waitingWriterCount;
+        waitQueue.enqueue(writer);
+
+        condVar.wait(lock, [this, &writer]() noexcept -> bool {
+            return !writerActive                 // No active writer
+                && waitQueue.front() == &writer  // This writer's turn
+                && activeReaderCount == 0;       // No active readers
         });
 
-        waitQueue.dequeue(waiter);
-        --waitingWriters;
+        waitQueue.dequeue(writer);
+        --waitingWriterCount;
+
         writerActive = true;
     }
 
-    void unlock() noexcept RELEASE() {
+#if !defined(__INTELLISENSE__)
+    bool try_lock() noexcept TRY_ACQUIRE(true)
+#else
+    bool try_lock() noexcept
+#endif
+    {
+        std::lock_guard lock(mutex);
+
+        if (writerActive                // An active writer
+            || !waitQueue.empty()       // Threads already queued
+            || activeReaderCount != 0)  // Active readers
+            return false;
+
+        writerActive = true;
+        return true;
+    }
+
+#if !defined(__INTELLISENSE__)
+    void unlock() noexcept RELEASE()
+#else
+    void unlock() noexcept
+#endif
+    {
         {
-            std::lock_guard lock(stateMutex);
+            std::lock_guard lock(mutex);
+
             writerActive = false;
         }
 
-        changed.notify_all();
+        condVar.notify_all();
     }
 
-    void lock_shared() noexcept ACQUIRE_SHARED() {
-        Waiter waiter(true);
+#if !defined(__INTELLISENSE__)
+    void lock_shared() noexcept ACQUIRE_SHARED()
+#else
+    void lock_shared() noexcept
+#endif
+    {
+        Waiter reader(true);
 
-        std::unique_lock lock(stateMutex);
-        waitQueue.enqueue(waiter);
+        std::unique_lock lock(mutex);
 
-        changed.wait(
-          // Check writers before waiter
-          lock, [this, &waiter] { return !writerActive && !waitQueue.has_writer_before(&waiter); });
+        waitQueue.enqueue(reader);
 
-        waitQueue.dequeue(waiter);
-        ++activeReaders;
+        condVar.wait(lock, [this, &reader]() noexcept -> bool {
+            return !writerActive                           // No active writer
+                && !waitQueue.has_writer_before(&reader);  // No writer ahead of this reader
+        });
+
+        waitQueue.dequeue(reader);
+
+        ++activeReaderCount;
 
         lock.unlock();
-        changed.notify_all();
+        condVar.notify_all();
     }
 
-    void unlock_shared() noexcept RELEASE_SHARED() {
-        {
-            std::lock_guard lock(stateMutex);
-            --activeReaders;
-        }
-
-        changed.notify_all();
-    }
-
-    bool try_lock() noexcept TRY_ACQUIRE(true) {
-        std::lock_guard lock(stateMutex);
-
-        if (writerActive || activeReaders != 0 || !waitQueue.empty())
-            return false;
-
-        writerActive = true;
-        return true;
-    }
-
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true) {
-        std::lock_guard lock(stateMutex);
+#if !defined(__INTELLISENSE__)
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true)
+#else
+    bool try_lock_shared() noexcept
+#endif
+    {
+        std::lock_guard lock(mutex);
 
         // Do not bypass an active or waiting writer.
-        if (writerActive || waitQueue.has_writer_before())
+        if (writerActive                       // An active writer
+            || waitQueue.has_writer_before())  // A queued writer
             return false;
 
-        ++activeReaders;
+        ++activeReaderCount;
         return true;
     }
 
-    usize active_readers() const noexcept {
-        std::lock_guard lock(stateMutex);
-        return activeReaders;
+#if !defined(__INTELLISENSE__)
+    void unlock_shared() noexcept RELEASE_SHARED()
+#else
+    void unlock_shared() noexcept
+#endif
+    {
+        {
+            std::lock_guard lock(mutex);
+            --activeReaderCount;
+        }
+
+        condVar.notify_all();
     }
 
-    usize waiting_writers() const noexcept {
-        std::lock_guard lock(stateMutex);
-        return waitingWriters;
+    usize active_reader_count() const noexcept {
+        std::lock_guard lock(mutex);
+        return activeReaderCount;
+    }
+
+    usize waiting_writer_count() const noexcept {
+        std::lock_guard lock(mutex);
+        return waitingWriterCount;
     }
 
    private:
-    mutable std::mutex      stateMutex;
-    bool                    writerActive = false;
-    std::condition_variable changed;
-    WaitQueue               waitQueue;
-    usize                   activeReaders  = 0;
-    usize                   waitingWriters = 0;
+    mutable std::mutex      mutex;
+    std::condition_variable condVar;
+    // clang-format off
+#if !defined(__INTELLISENSE__)
+    WaitQueue waitQueue          GUARDED_BY(mutex);
+    usize     activeReaderCount  GUARDED_BY(mutex) = 0;
+    usize     waitingWriterCount GUARDED_BY(mutex) = 0;
+    bool      writerActive       GUARDED_BY(mutex) = false;
+#else
+    WaitQueue waitQueue;
+    usize     activeReaderCount  = 0;
+    usize     waitingWriterCount = 0;
+    bool      writerActive       = false;
+#endif
+    // clang-format on
 };
 
 }  // namespace DON
