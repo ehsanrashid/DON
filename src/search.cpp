@@ -2741,8 +2741,9 @@ TimePoint Manager::elapsed() const noexcept { return timeManager.elapsed(); }
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
 TimePoint Manager::elapsed(const Threads& threads) const noexcept {
-    return timeManager.elapsed(
-      [&threads = std::as_const(threads)]() { return threads.sum(&Worker::nodes); });
+    return timeManager.elapsed([&threads = std::as_const(threads)]() noexcept -> u64 {
+        return threads.sum(&Worker::nodes);
+    });
 }
 
 void Manager::handle_time_management(const Worker& worker,
