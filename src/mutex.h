@@ -21,41 +21,12 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-#include <thread>
-
-#if defined(__i386__) || defined(_M_IX86)
-    #define X86
-    #define X86_32
-#elif defined(__x86_64__) || defined(_M_X64)
-    #define X86
-    #define X86_64
-#endif
-
-#if defined(X86)
-    #include <immintrin.h>
-#endif
 
 #include "misc.h"
 
 namespace DON {
 
-inline void cpu_relax() noexcept {
-#if defined(X86)
-    #if defined(_MSC_VER)
-    //__asm {}
-    _mm_pause();
-    #else
-    _mm_pause();
-    #endif
-#elif defined(__aarch64__) || defined(__arm__)
-    #if defined(__clang__) || defined(__GNUC__)
-    __asm__ __volatile__("yield");
-    #endif
-#else
-        // Portable fallback: no architecture-specific pause instruction.
-        //asm volatile("");
-#endif
-}
+void cpu_relax() noexcept;
 
 // A lightweight mutex that spins while waiting for the lock to become available.
 // Periodically yields or sleeps under contention to reduce CPU usage.
@@ -66,52 +37,26 @@ class SpinMutex
 #endif
   final {
    public:
-#if !defined(__INTELLISENSE__)
-    void lock() noexcept ACQUIRE()
-#else
+    SpinMutex() noexcept = default;
+
     void lock() noexcept
-#endif
-    {
-        usize spins  = 0;
-        usize yields = 0;
-        bool  expected;
-        do
-        {
-            while (locked.load(std::memory_order_relaxed))
-            {
-                cpu_relax();
-
-                // Yield occasionally to reduce CPU usage under contention.
-                if (++spins == 512)
-                {
-                    spins = 0;
-
-                    if (++yields == 8)
-                    {
-                        yields = 0;
-
-                        std::this_thread::sleep_for(std::chrono::microseconds(10));
-                    }
-                    else
-                        std::this_thread::yield();
-                }
-            }
-
-            expected = false;
-        } while (!locked.compare_exchange_weak(expected, true, std::memory_order_acquire,
-                                               std::memory_order_relaxed));
-    }
-
 #if !defined(__INTELLISENSE__)
-    void unlock() noexcept RELEASE()
-#else
-    void unlock() noexcept
+      ACQUIRE()
 #endif
-    {
-        locked.store(false, std::memory_order_release);
-    }
+        ;
+
+    void unlock() noexcept
+#if !defined(__INTELLISENSE__)
+      RELEASE()
+#endif
+        ;
 
    private:
+    SpinMutex(const SpinMutex&) noexcept            = delete;
+    SpinMutex& operator=(const SpinMutex&) noexcept = delete;
+    SpinMutex(SpinMutex&&) noexcept                 = delete;
+    SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
+
     std::atomic<bool> locked{false};
 };
 
@@ -119,145 +64,86 @@ class SpinMutex
 // New readers may acquire the mutex while a writer is waiting,
 // which can cause writer starvation under continuous reader contention.
 #if !defined(__INTELLISENSE__)
-class CAPABILITY("mutex") ReaderPreferredSharedMutex
+class CAPABILITY("mutex") ReaderSharedMutex
 #else
-class ReaderPreferredSharedMutex
+class ReaderSharedMutex
 #endif
   final {
    public:
-#if !defined(__INTELLISENSE__)
-    void lock() noexcept ACQUIRE()
-#else
     void lock() noexcept
-#endif
-    {
-        std::unique_lock lock(mutex);
-
-        //++waitingWriterCount;
-
-        writerCondVar.wait(lock, [this]() noexcept -> bool {
-            return !writerActive            // No active writer
-                && activeReaderCount == 0;  // No active readers
-        });
-
-        //--waitingWriterCount;
-
-        writerActive = true;
-    }
-
 #if !defined(__INTELLISENSE__)
-    bool try_lock() noexcept TRY_ACQUIRE(true)
-#else
+      ACQUIRE()
+#endif
+        ;
+
     bool try_lock() noexcept
-#endif
-    {
-        std::lock_guard lock(mutex);
-
-        if (writerActive                // An active writer
-            || activeReaderCount != 0)  // Active readers
-            return false;
-
-        writerActive = true;
-        return true;
-    }
-
 #if !defined(__INTELLISENSE__)
-    void unlock() noexcept RELEASE()
-#else
+      TRY_ACQUIRE(true)
+#endif
+        ;
+
     void unlock() noexcept
-#endif
-    {
-        {
-            std::lock_guard lock(mutex);
-
-            writerActive = false;
-        }
-
-        readerCondVar.notify_all();
-        writerCondVar.notify_one();
-    }
-
 #if !defined(__INTELLISENSE__)
-    void lock_shared() noexcept ACQUIRE_SHARED()
-#else
+      RELEASE()
+#endif
+        ;
+
     void lock_shared() noexcept
-#endif
-    {
-        std::unique_lock lock(mutex);
-
-        readerCondVar.wait(lock, [this]() noexcept -> bool {
-            return !writerActive;  // No active writer
-        });
-
-        ++activeReaderCount;
-    }
-
 #if !defined(__INTELLISENSE__)
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true)
-#else
+      ACQUIRE_SHARED()
+#endif
+        ;
+
     bool try_lock_shared() noexcept
-#endif
-    {
-        std::lock_guard lock(mutex);
-
-        if (writerActive)  // An active writer
-            return false;
-
-        ++activeReaderCount;
-        return true;
-    }
-
 #if !defined(__INTELLISENSE__)
-    void unlock_shared() noexcept RELEASE_SHARED()
-#else
-    void unlock_shared() noexcept
+      TRY_ACQUIRE_SHARED(true)
 #endif
-    {
-        bool wakeWriter;
-        {
-            std::lock_guard lock(mutex);
+        ;
 
-            wakeWriter = --activeReaderCount == 0;
-        }
+    void unlock_shared() noexcept
+#if !defined(__INTELLISENSE__)
+      RELEASE_SHARED()
+#endif
+        ;
 
-        if (wakeWriter)
-            writerCondVar.notify_one();
-    }
+    [[nodiscard]] usize active_reader_count() const noexcept;
 
-    usize active_reader_count() const noexcept {
-        std::lock_guard lock(mutex);
-        return activeReaderCount;
-    }
-
-    //usize waiting_writer_count() const noexcept {
-    //    std::lock_guard lock(mutex);
-    //    return waitingWriterCount;
-    //}
+    [[nodiscard]] usize waiting_writer_count() const noexcept;
 
    private:
+    ReaderSharedMutex(const ReaderSharedMutex&) noexcept            = delete;
+    ReaderSharedMutex& operator=(const ReaderSharedMutex&) noexcept = delete;
+    ReaderSharedMutex(ReaderSharedMutex&&) noexcept                 = delete;
+    ReaderSharedMutex& operator=(ReaderSharedMutex&&) noexcept      = delete;
+
     mutable std::mutex      mutex;
     std::condition_variable readerCondVar;
     std::condition_variable writerCondVar;
-    // clang-format off
+
+    bool writerActive
 #if !defined(__INTELLISENSE__)
-    bool  writerActive       GUARDED_BY(mutex) = false;
-    usize activeReaderCount  GUARDED_BY(mutex) = 0;
-    //usize waitingWriterCount GUARDED_BY(mutex) = 0;
-#else
-    bool  writerActive       = false;
-    usize activeReaderCount  = 0;
-    //usize waitingWriterCount = 0;
+      GUARDED_BY(mutex)
 #endif
-    // clang-format on
+      = false;
+    usize activeReaderCount
+#if !defined(__INTELLISENSE__)
+      GUARDED_BY(mutex)
+#endif
+      = 0;
+    usize waitingWriterCount
+#if !defined(__INTELLISENSE__)
+      GUARDED_BY(mutex)
+#endif
+      = 0;
 };
 
 // A shared mutex that gives priority to waiting writers over new readers.
 // New readers wait while a writer is waiting, which can cause reader
 // starvation under continuous writer contention.
 #if !defined(__INTELLISENSE__)
-class CAPABILITY("mutex") WriterPreferredSharedMutex
+class CAPABILITY("mutex") WriterSharedMutex
 #else
-class WriterPreferredSharedMutex
+class WriterSharedMutex
 #endif
   final {
    public:

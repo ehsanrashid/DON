@@ -135,7 +135,7 @@ class ConcurrentMap final {
 
     // Protects access to the map.
     //mutable std::shared_mutex mutex;
-    mutable WriterPreferredSharedMutex mutex;
+    mutable WriterSharedMutex mutex;
 
     // Stores the key-value associations.
     Map map;
@@ -232,8 +232,8 @@ class ConcurrentCache final {
     struct alignas(64) Shard final {
        public:
         //mutable std::shared_mutex mutex;
-        mutable WriterPreferredSharedMutex mutex;
-        ValueMap                           valueMap;
+        mutable WriterSharedMutex mutex;
+        ValueMap                  valueMap;
     };
 
     using Shards = Array<Shard, ShardCount>;

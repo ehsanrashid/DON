@@ -119,15 +119,15 @@
     #define DEBUG_LOG(msg) ((void) 0)
 #endif
 
-// Enable compiler attributes only with Clang, excluding SWIG.
-// These attributes have no effect when compiling with other compilers.
-#if defined(__clang__) && !defined(SWIG)
-    #define ATTRIBUTE__(x) __attribute__((x))
-#else
-    #define ATTRIBUTE__(x)
-#endif
-
 #if !defined(__INTELLISENSE__)
+    // Enable compiler attributes only with Clang, excluding SWIG.
+    // These attributes have no effect when compiling with other compilers.
+    #if defined(__clang__) && !defined(SWIG)
+        #define ATTRIBUTE__(x) __attribute__((x))
+    #else
+        #define ATTRIBUTE__(x)
+    #endif
+
     #define CAPABILITY(x) ATTRIBUTE__(capability(x))
     #define SCOPED_CAPABILITY ATTRIBUTE__(scoped_lockable)
     #define GUARDED_BY(x) ATTRIBUTE__(guarded_by(x))
