@@ -230,7 +230,7 @@ class CAPABILITY("mutex") WriterPreferredSharedMutex final {
         bool wakeWriter;
         {
             std::lock_guard lock(stateMutex);
-            wakeWriter = (--activeReaders == 0);
+            wakeWriter = --activeReaders == 0;
         }
 
         if (wakeWriter)
@@ -277,8 +277,8 @@ class CAPABILITY("mutex") WriterPreferredSharedMutex final {
 };
 
 // A fair shared mutex that preserves queue order between writers and reader batches.
-// Consecutive readers may acquire shared access together, including through try_lock_shared(),
-// provided no writer is active or ahead of them in the queue.
+// Consecutive queued readers may acquire shared access together. try_lock_shared() succeeds
+// only when no writer is active or waiting.
 class CAPABILITY("mutex") FairSharedMutex final {
    private:
     class WaitQueue;
@@ -301,47 +301,43 @@ class CAPABILITY("mutex") FairSharedMutex final {
     class WaitQueue final {
        public:
         void enqueue(Waiter& waiter) noexcept {
-            if (tail != nullptr)
-                tail->next = &waiter;
-            else
-                head = &waiter;
+            Waiter*& nxt = tail != nullptr ? tail->next : head;
 
+            nxt  = &waiter;
             tail = &waiter;
         }
 
         void dequeue(Waiter& waiter) noexcept {
-            Waiter* prev = nullptr;
-            auto*   cur  = head;
+            Waiter* pre = nullptr;
+            auto*   cur = head;
 
             while (cur != nullptr && cur != &waiter)
             {
-                prev = cur;
-                cur  = cur->next;
+                pre = cur;
+                cur = cur->next;
             }
 
             if (cur == nullptr)
                 return;
 
-            if (prev != nullptr)
-                prev->next = cur->next;
+            if (pre != nullptr)
+                pre->next = cur->next;
             else
                 head = cur->next;
 
             if (tail == cur)
-                tail = prev;
+                tail = pre;
 
             cur->next = nullptr;
         }
 
         Waiter* front() const noexcept { return head; }
 
-        // Returns true if the front of the queue is a writer.
-        bool front_is_writer() const noexcept { return head != nullptr && !head->shared; }
-
         bool empty() const noexcept { return head == nullptr; }
 
-        // Returns true if there is a writer in the queue before the specified waiter.
-        bool has_writer(const Waiter* until = nullptr) const noexcept {
+        // Returns true if there is a writer before the specified waiter,
+        // or anywhere in the queue if until is nullptr.
+        bool has_writer_before(const Waiter* const until = nullptr) const noexcept {
             for (auto* cur = head; cur != nullptr; cur = cur->next)
             {
                 if (cur == until)
@@ -393,7 +389,7 @@ class CAPABILITY("mutex") FairSharedMutex final {
 
         changed.wait(
           // Check writers before waiter
-          lock, [this, &waiter] { return !writerActive && !waitQueue.has_writer(&waiter); });
+          lock, [this, &waiter] { return !writerActive && !waitQueue.has_writer_before(&waiter); });
 
         waitQueue.dequeue(waiter);
         ++activeReaders;
@@ -423,8 +419,9 @@ class CAPABILITY("mutex") FairSharedMutex final {
 
     bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true) {
         std::lock_guard lock(stateMutex);
-        // If there is a writer active or waiting, we cannot acquire the lock shared.
-        if (writerActive || waitQueue.front_is_writer())
+
+        // Do not bypass an active or waiting writer.
+        if (writerActive || waitQueue.has_writer_before())
             return false;
 
         ++activeReaders;
