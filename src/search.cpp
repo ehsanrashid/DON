@@ -387,10 +387,10 @@ void Worker::start_search() noexcept {
             // If the skill is enabled, swap the best PV line with the sub-optimal one
             if (manager->skill.enabled())
             {
-                const Move skillMove = manager->skill.pick_move(rootMoves, multiPV);
+                manager->skill.pick_move(rootMoves, multiPV);
 
                 for (auto&& th : threads)
-                    th->worker->rootMoves.swap_to_front(skillMove);
+                    th->worker->rootMoves.swap_to_front(manager->skill.move());
             }
             else if (thread_count() > 1)
             {
@@ -761,7 +761,7 @@ void Worker::iterative_deepening() noexcept {
             break;
         }
 
-        if (lastBestMovePV.empty() || lastBestMovePV[0] != rm0.pv[0])
+        if (lastBestMovePV.empty() || lastBestMovePV[0] != rm0[0])
             lastBestMoveDepth = rootDepth;
 
         // Do not replace (shorter) mate scores from a previous iteration
@@ -2901,36 +2901,40 @@ void Skill::init(const Options& options) noexcept {
     {
         constexpr Array<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        double e = static_cast<double>(options["UCI_ELO"] - ELOMin) / (ELOMax - ELOMin);
-        double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
+        const double e = double(options["UCI_ELO"] - ELOMin) / (ELOMax - ELOMin);
+        const double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
-        level = std::clamp(l, LevelMin, LevelMax - 0.01);
+        level_ = std::clamp(l, LevelMin, LevelMax - 0.01);
     }
     else
     {
-        level = options["SkillLevel"];
+        level_ = options["SkillLevel"];
     }
 
-    assert(level <= LevelMax);
+    assert(level() <= LevelMax);
 
-    bestMove = Move::None;
+    move_ = Move::None;
 }
 
-bool Skill::enabled() const noexcept { return level < LevelMax; }
+double Skill::level() const noexcept { return level_; }
 
-bool Skill::time_to_pick(const Depth depth) const noexcept { return depth == 1 + Depth(level); }
+Move Skill::move() const noexcept { return move_; }
 
-Value Skill::weakness() const noexcept { return Value(2.0 * (3.0 * LevelMax - level)); }
+bool Skill::enabled() const noexcept { return level() < LevelMax; }
+
+bool Skill::time_to_pick(const Depth depth) const noexcept { return depth == 1 + Depth(level()); }
+
+Value Skill::weakness() const noexcept { return Value(2.0 * (3.0 * LevelMax - level())); }
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves,
+void Skill::pick_move(const RootMoves& rootMoves,
                       const usize      multiPV,
                       const bool       forcePick) noexcept {
     assert(0 < multiPV && multiPV <= rootMoves.size());
     static Xorshift64s prng(now());  // PRNG sequence should be non-deterministic
 
-    if (forcePick || bestMove == Move::None)
+    if (forcePick || move() == Move::None)
     {
         // With tablebases at the root, rootMoves are ordered by tbRank rather than by value,
         // so compute the value range explicitly to keep 'delta' non-negative.
@@ -2949,21 +2953,19 @@ Move Skill::pick_move(const RootMoves& rootMoves,
         // Then choose the move with the resulting highest value.
         for (usize i = 0; i < multiPV; ++i)
         {
-            const Value value    = rootMoves[i].value;
-            const Value diff     = maxValue - value;
-            const Value noise    = prng.rand<u32>() % weakness();
-            const Value push     = (weakness() * diff + delta * noise) / 128;
-            const Value newValue = value + push;
+            const Value value     = rootMoves[i].value;
+            const Value diff      = maxValue - value;
+            const Value noise     = prng.rand<u32>() % weakness();
+            const Value push      = (weakness() * diff + delta * noise) / 128;
+            const Value pushValue = value + push;
 
-            if (bestValue <= newValue)
+            if (bestValue <= pushValue)
             {
-                bestValue = newValue;
-                bestMove  = rootMoves[i][0];
+                bestValue = pushValue;
+                move_     = rootMoves[i][0];
             }
         }
     }
-
-    return bestMove;
 }
 
 }  // namespace DON
