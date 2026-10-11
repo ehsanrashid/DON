@@ -33,6 +33,7 @@
 #include <utility>        // forward<>, pair<>
 
 #include "misc.h"
+#include "mutex.h"
 
 namespace DON {
 
@@ -133,7 +134,8 @@ class ConcurrentMap final {
     const float maxLoadFactor;
 
     // Protects access to the map.
-    mutable std::shared_mutex mutex;
+    //mutable std::shared_mutex mutex;
+    mutable WriterPreferredSharedMutex mutex;
 
     // Stores the key-value associations.
     Map map;
@@ -229,8 +231,9 @@ class ConcurrentCache final {
 
     struct alignas(64) Shard final {
        public:
-        mutable std::shared_mutex mutex;
-        ValueMap                  valueMap;
+        //mutable std::shared_mutex mutex;
+        mutable WriterPreferredSharedMutex mutex;
+        ValueMap                           valueMap;
     };
 
     using Shards = Array<Shard, ShardCount>;

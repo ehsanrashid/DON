@@ -19,8 +19,10 @@
 #define MUTEX_H_INCLUDED
 
 #include <atomic>
-
-#include "misc.h"
+#include <condition_variable>
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
 
 #if defined(__i386__) || defined(_M_IX86)
     #define X86
@@ -33,6 +35,8 @@
 #if defined(X86)
     #include <immintrin.h>
 #endif
+
+#include "misc.h"
 
 namespace DON {
 
@@ -55,9 +59,9 @@ inline void spin_pause() noexcept {
 }
 
 // A lightweight spin mutex that busy-waits until the lock becomes available.
-class SpinMutex final {
+class CAPABILITY("mutex") SpinMutex final {
    public:
-    void lock() noexcept {
+    void lock() ACQUIRE() noexcept {
         usize spins = 0;
         bool  expected;
         do
@@ -79,10 +83,286 @@ class SpinMutex final {
                                                std::memory_order_relaxed));
     }
 
-    void unlock() noexcept { locked.store(false, std::memory_order_release); }
+    void unlock() RELEASE() noexcept { locked.store(false, std::memory_order_release); }
 
    private:
     std::atomic<bool> locked{false};
+};
+
+class CAPABILITY("mutex") ReaderPreferredSharedMutex final {
+   public:
+    void lock() ACQUIRE() {
+        std::unique_lock lock(stateMutex);
+        //++waitingWriters;
+
+        writers.wait(lock, [this] { return !writerActive && activeReaders == 0; });
+
+        //--waitingWriters;
+        writerActive = true;
+    }
+
+    void unlock() RELEASE() {
+        {
+            std::lock_guard lock(stateMutex);
+            writerActive = false;
+        }
+
+        readers.notify_all();
+        writers.notify_one();
+    }
+
+    void lock_shared() ACQUIRE_SHARED() {
+        std::unique_lock lock(stateMutex);
+        readers.wait(lock, [this] { return !writerActive; });
+
+        ++activeReaders;
+    }
+
+    void unlock_shared() RELEASE_SHARED() {
+        bool wakeWriter;
+        {
+            std::lock_guard lock(stateMutex);
+            wakeWriter = (--activeReaders == 0);
+        }
+
+        if (wakeWriter)
+            writers.notify_one();
+    }
+
+    bool try_lock() {
+        std::lock_guard lock(stateMutex);
+        if (writerActive || activeReaders != 0)
+            return false;
+
+        writerActive = true;
+        return true;
+    }
+
+    bool try_lock_shared() {
+        std::lock_guard lock(stateMutex);
+        if (writerActive)
+            return false;
+
+        ++activeReaders;
+        return true;
+    }
+
+    usize active_readers() const noexcept {
+        std::lock_guard lock(stateMutex);
+        return activeReaders;
+    }
+
+    //usize waiting_writers() const noexcept {
+    //    std::lock_guard lock(stateMutex);
+    //    return waitingWriters;
+    //}
+
+   private:
+    mutable std::mutex      stateMutex;
+    bool                    writerActive = false;
+    std::condition_variable readers;
+    std::condition_variable writers;
+    usize                   activeReaders = 0;
+    //usize                   waitingWriters = 0;
+};
+
+class CAPABILITY("mutex") WriterPreferredSharedMutex final {
+   public:
+    void lock() ACQUIRE() {
+        std::unique_lock lock(stateMutex);
+        ++waitingWriters;
+
+        writers.wait(lock, [this] { return !writerActive && activeReaders == 0; });
+
+        --waitingWriters;
+        writerActive = true;
+    }
+
+    void unlock() RELEASE() {
+        {
+            std::lock_guard lock(stateMutex);
+            writerActive = false;
+        }
+        writers.notify_one();
+        readers.notify_all();
+    }
+
+    void lock_shared() ACQUIRE_SHARED() {
+        std::unique_lock lock(stateMutex);
+        readers.wait(lock, [this] { return !writerActive && waitingWriters == 0; });
+
+        ++activeReaders;
+    }
+
+    void unlock_shared() RELEASE_SHARED() {
+        bool wakeWriter;
+        {
+            std::lock_guard lock(stateMutex);
+            wakeWriter = (--activeReaders == 0);
+        }
+
+        if (wakeWriter)
+            writers.notify_one();
+    }
+
+    bool try_lock() {
+        std::lock_guard lock(stateMutex);
+        if (writerActive || activeReaders != 0)
+            return false;
+        writerActive = true;
+        return true;
+    }
+
+    bool try_lock_shared() {
+        std::lock_guard lock(stateMutex);
+        if (writerActive || waitingWriters != 0)
+            return false;
+        ++activeReaders;
+        return true;
+    }
+
+    usize active_readers() const noexcept {
+        std::lock_guard lock(stateMutex);
+        return activeReaders;
+    }
+
+    usize waiting_writers() const noexcept {
+        std::lock_guard lock(stateMutex);
+        return waitingWriters;
+    }
+
+   private:
+    mutable std::mutex      stateMutex;
+    bool                    writerActive = false;
+    std::condition_variable readers;
+    std::condition_variable writers;
+    usize                   activeReaders  = 0;
+    usize                   waitingWriters = 0;
+};
+
+class CAPABILITY("mutex") FairSharedMutex final {
+   private:
+    struct Waiter {
+        Waiter* next = nullptr;
+        //bool    shared;
+    };
+
+    class WaitQueue final {
+       public:
+        void enqueue(Waiter& waiter) noexcept {
+            if (tail != nullptr)
+                tail->next = &waiter;
+            else
+                head = &waiter;
+
+            tail = &waiter;
+        }
+
+        void dequeue(Waiter& waiter) noexcept {
+            head = waiter.next;
+
+            if (empty())
+                tail = nullptr;
+        }
+
+        Waiter* front() const noexcept { return head; }
+
+        bool empty() const noexcept { return head == nullptr; }
+
+       private:
+        Waiter* head = nullptr;
+        Waiter* tail = nullptr;
+    };
+
+   public:
+    void lock() ACQUIRE() {
+        Waiter waiter;
+        //waiter.shared = false;
+
+        std::unique_lock lock(stateMutex);
+
+        ++waitingWriters;
+        waitQueue.enqueue(waiter);
+
+        changed.wait(lock, [this, &waiter] {
+            return !writerActive && activeReaders == 0 && waitQueue.front() == &waiter;
+        });
+
+        waitQueue.dequeue(waiter);
+        --waitingWriters;
+        writerActive = true;
+    }
+
+    void unlock() RELEASE() {
+        {
+            std::lock_guard lock(stateMutex);
+            writerActive = false;
+        }
+
+        changed.notify_all();
+    }
+
+    void lock_shared() ACQUIRE_SHARED() {
+        Waiter waiter;
+        //waiter.shared = true;
+
+        std::unique_lock lock(stateMutex);
+        waitQueue.enqueue(waiter);
+
+        changed.wait(lock,
+                     [this, &waiter] { return !writerActive && waitQueue.front() == &waiter; });
+
+        waitQueue.dequeue(waiter);
+        ++activeReaders;
+        changed.notify_all();
+    }
+
+    void unlock_shared() RELEASE_SHARED() {
+        {
+            std::lock_guard lock(stateMutex);
+            --activeReaders;
+        }
+
+        changed.notify_all();
+    }
+
+    bool try_lock() {
+        std::lock_guard lock(stateMutex);
+
+        if (writerActive || activeReaders != 0 || !waitQueue.empty())
+            return false;
+
+        writerActive = true;
+        return true;
+    }
+
+    bool try_lock_shared() {
+        std::lock_guard lock(stateMutex);
+
+        if (writerActive || !waitQueue.empty())
+            return false;
+
+        ++activeReaders;
+        return true;
+    }
+
+    usize active_readers() const noexcept {
+        std::lock_guard lock(stateMutex);
+        return activeReaders;
+    }
+
+    usize waiting_writers() const noexcept {
+        std::lock_guard lock(stateMutex);
+        return waitingWriters;
+    }
+
+   private:
+    mutable std::mutex      stateMutex;
+    bool                    writerActive = false;
+    std::condition_variable changed;
+    WaitQueue               waitQueue;
+    usize                   activeReaders  = 0;
+    usize                   waitingWriters = 0;
 };
 
 }  // namespace DON
