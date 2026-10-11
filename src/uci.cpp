@@ -324,19 +324,23 @@ void UCI::execute(const std::string_view command) noexcept {
         if (is >> input)
             dumpPath = utf8_to_path(input);
 
-        engine.dump(dumpPath);
+        apply_when_idle([&]() noexcept { engine.dump(dumpPath); });
     }
     break;
     case Command::EVAL :
         std::cout << '\n' << engine.evaluation() << std::endl;
         break;
     case Command::FLIP :
-        if (const auto err = engine.flip())
-            terminate_on_critical_error(err->what());
+        apply_when_idle([&]() noexcept {
+            if (const auto err = engine.flip())
+                terminate_on_critical_error(err->what());
+        });
         break;
     case Command::MIRROR :
-        if (const auto err = engine.mirror())
-            terminate_on_critical_error(err->what());
+        apply_when_idle([&]() noexcept {
+            if (const auto err = engine.mirror())
+                terminate_on_critical_error(err->what());
+        });
         break;
     case Command::COMPILER :
         std::cout << compiler_info() << std::endl;
@@ -348,7 +352,7 @@ void UCI::execute(const std::string_view command) noexcept {
         if (is >> input)
             networkPath = utf8_to_path(input);
 
-        engine.save_network(networkPath);
+        apply_when_idle([&]() noexcept { engine.save_network(networkPath); });
     }
     break;
     case Command::HELP :
@@ -366,6 +370,22 @@ void UCI::execute(const std::string_view command) noexcept {
             std::cout << "Unknown command: '" << command << "'.\n"
                       << "Type help for more information." << std::endl;
     }
+}
+
+template<typename Mutate>
+void UCI::apply_when_idle(Mutate&& mutate) const noexcept {
+    engine.stop();
+    engine.wait_finish();
+
+    mutate();
+}
+
+u64 UCI::perft(const Depth depth, const bool detail) const noexcept {
+    const u64 nodes = engine.perft(depth, detail);
+
+    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
+
+    return nodes;
 }
 
 namespace {
@@ -407,14 +427,6 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 }
 
 }  // namespace
-
-u64 UCI::perft(const Depth depth, const bool detail) const noexcept {
-    const u64 nodes = engine.perft(depth, detail);
-
-    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
-
-    return nodes;
-}
 
 void UCI::set_on_updates() noexcept {
     engine.set_on_update_start([]() {});
@@ -490,29 +502,29 @@ void UCI::go(std::istream& is) noexcept {
 }
 
 void UCI::setoption(std::istream& is) noexcept {
-    engine.wait_finish();
+    apply_when_idle([&]() noexcept {
+        std::string token;
+        is >> token;  // Consume the "name" token
+        assert(lower_case(token) == "name");
 
-    std::string token;
-    is >> token;  // Consume the "name" token
-    assert(lower_case(token) == "name");
+        // Read the option name (can contain spaces)
+        std::string name;
+        while (is >> token && lower_case(token) != "value")
+            name.append(token).push_back(' ');
 
-    // Read the option name (can contain spaces)
-    std::string name;
-    while (is >> token && lower_case(token) != "value")
-        name.append(token).push_back(' ');
+        if (!name.empty())
+            name.pop_back();
 
-    if (!name.empty())
-        name.pop_back();
+        // Read the option value (can contain spaces)
+        std::string value;
+        while (is >> token)
+            value.append(token).push_back(' ');
 
-    // Read the option value (can contain spaces)
-    std::string value;
-    while (is >> token)
-        value.append(token).push_back(' ');
+        if (!value.empty())
+            value.pop_back();
 
-    if (!value.empty())
-        value.pop_back();
-
-    options().setoption(name, value);
+        options().setoption(name, value);
+    });
 }
 
 void UCI::bench(std::istream& is) noexcept {

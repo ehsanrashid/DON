@@ -50,6 +50,9 @@ class UCI final {
     UCI(UCI&&) noexcept                 = delete;
     UCI& operator=(UCI&&) noexcept      = delete;
 
+    template<typename Mutate>
+    void apply_when_idle(Mutate&& mutate) const noexcept;
+
     u64 perft(Depth depth, bool detail = false) const noexcept;
 
     void set_on_updates() noexcept;
