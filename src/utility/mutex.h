@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <mutex>
 
+#include "intrusive_list.h"
 #include "types.h"
 
 namespace DON {

@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_TYPES_H_INCLUDED
-#define UTILITY_TYPES_H_INCLUDED
+#ifndef UTILITY_INTRUSIVE_LIST_H_INCLUDED
+#define UTILITY_INTRUSIVE_LIST_H_INCLUDED
 
 #include <cassert>
 
@@ -93,4 +93,4 @@ class IntrusiveList final {
 
 }  // namespace DON
 
-#endif  // UTILITY_TYPES_H_INCLUDED
+#endif  // UTILITY_INTRUSIVE_LIST_H_INCLUDED
