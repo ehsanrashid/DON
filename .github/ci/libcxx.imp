@@ -1,5 +1,5 @@
 [
-    # Mappings for libcxx's internal headers
+    # Mappings for libc++ internal headers
     { include: [ "<__fwd/fstream.h>", private, "<iosfwd>", public ] },
     { include: [ "<__fwd/ios.h>", private, "<iosfwd>", public ] },
     { include: [ "<__fwd/istream.h>", private, "<iosfwd>", public ] },
@@ -12,14 +12,7 @@
     { include: [ "<__hash_table>", private, "<unordered_map>", public ] },
     { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
 
-    # Mappings for includes between public headers
-    { include: [ "<ios>", public, "<iostream>", public ] },
-    { include: [ "<streambuf>", public, "<iostream>", public ] },
-    { include: [ "<istream>", public, "<iostream>", public ] },
-    { include: [ "<ostream>", public, "<iostream>", public ] },
-    { include: [ "<iosfwd>", public, "<iostream>", public ] },
-
-    # Missing mappings in include-what-you-use's libcxx.imp
+    # Additional libc++ internal-header mappings
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
 ]
