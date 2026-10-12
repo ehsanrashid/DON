@@ -27,7 +27,7 @@ namespace {
 
 #if !defined(USE_POPCNT)
 
-alignas(CACHE_LINE_SIZE) constexpr auto POP_CNTS = []() constexpr noexcept {
+alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
     Array<u8, 0x10000> popCnts{};
 
     for (usize i = 0; i < popCnts.size(); ++i)

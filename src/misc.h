@@ -69,8 +69,16 @@
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
+// Enable GNU-style compiler attributes for Clang and GCC, excluding SWIG.
+// Unsupported compilers and SWIG receive an empty attribute macro.
+#if (defined(__clang__) || defined(__GNUC__)) && !defined(SWIG)
+    #define ATTRIBUTE(x) __attribute__((x))
+#else
+    #define ATTRIBUTE(x)
+#endif
+
 #if defined(__clang__) || defined(__GNUC__)
-    #define ALWAYS_INLINE inline __attribute__((always_inline))
+    #define ALWAYS_INLINE inline ATTRIBUTE(always_inline)
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
 #else
@@ -82,7 +90,7 @@
     #define ASSUME(cond) __builtin_assume(cond)
 #elif defined(__GNUC__)
     #if __GNUC__ >= 13
-        #define ASSUME(cond) __attribute__((assume(cond)))
+        #define ASSUME(cond) ATTRIBUTE(assume(cond))
     #else
         #define ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while (false)
     #endif
@@ -115,41 +123,44 @@
     #define UNLIKELY(x) (x)
 #endif
 
+#if !defined(__INTELLISENSE__)
+    // Enable compiler thread-safety attributes only for Clang, excluding SWIG.
+    // These attributes have no effect when compiling with other compilers.
+    #if defined(__clang__) && !defined(SWIG)
+        #define THREAD_SAFETY_ATTRIBUTE(x) ATTRIBUTE(x)
+    #else
+        #define THREAD_SAFETY_ATTRIBUTE(x)
+    #endif
+
+    // clang-format off
+    #define ASSERT_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(assert_capability(x))
+    #define ASSERT_SHARED_CAPABILITY(x) THREAD_SAFETY_ATTRIBUTE(assert_shared_capability(x))
+    #define RETURN_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(lock_returned(x))
+    #define SCOPED_CAPABILITY           THREAD_SAFETY_ATTRIBUTE(scoped_lockable)
+    #define CAPABILITY(x)               THREAD_SAFETY_ATTRIBUTE(capability(x))
+    #define GUARDED_BY(x)               THREAD_SAFETY_ATTRIBUTE(guarded_by(x))
+    #define PT_GUARDED_BY(x)            THREAD_SAFETY_ATTRIBUTE(pt_guarded_by(x))
+    #define ACQUIRED_BEFORE(...)        THREAD_SAFETY_ATTRIBUTE(acquired_before(__VA_ARGS__))
+    #define ACQUIRED_AFTER(...)         THREAD_SAFETY_ATTRIBUTE(acquired_after(__VA_ARGS__))
+    #define REQUIRES(...)               THREAD_SAFETY_ATTRIBUTE(requires_capability(__VA_ARGS__))
+    #define REQUIRES_SHARED(...)        THREAD_SAFETY_ATTRIBUTE(requires_shared_capability(__VA_ARGS__))
+    #define ACQUIRE(...)                THREAD_SAFETY_ATTRIBUTE(acquire_capability(__VA_ARGS__))
+    #define ACQUIRE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(acquire_shared_capability(__VA_ARGS__))
+    #define RELEASE(...)                THREAD_SAFETY_ATTRIBUTE(release_capability(__VA_ARGS__))
+    #define RELEASE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(release_shared_capability(__VA_ARGS__))
+    #define TRY_ACQUIRE(...)            THREAD_SAFETY_ATTRIBUTE(try_acquire_capability(__VA_ARGS__))
+    #define TRY_ACQUIRE_SHARED(...)     THREAD_SAFETY_ATTRIBUTE(try_acquire_shared_capability(__VA_ARGS__))
+    #define EXCLUDES(...)               THREAD_SAFETY_ATTRIBUTE(locks_excluded(__VA_ARGS__))
+    #define NO_THREAD_SAFETY_ANALYSIS   THREAD_SAFETY_ATTRIBUTE(no_thread_safety_analysis)
+
+    #define PACKED_STRUCT ATTRIBUTE(packed)
+    // clang-format on
+#endif
+
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
     #define DEBUG_LOG(msg) ((void) 0)
-#endif
-
-#if !defined(__INTELLISENSE__)
-    // Enable compiler attributes only with Clang, excluding SWIG.
-    // These attributes have no effect when compiling with other compilers.
-    #if defined(__clang__) && !defined(SWIG)
-        #define ATTRIBUTE__(x) __attribute__((x))
-    #else
-        #define ATTRIBUTE__(x)
-    #endif
-
-    #define CAPABILITY(x) ATTRIBUTE__(capability(x))
-    #define SCOPED_CAPABILITY ATTRIBUTE__(scoped_lockable)
-    #define GUARDED_BY(x) ATTRIBUTE__(guarded_by(x))
-    #define PT_GUARDED_BY(x) ATTRIBUTE__(pt_guarded_by(x))
-    #define ACQUIRED_BEFORE(...) ATTRIBUTE__(acquired_before(__VA_ARGS__))
-    #define ACQUIRED_AFTER(...) ATTRIBUTE__(acquired_after(__VA_ARGS__))
-    #define REQUIRES(...) ATTRIBUTE__(requires_capability(__VA_ARGS__))
-    #define REQUIRES_SHARED(...) ATTRIBUTE__(requires_shared_capability(__VA_ARGS__))
-    #define ACQUIRE(...) ATTRIBUTE__(acquire_capability(__VA_ARGS__))
-    #define ACQUIRE_SHARED(...) ATTRIBUTE__(acquire_shared_capability(__VA_ARGS__))
-    #define RELEASE(...) ATTRIBUTE__(release_capability(__VA_ARGS__))
-    #define RELEASE_SHARED(...) ATTRIBUTE__(release_shared_capability(__VA_ARGS__))
-    #define TRY_ACQUIRE(...) ATTRIBUTE__(try_acquire_capability(__VA_ARGS__))
-    #define TRY_ACQUIRE_SHARED(...) ATTRIBUTE__(try_acquire_shared_capability(__VA_ARGS__))
-    #define EXCLUDES(...) ATTRIBUTE__(locks_excluded(__VA_ARGS__))
-    #define ASSERT_CAPABILITY(x) ATTRIBUTE__(assert_capability(x))
-    #define ASSERT_SHARED_CAPABILITY(x) ATTRIBUTE__(assert_shared_capability(x))
-    #define RETURN_CAPABILITY(x) ATTRIBUTE__(lock_returned(x))
-    #define PACKED_STRUCT ATTRIBUTE__(packed)
-    #define NO_THREAD_SAFETY_ANALYSIS ATTRIBUTE__(no_thread_safety_analysis)
 #endif
 
 namespace DON {
