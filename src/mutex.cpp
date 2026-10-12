@@ -82,17 +82,19 @@ void SpinMutex::lock() noexcept {
             cpu_relax();
 
             // Yield occasionally to reduce CPU usage under contention.
-            if (++spins == 512)
+            if (++spins == SpinsMax)
             {
                 spins = 0;
 
-                if (++yields == 8)
+                if (++yields == YieldsMax)
                 {
                     yields = 0;
-                    std::this_thread::sleep_for(std::chrono::microseconds(5));
+
+                    std::this_thread::sleep_for(std::chrono::microseconds(SleepIntervalUs));
+                    continue;
                 }
-                else
-                    std::this_thread::yield();
+
+                std::this_thread::yield();
             }
         }
 

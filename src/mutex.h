@@ -72,6 +72,10 @@ class SpinMutex
     SpinMutex(SpinMutex&&) noexcept                 = delete;
     SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
 
+    static constexpr usize SpinsMax        = 512;
+    static constexpr usize YieldsMax       = 8;
+    static constexpr usize SleepIntervalUs = 5;
+
     std::atomic<bool> locked{false};
 };
 
