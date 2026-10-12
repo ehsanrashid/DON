@@ -13,13 +13,13 @@ jobs:
         shell: bash
     steps:
       - name: Checkout DON
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: DON
           persist-credentials: false
 
       - name: Checkout include-what-you-use
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: include-what-you-use/include-what-you-use
           ref: 30e221f
