@@ -37,8 +37,6 @@
 
 namespace DON {
 
-using namespace Utility;
-
 namespace {
 
 enum class Command : u8 {

@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ERROR_H_INCLUDED
-#define ERROR_H_INCLUDED
+#ifndef UTILITY_ERROR_H_INCLUDED
+#define UTILITY_ERROR_H_INCLUDED
 
 #include <stdexcept>
 
@@ -36,4 +36,4 @@ struct FENError final: public Error {
 
 }  // namespace DON::Utility
 
-#endif  // ERROR_H_INCLUDED
+#endif  // UTILITY_ERROR_H_INCLUDED

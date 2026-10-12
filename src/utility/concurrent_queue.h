@@ -15,14 +15,14 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CONCURRENT_QUEUE_H_INCLUDED
-#define CONCURRENT_QUEUE_H_INCLUDED
+#ifndef UTILITY_CONCURRENT_QUEUE_H_INCLUDED
+#define UTILITY_CONCURRENT_QUEUE_H_INCLUDED
 
 #include <thread>
 
 #include "../misc.h"
 
-namespace DON {
+namespace DON::Utility {
 
 // A bounded single-producer, single-consumer (SPSC) ring buffer.
 //
@@ -196,6 +196,6 @@ class SingleProducerSingleConsumerChannel final {
 //                         []() noexcept { return running(); });
 //}
 
-}  // namespace DON
+}  // namespace DON::Utility
 
-#endif  // CONCURRENT_QUEUE_H_INCLUDED
+#endif  // UTILITY_CONCURRENT_QUEUE_H_INCLUDED

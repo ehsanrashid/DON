@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CONCURRENT_H_INCLUDED
-#define CONCURRENT_H_INCLUDED
+#ifndef UTILITY_CONCURRENT_H_INCLUDED
+#define UTILITY_CONCURRENT_H_INCLUDED
 
 #include <cassert>        // assert()
 #include <cstdlib>        // atexit()
@@ -759,4 +759,4 @@ class RegistryCleanupHook final {
 
 }  // namespace DON::Utility
 
-#endif  // CONCURRENT_H_INCLUDED
+#endif  // UTILITY_CONCURRENT_H_INCLUDED

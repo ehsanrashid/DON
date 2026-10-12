@@ -52,8 +52,6 @@
 #include "../types.h"
 #include "../utility/error.h"
 
-using namespace DON::Utility;
-
 namespace DON::Tablebase::Syzygy {
 
 #if defined(NO_TABLEBASES)
@@ -501,7 +499,7 @@ TableData make_table_data(const std::string_view code) noexcept {
     State    st;
     Position pos;
 
-    std::optional<Error> err;
+    std::optional<Utility::Error> err;
 
     err = pos.set(code, WHITE, &st);
     (void) err;

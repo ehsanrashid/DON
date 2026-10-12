@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUG_H_INCLUDED
-#define DEBUG_H_INCLUDED
+#ifndef UTILITY_DEBUG_H_INCLUDED
+#define UTILITY_DEBUG_H_INCLUDED
 
 #include "../misc.h"
 
@@ -43,4 +43,4 @@ void reset() noexcept;
 
 }  // namespace DON::Utility::Debug
 
-#endif  // DEBUG_H_INCLUDED
+#endif  // UTILITY_DEBUG_H_INCLUDED
