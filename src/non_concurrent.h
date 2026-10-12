@@ -21,7 +21,7 @@
 #include <list>           // list<>
 #include <memory>         // shared_ptr<>
 #include <mutex>          // mutex, lock_guard<>
-#include <unordered_map>  // unordered_map<>
+#include <unordered_map>  // unordered_map<>, unordered_multimap<>
 #include <utility>        // move()
 
 #include "misc.h"
@@ -29,11 +29,11 @@
 namespace DON {
 
 template<class Key, class Value>
-class LRUCache final {
+class PinnedLRUCache final {
    public:
     using ValuePtr = std::shared_ptr<Value>;
 
-    explicit LRUCache(usize capacity = 128) noexcept :
+    explicit PinnedLRUCache(usize capacity = 128) noexcept :
         capacity_(capacity) {}
 
     [[nodiscard]] ValuePtr insert(Key key, ValuePtr value) noexcept {
@@ -47,7 +47,20 @@ class LRUCache final {
 
         if (const auto mapItr = indexMap.find(key); mapItr != indexMap.end())
         {
-            mapItr->second->value = std::move(value);
+            const auto listItr = mapItr->second;
+
+            if (listItr->pinCount == 0)
+                listItr->value = std::move(value);
+            else
+            {
+                const auto retiredKey = std::make_pair(listItr->key, listItr->value);
+
+                retiredPinIndexMultiMap.emplace(retiredKey, listItr);
+                retiredPinList.splice(retiredPinList.end(), list, listItr);
+
+                list.push_front({std::move(key), std::move(value)});
+                mapItr->second = list.begin();
+            }
 
             list.splice(list.begin(), list, mapItr->second);
 
@@ -90,7 +103,7 @@ class LRUCache final {
         if (mapItr == indexMap.end())
             return nullptr;
 
-        ++mapItr->second->pins;
+        ++mapItr->second->pinCount;
         list.splice(list.begin(), list, mapItr->second);
 
         return mapItr->second->value;
@@ -103,23 +116,30 @@ class LRUCache final {
         {
             auto& entry = *mapItr->second;
 
-            if (entry.value == value && entry.pins != 0)
+            if (entry.value == value && entry.pinCount != 0)
             {
-                --entry.pins;
+                --entry.pinCount;
+                nolock_evict_excess();
 
                 return true;
             }
         }
 
-        for (auto listItr = retiredList.begin(); listItr != retiredList.end(); ++listItr)
+        const auto retiredKey       = std::make_pair(key, value);
+        const auto [begItr, endItr] = retiredPinIndexMultiMap.equal_range(retiredKey);
+
+        for (auto retiredPinMultiMapItr = begItr; retiredPinMultiMapItr != endItr;
+             ++retiredPinMultiMapItr)
         {
-            assert(listItr->pins != 0);
+            const auto retiredPinListItr = retiredPinMultiMapItr->second;
 
-            if (listItr->key != key || listItr->value != value)
-                continue;
+            assert(retiredPinListItr->pinCount != 0);
 
-            if (--listItr->pins == 0)
-                retiredList.erase(listItr);
+            if (--retiredPinListItr->pinCount == 0)
+            {
+                retiredPinList.erase(retiredPinListItr);
+                retiredPinIndexMultiMap.erase(retiredPinMultiMapItr);
+            }
 
             return true;
         }
@@ -161,21 +181,33 @@ class LRUCache final {
    private:
     struct Entry final {
        public:
-        Entry(Key key_, ValuePtr value_, usize pins_ = 0) noexcept :
-            key(std::move(key_)),
-            value(std::move(value_)),
-            pins(pins_) {}
+        Entry(Key k, ValuePtr v, usize pinCnt = 0) noexcept :
+            key(std::move(k)),
+            value(std::move(v)),
+            pinCount(pinCnt) {}
 
         Key      key;
         ValuePtr value;
-        usize    pins;
+        usize    pinCount;
+    };
+
+    struct KeyValueHash final {
+       public:
+        usize operator()(const std::pair<Key, ValuePtr>& key) const noexcept {
+            const usize keyHash   = std::hash<Key>{}(key.first);
+            const usize valueHash = std::hash<Value*>{}(key.second.get());
+
+            return keyHash ^ (valueHash + 0x9e3779b9 + (keyHash << 6) + (keyHash >> 2));
+        }
     };
 
     using List        = std::list<Entry>;
-    using PendingPins = std::list<Entry>;
     using ListItr     = typename List::iterator;
     using IndexMap    = std::unordered_map<Key, ListItr>;
     using IndexMapItr = typename IndexMap::iterator;
+
+    using HashValueIndexMultiMap =
+      std::unordered_multimap<std::pair<Key, ValuePtr>, ListItr, KeyValueHash>;
 
     // Requires mutex to be locked.
     bool nolock_erase(const Key& key) noexcept {
@@ -184,18 +216,23 @@ class LRUCache final {
         if (mapItr == indexMap.end())
             return false;
 
-        nolock_remove_entry(mapItr);
+        nolock_erase(mapItr);
         return true;
     }
 
     // Requires mutex to be locked.
-    void nolock_remove_entry(IndexMapItr mapItr) noexcept {
+    void nolock_erase(IndexMapItr mapItr) noexcept {
         const auto listItr = mapItr->second;
 
-        if (listItr->pins != 0)
-            retiredList.splice(retiredList.end(), list, listItr);
-        else
+        if (listItr->pinCount == 0)
             list.erase(listItr);
+        else
+        {
+            const auto retiredKey = std::make_pair(listItr->key, listItr->value);
+
+            retiredPinIndexMultiMap.emplace(retiredKey, listItr);
+            retiredPinList.splice(retiredPinList.end(), list, listItr);
+        }
 
         indexMap.erase(mapItr);
     }
@@ -207,30 +244,22 @@ class LRUCache final {
     void nolock_evict_excess(const usize size) noexcept {
         while (list.size() > size)
         {
-            auto listItr = list.end();
+            auto removeListItr = list.end();
 
             // Search from least recently used to most recently used.
-            for (auto current = list.end(); current-- != list.begin();)
-                if (current->pins == 0)
+            for (auto listItr = list.end(); listItr-- != list.begin();)
+                if (listItr->pinCount == 0)
                 {
-                    listItr = current;
+                    removeListItr = listItr;
                     break;
                 }
 
             // All entries are pinned; capacity may be exceeded temporarily.
-            if (listItr == list.end())
+            if (removeListItr == list.end())
                 break;
 
-            nolock_erase(listItr->key);
+            nolock_erase(removeListItr->key);
         }
-    }
-
-    // Requires mutex to be locked.
-    void nolock_retire_entry(ListItr itr) noexcept {
-        if (itr->pins != 0)
-            retiredList.splice(retiredList.end(), list, itr);
-        else
-            list.erase(itr);
     }
 
     mutable std::mutex mutex;
@@ -238,7 +267,9 @@ class LRUCache final {
     usize    capacity_;
     List     list;
     IndexMap indexMap;
-    List     retiredList;
+
+    List                   retiredPinList;
+    HashValueIndexMultiMap retiredPinIndexMultiMap;
 };
 
 }  // namespace DON
