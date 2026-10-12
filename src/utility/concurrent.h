@@ -34,6 +34,7 @@
 
 #include "../misc.h"
 #include "mutex.h"
+#include "types.h"
 
 namespace DON::Utility {
 

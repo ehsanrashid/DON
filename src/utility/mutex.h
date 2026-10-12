@@ -23,6 +23,7 @@
 #include <mutex>
 
 #include "../misc.h"
+#include "types.h"
 
 namespace DON::Utility {
 

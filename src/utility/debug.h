@@ -18,7 +18,7 @@
 #ifndef UTILITY_DEBUG_H_INCLUDED
 #define UTILITY_DEBUG_H_INCLUDED
 
-#include "../misc.h"
+#include "types.h"
 
 // Debug functions used mainly to collect run-time statistics
 namespace DON::Utility::Debug {

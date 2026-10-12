@@ -40,7 +40,7 @@ jobs:
         run: >-
           cl /nologo /std:c++17 /MT /EHsc /O2 /MP /W3 /WX /permissive-
           /DUSE_POPCNT /DUSE_SSE2 /DUSE_SSSE3 /DUSE_SSE41 /DUSE_AVX2 ${{ matrix.flags }}
-          /Fe:DON.exe *.cpp nnue\*.cpp nnue\features\*.cpp book\*.cpp tablebase\*.cpp
+          /Fe:DON.exe *.cpp nnue\*.cpp nnue\features\*.cpp book\*.cpp tablebase\*.cpp utility\*.cpp
           /link /STACK:8388608 shell32.lib
 
       - name: Extract the bench number from the commit history
