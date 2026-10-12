@@ -24,7 +24,7 @@
 #include <limits>   // numeric_limits<>
 #include <utility>  // as_const()
 
-namespace DON::Utility::Debug {
+namespace DON::Debug {
 
 namespace {
 
@@ -334,4 +334,4 @@ void reset() noexcept {
     correl.fill({});
 }
 
-}  // namespace DON::Utility::Debug
+}  // namespace DON::Debug

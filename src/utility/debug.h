@@ -21,7 +21,7 @@
 #include "types.h"
 
 // Debug functions used mainly to collect run-time statistics
-namespace DON::Utility::Debug {
+namespace DON::Debug {
 
 void hit_on(bool cond, usize slot = 0) noexcept;
 
@@ -41,6 +41,6 @@ void print() noexcept;
 
 void reset() noexcept;
 
-}  // namespace DON::Utility::Debug
+}  // namespace DON::Debug
 
 #endif  // UTILITY_DEBUG_H_INCLUDED

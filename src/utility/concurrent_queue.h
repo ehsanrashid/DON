@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-namespace DON::Utility {
+namespace DON {
 
 // A bounded single-producer, single-consumer (SPSC) ring buffer.
 //
@@ -196,6 +196,6 @@ class SingleProducerSingleConsumerChannel final {
 //                         []() noexcept { return running(); });
 //}
 
-}  // namespace DON::Utility
+}  // namespace DON
 
 #endif  // UTILITY_CONCURRENT_QUEUE_H_INCLUDED

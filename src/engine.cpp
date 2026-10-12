@@ -119,8 +119,7 @@ void Engine::wait_finish() const noexcept {
         mainThread->wait_finish();
 }
 
-std::optional<Utility::Error> Engine::setup(const std::string_view fen,
-                                            const Strings&         moves) noexcept {
+std::optional<Error> Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<State::List>(1);
 
@@ -133,11 +132,11 @@ std::optional<Utility::Error> Engine::setup(const std::string_view fen,
         const Move m = mix_to_move(move, pos, MoveList<GenType::ALL>(pos));
 
         if (m == Move::None)
-            return Utility::Error{"Invalid move at ply " + std::to_string(ply) + ": " + move};
+            return Error{"Invalid move at ply " + std::to_string(ply) + ": " + move};
 
         if (pos.rule50_count() > RULE50_COUNT_MAX)
-            return Utility::Error{"Invalid position: 50-move rule count exceeds the allowed range: "
-                                  + std::to_string(pos.rule50_count())};
+            return Error{"Invalid position: 50-move rule count exceeds the allowed range: "
+                         + std::to_string(pos.rule50_count())};
 
         states->emplace_back();
         pos.do_move(m, states->back());
@@ -218,9 +217,9 @@ void Engine::dump(const fs::path& dumpPath) const noexcept {
     pos.dump(std::cout);
 }
 
-std::optional<Utility::Error> Engine::flip() noexcept { return pos.flip(); }
+std::optional<Error> Engine::flip() noexcept { return pos.flip(); }
 
-std::optional<Utility::Error> Engine::mirror() noexcept { return pos.mirror(); }
+std::optional<Error> Engine::mirror() noexcept { return pos.mirror(); }
 
 u16 Engine::hashfull(const u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
 

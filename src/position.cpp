@@ -42,9 +42,9 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-Utility::ConcurrentCache<Key, Value> NonPawnCache{32 * KB, 0.75f};
-Utility::ConcurrentCache<Key, Value> MaterialCache{16 * KB, 0.75f};
-Utility::ConcurrentCache<Key, Value> EvaluateCache{16 * KB, 0.75f};
+ConcurrentCache<Key, Value> NonPawnCache{32 * KB, 0.75f};
+ConcurrentCache<Key, Value> MaterialCache{16 * KB, 0.75f};
+ConcurrentCache<Key, Value> EvaluateCache{16 * KB, 0.75f};
 
 }  // namespace
 
@@ -76,8 +76,7 @@ void Position::clear() noexcept {
     activeColor = NONE;
 }
 
-std::optional<Utility::Error> Position::set(const std::string_view fens,
-                                            State* const           newSt) noexcept {
+std::optional<Error> Position::set(const std::string_view fens, State* const newSt) noexcept {
     // A FEN string defines a particular position using only the ASCII character set.
     //
     // A FEN string contains six fields separated by a space. The fields are:
@@ -134,9 +133,9 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
         if (token == '/')
         {
             if (file <= FILE_H)
-                return Utility::FENError{"rank ended before reaching the end."};
+                return FENError{"rank ended before reaching the end."};
             if (rank == RANK_1)
-                return Utility::FENError{"too many ranks."};
+                return FENError{"too many ranks."};
 
             file = FILE_A;
             --rank;
@@ -145,19 +144,19 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
         {
             const int f = char_to_digit(token);
             if (1 > f || f + file > 8)
-                return Utility::FENError{
-                  "too many squares skipped in rank: " + std::string(1, to_char(rank)) + "."};
+                return FENError{"too many squares skipped in rank: " + std::string(1, to_char(rank))
+                                + "."};
             // Advance by the given number of files
             file += f;
         }
         else
         {
             if (file > FILE_H)
-                return Utility::FENError{"too many files in rank."};
+                return FENError{"too many files in rank."};
 
             const Piece pc = char_to_pc(token);
             if (pc == Piece::NO_PIECE)
-                return Utility::FENError{"invalid piece: " + std::string(1, token) + "."};
+                return FENError{"invalid piece: " + std::string(1, token) + "."};
 
             const Square sq = make_square(file, rank);
 
@@ -168,19 +167,19 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
     }
 
     if (rank != RANK_1)
-        return Utility::FENError{"board encoding ended before the last rank."};
+        return FENError{"board encoding ended before the last rank."};
     if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0)
-        return Utility::FENError{"pawns on the first or eighth rank."};
+        return FENError{"pawns on the first or eighth rank."};
     for (const Color c : {WHITE, BLACK})
     {
         std::string side{to_string(c)};
 
         if (count(c) > 16)
-            return Utility::FENError{side + " has more than 16 pieces."};
+            return FENError{side + " has more than 16 pieces."};
         if (count(c, PAWN) > 8)
-            return Utility::FENError{side + " has more than 8 pawns."};
+            return FENError{side + " has more than 8 pawns."};
         if (count(c, KING) != 1)
-            return Utility::FENError{side + " has incorrect number of kings."};
+            return FENError{side + " has incorrect number of kings."};
         if (count(c, PAWN)                                                         //
               + std::max(count(c, KNIGHT) - 2, 0)                                  //
               + std::max(popcount(pieces_bb(c, BISHOP) & color_bb(WHITE)) - 1, 0)  //
@@ -188,10 +187,10 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
               + std::max(count(c, ROOK) - 2, 0)                                    //
               + std::max(count(c, QUEEN) - 1, 0)                                   //
             > 8)
-            return Utility::FENError{side + " has too many promoted pieces."};
+            return FENError{side + " has too many promoted pieces."};
     }
     if (distance(square(WHITE, KING), square(BLACK, KING)) <= 1)
-        return Utility::FENError{"kings are adjacent."};
+        return FENError{"kings are adjacent."};
 
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
 
@@ -207,7 +206,7 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
     else if (color == 'b')
         activeColor = BLACK;
     else
-        return Utility::FENError{"invalid color to move: " + std::string(1, token) + "."};
+        return FENError{"invalid color to move: " + std::string(1, token) + "."};
 
     reader.skip_spaces();
 
@@ -228,19 +227,18 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
             continue;
 
         if (++castlingRightsCount > 4)
-            return Utility::FENError{"more than 4 castling rights specified."};
+            return FENError{"more than 4 castling rights specified."};
 
         const Color c = is_upper(token) ? WHITE : BLACK;
         token         = lower_case(token);
 
         if (relative_rank(c, square(c, KING)) != RANK_1)
-            return Utility::FENError{std::string{to_string(c)} + " king is not on the first rank."};
+            return FENError{std::string{to_string(c)} + " king is not on the first rank."};
 
         const Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
-            return Utility::FENError{std::string{to_string(c)}
-                                     + " rook is missing on the first rank."};
+            return FENError{std::string{to_string(c)} + " rook is missing on the first rank."};
 
         Square rookOrgSq;
 
@@ -265,11 +263,10 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
             rookOrgSq = make_square(char_to_file(token), relative_rank(c, RANK_1));
         }
         else
-            return Utility::FENError{"expected castling rights, found '" + std::string(1, token)
-                                     + "'."};
+            return FENError{"expected castling rights, found '" + std::string(1, token) + "'."};
 
         if ((rooksBB & rookOrgSq) == 0)
-            return Utility::FENError{"missing castling rook."};
+            return FENError{"missing castling rook."};
 
         set_castling_rights(c, rookOrgSq);
     }
@@ -285,7 +282,7 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
     const char ep = reader.peek();
 
     if (ep == StringReader::Null)
-        return Utility::FENError{"invalid en-passant square."};
+        return FENError{"invalid en-passant square."};
 
     if (ep == '-')
         reader.advance();
@@ -294,12 +291,12 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
         const char epFile = reader.get();
 
         if (reader.peek() == StringReader::Null)
-            return Utility::FENError{"invalid en-passant " + std::string(1, epFile) + "."};
+            return FENError{"invalid en-passant " + std::string(1, epFile) + "."};
 
         const char epRank = reader.get();
 
         if (!('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3')))
-            return Utility::FENError{"invalid en-passant square."};
+            return FENError{"invalid en-passant square."};
 
         enPassantSq = make_square(char_to_file(epFile), char_to_rank(epRank));
     }
@@ -315,10 +312,10 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
     // Normally, values >= 100 would be pointless, but support ignoring the 50-move rule for TB purposes.
     // Limit at RULE50_COUNT_MAX as it's used multiplicatively with position evaluation during search.
     if (rule50Count > RULE50_COUNT_MAX)
-        return Utility::FENError{"50-move rule count exceeds the allowed range."};
+        return FENError{"50-move rule count exceeds the allowed range."};
 
     if (moveNum > RULE50_COUNT_MAX)
-        return Utility::FENError{"game ply exceeds the allowed range."};
+        return FENError{"game ply exceeds the allowed range."};
 
     st->rule50Count = u16(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
@@ -351,13 +348,13 @@ std::optional<Utility::Error> Position::set(const std::string_view fens,
     set_state();
 
     if ((acc_attacks_bb() & square(~active_color(), KING)) != 0)
-        return Utility::FENError{"king can be captured."};
+        return FENError{"king can be captured."};
 
     assert(is_ok_());
     return std::nullopt;
 }
 
-std::optional<Utility::Error>
+std::optional<Error>
 Position::set(const std::string_view code, const Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
@@ -1869,7 +1866,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     return false;
 }
 
-std::optional<Utility::Error> Position::flip() noexcept {
+std::optional<Error> Position::flip() noexcept {
     std::istringstream iss{fen()};
 
     std::string fens, token;
@@ -1916,7 +1913,7 @@ std::optional<Utility::Error> Position::flip() noexcept {
     return set(fens, st);
 }
 
-std::optional<Utility::Error> Position::mirror() noexcept {
+std::optional<Error> Position::mirror() noexcept {
     std::istringstream iss{fen()};
 
     std::string fens, token;

@@ -169,11 +169,6 @@ namespace DON {
 
 namespace fs = std::filesystem;
 
-#if defined(__SIZEOF_INT128__)
-__extension__ using u128 = unsigned __int128;
-__extension__ using i128 = signed __int128;
-#endif
-
 using NumaIndex = u16;
 using CpuIndex  = u16;
 
@@ -1040,72 +1035,6 @@ class RelaxedAtomic final {
     }
 
     std::conditional_t<UseAtomic, std::atomic<T>, T> value;
-};
-
-// A lightweight intrusive singly linked list that does not own its elements or allocate memory.
-// Each element stores its own next pointer, allowing existing objects
-// (e.g. stack-allocated mutex waiters) to be linked directly into the list without creating separate list nodes.
-// Unlike std::list, it requires no dynamic allocation and stores only one link pointer per element.
-// Elements must remain alive and at stable addresses while linked, and list operations must
-// be externally synchronized when accessed concurrently.
-template<typename T>
-class IntrusiveList final {
-   public:
-    void push_back(T& item) noexcept {
-        item.next = nullptr;
-
-        T*& nextLink = back_ != nullptr ? back_->next : front_;
-
-        nextLink = &item;
-        back_    = &item;
-        ++size_;
-    }
-
-    void erase(T& item) noexcept {
-        T*    pre = nullptr;  // Previous node; nullptr means cur is the front
-        auto* cur = front_;   // Start searching from the front of the list
-
-        // Find the requested item while tracking its previous node
-        while (cur != nullptr && cur != &item)
-        {
-            pre = cur;
-            cur = cur->next;
-        }
-
-        // The item is not in the list; nothing to remove
-        if (cur == nullptr)
-            return;
-
-        // Unlink cur from the list
-        if (pre == nullptr)
-            front_ = cur->next;  // Front: advance to the next node
-        else
-            pre->next = cur->next;  // Otherwise, bypass cur
-
-        // If cur was the back, update it to the previous node.
-        // This also sets back_ to nullptr when removing the only node.
-        if (back_ == cur)
-            back_ = pre;
-
-        // Detach the removed item from the list
-        cur->next = nullptr;
-        // Decrease the number of items
-        --size_;
-    }
-
-    T* front() const noexcept { return front_; }
-    T* back() const noexcept { return back_; }
-
-    usize size() const noexcept { return size_; }
-    bool  empty() const noexcept {
-        assert((front() == nullptr) == (size() == 0));
-        return size() == 0;
-    }
-
-   private:
-    T*    front_ = nullptr;
-    T*    back_  = nullptr;
-    usize size_  = 0;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.

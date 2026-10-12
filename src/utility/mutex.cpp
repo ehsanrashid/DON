@@ -29,7 +29,9 @@
     #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
 
-namespace DON::Utility {
+#include "intrusive_list.h"
+
+namespace DON {
 
 void cpu_relax() noexcept {
 #if defined(_WIN32)
@@ -401,4 +403,4 @@ usize FairSharedMutex::waiting_writer_count() const noexcept {
 
 // ------------------
 
-}  // namespace DON::Utility
+}  // namespace DON

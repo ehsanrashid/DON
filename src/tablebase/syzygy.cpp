@@ -499,7 +499,7 @@ TableData make_table_data(const std::string_view code) noexcept {
     State    st;
     Position pos;
 
-    std::optional<Utility::Error> err;
+    std::optional<Error> err;
 
     err = pos.set(code, WHITE, &st);
     (void) err;

@@ -540,7 +540,7 @@ void UCI::bench(std::istream& is) noexcept {
           return starts_with(command, "go ") || starts_with(command, "eval");
       });
 
-    Utility::Debug::reset();
+    Debug::reset();
 
     SteadyClock::time_point startTime;
     SteadyClock::duration   totalDuration{0};
@@ -618,7 +618,7 @@ void UCI::bench(std::istream& is) noexcept {
     const auto totalTimeMs =
       std::max(std::chrono::duration_cast<Ms>(totalDuration).count(), TimePoint{1});
 
-    Utility::Debug::print();
+    Debug::print();
 
     std::cerr << "\n================"                   //
               << "\nTotal time [ms] : " << totalTimeMs  //
@@ -651,7 +651,7 @@ void UCI::benchmark(std::istream& is) noexcept {
       std::count_if(setup.commands.begin(), setup.commands.end(),
                     [](const std::string_view command) { return starts_with(command, "go "); });
 
-    Utility::Debug::reset();
+    Debug::reset();
 
     usize cnt = 0;
     // Warmup
@@ -773,7 +773,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     const auto totalTimeMs =
       std::max(std::chrono::duration_cast<Ms>(totalDuration).count(), TimePoint{1});
 
-    Utility::Debug::print();
+    Debug::print();
 
     std::cerr << '\n';
 

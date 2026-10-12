@@ -22,10 +22,9 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "../misc.h"
 #include "types.h"
 
-namespace DON::Utility {
+namespace DON {
 
 // Architecture-specific processor hint for spin-wait loops.
 // May reduce resource contention, improve progress of sibling hardware threads, or
@@ -339,6 +338,6 @@ class FairSharedMutex
       = false;
 };
 
-}  // namespace DON::Utility
+}  // namespace DON
 
 #endif  // UTILITY_MUTEX_H_INCLUDED

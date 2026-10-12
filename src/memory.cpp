@@ -212,7 +212,7 @@ bool free_aligned_huge(void* const mem, const usize allocSize) noexcept {
 }
 
 
-Utility::ConcurrentAllocationTracker HugePageAllocationTracker{};
+ConcurrentAllocationTracker HugePageAllocationTracker{};
 
     #endif
 

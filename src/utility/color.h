@@ -18,7 +18,7 @@
 #ifndef UTILITY_COLOR_H_INCLUDED
 #define UTILITY_COLOR_H_INCLUDED
 
-namespace DON::Utility::Color {
+namespace DON::Color {
 
 // Reset
 inline constexpr const char* RESET = "\033[0m";
@@ -62,6 +62,6 @@ inline constexpr const char* BG_MAGENTA = "\033[45m";
 inline constexpr const char* BG_CYAN    = "\033[46m";
 inline constexpr const char* BG_WHITE   = "\033[47m";
 
-}  // namespace DON::Utility::Color
+}  // namespace DON::Color
 
 #endif  // UTILITY_COLOR_H_INCLUDED

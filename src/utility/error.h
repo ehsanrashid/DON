@@ -19,8 +19,10 @@
 #define UTILITY_ERROR_H_INCLUDED
 
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
-namespace DON::Utility {
+namespace DON {
 
 // Base type for application-specific errors
 struct Error: public std::runtime_error {
@@ -34,6 +36,6 @@ struct FENError final: public Error {
         Error{"Invalid FEN: " + std::string{message}} {}
 };
 
-}  // namespace DON::Utility
+}  // namespace DON
 
 #endif  // UTILITY_ERROR_H_INCLUDED

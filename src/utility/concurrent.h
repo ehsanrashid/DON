@@ -36,7 +36,7 @@
 #include "mutex.h"
 #include "types.h"
 
-namespace DON::Utility {
+namespace DON {
 
 // ConcurrentMap: thread-safe key-value map with lazy value creation and pre-reserved storage.
 template<typename Key, typename Value>
@@ -758,6 +758,6 @@ class RegistryCleanupHook final {
     static inline CallOnce         hookCallOnce;
 };
 
-}  // namespace DON::Utility
+}  // namespace DON
 
 #endif  // UTILITY_CONCURRENT_H_INCLUDED

@@ -2724,7 +2724,7 @@ void Manager::check_time(Worker& worker) noexcept {
     if (const TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
     {
         infoTime = curTime;
-        Utility::Debug::print();
+        Debug::print();
     }
 
     // Should not stop pondering until told so by the GUI

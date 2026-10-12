@@ -43,6 +43,11 @@ using i8  = std::int8_t;
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
+#if defined(__SIZEOF_INT128__)
+__extension__ using u128 = unsigned __int128;
+__extension__ using i128 = signed __int128;
+#endif
+
 using uptr = std::uintptr_t;
 using iptr = std::intptr_t;
 

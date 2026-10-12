@@ -190,7 +190,7 @@ std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
 
-    namespace Color = Utility::Color;
+    namespace Color = Color;
     // clang-format off
     const auto border = [&logo](const std::string_view sv) noexcept {
         logo += Color::BG_BLACK;
@@ -616,7 +616,7 @@ namespace {
 // Lifetime:
 //  - The map does not own the std::ostream objects.
 //  - Mutexes remain in the map for the lifetime of the process.
-Utility::ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
+ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
 
 }  // namespace
 
