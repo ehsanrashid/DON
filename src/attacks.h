@@ -47,8 +47,8 @@
 #endif
 
 #include "bitboard.h"
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON::Attacks {
 

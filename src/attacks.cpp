@@ -21,6 +21,8 @@
     #include "prng.h"
 #endif
 
+#include "misc.h"
+
 namespace DON::Attacks {
 
 namespace {

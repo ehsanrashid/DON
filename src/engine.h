@@ -27,7 +27,6 @@
 #include <vector>
 
 #include "history.h"
-#include "misc.h"
 #include "numa.h"
 #include "option.h"
 #include "position.h"
@@ -38,6 +37,7 @@
 #include "types.h"
 #include "nnue/ntypes.h"
 #include "nnue/network.h"
+#include "utility/types.h"
 
 namespace DON {
 

@@ -25,6 +25,7 @@
 #include <sstream>
 
 #include "evaluate.h"
+#include "misc.h"
 #include "movegen.h"
 #include "notation.h"
 #include "perft.h"
