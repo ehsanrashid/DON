@@ -19,6 +19,8 @@
 
 #include <algorithm>  // generate(), all_of()
 
+#include "types.h"
+
 namespace DON {
 
 // ------------------

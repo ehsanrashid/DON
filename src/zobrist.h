@@ -18,8 +18,8 @@
 #ifndef ZOBRIST_H_INCLUDED
 #define ZOBRIST_H_INCLUDED
 
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON {
 

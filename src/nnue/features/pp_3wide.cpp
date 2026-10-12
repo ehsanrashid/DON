@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "../../utility/types.h"
 #include "../../attacks.h"
 #include "../../bitboard.h"
 #include "../../misc.h"

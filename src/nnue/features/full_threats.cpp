@@ -23,6 +23,7 @@
 #include <cassert>
 #include <initializer_list>
 
+#include "../../utility/types.h"
 #include "../../attacks.h"
 #include "../../bitboard.h"
 #include "../../misc.h"

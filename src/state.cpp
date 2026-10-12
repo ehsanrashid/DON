@@ -21,6 +21,7 @@
 #include <initializer_list>
 
 #include "bitboard.h"
+#include "misc.h"
 
 namespace DON {
 
