@@ -26,10 +26,10 @@
 #include <string>
 #include <string_view>
 
-#include "../misc.h"
 #include "architecture.h"
 #include "feature_transformer.h"
 #include "ntypes.h"
+#include "../utility/types.h"
 
 namespace DON {
 

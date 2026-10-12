@@ -29,6 +29,9 @@
     #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
 
+#include "intrusive_list.h"
+#include "types.h"
+
 namespace DON {
 
 void cpu_relax() noexcept {

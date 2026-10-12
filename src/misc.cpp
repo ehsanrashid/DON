@@ -189,8 +189,6 @@ std::string engine_info(const bool uci) noexcept {
 std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
-
-    namespace Color = Color;
     // clang-format off
     const auto border = [&logo](const std::string_view sv) noexcept {
         logo += Color::BG_BLACK;
