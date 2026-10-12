@@ -22,6 +22,7 @@
 #include <cstddef>  // for offsetof()
 #include <cstring>  // for memset()
 
+#include "../utility/types.h"
 #include "../bitboard.h"
 #include "../position.h"
 #include "../types.h"

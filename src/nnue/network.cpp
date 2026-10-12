@@ -25,6 +25,7 @@
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "../incbin/incbin.h"
 
+#include "../utility/types.h"
 #include "../evaluate.h"
 #include "../misc.h"
 #include "../position.h"
@@ -34,7 +35,6 @@
 #include "nnz.h"
 #include "types.h"
 #include "serialization.h"
-#include "../utility/types.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
