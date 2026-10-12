@@ -40,22 +40,6 @@
 #include <utility>
 #include <vector>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
-
-#if defined(_WIN32)
-    #include "platform_win.h"  // GetCommandLineW()
-#endif
-
-#if defined(USE_PREFETCH) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-    #define USE_MM_PREFETCH
-#endif
-
-#if defined(USE_MM_PREFETCH)
-    #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
-#endif
-
 #if defined(__i386__) || defined(_M_IX86)
     #define X86
     #define X86_32
@@ -64,11 +48,37 @@
     #define X86_64
 #endif
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
+#if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+    #define USE_X86_PREFETCH
+#endif
+
+#if defined(_WIN32)
+    #include "platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
+#endif
+
+#if defined(USE_X86_PREFETCH)
+    #if !(defined(_MSC_VER) && defined(_WIN32))
+        #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
+    #endif
+#endif
+
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
+// Enable GNU-style compiler attributes for Clang and GCC, excluding SWIG.
+// Unsupported compilers and SWIG receive an empty attribute macro.
+#if (defined(__clang__) || defined(__GNUC__)) && !defined(SWIG)
+    #define ATTRIBUTE(x) __attribute__((x))
+#else
+    #define ATTRIBUTE(x)
+#endif
+
 #if defined(__clang__) || defined(__GNUC__)
-    #define ALWAYS_INLINE inline __attribute__((always_inline))
+    #define ALWAYS_INLINE inline ATTRIBUTE(always_inline)
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
 #else
@@ -80,7 +90,7 @@
     #define ASSUME(cond) __builtin_assume(cond)
 #elif defined(__GNUC__)
     #if __GNUC__ >= 13
-        #define ASSUME(cond) __attribute__((assume(cond)))
+        #define ASSUME(cond) ATTRIBUTE(assume(cond))
     #else
         #define ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while (false)
     #endif
@@ -111,6 +121,40 @@
     #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
     #define UNLIKELY(x) (x)
+#endif
+
+#if !defined(__INTELLISENSE__)
+    // Enable compiler thread-safety attributes only for Clang, excluding SWIG.
+    // These attributes have no effect when compiling with other compilers.
+    #if defined(__clang__) && !defined(SWIG)
+        #define THREAD_SAFETY_ATTRIBUTE(x) ATTRIBUTE(x)
+    #else
+        #define THREAD_SAFETY_ATTRIBUTE(x)
+    #endif
+
+    // clang-format off
+    #define ASSERT_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(assert_capability(x))
+    #define ASSERT_SHARED_CAPABILITY(x) THREAD_SAFETY_ATTRIBUTE(assert_shared_capability(x))
+    #define RETURN_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(lock_returned(x))
+    #define SCOPED_CAPABILITY           THREAD_SAFETY_ATTRIBUTE(scoped_lockable)
+    #define CAPABILITY(x)               THREAD_SAFETY_ATTRIBUTE(capability(x))
+    #define GUARDED_BY(x)               THREAD_SAFETY_ATTRIBUTE(guarded_by(x))
+    #define PT_GUARDED_BY(x)            THREAD_SAFETY_ATTRIBUTE(pt_guarded_by(x))
+    #define ACQUIRED_BEFORE(...)        THREAD_SAFETY_ATTRIBUTE(acquired_before(__VA_ARGS__))
+    #define ACQUIRED_AFTER(...)         THREAD_SAFETY_ATTRIBUTE(acquired_after(__VA_ARGS__))
+    #define REQUIRES(...)               THREAD_SAFETY_ATTRIBUTE(requires_capability(__VA_ARGS__))
+    #define REQUIRES_SHARED(...)        THREAD_SAFETY_ATTRIBUTE(requires_shared_capability(__VA_ARGS__))
+    #define ACQUIRE(...)                THREAD_SAFETY_ATTRIBUTE(acquire_capability(__VA_ARGS__))
+    #define ACQUIRE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(acquire_shared_capability(__VA_ARGS__))
+    #define RELEASE(...)                THREAD_SAFETY_ATTRIBUTE(release_capability(__VA_ARGS__))
+    #define RELEASE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(release_shared_capability(__VA_ARGS__))
+    #define TRY_ACQUIRE(...)            THREAD_SAFETY_ATTRIBUTE(try_acquire_capability(__VA_ARGS__))
+    #define TRY_ACQUIRE_SHARED(...)     THREAD_SAFETY_ATTRIBUTE(try_acquire_shared_capability(__VA_ARGS__))
+    #define EXCLUDES(...)               THREAD_SAFETY_ATTRIBUTE(locks_excluded(__VA_ARGS__))
+    #define NO_THREAD_SAFETY_ANALYSIS   THREAD_SAFETY_ATTRIBUTE(no_thread_safety_analysis)
+
+    #define PACKED_STRUCT ATTRIBUTE(packed)
+    // clang-format on
 #endif
 
 #if !defined(NDEBUG)
@@ -545,7 +589,7 @@ enum class PrefetchLoc : u8 {
 // PrefetchAccess::WRITE is a best-effort hint and may behave identically to READ.
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
-    #if defined(USE_MM_PREFETCH)
+    #if defined(USE_X86_PREFETCH)
     constexpr auto Hint = []() constexpr noexcept {
         if constexpr (Access == PrefetchAccess::WRITE)
             return
@@ -561,12 +605,20 @@ inline void prefetch(const void* addr) noexcept {
             return _MM_HINT_T2;
         if constexpr (Loc == PrefetchLoc::MODERATE)
             return _MM_HINT_T1;
-        return _MM_HINT_T0;  // PrefetchLoc::HIGH
+        // PrefetchLoc::HIGH
+        return _MM_HINT_T0;
     }();
-    _mm_prefetch(reinterpret_cast<const char*>(addr), Hint);
+
+        #if defined(_MSC_VER)
+    PreFetchCacheLine(Hint, addr);
+
+        #else
+    _mm_prefetch(static_cast<const char*>(addr), Hint);
+
+        #endif
 
     #else
-    __builtin_prefetch(addr, static_cast<int>(Access), static_cast<int>(Loc));
+    __builtin_prefetch(addr, int(Access), int(Loc));
 
     #endif
 }
@@ -1190,6 +1242,72 @@ class RelaxedAtomic final {
     }
 
     std::conditional_t<UseAtomic, std::atomic<T>, T> value;
+};
+
+// A lightweight intrusive singly linked list that does not own its elements or allocate memory.
+// Each element stores its own next pointer, allowing existing objects
+// (e.g. stack-allocated mutex waiters) to be linked directly into the list without creating separate list nodes.
+// Unlike std::list, it requires no dynamic allocation and stores only one link pointer per element.
+// Elements must remain alive and at stable addresses while linked, and list operations must
+// be externally synchronized when accessed concurrently.
+template<typename T>
+class IntrusiveList final {
+   public:
+    void push_back(T& item) noexcept {
+        item.next = nullptr;
+
+        T*& nextLink = back_ != nullptr ? back_->next : front_;
+
+        nextLink = &item;
+        back_    = &item;
+        ++size_;
+    }
+
+    void erase(T& item) noexcept {
+        T*    pre = nullptr;  // Previous node; nullptr means cur is the front
+        auto* cur = front_;   // Start searching from the front of the list
+
+        // Find the requested item while tracking its previous node
+        while (cur != nullptr && cur != &item)
+        {
+            pre = cur;
+            cur = cur->next;
+        }
+
+        // The item is not in the list; nothing to remove
+        if (cur == nullptr)
+            return;
+
+        // Unlink cur from the list
+        if (pre == nullptr)
+            front_ = cur->next;  // Front: advance to the next node
+        else
+            pre->next = cur->next;  // Otherwise, bypass cur
+
+        // If cur was the back, update it to the previous node.
+        // This also sets back_ to nullptr when removing the only node.
+        if (back_ == cur)
+            back_ = pre;
+
+        // Detach the removed item from the list
+        cur->next = nullptr;
+        // Decrease the number of items
+        --size_;
+    }
+
+    T* front() const noexcept { return front_; }
+    T* back() const noexcept { return back_; }
+
+    usize size() const noexcept { return size_; }
+    bool  empty() const noexcept {
+        assert((front() == nullptr) == (size() == 0));
+        return size() == 0;
+    }
+
+   private:
+    T*    front_ = nullptr;
+    T*    back_  = nullptr;
+    usize size_  = 0;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.

@@ -481,9 +481,13 @@ struct Limit final {
 // Skill 0...19.99 covers CCRL Blitz Elo from 1320...3190, approximately.
 struct Skill final {
    public:
-    constexpr Skill() noexcept = default;
+    Skill() noexcept = default;
 
     void init(const Options& options) noexcept;
+
+    [[nodiscard]] double level() const noexcept;
+
+    [[nodiscard]] Move move() const noexcept;
 
     [[nodiscard]] bool enabled() const noexcept;
 
@@ -491,7 +495,7 @@ struct Skill final {
 
     [[nodiscard]] Value weakness() const noexcept;
 
-    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
+    void pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
 
     static constexpr double LevelMin = 0.0;
     static constexpr double LevelMax = 20.0;
@@ -500,8 +504,13 @@ struct Skill final {
     static constexpr u16 ELOMax = 3190;
 
    private:
-    double level    = LevelMax;
-    Move   bestMove = Move::None;
+    Skill(const Skill&) noexcept            = delete;
+    Skill& operator=(const Skill&) noexcept = delete;
+    Skill(Skill&&) noexcept                 = delete;
+    Skill& operator=(Skill&&) noexcept      = delete;
+
+    double level_ = LevelMax;
+    Move   move_  = Move::None;
 };
 
 // SharedState stores the shared resources.
@@ -779,6 +788,7 @@ class Worker final {
     usize multiPV, pvIdx, pvEnd;
     u16   selDepth;
     i16   nmpPly;
+    bool  seekMate = false;
 
     Array<i32, COLOR_NB> optimism;
 

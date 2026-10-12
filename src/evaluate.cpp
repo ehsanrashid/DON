@@ -46,14 +46,14 @@ Value scale_evaluation(const Position& pos, const i32 nnue, const i32 optimism) 
 
     const Value eval = pos.evaluate();
 
-    // When NNUE and material agree (positive alignment), the position is straightforward;
-    // otherwise (negative alignment) it involves complex compensation. In a representative
-    // sample, alignment averages -1 or so, i.e. it is well-centered in [-2048, 2048].
-    const i32 alignment = constexpr_round(normalize_eval(eval) * normalize_eval(nnue) / 512.0);
+    // When NNUE and material agree (positive correlation), the position is straightforward;
+    // otherwise (negative correlation) it involves complex compensation.
+    // In a representative sample, correl averages -1 or so, i.e. it is well-centered in [-2048, 2048].
+    const i32 correl = constexpr_round(normalize_eval(eval) * normalize_eval(nnue) / 512.0);
 
     const i32 v = constexpr_round(
-      // When winning, favor easy positions, and vice versa
-      (nnue + (nnue + 4 * optimism) * alignment / 65536.0)
+      // When winning, boost easy positions, and vice versa
+      (nnue + (nnue + 4 * optimism) * correl / 65536.0)
       // Scale the combined evaluation by total material
       * (1.0 + pos.material_value() / 90649.0)
       // Damp evaluation linearly based on the 50-move rule

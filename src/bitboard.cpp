@@ -17,11 +17,119 @@
 
 #include "bitboard.h"
 
-#include <memory>
+#if !defined(USE_POPCNT)
+    #include <cstring>  // memcpy()
+#endif
 
 #include "concurrent.h"  // ConcurrentCache<>
 
 namespace DON {
+
+namespace {
+
+#if !defined(USE_POPCNT)
+
+alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
+    Array<u8, 0x10000> popCnts{};
+
+    for (usize i = 0; i < popCnts.size(); ++i)
+        popCnts[i] = constexpr_popcount(i);
+
+    return popCnts;
+}();
+
+#endif
+
+ConcurrentCache<Bitboard, std::string> BitboardCache{1 * KB, 0.75f};
+
+}  // namespace
+
+u8 popcount(const Bitboard b) noexcept {
+
+#if !defined(USE_POPCNT)
+    Array<u16, 4> b16;
+    static_assert(sizeof(b16) == sizeof(b));
+
+    std::memcpy(b16.data(), &b, sizeof(b16));
+
+    return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
+
+#elif defined(__GNUC__)  // GCC, Clang, ICX
+    return static_cast<u8>(__builtin_popcountll(b));
+
+#elif defined(_MSC_VER)
+    return static_cast<u8>(_mm_popcnt_u64(b));
+
+#else  // Compiler is neither GCC nor MSVC compatible
+    // Using a fallback implementation
+    return constexpr_popcount(b);
+
+#endif
+}
+
+Square lsq(const Bitboard b) noexcept {
+    assert(b != 0);
+
+#if defined(__GNUC__)  // GCC, Clang, ICX
+    return Square(__builtin_ctzll(b));
+
+#elif defined(_MSC_VER)
+    unsigned long idx;
+
+    #if defined(_WIN64)  // (WIN64)
+    _BitScanForward64(&idx, b);
+    return Square(idx);
+
+    #else  // (WIN32)
+    if (u32 bb = u32(b); bb != 0)
+    {
+        _BitScanForward(&idx, bb);
+        return Square(idx);
+    }
+
+    _BitScanForward(&idx, u32(b >> 32));
+    return Square(idx + 32);
+
+    #endif
+
+#else  // Compiler is neither GCC nor MSVC compatible
+    // Using a fallback implementation
+    return Square(constexpr_lsb(b));
+
+#endif
+}
+
+Square msq(const Bitboard b) noexcept {
+    assert(b != 0);
+
+#if defined(__GNUC__)  // GCC, Clang, ICX
+    return Square(__builtin_clzll(b) ^ 63);
+
+#elif defined(_MSC_VER)
+    unsigned long idx;
+
+    #if defined(_WIN64)  // (WIN64)
+    _BitScanReverse64(&idx, b);
+    return Square(idx);
+
+    #else  // (WIN32)
+    if (u32 bb = static_cast<u32>(b >> 32); bb != 0)
+    {
+        _BitScanReverse(&idx, bb);
+        return Square(idx + 32);
+    }
+
+    _BitScanReverse(&idx, static_cast<u32>(b));
+    return Square(idx);
+
+    #endif
+
+#else  // Compiler is neither GCC nor MSVC compatible
+    // Using a fallback implementation
+    return Square(constexpr_msb(b));
+
+#endif
+}
 
 Square pop_lsq(Bitboard& b) noexcept {
     assert(b != 0);
@@ -78,27 +186,10 @@ std::string pretty_str(const Bitboard b) noexcept {
 }
 
 std::string_view pretty(const Bitboard b) noexcept {
-    constexpr usize ReserveCount  = 1 * KB;
-    constexpr float MaxLoadFactor = 0.75f;
-
-    // Thread-safe static initialization
-
-    // Fully RAII-compliant — destructor runs at program exit
-    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-
-    // Standard intentional "leaky singleton" pattern.
-    // Ensures the cache lives for the entire program, never deleted.
-    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-    static auto& cache = *[=]() noexcept -> auto {
-        static auto cachePtr =
-          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
-        return cachePtr.get();
-    }();
-
-    //return cache.access_or_build(b, pretty_str(b));
-    //return cache.transform_access_or_build(
+    //return BitboardCache.access_or_build(b, pretty_str(b));
+    //return BitboardCache.transform_access_or_build(
     //  b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
-    return cache.transform_access_or_build_with(
+    return BitboardCache.transform_access_or_build_with(
       b, [](const std::string& str) noexcept -> std::string_view { return str; },
       [](const Bitboard _b) noexcept -> std::string { return pretty_str(_b); }, b);
 }
