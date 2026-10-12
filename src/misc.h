@@ -40,28 +40,30 @@
 #include <utility>
 #include <vector>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
-
-#if defined(_WIN32)
-    #include "platform_win.h"  // GetCommandLineW()
-#endif
-
-#if defined(USE_PREFETCH) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-    #define USE_MM_PREFETCH
-#endif
-
-#if defined(USE_MM_PREFETCH)
-    #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
-#endif
-
 #if defined(__i386__) || defined(_M_IX86)
     #define X86
     #define X86_32
 #elif defined(__x86_64__) || defined(_M_X64)
     #define X86
     #define X86_64
+#endif
+
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
+#if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+    #define USE_X86_PREFETCH
+#endif
+
+#if defined(_WIN32)
+    #include "platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
+#endif
+
+#if defined(USE_X86_PREFETCH)
+    #if !(defined(_MSC_VER) && defined(_WIN32))
+        #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
+    #endif
 #endif
 
 #define STRING_LITERAL(x) #x
@@ -576,7 +578,7 @@ enum class PrefetchLoc : u8 {
 // PrefetchAccess::WRITE is a best-effort hint and may behave identically to READ.
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
-    #if defined(USE_MM_PREFETCH)
+    #if defined(USE_X86_PREFETCH)
     constexpr auto Hint = []() constexpr noexcept {
         if constexpr (Access == PrefetchAccess::WRITE)
             return
@@ -594,10 +596,17 @@ inline void prefetch(const void* addr) noexcept {
             return _MM_HINT_T1;
         return _MM_HINT_T0;  // PrefetchLoc::HIGH
     }();
-    _mm_prefetch(reinterpret_cast<const char*>(addr), Hint);
+
+        #if defined(_MSC_VER)
+    PreFetchCacheLine(Hint, addr);
+
+        #else
+    _mm_prefetch(static_cast<const char*>(addr), Hint);
+
+        #endif
 
     #else
-    __builtin_prefetch(addr, static_cast<int>(Access), static_cast<int>(Loc));
+    __builtin_prefetch(addr, int(Access), int(Loc));
 
     #endif
 }

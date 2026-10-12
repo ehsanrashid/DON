@@ -21,22 +21,58 @@
 #if defined(USE_SSE2)
     #if defined(USE_AVX2)
         #include <immintrin.h>
+
     #elif defined(USE_SSE41)
         #include <smmintrin.h>
+
     #elif defined(USE_SSSE3)
         #include <tmmintrin.h>
+
     #else
         #include <emmintrin.h>
+
     #endif
+
 #elif defined(USE_LSX)
     #include <lsxintrin.h>
+
     #if defined(USE_LASX)
         #include <lasxintrin.h>
+
     #endif
+
+    #if defined(__clang__)
+        #if defined(__has_builtin)
+
+            #if defined(USE_LSX)
+                #if __has_builtin(__builtin_lsx_vssrani_bu_h)
+                    #define HAS_BUILTIN_LSX_VSSRANI_BU_H
+                #endif
+                #if __has_builtin(__builtin_lsx_vssrani_hu_w)
+                    #define HAS_BUILTIN_LSX_VSSRANI_HU_W
+                #endif
+
+                #if defined(USE_LASX)
+                    #if __has_builtin(__builtin_lasx_xvssrani_bu_h)
+                        #define HAS_BUILTIN_LASX_XVSSRANI_BU_H
+                    #endif
+                    #if __has_builtin(__builtin_lasx_xvssrani_hu_w)
+                        #define HAS_BUILTIN_LASX_XVSSRANI_HU_W
+                    #endif
+                    #if __has_builtin(__builtin_lasx_cast_128)
+                        #define HAS_BUILTIN_LASX_CAST_128
+                    #endif
+                #endif
+            #endif
+        #endif
+    #endif
+
 #elif defined(USE_NEON)
     #include <arm_neon.h>
+
 #elif defined(USE_RVV)
     #include <riscv_vector.h>
+
 #else
     //#pragma message("No SIMD instruction set enabled — falling back to scalar code")
 #endif
@@ -185,7 +221,7 @@ ALWAYS_INLINE void lasx_store256(__m256i* dst, const __m256i value) noexcept {
         #define vec_store(dst, value) SIMD::lasx_store256(dst, value)
 
 ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
-        #if defined(__has_builtin) && __has_builtin(__builtin_lasx_cast_128)
+        #if defined(HAS_BUILTIN_LASX_CAST_128)
     return __lasx_vext2xv_h_b(__lasx_cast_128(a));
         #elif defined(__GNUC__) && !defined(__clang__)
     __m256i epi16;
@@ -212,7 +248,7 @@ ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #define vec_slli_16(a, b) __lasx_xvslli_h(a, b)
         // Inverse permuted at load time
 ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_bu_h)
+        #if defined(HAS_BUILTIN_LASX_XVSSRANI_BU_H)
     return (__m256i) __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
         #else
     return __lasx_xvssrani_bu_h(b, a, 0);
@@ -221,7 +257,7 @@ ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept 
         #define vec_packus_16(a, b) SIMD::lasx_packus_16(a, b)
 
 ALWAYS_INLINE __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_hu_w)
+        #if defined(HAS_BUILTIN_LASX_XVSSRANI_HU_W)
     return (__m256i) __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
         #else
     return __lasx_xvssrani_hu_w(b, a, 0);
@@ -271,7 +307,7 @@ ALWAYS_INLINE __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
         #define vec_slli_16(a, b) __lsx_vslli_h(a, b)
         // Inverse permuted at load time
 ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_bu_h)
+        #if defined(HAS_BUILTIN_LSX_VSSRANI_BU_H)
     return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
         #else
     return __lsx_vssrani_bu_h(b, a, 0);
@@ -280,7 +316,7 @@ ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
         #define vec_packus_16(a, b) SIMD::lsx_packus_16(a, b)
 
 ALWAYS_INLINE __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_hu_w)
+        #if defined(HAS_BUILTIN_LSX_VSSRANI_HU_W)
     return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
         #else
     return __lsx_vssrani_hu_w(b, a, 0);

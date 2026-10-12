@@ -24,27 +24,20 @@
 #include <mutex>
 #include <thread>  // sleep_for()
 
-#if defined(X86)
-    #if defined(_MSC_VER)
-        #include "platform_win.h"
-    #else
-        #include <emmintrin.h>  // _mm_pause()
-    #endif
+#if defined(_WIN32)
+    #include "platform_win.h"  // YieldProcessor()
+#elif defined(X86)
+    #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
 
 namespace DON {
 
 void cpu_relax() noexcept {
-#if defined(X86)
-    #if defined(_MSC_VER)
+#if defined(_WIN32)
     YieldProcessor();
 
-    #else
+#elif defined(X86)
     _mm_pause();
-    #endif
-
-#elif defined(_MSC_VER)
-    // No architecture-specific pause instruction available
 
 #elif defined(__clang__) || defined(__GNUC__)
     #if defined(__arm__) || defined(__aarch64__)
@@ -70,7 +63,7 @@ void cpu_relax() noexcept {
 
 #else
     // No architecture-specific pause hint available for this compiler
-    __asm__ __volatile__("");
+    //__asm__ __volatile__("");
 
 #endif
 }

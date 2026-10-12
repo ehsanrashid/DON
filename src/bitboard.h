@@ -27,14 +27,19 @@
 #if defined(USE_AVX512)
     #include <immintrin.h>
 #endif
+
 #if defined(_MSC_VER)
     #include <intrin.h>  // _BitScanForward64(), _BitScanForward() intrinsics
     #if defined(USE_POPCNT)
         #include <nmmintrin.h>  // _mm_popcnt_u64() intrinsic (POPCNT)
+
     #endif
+
 #endif
+
 #if !defined(USE_POPCNT)
     #include <cstring>
+
 #endif
 
 #include "misc.h"
@@ -323,92 +328,14 @@ constexpr u8 constexpr_msb(const Bitboard b) noexcept {
     return constexpr_msb_index(fill_prefix_bb(b));
 }
 
-#if !defined(USE_POPCNT)
-
-alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
-    Array<u8, 0x10000> popCnts{};
-
-    for (usize i = 0; i < popCnts.size(); ++i)
-        popCnts[i] = constexpr_popcount(i);
-
-    return popCnts;
-}();
-
-#endif
-
 // Counts the number of non-zero bits in the bitboard
-ALWAYS_INLINE u8 popcount(const Bitboard b) noexcept {
-
-#if !defined(USE_POPCNT)
-    Array<u16, 4> b16;
-    static_assert(sizeof(b16) == sizeof(b));
-
-    std::memcpy(b16.data(), &b, sizeof(b16));
-
-    return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
-#elif defined(__GNUC__)  // GCC, Clang, ICX
-    return static_cast<u8>(__builtin_popcountll(b));
-#elif defined(_MSC_VER)
-    return static_cast<u8>(_mm_popcnt_u64(b));
-#else  // Compiler is neither GCC nor MSVC compatible
-    // Using a fallback implementation
-    return constexpr_popcount(b);
-#endif
-}
+u8 popcount(Bitboard b) noexcept;
 
 // Returns the least significant bit in the non-zero bitboard
-ALWAYS_INLINE Square lsq(const Bitboard b) noexcept {
-    assert(b != 0);
-
-#if defined(__GNUC__)  // GCC, Clang, ICX
-    return Square(__builtin_ctzll(b));
-#elif defined(_MSC_VER)
-    unsigned long idx;
-    #if defined(_WIN64)  // (WIN64)
-    _BitScanForward64(&idx, b);
-    return Square(idx);
-    #else                // (WIN32)
-    if (u32 bb = static_cast<u32>(b); bb != 0)
-    {
-        _BitScanForward(&idx, bb);
-        return Square(idx);
-    }
-
-    _BitScanForward(&idx, static_cast<u32>(b >> 32));
-    return Square(idx + 32);
-    #endif
-#else  // Compiler is neither GCC nor MSVC compatible
-    // Using a fallback implementation
-    return Square(constexpr_lsb(b));
-#endif
-}
+Square lsq(Bitboard b) noexcept;
 
 // Returns the most significant bit in the non-zero bitboard
-ALWAYS_INLINE Square msq(const Bitboard b) noexcept {
-    assert(b != 0);
-
-#if defined(__GNUC__)  // GCC, Clang, ICX
-    return Square(__builtin_clzll(b) ^ 63);
-#elif defined(_MSC_VER)
-    unsigned long idx;
-    #if defined(_WIN64)  // (WIN64)
-    _BitScanReverse64(&idx, b);
-    return Square(idx);
-    #else                // (WIN32)
-    if (u32 bb = static_cast<u32>(b >> 32); bb != 0)
-    {
-        _BitScanReverse(&idx, bb);
-        return Square(idx + 32);
-    }
-
-    _BitScanReverse(&idx, static_cast<u32>(b));
-    return Square(idx);
-    #endif
-#else  // Compiler is neither GCC nor MSVC compatible
-    // Using a fallback implementation
-    return Square(constexpr_msb(b));
-#endif
-}
+Square msq(Bitboard b) noexcept;
 
 // Returns and clears the least significant bit in the non-zero bitboard
 Square pop_lsq(Bitboard& b) noexcept;

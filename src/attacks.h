@@ -26,14 +26,18 @@
 #if defined(USE_BMI2)
     #include <immintrin.h>  // BMI2 [_pext_u64(), _pdep_u64()] intrinsics
 #endif
+
 #if defined(USE_AVX2)
     #include <immintrin.h>
     #define USE_DUAL_HYPERBOLA_QUINT
+
 #elif defined(__loongarch__) && __loongarch_grlen == 64
     #define USE_HYPERBOLA_QUINT
+
 #elif defined(__aarch64__)
     #include <arm_acle.h>
     #define USE_HYPERBOLA_QUINT
+
 #endif
 
 #if defined(__has_builtin)
