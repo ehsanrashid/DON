@@ -28,11 +28,11 @@
 #include "movegen.h"
 #include "movepick.h"
 #include "option.h"
-#include "prng.h"
 #include "thread.h"
 #include "tt.h"
 #include "nnue/network.h"
 #include "utility/debug.h"
+#include "utility/prng.h"
 
 namespace DON {
 

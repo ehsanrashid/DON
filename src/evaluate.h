@@ -20,8 +20,8 @@
 
 #include <string>
 
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 // The default net name must follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build) to work.

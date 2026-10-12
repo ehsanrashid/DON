@@ -217,6 +217,8 @@ constexpr auto sign_sqr(const T x) noexcept {
     return sign(x) * sqr(x);
 }
 
+constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
+
 // Computes ln(1 + d) for f in (-1, sqrt(2)-1] via the identity
 // ln(1 + d) = 2 * atanh(s),   s = d / (d + 2.0)
 // ln(1 + d) = 2 * (s + s^3/3 + s^5/5 + ...), s = d / (d + 2).

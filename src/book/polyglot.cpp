@@ -32,10 +32,10 @@
 #include "../notation.h"
 #include "../option.h"
 #include "../position.h"
-#include "../prng.h"
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
+#include "../utility/prng.h"
 
 namespace DON::Book {
 

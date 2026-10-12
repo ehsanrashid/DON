@@ -19,12 +19,9 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <chrono>
-#include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -38,7 +35,6 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #if defined(__i386__) || defined(_M_IX86)
     #define X86
@@ -90,8 +86,6 @@ inline const bool IS_LITTLE_ENDIAN = []() noexcept -> bool {
     return *reinterpret_cast<const u8*>(&LE) == 1;
 }();
 #endif
-
-constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =

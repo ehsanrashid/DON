@@ -23,7 +23,7 @@
 #include <cstring>
 #include <initializer_list>
 
-#include "prng.h"
+#include "utility/prng.h"
 
 namespace DON {
 

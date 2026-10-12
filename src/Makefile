@@ -102,11 +102,11 @@ PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 ### Source and object files
 SRCS := \
     attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp misc.cpp \
-    movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp prng.cpp \
-    search.cpp shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
+    movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp search.cpp \
+    shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp \
-    utility/debug.cpp utility/mutex.cpp
+    utility/debug.cpp utility/mutex.cpp utility/prng.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -116,14 +116,15 @@ UNIVERSAL_SRCS := \
 
 HEADERS := \
     attacks.h benchmark.h bitboard.h cuckoo.h engine.h evaluate.h history.h memory.h misc.h movegen.h movepick.h \
-    native_thread.h non_concurrent.h notation.h numa.h option.h perft.h platform_win.h position.h prng.h \
-    search.h shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
+    native_thread.h non_concurrent.h notation.h numa.h option.h perft.h platform_win.h position.h search.h \
+    shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \
     nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
     nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/ntypes.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
-    utility/color.h utility/concurrent.h utility/concurrent_queue.h utility/debug.h utility/error.h utility/mutex.h
+    utility/color.h utility/concurrent.h utility/concurrent_queue.h utility/debug.h utility/error.h utility/mutex.h \
+    utility/prng.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 

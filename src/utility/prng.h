@@ -18,7 +18,7 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
-#include "misc.h"
+#include "types.h"
 
 namespace DON {
 
