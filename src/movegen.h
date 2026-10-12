@@ -18,6 +18,7 @@
 #ifndef MOVEGEN_H_INCLUDED
 #define MOVEGEN_H_INCLUDED
 
+#include <algorithm>
 #include <cassert>
 
 #include "types.h"
