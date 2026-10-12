@@ -15,16 +15,16 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTEX_H_INCLUDED
-#define MUTEX_H_INCLUDED
+#ifndef UTILITY_MUTEX_H_INCLUDED
+#define UTILITY_MUTEX_H_INCLUDED
 
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
 
-#include "misc.h"
+#include "../misc.h"
 
-namespace DON {
+namespace DON::Utility {
 
 // Architecture-specific processor hint for spin-wait loops.
 // May reduce resource contention, improve progress of sibling hardware threads, or
@@ -338,6 +338,6 @@ class FairSharedMutex
       = false;
 };
 
-}  // namespace DON
+}  // namespace DON::Utility
 
-#endif  // MUTEX_H_INCLUDED
+#endif  // UTILITY_MUTEX_H_INCLUDED

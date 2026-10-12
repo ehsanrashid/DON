@@ -41,7 +41,9 @@
 
 namespace DON {
 
+namespace Utility {
 struct Error;
+}
 
 class Engine final {
    public:
@@ -66,8 +68,8 @@ class Engine final {
     void wait_finish() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
-    std::optional<Error> setup(std::string_view fen   = START_FEN,
-                               const Strings&   moves = {}) noexcept;
+    std::optional<Utility::Error> setup(std::string_view fen   = START_FEN,
+                                        const Strings&   moves = {}) noexcept;
 
     void reset() noexcept;
 
@@ -81,8 +83,8 @@ class Engine final {
     std::string evaluation() const noexcept;
     void        dump(const fs::path& dumpPath = {}) const noexcept;
 
-    std::optional<Error> flip() noexcept;
-    std::optional<Error> mirror() noexcept;
+    std::optional<Utility::Error> flip() noexcept;
+    std::optional<Utility::Error> mirror() noexcept;
 
     u16 hashfull(u8 maxAge = 0) const noexcept;
 

@@ -54,7 +54,7 @@
     #define USE_POSIX_ALIGNED_ALLOC
 #endif
 
-#include "concurrent.h"  // ConcurrentAllocationTracker<>
+#include "utility/concurrent.h"  // ConcurrentAllocationTracker<>
 #include "misc.h"
 
 namespace DON {
@@ -212,7 +212,7 @@ bool free_aligned_huge(void* const mem, const usize allocSize) noexcept {
 }
 
 
-ConcurrentAllocationTracker HugePageAllocationTracker{};
+Utility::ConcurrentAllocationTracker HugePageAllocationTracker{};
 
     #endif
 

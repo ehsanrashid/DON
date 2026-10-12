@@ -18,10 +18,10 @@
 #ifndef DEBUG_H_INCLUDED
 #define DEBUG_H_INCLUDED
 
-#include "misc.h"
+#include "../misc.h"
 
 // Debug functions used mainly to collect run-time statistics
-namespace DON::Debug {
+namespace DON::Utility::Debug {
 
 void hit_on(bool cond, usize slot = 0) noexcept;
 
@@ -41,6 +41,6 @@ void print() noexcept;
 
 void reset() noexcept;
 
-}  // namespace DON::Debug
+}  // namespace DON::Utility::Debug
 
 #endif  // DEBUG_H_INCLUDED

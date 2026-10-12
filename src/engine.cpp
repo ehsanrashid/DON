@@ -24,7 +24,6 @@
 #include <optional>
 #include <sstream>
 
-#include "error.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "notation.h"
@@ -32,8 +31,11 @@
 #include "shm.h"
 #include "state.h"
 #include "tablebase/syzygy.h"
+#include "utility/error.h"
 
 namespace DON {
+
+using namespace Utility;
 
 Engine::Engine(const fs::path& path) noexcept :
     // clang-format off

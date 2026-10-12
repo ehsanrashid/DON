@@ -71,7 +71,7 @@
     #include <memory>   // unique_ptr<>, make_unique<>
     #include <optional>
 
-    #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
+    #include "utility/concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
 
     // Linux (non-Android)
     #if defined(LINUX_NON_ANDROID)
@@ -443,7 +443,7 @@ class BaseSharedMemory {
 // Usage:
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
-inline ConcurrentRegistry<BaseSharedMemory*>  //
+inline Utility::ConcurrentRegistry<BaseSharedMemory*>  //
   MemoryRegistry(usize{256}, 0.75f);
 
 // MemoryRegistryCleanup
@@ -458,7 +458,7 @@ inline ConcurrentRegistry<BaseSharedMemory*>  //
 //  - Registry management is handled by MemoryRegistry.
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
-inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
+inline Utility::RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
   MemoryRegistryCleanup{MemoryRegistry};
 
 // MemoryRegistryCleanupHook
@@ -479,7 +479,7 @@ inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
 //  - The referenced cleanup object must remain valid until program exit.
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
-inline RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
+inline Utility::RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
   MemoryRegistryCleanupHook{MemoryRegistryCleanup};
 
 // TempRoot

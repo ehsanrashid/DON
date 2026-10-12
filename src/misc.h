@@ -213,6 +213,9 @@ struct ArrayDef<T, Size> final {
 template<typename T, usize Size, usize... Sizes>
 using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
+// Size of cache line (in bytes)
+inline constexpr usize CACHE_LINE_SIZE = 64;
+
 inline constexpr usize BYTE_BITS = 8;
 
 inline constexpr usize HEX64_SIZE = 16;

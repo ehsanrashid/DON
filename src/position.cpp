@@ -24,17 +24,19 @@
 #include <sstream>
 #include <utility>  // for swap()
 
-#include "concurrent.h"  // ConcurrentCache<>
 #include "cuckoo.h"
-#include "error.h"
 #include "history.h"
 #include "movegen.h"
 #include "search.h"
-#include "tablebase/syzygy.h"
 #include "tt.h"
 #include "zobrist.h"
+#include "tablebase/syzygy.h"
+#include "utility/concurrent.h"  // ConcurrentCache<>
+#include "utility/error.h"
 
 namespace DON {
+
+using namespace Utility;
 
 namespace {
 

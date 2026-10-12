@@ -102,9 +102,6 @@ constexpr usize HASH_MAX =
 // Maximum signed 16-bit value: 2**15 - 1
 inline constexpr u16 RULE50_COUNT_MAX = std::numeric_limits<i16>::max();
 
-// Size of cache line (in bytes)
-inline constexpr usize CACHE_LINE_SIZE = 64;
-
 inline constexpr std::string_view START_FEN{
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 

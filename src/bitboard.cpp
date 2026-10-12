@@ -21,7 +21,7 @@
     #include <cstring>  // memcpy()
 #endif
 
-#include "concurrent.h"  // ConcurrentCache<>
+#include "utility/concurrent.h"  // ConcurrentCache<>
 
 namespace DON {
 
@@ -40,7 +40,7 @@ alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
 
 #endif
 
-ConcurrentCache<Bitboard, std::string> BitboardCache{1 * KB, 0.75f};
+Utility::ConcurrentCache<Bitboard, std::string> BitboardCache{1 * KB, 0.75f};
 
 }  // namespace
 

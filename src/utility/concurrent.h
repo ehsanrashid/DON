@@ -32,10 +32,10 @@
 #include <unordered_set>  // unordered_set<>
 #include <utility>        // forward<>, pair<>
 
-#include "misc.h"
+#include "../misc.h"
 #include "mutex.h"
 
-namespace DON {
+namespace DON::Utility {
 
 // ConcurrentMap: thread-safe key-value map with lazy value creation and pre-reserved storage.
 template<typename Key, typename Value>
@@ -757,6 +757,6 @@ class RegistryCleanupHook final {
     static inline CallOnce         hookCallOnce;
 };
 
-}  // namespace DON
+}  // namespace DON::Utility
 
 #endif  // CONCURRENT_H_INCLUDED

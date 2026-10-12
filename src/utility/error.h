@@ -20,7 +20,7 @@
 
 #include <stdexcept>
 
-namespace DON {
+namespace DON::Utility {
 
 // Base type for application-specific errors
 struct Error: public std::runtime_error {
@@ -34,6 +34,6 @@ struct FENError final: public Error {
         Error{"Invalid FEN: " + std::string{message}} {}
 };
 
-}  // namespace DON
+}  // namespace DON::Utility
 
 #endif  // ERROR_H_INCLUDED

@@ -24,12 +24,12 @@
 #include <thread>  // sleep_for()
 
 #if defined(_WIN32)
-    #include "platform_win.h"  // YieldProcessor()
+    #include "../platform_win.h"  // YieldProcessor()
 #elif defined(X86)
     #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
 
-namespace DON {
+namespace DON::Utility {
 
 void cpu_relax() noexcept {
 #if defined(_WIN32)
@@ -401,4 +401,4 @@ usize FairSharedMutex::waiting_writer_count() const noexcept {
 
 // ------------------
 
-}  // namespace DON
+}  // namespace DON::Utility

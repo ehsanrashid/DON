@@ -24,7 +24,6 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "debug.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
@@ -33,6 +32,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "nnue/network.h"
+#include "utility/debug.h"
 
 namespace DON {
 
@@ -2724,7 +2724,7 @@ void Manager::check_time(Worker& worker) noexcept {
     if (const TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
     {
         infoTime = curTime;
-        Debug::print();
+        Utility::Debug::print();
     }
 
     // Should not stop pondering until told so by the GUI

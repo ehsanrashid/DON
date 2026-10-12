@@ -20,8 +20,7 @@
 
 #include <thread>
 
-#include "misc.h"
-#include "types.h"
+#include "../misc.h"
 
 namespace DON {
 

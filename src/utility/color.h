@@ -15,10 +15,10 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef COLOR_H_INCLUDED
-#define COLOR_H_INCLUDED
+#ifndef UTILITY_COLOR_H_INCLUDED
+#define UTILITY_COLOR_H_INCLUDED
 
-namespace DON::Color {
+namespace DON::Utility::Color {
 
 // Reset
 inline constexpr const char* RESET = "\033[0m";
@@ -62,6 +62,6 @@ inline constexpr const char* BG_MAGENTA = "\033[45m";
 inline constexpr const char* BG_CYAN    = "\033[46m";
 inline constexpr const char* BG_WHITE   = "\033[47m";
 
-}  // namespace DON::Color
+}  // namespace DON::Utility::Color
 
-#endif  // COLOR_H_INCLUDED
+#endif  // UTILITY_COLOR_H_INCLUDED

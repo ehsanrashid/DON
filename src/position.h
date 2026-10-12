@@ -37,7 +37,9 @@
 
 namespace DON {
 
+namespace Utility {
 struct Error;
+}
 class Worker;
 
 // Position class stores information regarding the board representation as
@@ -66,10 +68,10 @@ class Position final {
     // Initializes the position object with the given FEN string.
     // This function is not very robust - make sure that input FENs are correct,
     // this is assumed to be the responsibility of the GUI.
-    std::optional<Error> set(std::string_view fens, State* newSt) noexcept;
+    std::optional<Utility::Error> set(std::string_view fens, State* newSt) noexcept;
     // Overload to initialize the position object with the given endgame code string like "KBPKN".
     // It's mainly a helper to get the material key out of an endgame code.
-    std::optional<Error> set(std::string_view code, Color c, State* newSt) noexcept;
+    std::optional<Utility::Error> set(std::string_view code, Color c, State* newSt) noexcept;
     // Copy position and points to newSt and then copy state into st
     void set(const Position& pos, State* newSt) noexcept;
     // Returns a FEN representation of the position.
@@ -251,9 +253,9 @@ class Position final {
 
     // Flips the current position with the white and black sides reversed.
     // This is only useful for debugging e.g. for finding evaluation symmetry bugs.
-    std::optional<Error> flip() noexcept;
+    std::optional<Utility::Error> flip() noexcept;
     // Mirrors the current position
-    std::optional<Error> mirror() noexcept;
+    std::optional<Utility::Error> mirror() noexcept;
 
     [[nodiscard]] Key compute_material_key(Color c) const noexcept;
 

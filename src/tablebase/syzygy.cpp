@@ -43,7 +43,6 @@
 
 #include "../attacks.h"
 #include "../bitboard.h"
-#include "../error.h"
 #include "../misc.h"
 #include "../movegen.h"
 #include "../option.h"
@@ -51,6 +50,9 @@
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
+#include "../utility/error.h"
+
+using namespace DON::Utility;
 
 namespace DON::Tablebase::Syzygy {
 
