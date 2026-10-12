@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef least_recently_used_cache_H_INCLUDED
-#define least_recently_used_cache_H_INCLUDED
+#ifndef LRU_CACHE_H_INCLUDED
+#define LRU_CACHE_H_INCLUDED
 
 #include <list>
 #include <memory>
@@ -28,13 +28,12 @@
 
 namespace DON {
 
-
 template<class Key, class Value>
-class LeastRecentlyUsedCache {
+class LRUCache final {
    public:
     using ValuePtr = std::shared_ptr<Value>;
 
-    explicit LeastRecentlyUsedCache(usize capacity = 128) noexcept :
+    explicit LRUCache(usize capacity = 128) noexcept :
         capacity_(capacity) {}
 
     [[nodiscard]] ValuePtr insert(Key key, ValuePtr value) noexcept {
@@ -57,7 +56,7 @@ class LeastRecentlyUsedCache {
 
         indexMap.emplace(list.front().key, list.begin());
 
-        evict_excess();
+        nolock_evict_excess();
 
         return list.front().value;
     }
@@ -65,14 +64,7 @@ class LeastRecentlyUsedCache {
     [[nodiscard]] bool erase(const Key& key) noexcept {
         std::lock_guard lock(mutex);
 
-        const auto iter = indexMap.find(key);
-
-        if (iter == indexMap.end())
-            return false;
-
-        list.erase(iter->second);
-        indexMap.erase(iter);
-        return true;
+        return nolock_erase(key);
     }
 
     [[nodiscard]] ValuePtr lookup(const Key& key) noexcept {
@@ -89,23 +81,32 @@ class LeastRecentlyUsedCache {
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::lock_guard lock(mutex);
+
         return indexMap.find(key) != indexMap.end();
     }
 
     void set_capacity(usize newCapacity) noexcept {
         std::lock_guard lock(mutex);
 
-        capacity = newCapacity;
-        evict_excess();
+        capacity_ = newCapacity;
+        nolock_evict_excess();
     }
 
     [[nodiscard]] usize size() const noexcept {
         std::lock_guard lock(mutex);
+
         return list.size();
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::lock_guard lock(mutex);
+
+        return list.empty();
     }
 
     [[nodiscard]] usize capacity() const noexcept {
         std::lock_guard lock(mutex);
+
         return capacity_;
     }
 
@@ -115,24 +116,38 @@ class LeastRecentlyUsedCache {
         ValuePtr value;
     };
 
-    using LruList  = std::list<Entry>;
-    using ListIter = typename LruList::iterator;
+    using List     = std::list<Entry>;
+    using ListIter = typename List::iterator;
+    using IndexMap = std::unordered_map<Key, ListIter>;
 
     // Requires mutex to be locked.
-    void evict_excess() {
-        while (list.size() > capacity_)
-        {
-            indexMap.erase(list.back().key);
-            list.pop_back();
-        }
+    bool nolock_erase(const Key& key) noexcept {
+        const auto iter = indexMap.find(key);
+
+        if (iter == indexMap.end())
+            return false;
+
+        list.erase(iter->second);
+        indexMap.erase(iter);
+        return true;
     }
 
-    mutable std::mutex                mutex;
-    usize                             capacity_;
-    LruList                           list;
-    std::unordered_map<Key, ListIter> indexMap;
+    // Requires mutex to be locked.
+    void nolock_evict_excess() noexcept { nolock_evict_excess(capacity_); }
+
+    // Requires mutex to be locked.
+    void nolock_evict_excess(const usize size) noexcept {
+        while (list.size() > size)
+            nolock_erase(list.back().key);
+    }
+
+    mutable std::mutex mutex;
+
+    usize    capacity_;
+    List     list;
+    IndexMap indexMap;
 };
 
 }  // namespace DON
 
-#endif  // least_recently_used_cache_H_INCLUDED
+#endif  // LRU_CACHE_H_INCLUDED
