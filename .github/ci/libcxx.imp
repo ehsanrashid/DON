@@ -11,6 +11,7 @@
     { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
     { include: [ "<__hash_table>", private, "<unordered_map>", public ] },
     { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
+    { include: [ "<__ostream/basic_ostream.h>", private, "<ostream>", public ] },
 
     # Mappings for includes between public headers
     { include: [ "<ios>", public, "<iostream>", public ] },

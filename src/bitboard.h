@@ -23,6 +23,7 @@
 #include <cassert>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #if defined(USE_AVX512)
     #include <immintrin.h>

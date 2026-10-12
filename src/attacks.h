@@ -21,6 +21,7 @@
 #include <array>
 #include <cassert>
 #include <initializer_list>
+#include <type_traits>
 #include <utility>
 
 #if defined(USE_BMI2)
