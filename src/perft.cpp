@@ -29,6 +29,7 @@
 
 #include "bitboard.h"
 #include "memory.h"
+#include "misc.h"
 #include "movegen.h"
 #include "notation.h"
 #include "position.h"

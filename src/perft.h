@@ -18,8 +18,8 @@
 #ifndef PERFT_H_INCLUDED
 #define PERFT_H_INCLUDED
 
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON {
 

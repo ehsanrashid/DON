@@ -31,9 +31,9 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "misc.h"
 #include "state.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON {
 

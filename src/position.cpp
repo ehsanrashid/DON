@@ -26,6 +26,7 @@
 
 #include "cuckoo.h"
 #include "history.h"
+#include "misc.h"
 #include "movegen.h"
 #include "search.h"
 #include "tt.h"

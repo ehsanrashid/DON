@@ -50,6 +50,7 @@
 #include "misc.h"
 #include "native_thread.h"
 #include "shm.h"
+#include "utility/types.h"
 
 namespace DON {
 
