@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_NTYPES_H_INCLUDED
-#define NNUE_NTYPES_H_INCLUDED
+#ifndef NNUE_TYPES_H_INCLUDED
+#define NNUE_TYPES_H_INCLUDED
 
 #include <filesystem>
 #include <optional>
@@ -79,4 +79,4 @@ struct NetworkTrace final {
 
 }  // namespace DON::NNUE
 
-#endif  // NNUE_NTYPES_H_INCLUDED
+#endif  // NNUE_TYPES_H_INCLUDED

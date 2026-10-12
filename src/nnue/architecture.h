@@ -32,7 +32,7 @@
 #include "layers/clipped_relu.h"
 #include "layers/sparse_affine_transform.h"
 #include "layers/sqr_clipped_relu.h"
-#include "ntypes.h"
+#include "types.h"
 
 namespace DON::NNUE {
 

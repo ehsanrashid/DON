@@ -25,7 +25,7 @@
 #include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../types.h"
 #include "full_threats.h"
 
 namespace DON::NNUE::Features {

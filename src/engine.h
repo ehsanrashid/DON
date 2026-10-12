@@ -35,7 +35,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "nnue/ntypes.h"
+#include "nnue/types.h"
 #include "nnue/network.h"
 #include "utility/types.h"
 

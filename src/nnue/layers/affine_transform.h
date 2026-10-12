@@ -24,7 +24,7 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../types.h"
 #include "../serialization.h"
 #include "../simd.h"
 

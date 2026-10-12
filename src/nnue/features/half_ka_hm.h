@@ -22,7 +22,7 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../types.h"
 
 namespace DON::NNUE::Features {
 

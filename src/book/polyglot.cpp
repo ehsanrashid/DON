@@ -36,6 +36,7 @@
 #include "../state.h"
 #include "../types.h"
 #include "../utility/prng.h"
+#include "../utility/types.h"
 
 namespace DON::Book {
 

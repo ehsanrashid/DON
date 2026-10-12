@@ -20,7 +20,7 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../types.h"
 #include "full_threats.h"
 
 namespace DON {

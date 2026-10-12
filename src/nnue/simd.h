@@ -78,7 +78,7 @@
 #endif
 
 #include "../misc.h"
-#include "ntypes.h"
+#include "types.h"
 
 #if defined(USE_AVX2)
     #define USE_PAIR_ACTIVATIONS

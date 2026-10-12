@@ -34,7 +34,7 @@
 #include "../types.h"
 #include "accumulator.h"
 #include "architecture.h"
-#include "ntypes.h"
+#include "types.h"
 #include "serialization.h"
 #include "simd.h"
 

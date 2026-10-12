@@ -28,7 +28,7 @@
 
 #include "architecture.h"
 #include "feature_transformer.h"
-#include "ntypes.h"
+#include "types.h"
 #include "../utility/types.h"
 
 namespace DON {

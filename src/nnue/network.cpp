@@ -32,8 +32,9 @@
 #include "architecture.h"
 #include "feature_transformer.h"
 #include "nnz.h"
-#include "ntypes.h"
+#include "types.h"
 #include "serialization.h"
+#include "../utility/types.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)

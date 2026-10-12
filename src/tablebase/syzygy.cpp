@@ -51,6 +51,7 @@
 #include "../state.h"
 #include "../types.h"
 #include "../utility/error.h"
+#include "../utility/types.h"
 
 namespace DON::Tablebase::Syzygy {
 

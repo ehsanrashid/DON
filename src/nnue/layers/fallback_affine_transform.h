@@ -21,7 +21,7 @@
 #include <cstring>
 
 #include "../../misc.h"
-#include "../ntypes.h"
+#include "../types.h"
 
 #if defined(USE_SSE2) || defined(USE_NEON)
     #include "../simd.h"

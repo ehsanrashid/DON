@@ -31,7 +31,7 @@
 #include "position.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
-#include "nnue/ntypes.h"
+#include "nnue/types.h"
 
 namespace DON::Evaluate {
 

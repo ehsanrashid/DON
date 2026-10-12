@@ -121,7 +121,7 @@ HEADERS := \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \
     nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
-    nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/ntypes.h nnue/serialization.h nnue/simd.h \
+    nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
     utility/color.h utility/concurrent.h utility/concurrent_queue.h utility/debug.h utility/error.h utility/mutex.h \
     utility/prng.h
