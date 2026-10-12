@@ -35,7 +35,7 @@ g++ -std=c++17 -O2 -I./src `
 ./build/lru_cache
 */
 
-#include "lru_cache.h"
+#include "non_concurrent.h"
 
 #include <cassert>
 #include <iostream>
