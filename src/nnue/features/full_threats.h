@@ -20,6 +20,7 @@
 #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 #define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
+#include "../../utility/types.h"
 #include "../../misc.h"
 #include "../../types.h"
 #include "../types.h"
