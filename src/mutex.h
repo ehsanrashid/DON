@@ -246,7 +246,7 @@ class FairSharedMutex
    private:
     // A node in the wait queue representing a waiting thread.
     struct Waiter final {
-        explicit Waiter(bool shared_) noexcept;
+        explicit Waiter(bool writer_) noexcept;
 
         bool is_writer() const noexcept;
 
@@ -255,7 +255,7 @@ class FairSharedMutex
        private:
         Waiter() noexcept = delete;
 
-        const bool shared;
+        const bool writer;
     };
 
    public:

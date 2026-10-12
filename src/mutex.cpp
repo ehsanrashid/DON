@@ -284,13 +284,13 @@ usize WriterSharedMutex::waiting_writer_count() const noexcept {
 
 // ------------------
 
-FairSharedMutex::Waiter::Waiter(bool shared_) noexcept :
-    shared(shared_) {}
+FairSharedMutex::Waiter::Waiter(bool writer_) noexcept :
+    writer(writer_) {}
 
-bool FairSharedMutex::Waiter::is_writer() const noexcept { return !shared; }
+bool FairSharedMutex::Waiter::is_writer() const noexcept { return writer; }
 
 void FairSharedMutex::lock() noexcept {
-    Waiter writer(false);
+    Waiter writer(true);
 
     std::unique_lock lock(mutex);
 
@@ -333,7 +333,7 @@ void FairSharedMutex::unlock() noexcept {
 }
 
 void FairSharedMutex::lock_shared() noexcept {
-    Waiter reader(true);
+    Waiter reader(false);
 
     std::unique_lock lock(mutex);
 
