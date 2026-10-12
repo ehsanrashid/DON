@@ -28,6 +28,7 @@
 #include "misc.h"
 #include "position.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON {
 

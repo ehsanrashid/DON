@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string_view>
 
+#include "misc.h"
 #include "notation.h"
 #include "position.h"
 #include "nnue/accumulator.h"
