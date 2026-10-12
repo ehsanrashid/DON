@@ -42,6 +42,8 @@ alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
 
 #endif
 
+ConcurrentCache<Bitboard, std::string> BitboardCache{1 * KB, 0.75f};
+
 }  // namespace
 
 u8 popcount(const Bitboard b) noexcept {
@@ -186,27 +188,10 @@ std::string pretty_str(const Bitboard b) noexcept {
 }
 
 std::string_view pretty(const Bitboard b) noexcept {
-    constexpr usize ReserveCount  = 1 * KB;
-    constexpr float MaxLoadFactor = 0.75f;
-
-    // Thread-safe static initialization
-
-    // Fully RAII-compliant — destructor runs at program exit
-    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-
-    // Standard intentional "leaky singleton" pattern.
-    // Ensures the cache lives for the entire program, never deleted.
-    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-    static auto& cache = *[=]() noexcept -> auto {
-        static auto cachePtr =
-          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
-        return cachePtr.get();
-    }();
-
-    //return cache.access_or_build(b, pretty_str(b));
-    //return cache.transform_access_or_build(
+    //return BitboardCache.access_or_build(b, pretty_str(b));
+    //return BitboardCache.transform_access_or_build(
     //  b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
-    return cache.transform_access_or_build_with(
+    return BitboardCache.transform_access_or_build_with(
       b, [](const std::string& str) noexcept -> std::string_view { return str; },
       [](const Bitboard _b) noexcept -> std::string { return pretty_str(_b); }, b);
 }

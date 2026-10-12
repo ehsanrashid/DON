@@ -85,6 +85,8 @@ class ReaderSharedMutex
 #endif
   final {
    public:
+    ReaderSharedMutex() noexcept = default;
+
     void lock() noexcept
 #if !defined(__INTELLISENSE__)
       ACQUIRE()
@@ -162,6 +164,8 @@ class WriterSharedMutex
 #endif
   final {
    public:
+    WriterSharedMutex() noexcept = default;
+
     void lock() noexcept
 #if !defined(__INTELLISENSE__)
       ACQUIRE()
@@ -204,6 +208,11 @@ class WriterSharedMutex
     [[nodiscard]] usize waiting_writer_count() const noexcept;
 
    private:
+    WriterSharedMutex(const WriterSharedMutex&) noexcept            = delete;
+    WriterSharedMutex& operator=(const WriterSharedMutex&) noexcept = delete;
+    WriterSharedMutex(WriterSharedMutex&&) noexcept                 = delete;
+    WriterSharedMutex& operator=(WriterSharedMutex&&) noexcept      = delete;
+
     mutable std::mutex      mutex;
     std::condition_variable readerCondVar;
     std::condition_variable writerCondVar;
@@ -235,48 +244,23 @@ class FairSharedMutex
 #endif
   final {
    private:
-    struct Waiter;
-
-    // A simple FIFO queue to manage waiting threads.
-    class WaitList final {
-       public:
-        void push_back(Waiter& waiter) noexcept;
-
-        void erase(Waiter& waiter) noexcept;
-
-        Waiter* front() const noexcept;
-        Waiter* back() const noexcept;
-
-        usize size() const noexcept;
-        bool  empty() const noexcept;
-
-        // Returns true if there is a writer before the specified waiter,
-        // or anywhere in the queue if until is nullptr.
-        bool has_writer_before(const Waiter* const until = nullptr) const noexcept;
-
-       private:
-        Waiter* front_ = nullptr;
-        Waiter* back_  = nullptr;
-        usize   size_  = 0;
-    };
-
     // A node in the wait queue representing a waiting thread.
     struct Waiter final {
         explicit Waiter(bool shared_) noexcept;
 
         bool is_writer() const noexcept;
 
+        Waiter* next = nullptr;
+
        private:
         Waiter() noexcept = delete;
 
         const bool shared;
-
-        Waiter* next = nullptr;
-
-        friend class WaitList;
     };
 
    public:
+    FairSharedMutex() noexcept = default;
+
     void lock() noexcept
 #if !defined(__INTELLISENSE__)
       ACQUIRE()
@@ -313,15 +297,22 @@ class FairSharedMutex
 #endif
         ;
 
+    bool has_writer_before(const Waiter* until = nullptr) const noexcept;
+
     [[nodiscard]] usize active_reader_count() const noexcept;
 
     [[nodiscard]] usize waiting_writer_count() const noexcept;
 
    private:
+    FairSharedMutex(const FairSharedMutex&) noexcept            = delete;
+    FairSharedMutex& operator=(const FairSharedMutex&) noexcept = delete;
+    FairSharedMutex(FairSharedMutex&&) noexcept                 = delete;
+    FairSharedMutex& operator=(FairSharedMutex&&) noexcept      = delete;
+
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;
 
-    WaitList waitList
+    IntrusiveList<Waiter> waitList
 #if !defined(__INTELLISENSE__)
       GUARDED_BY(mutex)
 #endif

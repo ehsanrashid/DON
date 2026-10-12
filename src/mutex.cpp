@@ -18,7 +18,6 @@
 #include "mutex.h"
 
 #include <atomic>
-#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -290,70 +289,6 @@ FairSharedMutex::Waiter::Waiter(bool shared_) noexcept :
 
 bool FairSharedMutex::Waiter::is_writer() const noexcept { return !shared; }
 
-void FairSharedMutex::WaitList::push_back(Waiter& waiter) noexcept {
-    Waiter*& nextLink = back_ != nullptr ? back_->next : front_;
-
-    nextLink = &waiter;
-    back_    = &waiter;
-    ++size_;
-}
-
-void FairSharedMutex::WaitList::erase(Waiter& waiter) noexcept {
-    Waiter* pre = nullptr;  // Previous node; nullptr means cur is the front
-    auto*   cur = front_;   // Start searching from the front of the list
-
-    // Find the requested waiter while tracking its preious node
-    while (cur != nullptr && cur != &waiter)
-    {
-        pre = cur;
-        cur = cur->next;
-    }
-
-    // The waiter is not in the list; nothing to remove
-    if (cur == nullptr)
-        return;
-
-    // Unlink cur from the list
-    if (pre == nullptr)
-        front_ = cur->next;  // Front: advance to the next node
-    else
-        pre->next = cur->next;  // Otherwise, bypass cur
-
-    // If cur was the back, update it to the previous node.
-    // This also sets back_ to nullptr when removing the only node.
-    if (back_ == cur)
-        back_ = pre;
-
-    // Detach the removed waiter from the list
-    cur->next = nullptr;
-    // Decrease the number of waiters
-    --size_;
-}
-
-FairSharedMutex::Waiter* FairSharedMutex::WaitList::front() const noexcept { return front_; }
-
-FairSharedMutex::Waiter* FairSharedMutex::WaitList::back() const noexcept { return back_; }
-
-usize FairSharedMutex::WaitList::size() const noexcept { return size_; }
-
-bool FairSharedMutex::WaitList::empty() const noexcept {
-    assert((front() == nullptr) == (size() == 0));
-    return size() == 0;
-}
-
-bool FairSharedMutex::WaitList::has_writer_before(const Waiter* const until) const noexcept {
-    for (auto* cur = front(); cur != nullptr; cur = cur->next)
-    {
-        if (cur == until)
-            break;
-
-        if (cur->is_writer())
-            return true;
-    }
-
-    return false;
-}
-
 void FairSharedMutex::lock() noexcept {
     Waiter writer(false);
 
@@ -405,8 +340,8 @@ void FairSharedMutex::lock_shared() noexcept {
     waitList.push_back(reader);
 
     commonCondVar.wait(lock, [this, &reader]() noexcept -> bool {
-        return !writerActive                          // No active writer
-            && !waitList.has_writer_before(&reader);  // No writer ahead of this reader
+        return !writerActive                 // No active writer
+            && !has_writer_before(&reader);  // No writer ahead of this reader
     });
 
     waitList.erase(reader);
@@ -418,8 +353,8 @@ bool FairSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lock(mutex);
 
     // Do not bypass an active writer or any waiting writer.
-    if (writerActive                      // An active writer
-        || waitList.has_writer_before())  // A waiting writer
+    if (writerActive             // An active writer
+        || has_writer_before())  // A waiting writer
         return false;
 
     ++activeReaderCount;
@@ -435,6 +370,19 @@ void FairSharedMutex::unlock_shared() noexcept {
 
     // Wake waiters to recheck their eligibility
     commonCondVar.notify_all();
+}
+
+bool FairSharedMutex::has_writer_before(const Waiter* const until) const noexcept {
+    for (auto* cur = waitList.front(); cur != nullptr; cur = cur->next)
+    {
+        if (cur == until)
+            break;
+
+        if (cur->is_writer())
+            return true;
+    }
+
+    return false;
 }
 
 usize FairSharedMutex::active_reader_count() const noexcept {
