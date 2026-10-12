@@ -36,6 +36,12 @@
     #define USE_HYPERBOLA_QUINT
 #endif
 
+#if defined(__has_builtin)
+    #if __has_builtin(__builtin_bitreverse64)
+        #define HAS_BUILTIN_BITREVERSE64
+    #endif
+#endif
+
 #include "bitboard.h"
 #include "misc.h"
 #include "types.h"
@@ -122,17 +128,17 @@ struct alignas(32) DualMagic final {
 inline Bitboard reverse_bb(const Bitboard bb) noexcept {
     Bitboard rbb;
 
-    #if defined(__has_builtin) && __has_builtin(__builtin_bitreverse64)
+    #if defined(HAS_BUILTIN_BITREVERSE64)
     rbb = __builtin_bitreverse64(bb);
 
     #elif defined(__loongarch__) && __loongarch_grlen == 64
-    asm("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
+    __asm__ __volatile__("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
 
     #elif defined(__aarch64__)
         // GCC before 12.2 does not provide __rbitll() in arm_acle.h
         #if defined(__GNUC__) && !defined(__clang__) \
           && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
-    asm("rbit %0, %1" : "=r"(rbb) : "r"(bb));
+    __asm__ __volatile__("rbit %0, %1" : "=r"(rbb) : "r"(bb));
 
         #else
     rbb = __rbitll(bb);
@@ -140,6 +146,7 @@ inline Bitboard reverse_bb(const Bitboard bb) noexcept {
         #endif
     #else
         #error "reverse_bb(): unsupported architecture/compiler"
+
     #endif
 
     return rbb;

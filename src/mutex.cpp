@@ -25,36 +25,59 @@
 #include <thread>  // sleep_for()
 
 #if defined(X86)
-    #include <emmintrin.h>  // _mm_pause()
+    #if defined(_MSC_VER)
+        #include "platform_win.h"
+    #else
+        #include <emmintrin.h>  // _mm_pause()
+    #endif
 #endif
 
 namespace DON {
 
 void cpu_relax() noexcept {
 #if defined(X86)
+    #if defined(_MSC_VER)
+    YieldProcessor();
+
+    #else
     _mm_pause();
-
-#elif defined(__arm__) || defined(__aarch64__)
-    __asm__ __volatile__("yield");
-
-#elif defined(__riscv)
-    #if defined(__riscv_zihintpause)
-    __builtin_riscv_pause();
-    #elif defined(__clang__) || defined(__GNUC__)
-    __asm__ __volatile__("" ::: "memory");
     #endif
 
-#elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC64__) || defined(_ARCH_PPC)
-    __asm__ __volatile__("or 27,27,27");
+#elif defined(_MSC_VER)
+    // No architecture-specific pause instruction available
 
 #elif defined(__clang__) || defined(__GNUC__)
-    // Portable compiler-level no-op for unsupported architectures.
+    #if defined(__arm__) || defined(__aarch64__)
+    __asm__ __volatile__("yield");
+
+    #elif defined(__riscv)
+        #if defined(__riscv_zihintpause)
+    __builtin_riscv_pause();
+
+        #else
+    __asm__ __volatile__("" ::: "memory");
+
+        #endif
+
+    #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC64__) || defined(_ARCH_PPC)
+    __asm__ __volatile__("or 27,27,27");
+
+    #else
+    // Portable compiler-level no-op for unsupported architectures
+    __asm__ __volatile__("" ::: "memory");
+
+    #endif
+
+#else
+    // No architecture-specific pause hint available for this compiler
     __asm__ __volatile__("");
+
 #endif
 }
 
 // ------------------
 
+// A lightweight spin mutex that periodically yields and backs off under contention.
 void SpinMutex::lock() noexcept {
     usize spins  = 0;
     usize yields = 0;
@@ -74,7 +97,7 @@ void SpinMutex::lock() noexcept {
                 if (++yields == 8)
                 {
                     yields = 0;
-                    std::this_thread::sleep_for(std::chrono::microseconds(10));
+                    std::this_thread::sleep_for(std::chrono::microseconds(5));
                 }
                 else
                     std::this_thread::yield();
