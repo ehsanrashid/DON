@@ -225,9 +225,9 @@ class WriterSharedMutex
       = false;
 };
 
-// A fair shared mutex that preserves queue order between writers and reader batches.
-// Consecutive queued readers may acquire shared access together. try_lock_shared() succeeds
-// only when no writer is active or waiting.
+// A fair shared mutex that preserves FIFO order between readers and writers.
+// Consecutive queued readers may acquire shared access together, but readers cannot bypass
+// a waiting writer. try_lock_shared() fails if a writer is active or waiting.
 #if !defined(__INTELLISENSE__)
 class CAPABILITY("mutex") FairSharedMutex
 #else
@@ -238,11 +238,11 @@ class FairSharedMutex
     struct Waiter;
 
     // A simple FIFO queue to manage waiting threads.
-    class WaitQueue final {
+    class WaitList final {
        public:
-        void enqueue(Waiter& waiter) noexcept;
+        void push_back(Waiter& waiter) noexcept;
 
-        void dequeue(Waiter& waiter) noexcept;
+        void erase(Waiter& waiter) noexcept;
 
         Waiter* front() const noexcept;
         Waiter* back() const noexcept;
@@ -273,7 +273,7 @@ class FairSharedMutex
 
         Waiter* next = nullptr;
 
-        friend class WaitQueue;
+        friend class WaitList;
     };
 
    public:
@@ -321,7 +321,7 @@ class FairSharedMutex
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;
 
-    WaitQueue waitQueue
+    WaitList waitList
 #if !defined(__INTELLISENSE__)
       GUARDED_BY(mutex)
 #endif

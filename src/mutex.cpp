@@ -139,6 +139,7 @@ void ReaderSharedMutex::unlock() noexcept {
         writerActive = false;
     }
 
+    // Wake waiting readers and a writer; readers may proceed concurrently.
     readerCondVar.notify_all();
     writerCondVar.notify_one();
 }
@@ -147,7 +148,9 @@ void ReaderSharedMutex::lock_shared() noexcept {
     std::unique_lock lock(mutex);
 
     readerCondVar.wait(lock, [this]() noexcept -> bool {
-        return !writerActive;  // No active writer
+        return !writerActive  // No active writer
+          //&& waitingWriterCount == 0  // No waiting writers
+          ;
     });
 
     ++activeReaderCount;
@@ -156,7 +159,9 @@ void ReaderSharedMutex::lock_shared() noexcept {
 bool ReaderSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lock(mutex);
 
-    if (writerActive)  // An active writer
+    if (writerActive  // An active writer
+        //|| waitingWriterCount != 0  // Waiting writers; don't bypass them
+    )
         return false;
 
     ++activeReaderCount;
@@ -196,7 +201,7 @@ void WriterSharedMutex::lock() noexcept {
 
     writerCondVar.wait(lock, [this]() noexcept -> bool {
         return !writerActive  // No active writer
-            // waitingWriterCount includes this writer; it is not a readiness condition.
+            // waitingWriterCount includes this writer and is not a readiness condition.
             && activeReaderCount == 0;  // No active readers
     });
 
@@ -236,7 +241,8 @@ void WriterSharedMutex::lock_shared() noexcept {
     std::unique_lock lock(mutex);
 
     readerCondVar.wait(lock, [this]() noexcept -> bool {
-        return !writerActive && waitingWriterCount == 0;  // Allow concurrent readers may coexist
+        return !writerActive             // No active writer
+            && waitingWriterCount == 0;  // No waiting writers
     });
 
     ++activeReaderCount;
@@ -245,7 +251,8 @@ void WriterSharedMutex::lock_shared() noexcept {
 bool WriterSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lock(mutex);
 
-    if (writerActive || waitingWriterCount != 0)  // Allow concurrent readers may coexist
+    if (writerActive                 // Writer active
+        || waitingWriterCount != 0)  // Waiting writers; don't bypass them
         return false;
 
     ++activeReaderCount;
@@ -283,7 +290,7 @@ FairSharedMutex::Waiter::Waiter(bool shared_) noexcept :
 
 bool FairSharedMutex::Waiter::is_writer() const noexcept { return !shared; }
 
-void FairSharedMutex::WaitQueue::enqueue(Waiter& waiter) noexcept {
+void FairSharedMutex::WaitList::push_back(Waiter& waiter) noexcept {
     Waiter*& nextLink = back_ != nullptr ? back_->next : front_;
 
     nextLink = &waiter;
@@ -291,50 +298,50 @@ void FairSharedMutex::WaitQueue::enqueue(Waiter& waiter) noexcept {
     ++size_;
 }
 
-void FairSharedMutex::WaitQueue::dequeue(Waiter& waiter) noexcept {
-    Waiter* pre = nullptr;  // Previous node; nullptr means cur is the head
-    auto*   cur = front_;   // Start searching from the front of the queue
+void FairSharedMutex::WaitList::erase(Waiter& waiter) noexcept {
+    Waiter* pre = nullptr;  // Previous node; nullptr means cur is the front
+    auto*   cur = front_;   // Start searching from the front of the list
 
-    // Find the requested waiter while tracking its previous node
+    // Find the requested waiter while tracking its preious node
     while (cur != nullptr && cur != &waiter)
     {
         pre = cur;
         cur = cur->next;
     }
 
-    // The waiter is not in the queue; nothing to remove
+    // The waiter is not in the list; nothing to remove
     if (cur == nullptr)
         return;
 
-    // Unlink cur from the queue
+    // Unlink cur from the list
     if (pre == nullptr)
-        front_ = cur->next;  // Head: advance to the next node
+        front_ = cur->next;  // Front: advance to the next node
     else
-        pre->next = cur->next;  // Not the head: bypass cur
+        pre->next = cur->next;  // Otherwise, bypass cur
 
-    // If cur was the tail, update tail to the previous node.
-    // This also makes tail nullptr when removing the only node.
+    // If cur was the back, update it to the previous node.
+    // This also sets back_ to nullptr when removing the only node.
     if (back_ == cur)
         back_ = pre;
 
-    // Detach the removed waiter from the queue
+    // Detach the removed waiter from the list
     cur->next = nullptr;
-    // Decrease the number of queued waiters
+    // Decrease the number of waiters
     --size_;
 }
 
-FairSharedMutex::Waiter* FairSharedMutex::WaitQueue::front() const noexcept { return front_; }
+FairSharedMutex::Waiter* FairSharedMutex::WaitList::front() const noexcept { return front_; }
 
-FairSharedMutex::Waiter* FairSharedMutex::WaitQueue::back() const noexcept { return back_; }
+FairSharedMutex::Waiter* FairSharedMutex::WaitList::back() const noexcept { return back_; }
 
-usize FairSharedMutex::WaitQueue::size() const noexcept { return size_; }
+usize FairSharedMutex::WaitList::size() const noexcept { return size_; }
 
-bool FairSharedMutex::WaitQueue::empty() const noexcept {
+bool FairSharedMutex::WaitList::empty() const noexcept {
     assert((front() == nullptr) == (size() == 0));
     return size() == 0;
 }
 
-bool FairSharedMutex::WaitQueue::has_writer_before(const Waiter* const until) const noexcept {
+bool FairSharedMutex::WaitList::has_writer_before(const Waiter* const until) const noexcept {
     for (auto* cur = front(); cur != nullptr; cur = cur->next)
     {
         if (cur == until)
@@ -353,15 +360,15 @@ void FairSharedMutex::lock() noexcept {
     std::unique_lock lock(mutex);
 
     ++waitingWriterCount;
-    waitQueue.enqueue(writer);
+    waitList.push_back(writer);
 
     commonCondVar.wait(lock, [this, &writer]() noexcept -> bool {
-        return !writerActive                 // No active writer
-            && waitQueue.front() == &writer  // This writer's turn
-            && activeReaderCount == 0;       // No active readers
+        return !writerActive                // No active writer
+            && waitList.front() == &writer  // This writer is first in line
+            && activeReaderCount == 0;      // No active readers
     });
 
-    waitQueue.dequeue(writer);
+    waitList.erase(writer);
     --waitingWriterCount;
 
     writerActive = true;
@@ -371,7 +378,7 @@ bool FairSharedMutex::try_lock() noexcept {
     std::lock_guard lock(mutex);
 
     if (writerActive                // An active writer
-        || !waitQueue.empty()       // Threads already queued
+        || !waitList.empty()        // Waiting threads
         || activeReaderCount != 0)  // Active readers
         return false;
 
@@ -386,6 +393,7 @@ void FairSharedMutex::unlock() noexcept {
         writerActive = false;
     }
 
+    // Wake all waiters to recheck their eligibility
     commonCondVar.notify_all();
 }
 
@@ -394,14 +402,14 @@ void FairSharedMutex::lock_shared() noexcept {
 
     std::unique_lock lock(mutex);
 
-    waitQueue.enqueue(reader);
+    waitList.push_back(reader);
 
     commonCondVar.wait(lock, [this, &reader]() noexcept -> bool {
-        return !writerActive                           // No active writer
-            && !waitQueue.has_writer_before(&reader);  // No writer ahead of this reader
+        return !writerActive                          // No active writer
+            && !waitList.has_writer_before(&reader);  // No writer ahead of this reader
     });
 
-    waitQueue.dequeue(reader);
+    waitList.erase(reader);
 
     ++activeReaderCount;
 }
@@ -409,9 +417,9 @@ void FairSharedMutex::lock_shared() noexcept {
 bool FairSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lock(mutex);
 
-    // Do not bypass an active or waiting writer.
-    if (writerActive                       // An active writer
-        || waitQueue.has_writer_before())  // A queued writer
+    // Do not bypass an active writer or any waiting writer.
+    if (writerActive                      // An active writer
+        || waitList.has_writer_before())  // A waiting writer
         return false;
 
     ++activeReaderCount;
@@ -425,6 +433,7 @@ void FairSharedMutex::unlock_shared() noexcept {
         --activeReaderCount;
     }
 
+    // Wake waiters to recheck their eligibility
     commonCondVar.notify_all();
 }
 

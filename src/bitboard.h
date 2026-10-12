@@ -37,11 +37,6 @@
 
 #endif
 
-#if !defined(USE_POPCNT)
-    #include <cstring>
-
-#endif
-
 #include "misc.h"
 #include "types.h"
 
