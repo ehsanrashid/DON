@@ -788,6 +788,7 @@ class Worker final {
     usize multiPV, pvIdx, pvEnd;
     u16   selDepth;
     i16   nmpPly;
+    bool  seekMate = false;
 
     Array<i32, COLOR_NB> optimism;
 

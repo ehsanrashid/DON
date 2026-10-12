@@ -577,6 +577,10 @@ void Worker::iterative_deepening() noexcept {
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
+            // Do not tune these values. They are not intended for playing strength.
+            seekMate = constexpr_abs(rootMoves[pvIdx].value)
+                    >= constexpr_ceil(750.0 + 220000.0 / (rootDepth * rootDepth));
+
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = constexpr_round(114.0 * avgValue / (85.0 + constexpr_abs(avgValue)));
             optimism[~ac] = -optimism[ac];
@@ -897,10 +901,6 @@ Value Worker::search(Position&    pos,
 
     const auto correctionValue = correction_value(pos, ss);
 
-    // Do not tune these values. They are not intended for playing strength.
-    const bool seekMate =
-      constexpr_abs(rootMoves[pvIdx].value) >= 750 + 220000 / (rootDepth * rootDepth);
-
     const Key key = pos.key();
 
     // Step 4. Transposition table lookup
@@ -1032,6 +1032,8 @@ Value Worker::search(Position&    pos,
                 assert(ttd.bound != Bound::EXACT);
                 assert(is_ok(ttd.bound & fail_bound(ttd.value < beta)));
                 // Penalize the entry because its bound is now no longer useful for the current window.
+                // (*Scaler) This is very close to secondary aging, a known antiscaler.
+                // The depth and window conditions seem to be key to decent scaling.
                 ttw.penalize(1);
             }
         }
@@ -1178,7 +1180,8 @@ Value Worker::search(Position&    pos,
 
         const int evalDiff = constexpr_ceil((ss->evalue - beta) / 256.0);
         // Null move dynamic reduction
-        const Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0);
+        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0);
+        R -= int(seekMate) * R / 2;
 
         do_null_move(pos, st, ss);
 
@@ -1312,7 +1315,7 @@ Value Worker::search(Position&    pos,
     // When in check, search starts here
 
     // Step 13. Small ProbCut idea
-    if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
+    if (!seekMate && !is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
         int probCutBetaValue = 428 + beta;
         if (probCutBetaValue > +VALUE_INFINITE)
@@ -1617,6 +1620,10 @@ Value Worker::search(Position&    pos,
         {
             r = constexpr_round(r * (1.0 + 276.0 / (268.0 + 256.0 * depth)));
         }
+
+        // When seeking a mate, reduce non-checking moves more and checking moves less
+        if (seekMate && r > 0)
+            r += (check ? -r : r) / 4;
 
         // Apply the computed LMR (Late Move Reduction)
         if (depth > 1 && moveCount > 1)
