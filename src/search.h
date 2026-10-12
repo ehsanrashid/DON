@@ -47,6 +47,7 @@
 #include "book/polyglot.h"
 #include "nnue/accumulator.h"
 #include "tablebase/syzygy.h"
+#include "utility/types.h"
 
 namespace DON {
 

@@ -25,8 +25,8 @@
 #include <memory>       // unique_ptr<>
 #include <type_traits>  // is_standard_layout_v<>
 
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON {
 
