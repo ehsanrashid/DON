@@ -15,25 +15,29 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef LRU_CACHE_H_INCLUDED
-#define LRU_CACHE_H_INCLUDED
+#ifndef UTILITY_LRU_CACHE_H_INCLUDED
+#define UTILITY_LRU_CACHE_H_INCLUDED
 
+#include <cassert>
 #include <list>           // list<>
 #include <memory>         // shared_ptr<>
 #include <mutex>          // mutex, lock_guard<>
 #include <unordered_map>  // unordered_map<>, unordered_multimap<>
 #include <utility>        // move()
 
-#include "misc.h"
+#include "../utility/types.h"
 
 namespace DON {
 
+// A least-recently-used container that supports pinning entries to prevent eviction.
+// When capacity is reached, the least recently used unpinned entry is evicted.
+// Pinned entries are protected from eviction until they are unpinned.
 template<class Key, class Value>
-class PinnedLRUCache final {
+class PinnedLRU final {
    public:
     using ValuePtr = std::shared_ptr<Value>;
 
-    explicit PinnedLRUCache(usize capacity = 128) noexcept :
+    explicit PinnedLRU(usize capacity = 128) noexcept :
         capacity_(capacity) {}
 
     [[nodiscard]] ValuePtr insert(Key key, ValuePtr value) noexcept {
@@ -274,4 +278,4 @@ class PinnedLRUCache final {
 
 }  // namespace DON
 
-#endif  // LRU_CACHE_H_INCLUDED
+#endif  // UTILITY_LRU_CACHE_H_INCLUDED

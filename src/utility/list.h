@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_INTRUSIVE_LIST_H_INCLUDED
-#define UTILITY_INTRUSIVE_LIST_H_INCLUDED
+#ifndef UTILITY_LIST_H_INCLUDED
+#define UTILITY_LIST_H_INCLUDED
 
 #include <cassert>
 
@@ -80,7 +80,7 @@ class IntrusiveList final {
 
     usize size() const noexcept { return size_; }
 
-    bool  empty() const noexcept {
+    bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
         return size() == 0;
     }
@@ -93,4 +93,4 @@ class IntrusiveList final {
 
 }  // namespace DON
 
-#endif  // UTILITY_INTRUSIVE_LIST_H_INCLUDED
+#endif  // UTILITY_LIST_H_INCLUDED
