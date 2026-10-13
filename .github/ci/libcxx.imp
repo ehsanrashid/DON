@@ -11,6 +11,8 @@
     { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
     { include: [ "<__hash_table>", private, "<unordered_map>", public ] },
     { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
+    { include: [ "<__istream/basic_istream.h>", private, "<istream>", public ] },
+    { include: [ "<__ostream/basic_ostream.h>", private, "<ostream>", public ] },
 
     # Additional libc++ internal-header mappings
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },

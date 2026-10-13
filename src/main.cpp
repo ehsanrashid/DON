@@ -25,7 +25,7 @@
 #include "tune.h"
 #include "uci.h"
 #include "tablebase/syzygy.h"
-#include "utility/types.h"  // IWYU pragma: keep
+#include "utility/types.h"
 
 using namespace DON;
 

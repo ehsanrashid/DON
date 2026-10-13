@@ -19,6 +19,7 @@
 #define EVALUATE_H_INCLUDED
 
 #include <string>
+// IWYU pragma: no_include <string_view>
 
 #include "types.h"
 #include "utility/types.h"
