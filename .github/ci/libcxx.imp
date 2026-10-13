@@ -13,7 +13,11 @@
     { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
     { include: [ "<__istream/basic_istream.h>", private, "<istream>", public ] },
     { include: [ "<__ostream/basic_ostream.h>", private, "<ostream>", public ] },
+    { include: [ "<__cstddef/byte.h>", private, "<cstddef>", public ] },
     { include: [ "<__math/logarithms.h>", private, "<cmath>", public ] },
+    { include: [ "<__new/placement_new_delete.h>", private, "<new>", public ] },
+    { include: [ "<__new/launder.h>", private, "<new>", public ] },
+    { include: [ "<__vector/vector.h>", private, "<vector>", public ] },
 
     # Additional mappings for libc++ synchronization headers
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },

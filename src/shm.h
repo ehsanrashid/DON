@@ -563,7 +563,7 @@ struct ScmRightsMessage final {
 
     static constexpr usize Alignment = alignof(cmsghdr);
 
-    std::unique_ptr<std::byte[]> controlStorage;
+    std::unique_ptr<byte[]> controlStorage;
 };
 
 void* map_shared(usize size, int fd) noexcept;

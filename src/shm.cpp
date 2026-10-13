@@ -215,11 +215,11 @@ void InitLock::unlock() noexcept {
 }
 
 ScmRightsMessage::ScmRightsMessage() noexcept :
-    controlStorage{std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + Alignment)} {
+    controlStorage{std::make_unique<byte[]>(CMSG_SPACE(sizeof(int)) + Alignment)} {
 
     const usize ControlSpace = CMSG_SPACE(sizeof(int));
 
-    std::byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
+    byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
 
     iov[0].iov_base = buf;
     iov[0].iov_len  = 1;
