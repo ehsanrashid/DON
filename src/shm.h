@@ -27,9 +27,7 @@
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
+#include "utility/types.h"
 
 #if !defined(_WIN32)             /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
@@ -48,18 +46,18 @@
     #include "platform_win.h"
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>       // open(), fcntl(), FD_CLOEXEC
+    #include <limits.h>      // PATH_MAX, NAME_MAX
     #include <sys/mman.h>    // munmap(), memfd_create(), MFD_CLOEXEC
     #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
-    #include <sys/types.h>
     #include <sys/uio.h>  // iovec
     #include <sys/un.h>   // sockaddr_un
-    #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid(), pipe()/pipe2(), fsync()
+    #include <unistd.h>   // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
 
     #include <cassert>
     #include <cerrno>
-    #include <cstring>  // strncpy
-    #include <memory>   // unique_ptr<>, make_unique<>
+    #include <cstring>  // strncpy()
+    #include <memory>   // unique_ptr<>, make_unique<>()
     #include <optional>
 
     #include "utility/concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
@@ -105,12 +103,13 @@
             #define MADV_COLLAPSE 25
         #endif
     #endif
+#elif defined(__ANDROID__)
+    #include <unistd.h>  // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
 #endif
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
 #include "native_thread.h"
-#include "utility/types.h"
 
 namespace DON {
 

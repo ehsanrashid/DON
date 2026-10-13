@@ -18,16 +18,15 @@
 #include "shm.h"
 
 #if !defined(_WIN32)
-    #if defined(__ANDROID__)
-        #include <unistd.h>
-    #elif defined(USE_UNIX_SHM)
-        #include <dirent.h>    // closedir(), opendir(), readdir(), DIR, dirent
-        #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
-        #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
-        #include <sys/time.h>  // timeval
+    #if defined(USE_UNIX_SHM)
+        #include <dirent.h>     // opendir(), readdir(), closedir(), DIR, dirent
+        #include <poll.h>       // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
+        #include <sys/file.h>   // flock(), LOCK_EX, LOCK_UN
+        #include <sys/time.h>   // timeval
+        #include <sys/types.h>  // ssize_t, uid_t
 
         #include <algorithm>  // min()/max()
-        #include <memory>     // make_unique<>()
+        #include <memory>     // make_unique<>(), allocator()
     #endif
 #endif
 

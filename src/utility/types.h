@@ -29,6 +29,10 @@
 #include <type_traits>
 #include <vector>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    #define LINUX_NON_ANDROID
+#endif
+
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
@@ -177,7 +181,7 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
-#if !defined(_WIN32)
+#if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
 #endif
 
@@ -185,7 +189,7 @@ inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
     #define PATH_MAX (2 * KB)  // 2K bytes, safe for almost all paths
 #endif
 #if !defined(NAME_MAX)
-    #define NAME_MAX 255
+    #define NAME_MAX (255)
 #endif
 
 template<typename T>

@@ -27,17 +27,13 @@
 #include <type_traits>
 #include <utility>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
+#include "utility/types.h"
 
 #if defined(LINUX_NON_ANDROID)
     #include <sys/types.h>  // off_t
 #endif
 
-#include "misc.h"
 #include "types.h"
-#include "utility/types.h"
 
 namespace DON {
 

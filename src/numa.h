@@ -34,24 +34,20 @@
 #include <variant>  // variant<>
 #include <vector>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
+#if defined(_WIN64)
+    #include <type_traits>
 #endif
+
+#include "utility/types.h"
 
 #if !defined(_WIN64)              /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID)) /* Linux (Non-Android) */
     #define USE_UNIX_NUMA
 #endif
 
-#if defined(_WIN64)
-    #include <type_traits>
-#elif defined(USE_UNIX_NUMA)
-#endif
-
 #include "misc.h"
 #include "native_thread.h"
 #include "shm.h"
-#include "utility/types.h"
 
 namespace DON {
 

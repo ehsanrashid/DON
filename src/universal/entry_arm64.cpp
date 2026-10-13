@@ -19,6 +19,9 @@
     #include "../platform_win.h"
 #else
     #include <sys/auxv.h>
+#endif
+
+#if !defined(_WIN32)
     #if !defined(HWCAP_ASIMDDP)
         #define HWCAP_ASIMDDP (1 << 20)
     #endif
@@ -49,11 +52,13 @@ struct CpuFeatures final {
 
 CpuFeatures query_cpu_features() noexcept {
 #if defined(_WIN32)
-    return {.dotprod = (bool) IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE)};
+    const bool dotprod = IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE) == TRUE;
 #else
-    unsigned long hwcap = getauxval(AT_HWCAP);
-    return {.dotprod = (bool) (hwcap & HWCAP_ASIMDDP)};
+    const unsigned long hwcap = getauxval(AT_HWCAP);
+
+    const bool dotprod = (hwcap & HWCAP_ASIMDDP) == HWCAP_ASIMDDP;
 #endif
+    return {dotprod};
 }
 
 // Selects the most capable ISA variant supported by current CPU

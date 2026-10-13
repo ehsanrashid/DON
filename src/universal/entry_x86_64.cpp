@@ -244,10 +244,63 @@ bool cpu_supports(const char* feature) noexcept {
     return (reg & mask) != 0;
 }
 
+bool cpu_is(const char* model) noexcept {
+    int regs[4] = {};
+
+    // Get vendor string via CPUID 0
+    __cpuid(regs, 0);
+    char vendor[13] = {};
+    std::memcpy(vendor + 0, &regs[1], 4);
+    std::memcpy(vendor + 4, &regs[3], 4);
+    std::memcpy(vendor + 8, &regs[2], 4);
+
+    // Check vendor first
+    if (std::strcmp(model, "amd") == 0)
+        return std::strcmp(vendor, "AuthenticAMD") == 0;
+    if (std::strcmp(model, "intel") == 0)
+        return std::strcmp(vendor, "GenuineIntel") == 0;
+
+    // For model-specific checks, get family/model/stepping
+    if (std::strcmp(vendor, "AuthenticAMD") != 0)
+        return false;  // Non-AMD CPUs
+
+    __cpuid(regs, 1);
+    const unsigned eax       = unsigned{regs[0]};
+    const unsigned family    = (eax >> 8) & 0xF;
+    const unsigned model_num = (eax >> 4) & 0xF;
+
+    // Extended family/model for modern CPUs
+    const unsigned ext_family  = (eax >> 20) & 0xFF;
+    const unsigned ext_model   = (eax >> 16) & 0xF;
+    const unsigned full_family = (ext_family != 0) ? (ext_family + family) : family;
+    const unsigned full_model  = (ext_family != 0) ? ((ext_model << 4) | model_num) : model_num;
+
+    // Excavator (BD-VER4): family 15h, model 60-7F
+    if (std::strcmp(model, "bdver4") == 0)
+        return full_family == 0x15 && full_model >= 0x60;
+
+    // Zen (ZNVER1): family 17h, model 00-0F
+    if (std::strcmp(model, "znver1") == 0)
+        return full_family == 0x17 && full_model <= 0x0F;
+
+    // Zen+ / Zen2 (ZNVER2): family 17h, model 10-2F
+    if (std::strcmp(model, "znver2") == 0)
+        return full_family == 0x17 && full_model >= 0x10;
+
+    return false;
+}
+
 }  // namespace
+
+    #define CPU_INIT() ((void) 0)
     #define CPU_SUPPORTS(feature) cpu_supports(feature)
+    #define CPU_IS(model) cpu_is(model)
+
 #else
+    #define CPU_INIT() __builtin_cpu_init()
     #define CPU_SUPPORTS(feature) __builtin_cpu_supports(feature)
+    #define CPU_IS(model) __builtin_cpu_is(model)
+
 #endif
 
 #include "../utility/types.h"
@@ -276,6 +329,7 @@ extern "C" const struct mach_header_64 _mh_execute_header;
                 fns[i](); \
             return DON_##x::main(argc, argv); \
         }
+
 #else
     #define DEFINE_ARCH_ENTRY(x) \
         namespace DON_##x { \
@@ -289,6 +343,7 @@ extern "C" const struct mach_header_64 _mh_execute_header;
                 __start_##x##_init[i](); \
             return DON_##x::main(argc, argv); \
         }
+
 #endif
 
 DEFINE_ARCH_ENTRY(x86_64)
@@ -327,34 +382,36 @@ struct CpuFeatures final {
 
 CpuFeatures query_cpu_features() noexcept {
     return {
-      .sse41           = (bool) CPU_SUPPORTS("sse4.1"),
-      .popcnt          = (bool) CPU_SUPPORTS("popcnt"),
-      .avx2            = (bool) CPU_SUPPORTS("avx2"),
-      .fma             = (bool) CPU_SUPPORTS("fma"),
-      .bmi             = (bool) CPU_SUPPORTS("bmi"),
-      .bmi2            = (bool) CPU_SUPPORTS("bmi2"),
-      .avxvnni         = (bool) CPU_SUPPORTS("avxvnni"),
-      .avx512f         = (bool) CPU_SUPPORTS("avx512f"),
-      .avx512bw        = (bool) CPU_SUPPORTS("avx512bw"),
-      .avx512cd        = (bool) CPU_SUPPORTS("avx512cd"),
-      .avx512dq        = (bool) CPU_SUPPORTS("avx512dq"),
-      .avx512vl        = (bool) CPU_SUPPORTS("avx512vl"),
-      .avx512vnni      = (bool) CPU_SUPPORTS("avx512vnni"),
-      .avx512ifma      = (bool) CPU_SUPPORTS("avx512ifma"),
-      .avx512vbmi      = (bool) CPU_SUPPORTS("avx512vbmi"),
-      .avx512vbmi2     = (bool) CPU_SUPPORTS("avx512vbmi2"),
-      .avx512vpopcntdq = (bool) CPU_SUPPORTS("avx512vpopcntdq"),
-      .avx512bitalg    = (bool) CPU_SUPPORTS("avx512bitalg"),
-      .vpclmulqdq      = (bool) CPU_SUPPORTS("vpclmulqdq"),
-      .gfni            = (bool) CPU_SUPPORTS("gfni"),
-      .vaes            = (bool) CPU_SUPPORTS("vaes"),
+      (bool) CPU_SUPPORTS("sse4.1"),
+      (bool) CPU_SUPPORTS("popcnt"),
+      (bool) CPU_SUPPORTS("avx2"),
+      (bool) CPU_SUPPORTS("fma"),
+      (bool) CPU_SUPPORTS("bmi"),
+      (bool) CPU_SUPPORTS("bmi2"),
+      (bool) CPU_SUPPORTS("avxvnni"),
+      (bool) CPU_SUPPORTS("avx512f"),
+      (bool) CPU_SUPPORTS("avx512bw"),
+      (bool) CPU_SUPPORTS("avx512cd"),
+      (bool) CPU_SUPPORTS("avx512dq"),
+      (bool) CPU_SUPPORTS("avx512vl"),
+      (bool) CPU_SUPPORTS("avx512vnni"),
+      (bool) CPU_SUPPORTS("avx512ifma"),
+      (bool) CPU_SUPPORTS("avx512vbmi"),
+      (bool) CPU_SUPPORTS("avx512vbmi2"),
+      (bool) CPU_SUPPORTS("avx512vpopcntdq"),
+      (bool) CPU_SUPPORTS("avx512bitalg"),
+      (bool) CPU_SUPPORTS("vpclmulqdq"),
+      (bool) CPU_SUPPORTS("gfni"),
+      (bool) CPU_SUPPORTS("vaes")  //
     };
 }
 
+}  // namespace
+
+namespace {
 // AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pext/pdep via microcode.
 bool has_slow_bmi2() noexcept {
-    return __builtin_cpu_is("amd")
-        && (__builtin_cpu_is("bdver4") || __builtin_cpu_is("znver1") || __builtin_cpu_is("znver2"));
+    return CPU_IS("amd") && (CPU_IS("bdver4") || CPU_IS("znver1") || CPU_IS("znver2"));
 }
 
 // Selects the most capable ISA variant supported by current CPU
@@ -412,7 +469,7 @@ void maybe_promote_thread_to_avx512() noexcept {
 int main(const int argc, const char* const argv[]) noexcept {
     maybe_promote_thread_to_avx512();
 
-    __builtin_cpu_init();
+    CPU_INIT();
     auto cpuFeatures = query_cpu_features();
     return dispatch(cpuFeatures, argc, argv);
 }
