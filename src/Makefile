@@ -106,7 +106,7 @@ SRCS := \
     shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp \
-    utility/debug.cpp utility/mutex.cpp utility/prng.cpp
+    utility/debug.cpp utility/mutex.cpp utility/prng.cpp utility/types.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \

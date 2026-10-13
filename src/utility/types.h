@@ -347,6 +347,8 @@ struct ArrayDef<T, Size> final {
 template<typename T, usize Size, usize... Sizes>
 using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
 
+int hello_loop();
+
 }  // namespace DON
 
 #endif  // UTILITY_TYPES_H_INCLUDED

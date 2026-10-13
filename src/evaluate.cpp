@@ -22,16 +22,16 @@
 #include <cstdio>
 #include <cstring>
 #include <iomanip>
-#include <iostream>  // IWYU pragma: keep
+#include <iostream>
 #include <memory>
-#include <sstream>  // IWYU pragma: keep
+#include <sstream>
 
 #include "misc.h"
 #include "notation.h"
 #include "position.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
-#include "nnue/types.h"  // IWYU pragma: keep
+#include "nnue/types.h"
 
 namespace DON::Evaluate {
 
