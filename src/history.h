@@ -29,6 +29,7 @@
 #include "position.h"
 #include "types.h"
 #include "utility/types.h"
+#include "utility/multi_array.h"
 
 namespace DON {
 

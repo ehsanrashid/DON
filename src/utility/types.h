@@ -328,15 +328,15 @@ constexpr usize reserve_count(const usize reserveCount = 1024) noexcept {
 
 namespace Internal {
 
+// Recursive template to define multi-dimensional array
 template<typename T, usize Size, usize... Sizes>
 struct ArrayDef final {
-    static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
 };
 
+// Base case: single-dimensional array
 template<typename T, usize Size>
 struct ArrayDef<T, Size> final {
-    static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<T, Size>;
 };
 
