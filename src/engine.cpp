@@ -19,7 +19,7 @@
 
 #include <cassert>
 #include <deque>
-#include <fstream>  // IWYU pragma: keep
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <sstream>  // IWYU pragma: keep

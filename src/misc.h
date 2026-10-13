@@ -24,7 +24,7 @@
 #include <chrono>
 #include <cstring>
 #include <filesystem>
-#include <fstream>  // IWYU pragma: keep
+#include <fstream>
 #include <functional>
 #include <initializer_list>
 #include <iostream>

@@ -1,11 +1,11 @@
 [
     # Mappings for libc++ internal headers
-    { include: [ "<__fwd/fstream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/ios.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/istream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/ostream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/sstream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/streambuf.h>", private, "<iosfwd>", public ] },
+    { include: [ "<__fwd/ios.h>", private, "<ios>", public ] },
+    { include: [ "<__fwd/istream.h>", private, "<istream>", public ] },
+    { include: [ "<__fwd/ostream.h>", private, "<ostream>", public ] },
+    { include: [ "<__fwd/sstream.h>", private, "<sstream>", public ] },
+    { include: [ "<__fwd/fstream.h>", private, "<fstream>", public ] },
+    { include: [ "<__fwd/streambuf.h>", private, "<streambuf>", public ] },
     { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
     { include: [ "<__system_error/errc.h>", private, "<system_error>", public ] },
     { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
@@ -15,7 +15,7 @@
     { include: [ "<__ostream/basic_ostream.h>", private, "<ostream>", public ] },
     { include: [ "<__math/logarithms.h>", private, "<cmath>", public ] },
 
-    # Additional libc++ internal-header mappings
+    # Additional mappings for libc++ synchronization headers
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
 ]
