@@ -15,16 +15,16 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdint.h>
-
 #if defined(_WIN32)
-    #include <windows.h>
+    #include "../platform_win.h"
 #else
     #include <sys/auxv.h>
     #if !defined(HWCAP_ASIMDDP)
         #define HWCAP_ASIMDDP (1 << 20)
     #endif
 #endif
+
+#include "../utility/types.h"
 
 #define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \

@@ -23,7 +23,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#include "../misc.h"
+#include "../utility/types.h"
 
 #define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
