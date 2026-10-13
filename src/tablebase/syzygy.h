@@ -23,10 +23,8 @@
 #include <string_view>
 #include <vector>
 
-// IWYU pragma: begin_exports
 #include "../types.h"
 #include "../utility/types.h"
-// IWYU pragma: end_exports
 
 // IWYU pragma: no_include "types.h"
 // IWYU pragma: no_include "utility/types.h"

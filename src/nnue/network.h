@@ -26,12 +26,10 @@
 #include <string>
 #include <string_view>
 
-// IWYU pragma: begin_exports
 #include "../nnue/architecture.h"
 #include "../nnue/feature_transformer.h"
 #include "../nnue/types.h"
 #include "../utility/types.h"
-// IWYU pragma: end_exports
 
 // IWYU pragma: no_include "nnue/architecture.h"
 // IWYU pragma: no_include "nnue/feature_transformer.h"
