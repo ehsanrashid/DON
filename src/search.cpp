@@ -32,6 +32,7 @@
 #include "tt.h"
 #include "nnue/network.h"
 #include "utility/debug.h"
+#include "utility/multi_array.h"
 #include "utility/prng.h"
 
 namespace DON {

@@ -27,8 +27,8 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "misc.h"
 #include "position.h"
+#include "utility/multi_array.h"
 
 namespace DON {
 

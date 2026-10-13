@@ -34,6 +34,7 @@
 #include "tablebase/syzygy.h"
 #include "utility/concurrent.h"  // ConcurrentCache<>
 #include "utility/error.h"
+#include "utility/multi_array.h"
 
 namespace DON {
 
