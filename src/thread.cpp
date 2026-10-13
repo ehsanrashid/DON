@@ -36,7 +36,7 @@
 #include "notation.h"
 #include "option.h"
 #include "position.h"
-#include "types.h"
+#include "types.h"  // IWYU pragma: keep
 #include "tablebase/syzygy.h"
 
 #if !defined(SUPPORTS_PTHREADS)

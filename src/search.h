@@ -43,11 +43,11 @@
 #include "state.h"
 #include "thread_context.h"
 #include "timeman.h"
-#include "types.h"
+#include "types.h"  // IWYU pragma: keep
 #include "book/polyglot.h"
 #include "nnue/accumulator.h"
 #include "tablebase/syzygy.h"
-#include "utility/types.h"
+#include "utility/types.h"  // IWYU pragma: keep
 
 namespace DON {
 

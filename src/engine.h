@@ -36,8 +36,8 @@
 #include "tt.h"
 #include "types.h"
 #include "nnue/network.h"
-#include "nnue/types.h"
-#include "utility/types.h"
+#include "nnue/types.h"     // IWYU pragma: keep
+#include "utility/types.h"  // IWYU pragma: keep
 
 namespace DON {
 

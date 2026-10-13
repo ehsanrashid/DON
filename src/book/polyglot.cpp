@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <fstream>
+#include <fstream>  // IWYU pragma: keep
 #include <iomanip>
 #include <limits>
 #include <system_error>

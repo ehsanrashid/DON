@@ -22,22 +22,22 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: include-what-you-use/include-what-you-use
-          ref: 0.21
+          ref: 0.23
           path: include-what-you-use
           persist-credentials: false
 
       - name: Download required linux packages
         run: |
-          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main'
+          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main'
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt update
-          sudo apt install -y llvm-17-dev libclang-17-dev clang-17 libc++-17-dev
+          sudo apt install -y llvm-19-dev libclang-19-dev clang-19 libc++-19-dev
 
       - name: Set up include-what-you-use
         run: |
           mkdir build && cd build
           cmake -G "Unix Makefiles" \
-            -DCMAKE_PREFIX_PATH="/usr/lib/llvm-17" \
+            -DCMAKE_PREFIX_PATH="/usr/lib/llvm-19" \
             -DCMAKE_INSTALL_PREFIX="/usr/local" ..
           sudo make install
         working-directory: include-what-you-use
@@ -47,7 +47,7 @@ jobs:
           set -o pipefail
           command -v include-what-you-use
           include-what-you-use --version | tee /tmp/iwyu-version.txt
-          grep -F 'include-what-you-use 0.21' /tmp/iwyu-version.txt
+          grep -F 'include-what-you-use 0.23' /tmp/iwyu-version.txt
 
       - name: Check includes
         run: |
