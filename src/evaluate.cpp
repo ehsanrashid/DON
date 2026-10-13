@@ -25,7 +25,6 @@
 #include <iostream>  // IWYU pragma: keep
 #include <memory>
 #include <sstream>  // IWYU pragma: keep
-#include <string_view>
 
 #include "misc.h"
 #include "notation.h"

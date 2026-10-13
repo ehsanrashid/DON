@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <string_view>
 #include <thread>
 
 #include "option.h"
