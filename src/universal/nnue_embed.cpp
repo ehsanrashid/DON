@@ -82,21 +82,23 @@ extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();
 extern const unsigned int         gEmbeddedNNUESize = (unsigned int) (gUniversalNNUESize);
 
 #else
-    #if defined(__has_embed)
+    #if !defined(__INTELLISENSE__)
+        #if defined(__has_embed)
 // C++23 #embed: embeds the binary data directly
 extern const unsigned char gEmbeddedNNUEData[] = {
-        #embed EvalFileDefaultName
+            #embed EvalFileDefaultName
 };
 
 const unsigned int padding = 0;
-    #else
+        #else
+
 // Fallback for compilers without #embed support
 extern const unsigned char gEmbeddedNNUEData[] =
-        #include "network_dump.inc"
+            #include "network_dump.inc"
   ;
 
 const unsigned int padding = 1;  // Trailing NULL byte
-    #endif
+        #endif
 extern const unsigned int gEmbeddedNNUESize = sizeof(gEmbeddedNNUEData) - padding;
-
+    #endif
 #endif

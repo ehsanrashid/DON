@@ -406,9 +406,6 @@ CpuFeatures query_cpu_features() noexcept {
     };
 }
 
-}  // namespace
-
-namespace {
 // AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pext/pdep via microcode.
 bool has_slow_bmi2() noexcept {
     return CPU_IS("amd") && (CPU_IS("bdver4") || CPU_IS("znver1") || CPU_IS("znver2"));
