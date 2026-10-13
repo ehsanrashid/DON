@@ -20,7 +20,6 @@
 
 #include <cstddef>     // nullptr_t
 #include <functional>  // hash<>
-#include <iostream>    // IWYU pragma: keep
 #include <new>         // launder()
 #include <string>
 #include <string_view>
@@ -46,13 +45,6 @@
 #endif
 
 #if defined(_WIN32)
-    #if !defined(PATH_MAX)
-        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
-    #endif
-    #if !defined(NAME_MAX)
-        #define NAME_MAX 255
-    #endif
-
     #include "platform_win.h"
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC

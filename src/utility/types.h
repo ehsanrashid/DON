@@ -177,6 +177,15 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
+#if defined(_WIN32)
+    #if !defined(PATH_MAX)
+        #define PATH_MAX 2 * KB  // 2K bytes, safe for almost all paths
+    #endif
+    #if !defined(NAME_MAX)
+        #define NAME_MAX 255
+    #endif
+#endif
+
 template<typename T>
 constexpr bool is_power_of_2(const T x) noexcept {
     return x != 0 && (x & (x - 1)) == 0;

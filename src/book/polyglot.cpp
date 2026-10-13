@@ -26,10 +26,6 @@
 #include <string_view>
 #include <system_error>
 
-#if !defined(NDEBUG)
-    #include <iostream>  // IWYU pragma: keep
-#endif
-
 #include "../bitboard.h"
 #include "../misc.h"
 #include "../movegen.h"

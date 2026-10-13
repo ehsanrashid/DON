@@ -21,7 +21,7 @@
 #include <cstring>    // memset()
 #include <initializer_list>
 #include <iomanip>
-#include <sstream>  // IWYU pragma: keep
+#include <sstream>
 #include <utility>  // for swap()
 
 #include "cuckoo.h"

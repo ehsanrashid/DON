@@ -17,17 +17,18 @@
 
 #include "shm.h"
 
-#if defined(_WIN32)
-#elif defined(__ANDROID__)
-    #include <unistd.h>
-#elif defined(USE_UNIX_SHM)
-    #include <dirent.h>    // closedir(), opendir(), readdir(), DIR, dirent
-    #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
-    #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
-    #include <sys/time.h>  // timeval
+#if !defined(_WIN32)
+    #if defined(__ANDROID__)
+        #include <unistd.h>
+    #elif defined(USE_UNIX_SHM)
+        #include <dirent.h>    // closedir(), opendir(), readdir(), DIR, dirent
+        #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
+        #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
+        #include <sys/time.h>  // timeval
 
-    #include <algorithm>  // min()/max()
-    #include <memory>     // make_unique<>
+        #include <algorithm>  // min()/max()
+        #include <memory>     // make_unique<>()
+    #endif
 #endif
 
 namespace DON {
