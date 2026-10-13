@@ -23,7 +23,6 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
-// IWYU pragma: no_include <string_view>
 #include <system_error>
 
 #if !defined(NDEBUG)

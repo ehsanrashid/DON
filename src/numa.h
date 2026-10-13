@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>  // exit(), EXIT_FAILURE
-// IWYU pragma: no_include <filesystem>
 #include <iostream>
 #include <memory>
 #include <mutex>

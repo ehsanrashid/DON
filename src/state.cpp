@@ -20,7 +20,6 @@
 #include <array>
 #include <initializer_list>
 #include <string>
-// IWYU pragma: no_include <string_view>
 
 #include "bitboard.h"
 #include "misc.h"
