@@ -21,7 +21,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
+#include <fstream>  // IWYU pragma: keep
 #include <numeric>
 #include <system_error>
 #include <vector>

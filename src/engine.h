@@ -35,8 +35,8 @@
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "nnue/types.h"
 #include "nnue/network.h"
+#include "nnue/types.h"
 #include "utility/types.h"
 
 namespace DON {

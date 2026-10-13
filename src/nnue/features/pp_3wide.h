@@ -23,6 +23,11 @@
 #include "../../nnue/types.h"     // IWYU pragma: export
 #include "../../utility/types.h"  // IWYU pragma: export
 #include "full_threats.h"         // IWYU pragma: export
+// IWYU pragma: no_include "misc.h"
+// IWYU pragma: no_include "types.h"
+// IWYU pragma: no_include "nnue/types.h"
+// IWYU pragma: no_include "utility/types.h"
+// IWYU pragma: no_include "nnue/features/full_threats.h"
 
 namespace DON {
 

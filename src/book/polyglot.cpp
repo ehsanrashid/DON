@@ -26,7 +26,7 @@
 #include <system_error>
 
 #if !defined(NDEBUG)
-    #include <iostream>
+    #include <iostream>  // IWYU pragma: keep
 #endif
 
 #include "../bitboard.h"

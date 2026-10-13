@@ -25,6 +25,9 @@
 #include "../types.h"          // IWYU pragma: export
 #include "../nnue/types.h"     // IWYU pragma: export
 #include "../utility/types.h"  // IWYU pragma: export
+// IWYU pragma: no_include "types.h"
+// IWYU pragma: no_include "nnue/types.h"
+// IWYU pragma: no_include "utility/types.h"
 
 namespace DON {
 
