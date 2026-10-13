@@ -19,7 +19,7 @@
 #define SEARCH_H_INCLUDED
 
 #include <algorithm>
-#include <array>  // IWYU pragma: keep
+#include <array>
 #include <cassert>
 #include <condition_variable>
 #include <cstring>
@@ -43,11 +43,11 @@
 #include "state.h"
 #include "thread_context.h"
 #include "timeman.h"
-#include "types.h"  // IWYU pragma: keep
+#include "types.h"
 #include "book/polyglot.h"
 #include "nnue/accumulator.h"
 #include "tablebase/syzygy.h"
-#include "utility/types.h"  // IWYU pragma: keep
+#include "utility/types.h"
 
 namespace DON {
 

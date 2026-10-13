@@ -19,7 +19,10 @@
     { include: [ "<__new/launder.h>", private, "<new>", public ] },
     { include: [ "<__vector/vector.h>", private, "<vector>", public ] },
 
-    # Additional mappings for libc++ synchronization headers
+    # Mappings for libc++ synchronization headers
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
+
+    # Mappings for standard library symbols
+    { symbol: [ "std::hash", private, "<functional>", public ] },
 ]

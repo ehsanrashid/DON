@@ -19,7 +19,7 @@
 #define NNUE_NETWORK_H_INCLUDED
 
 #include <filesystem>
-#include <functional>  // IWYU pragma: keep
+#include <functional>
 #include <iosfwd>
 #include <optional>
 #include <string>
