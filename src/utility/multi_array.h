@@ -25,7 +25,7 @@ namespace DON {
 template<typename T, usize Size, usize... Sizes>
 class MultiArray;
 
-namespace Internal {
+namespace _internal {
 
 // Recursive template to define multi-dimensional array
 template<typename T, usize Size, usize... Sizes>
@@ -39,13 +39,13 @@ struct MultiArrayDef<T, Size> final {
     using Type = T;
 };
 
-}  // namespace Internal
+}  // namespace _internal
 
 // MultiArray is a generic N-dimensional array.
 // T is the base element type; Size and Sizes are the dimensions.
 template<typename T, usize Size, usize... Sizes>
 class MultiArray final {
-    using ElementType = typename Internal::MultiArrayDef<T, Size, Sizes...>::Type;
+    using ElementType = typename _internal::MultiArrayDef<T, Size, Sizes...>::Type;
     using ArrayType   = Array<ElementType, Size>;
 
    public:

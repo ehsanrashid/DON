@@ -22,7 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
-#include <sstream>  // IWYU pragma: keep
+#include <sstream>
 
 #include "evaluate.h"
 #include "misc.h"

@@ -328,7 +328,7 @@ constexpr usize reserve_count(const usize reserveCount = 1024) noexcept {
     return std::max(reserveCount, usize{8});
 }
 
-namespace Internal {
+namespace _internal {
 
 // Recursive template to define multi-dimensional array
 template<typename T, usize Size, usize... Sizes>
@@ -342,10 +342,10 @@ struct ArrayDef<T, Size> final {
     using type = std::array<T, Size>;
 };
 
-}  // namespace Internal
+}  // namespace _internal
 
 template<typename T, usize Size, usize... Sizes>
-using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
+using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
 
 }  // namespace DON
 
