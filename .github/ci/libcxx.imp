@@ -13,6 +13,7 @@
     { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
     { include: [ "<__istream/basic_istream.h>", private, "<istream>", public ] },
     { include: [ "<__ostream/basic_ostream.h>", private, "<ostream>", public ] },
+    { include: [ "<__math/logarithms.h>", private, "<cmath>", public ] },
 
     # Additional libc++ internal-header mappings
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },

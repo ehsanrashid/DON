@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cmath>
 #include <thread>
+// IWYU pragma: no_include <string_view>
 
 #include "option.h"
 #include "search.h"

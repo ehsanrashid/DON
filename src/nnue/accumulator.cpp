@@ -23,7 +23,6 @@
 #include <cstring>  // for memset()
 
 #include "../bitboard.h"
-#include "../misc.h"
 #include "../position.h"
 #include "architecture.h"
 #include "feature_transformer.h"
