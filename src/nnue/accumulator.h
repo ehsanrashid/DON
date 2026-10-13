@@ -22,9 +22,9 @@
 
 #include <array>
 
-#include "../types.h"
-#include "../nnue/types.h"
-#include "../utility/types.h"
+#include "../types.h"          // IWYU pragma: export
+#include "../nnue/types.h"     // IWYU pragma: export
+#include "../utility/types.h"  // IWYU pragma: export
 
 namespace DON {
 

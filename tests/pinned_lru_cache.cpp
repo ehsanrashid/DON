@@ -11,6 +11,7 @@ g++ -std=c++17 -O2 -I./src \
     src/nnue/features/*.cpp \
     src/book/*.cpp \
     src/tablebase/*.cpp \
+    src/utility/*.cpp \
     -o build/pinned_lru_cache \
     -lpthread
 g++ -std=c++17 -O2 -I./src \
@@ -20,6 +21,7 @@ g++ -std=c++17 -O2 -I./src \
     src/nnue/features/*.cpp \
     src/book/*.cpp \
     src/tablebase/*.cpp \
+    src/utility/*.cpp \
     -o build/pinned_lru_cache \
     -lpthread
 g++ -std=c++17 -O2 -I./src `
@@ -29,6 +31,7 @@ g++ -std=c++17 -O2 -I./src `
     src/nnue/features/*.cpp `
     src/book/*.cpp `
     src/tablebase/*.cpp `
+    src/utility/*.cpp `
     -o build/pinned_lru_cache `
     -lpthread
 

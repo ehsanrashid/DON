@@ -18,6 +18,7 @@ g++ -std=c++17 -O2 -I./src \
     src/nnue/features/*.cpp \
     src/book/*.cpp \
     src/tablebase/*.cpp \
+    src/utility/*.cpp \
     -o build/movepick_ordering \
     -lpthread
 g++ -std=c++17 -O2 -I./src \
@@ -27,6 +28,7 @@ g++ -std=c++17 -O2 -I./src \
     src/nnue/features/*.cpp \
     src/book/*.cpp \
     src/tablebase/*.cpp \
+    src/utility/*.cpp \
     -o build/movepick_ordering \
     -lpthread
 g++ -std=c++17 -O2 -I./src `
@@ -36,6 +38,7 @@ g++ -std=c++17 -O2 -I./src `
     src/nnue/features/*.cpp `
     src/book/*.cpp `
     src/tablebase/*.cpp `
+    src/utility/*.cpp `
     -o build/movepick_ordering `
     -lpthread
 

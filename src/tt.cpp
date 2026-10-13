@@ -27,7 +27,7 @@
 #include <vector>
 
 #if !defined(NDEBUG)
-    #include <iostream>
+    #include <iostream>  // IWYU pragma: keep
 #endif
 
 #include "memory.h"

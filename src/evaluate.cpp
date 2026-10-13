@@ -22,7 +22,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iomanip>
-#include <iostream>
+#include <iostream>  // IWYU pragma: keep
 #include <memory>
 #include <sstream>  // IWYU pragma: keep
 #include <string_view>
