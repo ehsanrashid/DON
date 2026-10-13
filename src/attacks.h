@@ -21,7 +21,7 @@
 #include <array>
 #include <cassert>
 #include <initializer_list>
-#include <type_traits>
+#include <type_traits>  // IWYU pragma: keep
 #include <utility>
 
 #if defined(USE_BMI2)

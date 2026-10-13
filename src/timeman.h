@@ -21,11 +21,11 @@
 #include <limits>
 
 #include "misc.h"
-#include "types.h"
 #include "utility/types.h"
 
 namespace DON {
 
+enum Color : u8;
 struct Limit;
 class Options;
 

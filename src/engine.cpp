@@ -19,10 +19,10 @@
 
 #include <cassert>
 #include <deque>
-#include <fstream>
+#include <fstream>  // IWYU pragma: keep
 #include <iostream>
 #include <optional>
-#include <sstream>
+#include <sstream>  // IWYU pragma: keep
 
 #include "evaluate.h"
 #include "misc.h"

@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "network.h"
+#include "network.h"  // IWYU pragma: associated
 
 #include <algorithm>
 #include <cstdlib>
@@ -25,15 +25,10 @@
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "../incbin/incbin.h"
 
-#include "../utility/types.h"
 #include "../evaluate.h"
 #include "../misc.h"
 #include "../position.h"
-#include "../types.h"
-#include "architecture.h"
-#include "feature_transformer.h"
 #include "nnz.h"
-#include "types.h"
 #include "serialization.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp

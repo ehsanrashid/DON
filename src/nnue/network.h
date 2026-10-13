@@ -19,7 +19,7 @@
 #define NNUE_NETWORK_H_INCLUDED
 
 #include <filesystem>
-#include <functional>  // IWYU pragma: keep
+#include <functional>
 #include <iosfwd>
 // IWYU pragma: no_include <memory>
 #include <optional>
@@ -28,8 +28,8 @@
 
 #include "architecture.h"
 #include "feature_transformer.h"
+#include "../nnue/types.h"
 #include "../utility/types.h"
-#include "types.h"
 
 namespace DON {
 

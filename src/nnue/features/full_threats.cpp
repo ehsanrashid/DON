@@ -17,7 +17,7 @@
 
 // Definition of input features FullThreats of NNUE evaluation function
 
-#include "full_threats.h"
+#include "full_threats.h"  // IWYU pragma: associated
 
 #include <array>
 #include <cassert>

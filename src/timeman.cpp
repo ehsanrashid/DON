@@ -24,6 +24,7 @@
 
 #include "option.h"
 #include "search.h"
+#include "types.h"
 
 namespace DON {
 

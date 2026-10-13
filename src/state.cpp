@@ -19,6 +19,7 @@
 
 #include <array>
 #include <initializer_list>
+#include <string>
 
 #include "bitboard.h"
 #include "misc.h"

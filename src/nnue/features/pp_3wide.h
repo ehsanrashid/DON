@@ -18,10 +18,10 @@
 #ifndef NNUE_FEATURES_PP_3WIDE_INCLUDED
 #define NNUE_FEATURES_PP_3WIDE_INCLUDED
 
-#include "../../utility/types.h"
 #include "../../misc.h"
 #include "../../types.h"
-#include "../types.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 #include "full_threats.h"
 
 namespace DON {

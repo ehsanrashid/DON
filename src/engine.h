@@ -27,7 +27,6 @@
 #include <vector>
 
 #include "history.h"
-#include "misc.h"
 #include "numa.h"
 #include "option.h"
 #include "position.h"

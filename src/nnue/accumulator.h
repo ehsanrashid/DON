@@ -23,7 +23,7 @@
 #include <array>
 
 #include "../types.h"
-#include "types.h"
+#include "../nnue/types.h"
 #include "../utility/types.h"
 
 namespace DON {

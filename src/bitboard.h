@@ -23,7 +23,7 @@
 #include <cassert>
 #include <string>
 #include <string_view>
-#include <type_traits>
+#include <type_traits>  // IWYU pragma: keep
 
 #if defined(USE_AVX512)
     #include <immintrin.h>

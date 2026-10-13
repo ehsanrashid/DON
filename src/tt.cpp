@@ -22,12 +22,16 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
-#include <iostream>
 #include <numeric>
 #include <system_error>
 #include <vector>
 
+#if !defined(NDEBUG)
+    #include <iostream>
+#endif
+
 #include "memory.h"
+#include "misc.h"
 #include "thread.h"
 
 namespace DON {

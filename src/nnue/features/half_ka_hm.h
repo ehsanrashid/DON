@@ -20,10 +20,10 @@
 #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 
-#include "../../utility/types.h"
 #include "../../misc.h"
 #include "../../types.h"
-#include "../types.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 

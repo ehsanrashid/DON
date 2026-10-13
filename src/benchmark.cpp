@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <fstream>
+#include <fstream>  // IWYU pragma: keep
 #include <iostream>
 #include <limits>
 #include <vector>

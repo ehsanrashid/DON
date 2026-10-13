@@ -15,21 +15,18 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "accumulator.h"
+#include "accumulator.h"  // IWYU pragma: associated
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef>  // for offsetof()
 #include <cstring>  // for memset()
 
-#include "../utility/types.h"
 #include "../bitboard.h"
 #include "../misc.h"
 #include "../position.h"
-#include "../types.h"
 #include "architecture.h"
 #include "feature_transformer.h"
-#include "types.h"
 #include "simd.h"
 
 namespace DON::NNUE {
