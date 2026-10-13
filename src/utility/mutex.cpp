@@ -29,6 +29,9 @@
     #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
 
+// IWYU pragma: no_include "utility/list.h"
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON {
 
 void cpu_relax() noexcept {

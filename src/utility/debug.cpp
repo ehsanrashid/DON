@@ -24,6 +24,8 @@
 #include <limits>   // numeric_limits<>
 #include <utility>  // as_const()
 
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON::Debug {
 
 namespace {

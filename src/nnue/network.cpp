@@ -32,6 +32,11 @@
 #include "../nnue/nnz.h"
 #include "../nnue/serialization.h"
 
+// IWYU pragma: no_include "nnue/architecture.h"
+// IWYU pragma: no_include "nnue/feature_transformer.h"
+// IWYU pragma: no_include "nnue/types.h"
+// IWYU pragma: no_include "utility/types.h"
+
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
     #if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)

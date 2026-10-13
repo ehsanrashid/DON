@@ -25,7 +25,6 @@
 
     #include "platform_win.h"
 #else
-    // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // glibc feature-test macros
     #endif
@@ -38,6 +37,8 @@
     #endif
     #include <cerrno>
     #include <cstring>
+
+// IWYU pragma: no_include <bits/mman-map-flags-generic.h>
 #endif
 
 #if defined(__APPLE__)      /* macOS / iOS */ \

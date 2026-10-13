@@ -19,6 +19,8 @@
 
 #include <algorithm>  // generate(), all_of()
 
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON {
 
 // ------------------

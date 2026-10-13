@@ -51,6 +51,9 @@
 #include "../state.h"
 #include "../utility/error.h"
 
+// IWYU pragma: no_include "types.h"
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON::Tablebase::Syzygy {
 
 #if defined(NO_TABLEBASES)

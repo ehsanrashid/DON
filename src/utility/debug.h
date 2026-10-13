@@ -18,9 +18,7 @@
 #ifndef UTILITY_DEBUG_H_INCLUDED
 #define UTILITY_DEBUG_H_INCLUDED
 
-// IWYU pragma: begin_exports
 #include "../utility/types.h"
-// IWYU pragma: end_exports
 
 // IWYU pragma: no_include "utility/types.h"
 

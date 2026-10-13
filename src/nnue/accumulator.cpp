@@ -28,6 +28,10 @@
 #include "../nnue/feature_transformer.h"
 #include "../nnue/simd.h"
 
+// IWYU pragma: no_include "types.h"
+// IWYU pragma: no_include "nnue/types.h"
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON::NNUE {
 
 void AccumulatorCache::Entry::init(const Array<Bias, L1>& biases) noexcept {

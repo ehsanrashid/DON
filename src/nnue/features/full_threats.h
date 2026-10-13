@@ -20,12 +20,10 @@
 #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 #define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
-// IWYU pragma: begin_exports
 #include "../../misc.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../utility/types.h"
-// IWYU pragma: end_exports
 
 // IWYU pragma: no_include "misc.h"
 // IWYU pragma: no_include "types.h"
