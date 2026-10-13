@@ -361,7 +361,7 @@ class Threads final {
         // Try to acquire the main-manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.
         // If locking fails still notify — notify_one() is allowed without holding the lock.
-        std::unique_lock uniqueLock(manager->mutex, std::try_to_lock);
+        std::unique_lock uniqueLock{manager->mutex, std::try_to_lock};
         // Safe to call even if mutex not locked
         manager->condVar.notify_one();
     }

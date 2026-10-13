@@ -359,7 +359,7 @@ void Worker::start_search() noexcept {
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Therefore simply wait here until the GUI sends one of those commands.
         {
-            std::unique_lock uniqueLock(manager->mutex);
+            std::unique_lock uniqueLock{manager->mutex};
 
             // Wait until either:
             // 1. Threads are stopped, OR

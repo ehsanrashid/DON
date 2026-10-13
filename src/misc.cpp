@@ -800,13 +800,13 @@ TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
 }
 
 bool Logger::start(const fs::path& logPath) noexcept {
-    std::lock_guard lockGuard(instance().mutex);
+    std::lock_guard lockGuard{instance().mutex};
 
     return instance().open(logPath);
 }
 
 void Logger::stop() noexcept {
-    std::lock_guard lockGuard(instance().mutex);
+    std::lock_guard lockGuard{instance().mutex};
 
     instance().close();
 }

@@ -44,7 +44,7 @@ class PinnedLRU final {
         if (!value)
             return nullptr;
 
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         if (capacity_ == 0)
             return value;
@@ -81,13 +81,13 @@ class PinnedLRU final {
     }
 
     [[nodiscard]] bool erase(const Key& key) noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return nolock_erase(key);
     }
 
     [[nodiscard]] ValuePtr lookup(const Key& key) noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         const auto mapItr = indexMap.find(key);
 
@@ -100,7 +100,7 @@ class PinnedLRU final {
     }
 
     [[nodiscard]] ValuePtr lookup_and_pin(const Key& key) noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         const auto mapItr = indexMap.find(key);
 
@@ -114,7 +114,7 @@ class PinnedLRU final {
     }
 
     [[nodiscard]] bool unpin(const Key& key, const ValuePtr& value) noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         if (const auto mapItr = indexMap.find(key); mapItr != indexMap.end())
         {
@@ -152,32 +152,32 @@ class PinnedLRU final {
     }
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return indexMap.find(key) != indexMap.end();
     }
 
     void set_capacity(usize newCapacity) noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         capacity_ = newCapacity;
         nolock_evict_excess();
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return list.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return list.empty();
     }
 
     [[nodiscard]] usize capacity() const noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard lockGuard{mutex};
 
         return capacity_;
     }
