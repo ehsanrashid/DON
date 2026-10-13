@@ -32,14 +32,14 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "accumulator.h"
-#include "architecture.h"
-#include "types.h"
-#include "serialization.h"
-#include "simd.h"
+#include "../nnue/accumulator.h"
+#include "../nnue/architecture.h"
+#include "../nnue/types.h"
+#include "../nnue/serialization.h"
+#include "../nnue/simd.h"
 
 #if defined(VECTOR) || defined(USE_RVV)
-    #include "nnz.h"
+    #include "../nnue/nnz.h"
 #else
 namespace DON::NNUE {
 template<Index Dimensions>

@@ -33,8 +33,8 @@
 #include <utility>        // forward<>, pair<>
 
 #include "../misc.h"
-#include "mutex.h"
-#include "types.h"
+#include "../utility/mutex.h"
+#include "../utility/types.h"
 
 namespace DON {
 

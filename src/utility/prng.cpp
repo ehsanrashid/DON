@@ -15,11 +15,9 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "prng.h"
+#include "../utility/prng.h"  // IWYU pragma: associated
 
 #include <algorithm>  // generate(), all_of()
-
-#include "types.h"
 
 namespace DON {
 

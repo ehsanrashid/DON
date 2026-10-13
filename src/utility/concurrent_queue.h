@@ -20,7 +20,7 @@
 
 #include <thread>
 
-#include "types.h"
+#include "../utility/types.h"
 
 namespace DON {
 

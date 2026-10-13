@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "syzygy.h"  // IWYU pragma: associated
+#include "../tablebase/syzygy.h"  // IWYU pragma: associated
 
 #include <algorithm>
 #include <array>

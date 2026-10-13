@@ -18,11 +18,14 @@
 #ifndef NNUE_FEATURES_PP_3WIDE_INCLUDED
 #define NNUE_FEATURES_PP_3WIDE_INCLUDED
 
-#include "../../misc.h"                        // IWYU pragma: export
-#include "../../types.h"                       // IWYU pragma: export
-#include "../../nnue/types.h"                  // IWYU pragma: export
-#include "../../nnue/features/full_threats.h"  // IWYU pragma: export
-#include "../../utility/types.h"               // IWYU pragma: export
+// IWYU pragma: begin_exports
+#include "../../misc.h"
+#include "../../types.h"
+#include "../../nnue/types.h"
+#include "../../nnue/features/full_threats.h"
+#include "../../utility/types.h"
+// IWYU pragma: end_exports
+
 // IWYU pragma: no_include "misc.h"
 // IWYU pragma: no_include "types.h"
 // IWYU pragma: no_include "nnue/types.h"

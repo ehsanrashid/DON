@@ -18,6 +18,8 @@
 #ifndef UTILITY_COLOR_H_INCLUDED
 #define UTILITY_COLOR_H_INCLUDED
 
+#include "../utility/types.h"
+
 namespace DON::Color {
 
 // Reset

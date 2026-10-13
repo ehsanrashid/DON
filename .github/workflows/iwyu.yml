@@ -62,6 +62,7 @@ jobs:
             COMP=clang \
             CXX=include-what-you-use \
             CXXFLAGS="\
+              -I${{ github.workspace }}/DON/src \
               -stdlib=libc++ \
               -Xiwyu --comment_style=long \
               -Xiwyu --mapping='${{ github.workspace }}/DON/.github/ci/libcxx.imp' \

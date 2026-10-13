@@ -22,9 +22,12 @@
 
 #include <array>
 
-#include "../types.h"          // IWYU pragma: export
-#include "../nnue/types.h"     // IWYU pragma: export
-#include "../utility/types.h"  // IWYU pragma: export
+// IWYU pragma: begin_exports
+#include "../types.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
+// IWYU pragma: end_exports
+
 // IWYU pragma: no_include "types.h"
 // IWYU pragma: no_include "nnue/types.h"
 // IWYU pragma: no_include "utility/types.h"

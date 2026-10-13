@@ -22,9 +22,9 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../types.h"
-#include "../serialization.h"
-#include "../simd.h"
+#include "../../nnue/types.h"
+#include "../../nnue/serialization.h"
+#include "../../nnue/simd.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
   || defined(USE_RVV)
@@ -33,9 +33,9 @@
         #include "../../memory.h"
         #define USE_SPARSE_AFFINE_SIMD
     #endif
-    #include "../nnz.h"
+    #include "../../nnue/nnz.h"
 #else
-    #include "fallback_affine_transform.h"
+    #include "../../nnue/layers/fallback_affine_transform.h"
 namespace DON::NNUE {
 template<Index Dimensions>
 struct NNZ;

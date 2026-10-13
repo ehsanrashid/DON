@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "network.h"  // IWYU pragma: associated
+#include "../nnue/network.h"  // IWYU pragma: associated
 
 #include <algorithm>
 #include <cstdlib>
@@ -29,8 +29,8 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "nnz.h"
-#include "serialization.h"
+#include "../nnue/nnz.h"
+#include "../nnue/serialization.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)

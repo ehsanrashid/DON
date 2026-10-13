@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>  // exit(), EXIT_FAILURE
-#include <functional>
 #include <iostream>
 #include <limits>
 #include <ratio>

@@ -20,7 +20,7 @@
 
 #include <cassert>
 
-#include "types.h"
+#include "../utility/types.h"
 
 namespace DON {
 

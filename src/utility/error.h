@@ -22,6 +22,8 @@
 #include <string>
 #include <string_view>
 
+#include "../utility/types.h"
+
 namespace DON {
 
 // Base type for application-specific errors

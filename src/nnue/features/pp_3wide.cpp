@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "pp_3wide.h"  // IWYU pragma: associated
+#include "../../nnue/features/pp_3wide.h"  // IWYU pragma: associated
 
 #include <algorithm>
 #include <cassert>

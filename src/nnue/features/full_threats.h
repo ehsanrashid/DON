@@ -27,6 +27,11 @@
 #include "../../utility/types.h"
 // IWYU pragma: end_exports
 
+// IWYU pragma: no_include "misc.h"
+// IWYU pragma: no_include "types.h"
+// IWYU pragma: no_include "nnue/types.h"
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON {
 
 class Position;

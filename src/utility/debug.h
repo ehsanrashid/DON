@@ -18,7 +18,11 @@
 #ifndef UTILITY_DEBUG_H_INCLUDED
 #define UTILITY_DEBUG_H_INCLUDED
 
-#include "types.h"
+// IWYU pragma: begin_exports
+#include "../utility/types.h"
+// IWYU pragma: end_exports
+
+// IWYU pragma: no_include "utility/types.h"
 
 // Debug functions used mainly to collect run-time statistics
 namespace DON::Debug {

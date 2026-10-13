@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "mutex.h"
+#include "../utility/mutex.h"  // IWYU pragma: associated
 
 #include <atomic>
 #include <chrono>
@@ -28,9 +28,6 @@
 #elif defined(X86)
     #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
-
-#include "intrusive_list.h"
-#include "types.h"
 
 namespace DON {
 

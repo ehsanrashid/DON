@@ -17,7 +17,7 @@
 
 // Definition of input features HalfKAHm of NNUE evaluation function
 
-#include "half_ka_hm.h"  // IWYU pragma: associated
+#include "../../nnue/features/half_ka_hm.h"  // IWYU pragma: associated
 
 #include <array>
 #include <initializer_list>

@@ -18,7 +18,7 @@
 #ifndef UTILITY_MULTI_ARRAY_H_INCLUDED
 #define UTILITY_MULTI_ARRAY_H_INCLUDED
 
-#include "types.h"
+#include "../utility/types.h"
 
 namespace DON {
 

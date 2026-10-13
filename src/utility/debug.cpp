@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "debug.h"
+#include "../utility/debug.h"  // IWYU pragma: associated
 
 #include <atomic>
 #include <cassert>
@@ -23,8 +23,6 @@
 #include <iostream>
 #include <limits>   // numeric_limits<>
 #include <utility>  // as_const()
-
-#include "types.h"
 
 namespace DON::Debug {
 

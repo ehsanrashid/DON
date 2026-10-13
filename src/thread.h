@@ -28,7 +28,6 @@
 #include <utility>
 #include <vector>
 
-#include "memory.h"
 #include "misc.h"
 #include "native_thread.h"
 #include "numa.h"

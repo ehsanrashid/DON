@@ -24,9 +24,9 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../types.h"
-#include "../serialization.h"
-#include "../simd.h"
+#include "../../nnue/types.h"
+#include "../../nnue/serialization.h"
+#include "../../nnue/simd.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD) || defined(USE_RVV)
     #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)

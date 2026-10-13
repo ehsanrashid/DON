@@ -22,8 +22,13 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "intrusive_list.h"
-#include "types.h"
+// IWYU pragma: begin_exports
+#include "../utility/intrusive_list.h"
+#include "../utility/types.h"
+// IWYU pragma: end_exports
+
+// IWYU pragma: no_include "utility/intrusive_list.h"
+// IWYU pragma: no_include "utility/types.h"
 
 namespace DON {
 
