@@ -22,7 +22,7 @@
 #include <chrono>
 #include <iostream>
 #include <optional>
-#include <sstream>  // IWYU pragma: keep
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>

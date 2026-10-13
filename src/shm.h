@@ -47,14 +47,13 @@
 #if defined(_WIN32)
     #include "platform_win.h"
 #elif defined(USE_UNIX_SHM)
-    #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC
-    #include <limits.h>
+    #include <fcntl.h>       // open(), fcntl(), FD_CLOEXEC
     #include <sys/mman.h>    // munmap(), memfd_create(), MFD_CLOEXEC
     #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
-    #include <sys/types.h>  // IWYU pragma: keep
-    #include <sys/uio.h>    // iovec
-    #include <sys/un.h>     // sockaddr_un
+    #include <sys/types.h>
+    #include <sys/uio.h>  // iovec
+    #include <sys/un.h>   // sockaddr_un
     #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid(), pipe()/pipe2(), fsync()
 
     #include <cassert>

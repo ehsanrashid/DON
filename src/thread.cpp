@@ -34,12 +34,8 @@
 #include "notation.h"
 #include "option.h"
 #include "position.h"
-#include "types.h"  // IWYU pragma: keep
+#include "types.h"
 #include "tablebase/syzygy.h"
-
-#if !defined(SUPPORTS_PTHREADS)
-    #include "misc.h"
-#endif
 
 namespace DON {
 

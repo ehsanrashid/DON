@@ -239,20 +239,6 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
-constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
-#if defined(__SIZEOF_INT128__)
-    return (u128(u1) * u128(u2)) >> 64;
-#else
-    u64 u1L = u32(u1), u1H = u1 >> 32;
-    u64 u2L = u32(u2), u2H = u2 >> 32;
-    u64 mid = u1H * u2L + ((u1L * u2L) >> 32);
-    return u1H * u2H + ((u1L * u2H + u32(mid)) >> 32) + (mid >> 32);
-#endif
-}
-
-static_assert(mul_hi64(u64{0xDEADBEEFDEADBEEF}, u64{0xCAFEBABECAFEBABE}) == u64{0xB092AB7CE9F4B259},
-              "mul_hi64(): Failed");
-
 // PrefetchAccess for explicit call-site control
 enum class PrefetchAccess : u8 {
     READ,

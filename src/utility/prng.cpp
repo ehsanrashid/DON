@@ -17,7 +17,7 @@
 
 #include "../utility/prng.h"  // IWYU pragma: associated
 
-#include <algorithm>  // generate(), all_of()
+#include <algorithm>  // generate<>(), all_of<>()
 
 // IWYU pragma: no_include "utility/types.h"
 

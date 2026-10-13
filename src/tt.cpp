@@ -26,10 +26,6 @@
 #include <system_error>
 #include <vector>
 
-#if !defined(NDEBUG)
-    #include <iostream>  // IWYU pragma: keep
-#endif
-
 #include "memory.h"
 #include "misc.h"
 #include "thread.h"

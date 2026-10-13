@@ -177,13 +177,15 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
-#if defined(_WIN32)
-    #if !defined(PATH_MAX)
-        #define PATH_MAX 2 * KB  // 2K bytes, safe for almost all paths
-    #endif
-    #if !defined(NAME_MAX)
-        #define NAME_MAX 255
-    #endif
+#if !defined(_WIN32)
+    #include <limits.h>  // PATH_MAX, NAME_MAX
+#endif
+
+#if !defined(PATH_MAX)
+    #define PATH_MAX (2 * KB)  // 2K bytes, safe for almost all paths
+#endif
+#if !defined(NAME_MAX)
+    #define NAME_MAX 255
 #endif
 
 template<typename T>
@@ -232,6 +234,20 @@ constexpr auto sign_sqr(const T x) noexcept {
 }
 
 constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
+
+constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
+#if defined(__SIZEOF_INT128__)
+    return (u128(u1) * u128(u2)) >> 64;
+#else
+    u64 u1L = u32(u1), u1H = u1 >> 32;
+    u64 u2L = u32(u2), u2H = u2 >> 32;
+    u64 mid = u1H * u2L + ((u1L * u2L) >> 32);
+    return u1H * u2H + ((u1L * u2H + u32(mid)) >> 32) + (mid >> 32);
+#endif
+}
+
+static_assert(mul_hi64(u64{0xDEADBEEFDEADBEEF}, u64{0xCAFEBABECAFEBABE}) == u64{0xB092AB7CE9F4B259},
+              "mul_hi64(): Failed");
 
 // Computes ln(1 + d) for f in (-1, sqrt(2)-1] via the identity
 // ln(1 + d) = 2 * atanh(s),   s = d / (d + 2.0)
@@ -355,8 +371,6 @@ struct ArrayDef<T, Size> final {
 
 template<typename T, usize Size, usize... Sizes>
 using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
-
-int hello_loop();
 
 }  // namespace DON
 
