@@ -22,7 +22,4 @@
     # Mappings for libc++ synchronization headers
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
-
-    # Mappings for standard library symbols
-    { symbol: [ "std::hash", private, "<functional>", public ] },
 ]
