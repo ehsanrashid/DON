@@ -22,9 +22,12 @@
 #include <cassert>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <system_error>
+
+#if !defined(NDEBUG)
+    #include <iostream>
+#endif
 
 #include "../bitboard.h"
 #include "../misc.h"

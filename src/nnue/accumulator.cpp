@@ -24,6 +24,7 @@
 
 #include "../utility/types.h"
 #include "../bitboard.h"
+#include "../misc.h"
 #include "../position.h"
 #include "../types.h"
 #include "architecture.h"

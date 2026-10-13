@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <fstream>
+#include <fstream>  // IWYU pragma: keep
 #include <iostream>
 
 #define INCBIN_SILENCE_BITCODE_WARNING

@@ -26,10 +26,7 @@
     #include <immintrin.h>
 #endif
 
-#include "../../utility/types.h"
 #include "../../bitboard.h"
-#include "../../types.h"
-#include "../types.h"
 
 namespace DON::NNUE::Features {
 

@@ -66,8 +66,6 @@
 
 namespace DON {
 
-namespace fs = std::filesystem;
-
 using NumaIndex = u16;
 using CpuIndex  = u16;
 

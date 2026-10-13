@@ -22,6 +22,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <limits>
 #include <string>
 #include <string_view>
@@ -126,6 +127,8 @@
 #endif
 
 namespace DON {
+
+namespace fs = std::filesystem;
 
 using u64 = std::uint64_t;
 using u32 = std::uint32_t;

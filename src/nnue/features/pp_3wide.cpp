@@ -20,14 +20,9 @@
 #include <algorithm>
 #include <cassert>
 
-#include "../../utility/types.h"
 #include "../../attacks.h"
 #include "../../bitboard.h"
-#include "../../misc.h"
 #include "../../position.h"
-#include "../../types.h"
-#include "../types.h"
-#include "full_threats.h"
 
 namespace DON::NNUE::Features {
 
