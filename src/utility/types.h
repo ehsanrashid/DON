@@ -33,96 +33,21 @@
     #define LINUX_NON_ANDROID
 #endif
 
+#if !defined(_WIN32)     /* Non-Windows */
+    #include <limits.h>  // PATH_MAX, NAME_MAX
+#endif
+
+#if !defined(PATH_MAX)
+    #define PATH_MAX (2 * KB)  // 2K bytes, safe for almost all paths
+#endif
+#if !defined(NAME_MAX)
+    #define NAME_MAX (255)
+#endif
+
+#include "../utility/attributes.h"
+
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
-
-// Enable GNU-style compiler attributes for Clang and GCC, excluding SWIG.
-// Unsupported compilers and SWIG receive an empty attribute macro.
-#if (defined(__clang__) || defined(__GNUC__)) && !defined(SWIG)
-    #define ATTRIBUTE(x) __attribute__((x))
-#else
-    #define ATTRIBUTE(x)
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define ALWAYS_INLINE inline ATTRIBUTE(always_inline)
-#elif defined(_MSC_VER)
-    #define ALWAYS_INLINE __forceinline
-#else
-    #define ALWAYS_INLINE inline
-#endif
-
-// clang-format off
-#if defined(__clang__)
-    #define ASSUME(cond) __builtin_assume(cond)
-#elif defined(__GNUC__)
-    #if __GNUC__ >= 13
-        #define ASSUME(cond) ATTRIBUTE(assume(cond))
-    #else
-        #define ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while (false)
-    #endif
-#elif defined(_MSC_VER)
-    #define ASSUME(cond) __assume(cond)
-#else
-    #define ASSUME(cond)
-#endif
-// clang-format on
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define UNREACHABLE() __builtin_unreachable()
-#elif defined(_MSC_VER)
-    #define UNREACHABLE() __assume(false)
-#else
-    #define UNREACHABLE()
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define RESTRICT __restrict__
-#elif defined(_MSC_VER)
-    #define RESTRICT __restrict
-#else
-    #define RESTRICT
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#else
-    #define UNLIKELY(x) (x)
-#endif
-
-#if !defined(__INTELLISENSE__)
-    // Enable compiler thread-safety attributes only for Clang, excluding SWIG.
-    // These attributes have no effect when compiling with other compilers.
-    #if defined(__clang__) && !defined(SWIG)
-        #define THREAD_SAFETY_ATTRIBUTE(x) ATTRIBUTE(x)
-    #else
-        #define THREAD_SAFETY_ATTRIBUTE(x)
-    #endif
-
-    // clang-format off
-    #define ASSERT_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(assert_capability(x))
-    #define ASSERT_SHARED_CAPABILITY(x) THREAD_SAFETY_ATTRIBUTE(assert_shared_capability(x))
-    #define RETURN_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(lock_returned(x))
-    #define SCOPED_CAPABILITY           THREAD_SAFETY_ATTRIBUTE(scoped_lockable)
-    #define CAPABILITY(x)               THREAD_SAFETY_ATTRIBUTE(capability(x))
-    #define GUARDED_BY(x)               THREAD_SAFETY_ATTRIBUTE(guarded_by(x))
-    #define PT_GUARDED_BY(x)            THREAD_SAFETY_ATTRIBUTE(pt_guarded_by(x))
-    #define ACQUIRED_BEFORE(...)        THREAD_SAFETY_ATTRIBUTE(acquired_before(__VA_ARGS__))
-    #define ACQUIRED_AFTER(...)         THREAD_SAFETY_ATTRIBUTE(acquired_after(__VA_ARGS__))
-    #define REQUIRES(...)               THREAD_SAFETY_ATTRIBUTE(requires_capability(__VA_ARGS__))
-    #define REQUIRES_SHARED(...)        THREAD_SAFETY_ATTRIBUTE(requires_shared_capability(__VA_ARGS__))
-    #define ACQUIRE(...)                THREAD_SAFETY_ATTRIBUTE(acquire_capability(__VA_ARGS__))
-    #define ACQUIRE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(acquire_shared_capability(__VA_ARGS__))
-    #define RELEASE(...)                THREAD_SAFETY_ATTRIBUTE(release_capability(__VA_ARGS__))
-    #define RELEASE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(release_shared_capability(__VA_ARGS__))
-    #define TRY_ACQUIRE(...)            THREAD_SAFETY_ATTRIBUTE(try_acquire_capability(__VA_ARGS__))
-    #define TRY_ACQUIRE_SHARED(...)     THREAD_SAFETY_ATTRIBUTE(try_acquire_shared_capability(__VA_ARGS__))
-    #define EXCLUDES(...)               THREAD_SAFETY_ATTRIBUTE(locks_excluded(__VA_ARGS__))
-    #define NO_THREAD_SAFETY_ANALYSIS   THREAD_SAFETY_ATTRIBUTE(no_thread_safety_analysis)
-
-    #define PACKED_STRUCT ATTRIBUTE(packed)
-    // clang-format on
-#endif
 
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
@@ -181,15 +106,21 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
-#if !defined(_WIN32)     /* Non-Windows */
-    #include <limits.h>  // PATH_MAX, NAME_MAX
-#endif
+template<typename To, typename From>
+constexpr bool is_strictly_assignable_v =
+  std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
 
-#if !defined(PATH_MAX)
-    #define PATH_MAX (2 * KB)  // 2K bytes, safe for almost all paths
-#endif
-#if !defined(NAME_MAX)
-    #define NAME_MAX (255)
+// True if and only if the binary is compiled on a little-endian machine
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
+#elif defined(_WIN32)
+inline constexpr bool IS_LITTLE_ENDIAN = true;
+#else
+// Fallback runtime check
+inline const bool IS_LITTLE_ENDIAN = []() noexcept -> bool {
+    constexpr u16 LE = 1;
+    return *reinterpret_cast<const u8*>(&LE) == 1;
+}();
 #endif
 
 template<typename T>
@@ -238,6 +169,62 @@ constexpr auto sign_sqr(const T x) noexcept {
 }
 
 constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
+
+template<typename T1, typename T2>
+constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
+    using R = std::common_type_t<T1, T2>;
+    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
+    return R(n) / R(d) + (R(n) % R(d) != 0);
+}
+
+// Round n up to be a multiple of base
+template<typename T>
+constexpr T ceil_to_multiple(const T n, const T base) noexcept {
+    return ceil_div(n, base) * base;
+}
+
+// Round up to the next power of 2
+constexpr usize round_up_to_pow2(usize x) noexcept {
+    if (x == 0)
+        return 1;
+
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+#if defined(SIZE_MAX) && SIZE_MAX == UINT64_MAX
+    x |= x >> 32;
+#endif
+    return x + 1;
+}
+
+// Round up to a multiple of alignment
+template<typename T>
+[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
+    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
+    // Alignment must be non-zero power of 2
+    assert(is_power_of_2(alignment));
+
+    // Safely handle edge case: zero alignment when assertions are disabled
+    if (alignment == 0)
+        return size;
+
+    const T mask = alignment - 1;
+
+    if (size > std::numeric_limits<T>::max() - mask)
+        return std::numeric_limits<T>::max();
+
+    // Round up to the next multiple of alignment
+    return (size + mask) & ~mask;
+}
+
+template<typename T1, typename T2>
+constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
+    assert(x0 != x1);
+    return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
+}
 
 constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__SIZEOF_INT128__)
@@ -318,36 +305,6 @@ constexpr double constexpr_log(double x) noexcept {
 
     // f = x - 1, approximately in (-0.293, 0.414), with |f| <= ~0.414.
     return constexpr_log1p_log(x - 1.0) + exponent * LN2;
-}
-
-template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
-    using R = std::common_type_t<T1, T2>;
-    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
-    return R(n) / R(d) + (R(n) % R(d) != 0);
-}
-
-// Round n up to be a multiple of base
-template<typename T>
-constexpr T ceil_to_multiple(const T n, const T base) noexcept {
-    return ceil_div(n, base) * base;
-}
-
-// Round up to the next power of 2
-constexpr usize round_up_to_pow2(usize x) noexcept {
-    if (x == 0)
-        return 1;
-
-    --x;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-#if defined(SIZE_MAX) && SIZE_MAX > 0xFFFFFFFF
-    x |= x >> 32;  // for 64-bit usize
-#endif
-    return x + 1;
 }
 
 constexpr float max_load_factor(const float maxLoadFactor = 0.75f) noexcept {

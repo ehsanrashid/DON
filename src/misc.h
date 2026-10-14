@@ -68,43 +68,6 @@ using CpuIndex  = u16;
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\v\f\r"};
 
-// True if and only if the binary is compiled on a little-endian machine
-#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
-#elif defined(_WIN32)
-inline constexpr bool IS_LITTLE_ENDIAN = true;
-#else
-// Fallback runtime check
-inline const bool IS_LITTLE_ENDIAN = []() noexcept -> bool {
-    constexpr u16 LE = 1;
-    return *reinterpret_cast<const u8*>(&LE) == 1;
-}();
-#endif
-
-template<typename To, typename From>
-constexpr bool is_strictly_assignable_v =
-  std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
-
-// Round up to a multiple of alignment
-template<typename T>
-[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
-    // Alignment must be non-zero power of 2
-    assert(is_power_of_2(alignment));
-
-    // Safely handle edge case: zero alignment when assertions are disabled
-    if (alignment == 0)
-        return size;
-
-    const T mask = alignment - 1;
-
-    if (size > std::numeric_limits<T>::max() - mask)
-        return std::numeric_limits<T>::max();
-
-    // Round up to the next multiple of alignment
-    return (size + mask) & ~mask;
-}
-
 // Get the first aligned element of an array.
 // ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
 // where N is the number of elements in the array.
@@ -115,13 +78,6 @@ template<usize Alignment, typename T>
 
     const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
     return reinterpret_cast<T*>(uPtr);
-}
-
-
-template<typename T1, typename T2>
-constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
-    assert(x0 != x1);
-    return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
@@ -874,12 +830,13 @@ u64 hash_raw_data(const T& value) noexcept {
 
 template<typename T>
 void combine_hash(usize& seed, const T& v) noexcept {
-    constexpr usize HashMagic = []() constexpr noexcept {
-        if constexpr (sizeof(usize) == 8)
-            return usize{0x9E3779B97F4A7C15};
-        else
-            return usize{0x9E3779B9};
-    }();
+    constexpr usize HashMagic =
+#if defined(SIZE_MAX) && SIZE_MAX == UINT64_MAX
+      usize{0x9E3779B97F4A7C15}
+#else
+      usize{0x9E3779B9}
+#endif
+    ;
 
     usize x;
     // For primitive types we avoid using the default hasher, which may be
