@@ -66,4 +66,5 @@ jobs:
               -stdlib=libc++ \
               -Xiwyu --comment_style=long \
               -Xiwyu --mapping='${{ github.workspace }}/DON/.github/ci/libcxx.imp' \
+              -Xiwyu --transitive_includes_only \
               -Xiwyu --error"

@@ -1355,13 +1355,6 @@ help:
 	icx-profile-make icx-profile-use \
 	format install-hooks
 
-ifneq ($(findstring include-what-you-use,$(strip $(CXX))),)
-full_threats.o half_ka_hm.o pp_3wide.o \
-accumulator.o architecture.o network.o \
-polyglot.o syzygy.o \
-debug.o mutex.o prng.o: CXXFLAGS += \
-    -Xiwyu --mapping_file=$(abspath ../.github/ci/mapping.imp)
-endif
 analyze: net config-sanity obj-clean
 	$(MAKE) -k $(OBJS)
 
