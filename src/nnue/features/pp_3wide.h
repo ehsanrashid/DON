@@ -22,6 +22,7 @@
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../nnue/features/full_threats.h"
+#include "../../utility/static_vector.h"
 #include "../../utility/types.h"
 
 namespace DON {
@@ -47,7 +48,7 @@ class PP3Wide final {
     // Maximum number of simultaneously active features
     static constexpr Index MaxActiveDimensions = 256;
 
-    using IndexList = FixedVector<Index, MaxActiveDimensions, Index>;
+    using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
     using DirtyType = DirtyPawnPairs;
 
     static void append_active_indices(Color           perspective,  //

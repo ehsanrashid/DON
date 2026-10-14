@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "misc.h"
+#include "utility/static_vector.h"
 #include "utility/types.h"
 
 // When compiling with provided Makefile (e.g. for Linux and OSX), configuration
@@ -868,7 +869,7 @@ struct DirtyThreats final {
     // Thus, 80 should work as an upper bound.
     // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
     // So, 80 + 16 = 96.
-    using ThreatVector = FixedVector<Threat, 96, u8>;
+    using ThreatVector = StaticVector<Threat, 96, u8>;
 
     ThreatVector threats_;
 };
@@ -892,7 +893,7 @@ ALWAYS_INLINE void DirtyThreats::add(const bool   put,
                                      const Piece  pc,
                                      const Square threatenedSq,
                                      const Square sq) noexcept {
-    threats_.emplace_back(put, threatenedPc, pc, threatenedSq, sq);
+    threats_.push_back({put, threatenedPc, pc, threatenedSq, sq});
 }
 
 ALWAYS_INLINE DirtyThreats::Threat* DirtyThreats::make_space(const u8 space) noexcept {

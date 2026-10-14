@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <utility>  // forward<>(), move(), swap()
+#include <utility>  // move(), swap()
 
 #include "../utility/types.h"
 
@@ -57,17 +57,11 @@ class StaticVector final {
         *end() = value;
         ++size_;
     }
+
     void push_back(T&& value) noexcept {
         assert(size() < capacity());
 
         *end() = std::move(value);
-        ++size_;
-    }
-    template<typename... Args>
-    void emplace_back(Args&&... args) noexcept {
-        assert(size() < capacity());
-
-        *end() = T(std::forward<Args>(args)...);
         ++size_;
     }
 
@@ -119,6 +113,7 @@ class StaticVector final {
 
         return *(end() - 1);
     }
+
     const T& back() const noexcept {
         assert(size() != 0);
 
