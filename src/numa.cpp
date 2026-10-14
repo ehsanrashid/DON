@@ -31,6 +31,8 @@
     #include <sched.h>  // CPU_ALLOC(), CPU_FREE(), sched_getaffinity(), sched_setaffinity()
 #endif
 
+#include "utility/attributes.h"
+
 namespace DON {
 
 CpuIndex hardware_concurrency() noexcept {

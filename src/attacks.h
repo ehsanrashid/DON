@@ -49,6 +49,7 @@
 
 #include "bitboard.h"
 #include "types.h"
+#include "utility/attributes.h"
 #include "utility/types.h"
 
 namespace DON::Attacks {

@@ -28,7 +28,6 @@
 #include <functional>
 #include <initializer_list>
 #include <iostream>
-#include <limits>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -58,6 +57,7 @@
     #endif
 #endif
 
+#include "utility/attributes.h"
 #include "utility/types.h"
 
 namespace DON {

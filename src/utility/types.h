@@ -45,8 +45,6 @@
     #define NAME_MAX (255)
 #endif
 
-#include "../utility/attributes.h"
-
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 

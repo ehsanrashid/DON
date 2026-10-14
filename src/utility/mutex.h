@@ -51,9 +51,9 @@ class LOCKABLE SpinMutex final {
    public:
     SpinMutex() noexcept = default;
 
-    void lock() noexcept ACQUIRE();
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    void unlock() noexcept RELEASE();
+    void unlock() noexcept RELEASE_CAPABILITY();
 
    private:
     SpinMutex(const SpinMutex&) noexcept            = delete;
@@ -75,17 +75,17 @@ class LOCKABLE ReaderSharedMutex final {
    public:
     ReaderSharedMutex() noexcept = default;
 
-    void lock() noexcept ACQUIRE();
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    bool try_lock() noexcept TRY_ACQUIRE(true);
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
 
-    void unlock() noexcept RELEASE();
+    void unlock() noexcept RELEASE_CAPABILITY();
 
-    void lock_shared() noexcept ACQUIRE_SHARED();
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
 
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true);
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
 
-    void unlock_shared() noexcept RELEASE_SHARED();
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
     [[nodiscard]] usize active_reader_count() const noexcept;
 
@@ -114,17 +114,17 @@ class LOCKABLE WriterSharedMutex final {
    public:
     WriterSharedMutex() noexcept = default;
 
-    void lock() noexcept ACQUIRE();
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    bool try_lock() noexcept TRY_ACQUIRE(true);
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
 
-    void unlock() noexcept RELEASE();
+    void unlock() noexcept RELEASE_CAPABILITY();
 
-    void lock_shared() noexcept ACQUIRE_SHARED();
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
 
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true);
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
 
-    void unlock_shared() noexcept RELEASE_SHARED();
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
 
     [[nodiscard]] usize active_reader_count() const noexcept;
@@ -169,17 +169,17 @@ class LOCKABLE FairSharedMutex final {
    public:
     FairSharedMutex() noexcept = default;
 
-    void lock() noexcept ACQUIRE();
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    bool try_lock() noexcept TRY_ACQUIRE(true);
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
 
-    void unlock() noexcept RELEASE();
+    void unlock() noexcept RELEASE_CAPABILITY();
 
-    void lock_shared() noexcept ACQUIRE_SHARED();
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
 
-    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED(true);
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
 
-    void unlock_shared() noexcept RELEASE_SHARED();
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
     bool has_writer_before(const Waiter* until = nullptr) const noexcept;
 

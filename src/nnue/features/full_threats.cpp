@@ -26,6 +26,7 @@
 #include "../../attacks.h"
 #include "../../bitboard.h"
 #include "../../position.h"
+#include "../../utility/attributes.h"
 
 // IWYU pragma: no_include "misc.h"
 // IWYU pragma: no_include "types.h"

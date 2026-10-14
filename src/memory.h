@@ -27,6 +27,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "utility/attributes.h"
 #include "utility/types.h"
 
 #if defined(LINUX_NON_ANDROID)

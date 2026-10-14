@@ -123,8 +123,8 @@ HEADERS := \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
     nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
-    utility/attributes.h utility/thread_attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/debug.h \
-    utility/error.h utility/list.h utility/lru.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/types.h
+    utility/attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/debug.h utility/error.h utility/list.h \
+    utility/lru.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/thread_attributes.h utility/types.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
