@@ -29,14 +29,14 @@
     #include <type_traits>
 #endif
 
-#include "../misc.h"
 #include "../position.h"
+#include "../misc.h"
 #include "../types.h"
 #include "../nnue/accumulator.h"
 #include "../nnue/architecture.h"
-#include "../nnue/types.h"
 #include "../nnue/serialization.h"
 #include "../nnue/simd.h"
+#include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
 #include "../nnue/features/half_ka_hm.h"
 #include "../nnue/features/pp_3wide.h"

@@ -21,9 +21,9 @@
 #include <iostream>
 
 #include "../../misc.h"
-#include "../../nnue/types.h"
 #include "../../nnue/serialization.h"
 #include "../../nnue/simd.h"
+#include "../../nnue/types.h"
 #include "../../utility/types.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \

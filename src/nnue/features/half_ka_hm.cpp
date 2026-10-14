@@ -27,7 +27,6 @@
 #endif
 
 #include "../../bitboard.h"
-#include "../../misc.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../utility/attributes.h"

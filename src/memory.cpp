@@ -55,8 +55,8 @@
     #define USE_POSIX_ALIGNED_ALLOC
 #endif
 
-#include "utility/concurrent.h"  // ConcurrentAllocationTracker<>
 #include "misc.h"
+#include "utility/concurrent.h"  // ConcurrentAllocationTracker<>
 
 namespace DON {
 

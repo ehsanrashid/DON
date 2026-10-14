@@ -20,8 +20,8 @@
 
 #include <thread>
 
-#include "../utility/types.h"
 #include "../utility/queue.h"
+#include "../utility/types.h"
 
 namespace DON {
 
