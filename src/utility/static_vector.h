@@ -93,6 +93,15 @@ class StaticVector final {
         --size_;
     }
 
+    void pop_front() noexcept {
+        assert(size() != 0);
+
+        for (SizeType i = 1; i < size(); ++i)
+            buffer[i - 1] = std::move(buffer[i]);
+
+        --size_;
+    }
+
     T& front() noexcept {
         assert(size() != 0);
 
