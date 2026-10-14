@@ -21,6 +21,7 @@
 #include <iosfwd>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "types.h"
 #include "utility/types.h"
@@ -41,15 +42,15 @@ namespace DON::Benchmark {
 // bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each (TT = 64MB)
 // bench 64 4 5000 current movetime : search current position with 4 threads for 5 seconds (TT = 64MB)
 // bench 16 1 5 test.epd perft      : run perft 5 on positions in file "test.epd" (TT = 16MB)
-Strings bench(std::istream& is, std::string_view currentFen = START_FEN) noexcept;
+std::vector<std::string> bench(std::istream& is, std::string_view currentFen = START_FEN) noexcept;
 
 struct Setup final {
    public:
-    usize       threads;
-    usize       ttSize;
-    std::string originalInvocation;
-    std::string currentInvocation;
-    Strings     commands;
+    usize                    threads;
+    usize                    ttSize;
+    std::string              originalInvocation;
+    std::string              currentInvocation;
+    std::vector<std::string> commands;
 };
 
 // Examples:

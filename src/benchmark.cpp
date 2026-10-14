@@ -32,7 +32,7 @@ namespace DON::Benchmark {
 namespace {
 
 // clang-format off
-const Strings DefaultFens{
+const std::vector<std::string> DefaultFens{
   "setoption name UCI_Chess960 value false",
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -102,7 +102,7 @@ const Strings DefaultFens{
 };
 
 // Human-randomly picked 5 games with <60 moves only moves for one side
-const std::vector<Strings> BenchmarkGames{
+const std::vector<std::vector<std::string>> BenchmarkGames{
 {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
     "rnbq1k1r/pp2bppp/4pn2/2p5/2B2B2/2NP1N2/PPP2PPP/R2QR1K1 b - - 1 9",
@@ -376,7 +376,7 @@ const std::vector<Strings> BenchmarkGames{
 
 }  // namespace
 
-Strings bench(std::istream& is, std::string_view currentFen) noexcept {
+std::vector<std::string> bench(std::istream& is, std::string_view currentFen) noexcept {
 
     std::string token;
     // Assign default values to missing arguments
@@ -392,7 +392,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     std::string fenOpt = lower_case(epdFile);
 
-    Strings fens;
+    std::vector<std::string> fens;
 
     if (fenOpt == "default")
     {
@@ -428,7 +428,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
                 fens.emplace_back(fen);
     }
 
-    Strings commands;
+    std::vector<std::string> commands;
 
     if (!isLimitEval)
     {

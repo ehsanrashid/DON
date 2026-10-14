@@ -467,7 +467,7 @@ struct Limit final {
 
     Array<Clock, COLOR_NB> clocks{};
 
-    Strings searchMoves, ignoreMoves;
+    std::vector<std::string> searchMoves, ignoreMoves;
 
     u64       nodes     = 0;
     TimePoint moveTime  = 0;

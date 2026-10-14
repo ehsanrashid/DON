@@ -269,8 +269,8 @@ UniqueFd create_unix_socket() noexcept {
     return fd;
 }
 
-Strings get_peer_sockets(const std::string& sharedDir) noexcept {
-    Strings peerSockets;
+std::vector<std::string> get_peer_sockets(const std::string& sharedDir) noexcept {
+    std::vector<std::string> peerSockets;
 
     if (DIR* dir = ::opendir(sharedDir.c_str()))
     {

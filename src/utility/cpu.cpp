@@ -20,7 +20,9 @@
 #include "../utility/platform.h"
 
 #if defined(X86)
-    #include <emmintrin.h>  // _mm_pause() intrinsic
+    #if defined(_MSC_VER)
+        #include <emmintrin.h>  // _mm_pause() intrinsic
+    #endif
 #elif defined(_WIN32)
     #include "../platform_win.h"  // YieldProcessor()
 #elif defined(_MSC_VER) \

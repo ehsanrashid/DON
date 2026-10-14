@@ -386,30 +386,6 @@ static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
-struct CommandLine final {
-   public:
-    CommandLine(const int argc, const char* const argv[]) noexcept;
-    CommandLine(const CommandLine&)            = delete;
-    CommandLine& operator=(const CommandLine&) = delete;
-    CommandLine(CommandLine&&)                 = default;
-    CommandLine& operator=(CommandLine&&)      = default;
-
-    // Returns the directory containing the executable, or "." if the directory is empty.
-    // This is useful because, when the NNUE network is not embedded in the binary,
-    // this directory is one of the locations to look for the NNUE file.
-    static fs::path binary_directory(fs::path path) noexcept;
-    // Returns the process's current working directory.
-    static fs::path working_directory() noexcept;
-
-    [[nodiscard]] const StringViews& arguments() const noexcept;
-
-   private:
-    StringViews arguments_;
-#if defined(_WIN32)
-    Strings utf8_arguments;
-#endif
-};
-
 // SyncOS
 //
 // Provides RAII-based, thread-safe output synchronization for a std::ostream.
@@ -1224,7 +1200,7 @@ bool str_in_range(std::string_view sv, int minValue, int maxValue) noexcept;
 
 StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
-Strings to_strings(const StringViews& svs) noexcept;
+std::vector<std::string> to_strings(const std::vector<std::string_view>& svs) noexcept;
 
 std::string usize_to_hex(usize value) noexcept;
 
@@ -1239,9 +1215,6 @@ inline bool InfoStopped = false;
 void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
-
-// Convert a wide string to UTF-8.
-std::string wstring_to_utf8(std::wstring_view wsv) noexcept;
 
 fs::path utf8_to_path(std::string_view path) noexcept;
 

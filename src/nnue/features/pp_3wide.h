@@ -18,7 +18,6 @@
 #ifndef NNUE_FEATURES_PP_3WIDE_INCLUDED
 #define NNUE_FEATURES_PP_3WIDE_INCLUDED
 
-#include "../../misc.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../nnue/features/full_threats.h"

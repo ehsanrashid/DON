@@ -539,58 +539,6 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     return os;
 }
 
-CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
-#if defined(_WIN32)
-    int wide_argc;
-    if (LPWSTR* wide_argv = ::CommandLineToArgvW(::GetCommandLineW(), &wide_argc);  //
-        wide_argv != nullptr)
-    {
-        const usize utf8_argc = usize(wide_argc);
-
-        utf8_arguments.reserve(utf8_argc);
-
-        for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(wstring_to_utf8(wide_argv[i]));
-
-        ::LocalFree(wide_argv);
-
-        arguments_.reserve(utf8_arguments.size());
-
-        for (const auto& utf8_argv : utf8_arguments)
-            arguments_.emplace_back(std::string_view{utf8_argv});
-
-        return;
-    }
-#endif
-
-    const usize u_argc = usize(argc);
-
-    arguments_.reserve(u_argc);
-
-    for (usize i = 0; i < u_argc; ++i)
-        arguments_.emplace_back(argv[i]);  // Store non-owning views.
-}
-
-fs::path CommandLine::binary_directory(fs::path path) noexcept {
-#if defined(_WIN32)
-    // Prefer the executable path reported by Windows.
-    // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
-    // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
-    // Falls back to path if the API fails.
-    Array<WCHAR, 0x8000> filename{};
-    const DWORD length = ::GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
-    if (length != 0 && length < filename.size())
-        path = fs::path{filename.data(), filename.data() + length};
-#endif
-
-    const auto binaryDirectory{path.parent_path()};
-    return binaryDirectory.empty() ? fs::path(".") : binaryDirectory;
-}
-
-fs::path CommandLine::working_directory() noexcept { return fs::current_path(); }
-
-const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
-
 namespace {
 
 // OsToMutexMap
@@ -1143,9 +1091,9 @@ bool str_in_range(const std::string_view sv, const int minValue, const int maxVa
     return minValue <= value && value <= maxValue;
 }
 
-StringViews
+std::vector<std::string_view>
 split(const std::string_view sv, const std::string_view delimiter, bool trimPart) noexcept {
-    StringViews parts;
+    std::vector<std::string_view> parts;
 
     if (sv.empty() || delimiter.empty())
         return parts;  // Avoid infinite loop for empty delimiter
@@ -1181,8 +1129,8 @@ split(const std::string_view sv, const std::string_view delimiter, bool trimPart
     return parts;
 }
 
-Strings to_strings(const StringViews& svs) noexcept {
-    Strings strs;
+std::vector<std::string> to_strings(const std::vector<std::string_view>& svs) noexcept {
+    std::vector<std::string> strs;
     strs.reserve(svs.size());
 
     for (const auto sv : svs)
@@ -1253,27 +1201,6 @@ void terminate_on_critical_error(const std::string_view message) noexcept {
 }
 
 // clang-format off
-
-std::string wstring_to_utf8(const std::wstring_view wsv) noexcept {
-#if defined(_WIN32)
-    if (wsv.empty())
-        return {};
-
-    constexpr UINT codePage = CP_UTF8;
-
-    const int strSize = ::WideCharToMultiByte(codePage, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
-
-    if (strSize <= 0)
-        return {};
-
-    std::string str(usize(strSize), '\0');
-    ::WideCharToMultiByte(codePage, 0, wsv.data(), int(wsv.size()), str.data(), strSize, nullptr, nullptr);
-
-    return str;
-#else
-    return std::string{wsv.begin(), wsv.end()};
-#endif
-}
 
 fs::path utf8_to_path(const std::string_view path) noexcept {
 #if defined(_WIN32)

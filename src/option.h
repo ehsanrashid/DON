@@ -51,7 +51,9 @@ class Option {
 
     static Ptr spin(int v, int minV, int maxV, OnChange onCng = {}) noexcept;
 
-    static Ptr combo(std::string_view str, const StringViews& vars, OnChange onCng = {}) noexcept;
+    static Ptr combo(std::string_view                     str,
+                     const std::vector<std::string_view>& vars,
+                     OnChange                             onCng = {}) noexcept;
 
     virtual ~Option() noexcept = default;
 
