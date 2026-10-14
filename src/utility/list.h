@@ -113,7 +113,7 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] T* next(const T& item) const noexcept {
+    [[nodiscard]] const T* next(const T& item) const noexcept {
         assert(item.node.owner == this);
 
         if (item.node.owner != this)

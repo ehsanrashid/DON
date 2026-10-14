@@ -254,7 +254,7 @@ void FairSharedMutex::lock() noexcept {
     std::unique_lock uniqueLock{mutex};
 
     ++waitingWriterCount;
-    waitList.push_back(writer.node, writer);
+    (void) waitList.push_back(writer.node, writer);
 
     commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool {
         return !writerActive                // No active writer
@@ -262,7 +262,7 @@ void FairSharedMutex::lock() noexcept {
             && activeReaderCount == 0;      // No active readers
     });
 
-    waitList.erase(writer.node);
+    (void) waitList.erase(writer.node);
     --waitingWriterCount;
 
     writerActive = true;
@@ -296,14 +296,14 @@ void FairSharedMutex::lock_shared() noexcept {
 
     std::unique_lock uniqueLock{mutex};
 
-    waitList.push_back(reader.node, reader);
+    (void) waitList.push_back(reader.node, reader);
 
     commonCondVar.wait(uniqueLock, [this, &reader]() noexcept -> bool {
         return !writerActive                 // No active writer
             && !has_writer_before(&reader);  // No writer ahead of this reader
     });
 
-    waitList.erase(reader.node);
+    (void) waitList.erase(reader.node);
 
     ++activeReaderCount;
 }

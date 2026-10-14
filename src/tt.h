@@ -37,10 +37,9 @@ namespace DON {
 // Probes and reads are racy and non-atomic, possibly resulting in inconsistent data.
 struct TTData final {
    public:
-    TTData(TTData&&) noexcept            = default;
-    TTData& operator=(TTData&&) noexcept = delete;
-
     TTData(Move m, Value v, Value ev, Depth d, Bound b, bool hit_, bool pv_) noexcept;
+
+    TTData(TTData&&) noexcept = default;
 
     static TTData empty() noexcept;
 
@@ -56,6 +55,7 @@ struct TTData final {
     TTData() noexcept                         = delete;
     TTData(const TTData&) noexcept            = delete;
     TTData& operator=(const TTData&) noexcept = delete;
+    TTData& operator=(TTData&&) noexcept      = delete;
 };
 
 struct TTEntry;
@@ -66,9 +66,9 @@ struct TTCluster;
 // later write may decide that the new data is less important than the existing data.
 class TTWriter final {
    public:
-    TTWriter(TTWriter&&) noexcept = default;
-
     TTWriter(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept;
+
+    TTWriter(TTWriter&&) noexcept = default;
 
     void write(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
@@ -99,6 +99,7 @@ class Threads;
 class TranspositionTable final {
    public:
     TranspositionTable() noexcept = default;
+
     ~TranspositionTable() noexcept;
 
     // The current age, used when writing new data to the TT
