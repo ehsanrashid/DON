@@ -125,7 +125,7 @@ HEADERS := \
     nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
     utility/attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/cpu.h utility/debug.h utility/error.h utility/list.h \
-    utility/lru.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/thread_attributes.h utility/types.h
+    utility/lru.h utility/map.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/thread_attributes.h utility/types.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
