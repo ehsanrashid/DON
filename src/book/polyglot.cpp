@@ -36,6 +36,9 @@
 #include "../state.h"
 #include "../utility/prng.h"
 
+// IWYU pragma: no_include "types.h"
+// IWYU pragma: no_include "utility/types.h"
+
 namespace DON::Book {
 
 namespace {
