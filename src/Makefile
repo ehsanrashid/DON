@@ -1633,9 +1633,11 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c '$<' -o '$@'
 
+ifneq ($(arch),wasm32)
 ifneq ($(TARGET_KERNEL),Darwin)
 ifneq ($(filter gcc mingw,$(COMP)),)
 search.o: CXXFLAGS += -Wno-dangling-pointer
+endif
 endif
 endif
 
