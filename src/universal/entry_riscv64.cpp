@@ -15,15 +15,17 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(__linux__)
-    #error "Supported only on Linux"
+#if !defined(__INTELLISENSE__)
+    #if !defined(__linux__) /* Non-Linux */
+        #error "Supported only on Linux"
+    #endif
+
+    #include <sys/auxv.h>
+    #include <sys/syscall.h>
+    #include <unistd.h>
 #endif
 
-#include <sys/auxv.h>
-#include <sys/syscall.h>
-#include <unistd.h>
-
-#include "../misc.h"
+#include "../utility/types.h"
 
 #define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
@@ -50,38 +52,48 @@ struct CpuFeatures final {
 };
 
 CpuFeatures query_cpu_features() noexcept {
-    unsigned long  hwcap    = getauxval(AT_HWCAP);
-    constexpr long MASK_GCV = 0x20112d;
+#if !defined(__INTELLISENSE__)
+    const unsigned long     hwcap    = getauxval(AT_HWCAP);
+    constexpr unsigned long MASK_GCV = 0x20112DUL;
 
     bool gcv  = (hwcap & MASK_GCV) == MASK_GCV;
     int  vlen = 0;
     if (gcv)
     {
-        unsigned long vlenb;
+        unsigned long vlenb = 0;
         asm volatile("csrr %0, 0xc22" : "=r"(vlenb));  // 0xc22 = vlenb
         vlen = int(vlenb * 8);
     }
 
-    constexpr long     NR_riscv_hwprobe = 258;
+    constexpr long     NR_RISCV_HWPROBE = 258;
     constexpr DON::i64 KEY_IMA_EXT_0    = 4;
-    constexpr DON::u64 EXT_ZB           = 1 << 3 | 1 << 4 | 1 << 5;
+    constexpr DON::u64 EXT_ZB           = DON::u64{1} << 3 | DON::u64{1} << 4 | DON::u64{1} << 5;
     constexpr DON::u64 EXT_ZICOND       = DON::u64{1} << 35;
 
-    struct {
+    struct HwProbePair final {
+       public:
         DON::i64 key;
         DON::u64 value;
-    } pair = {KEY_IMA_EXT_0, 0};
+    };
 
-    long rc        = syscall(NR_riscv_hwprobe, &pair, 1UL, 0UL, nullptr, 0U);
-    bool zbitmanip = false, zicond = false;
+    HwProbePair probPair{KEY_IMA_EXT_0, 0};
 
-    if (rc == 0 && pair.key == KEY_IMA_EXT_0)
+    const long rc        = syscall(NR_RISCV_HWPROBE, &probPair, 1UL, 0UL, nullptr, 0U);
+    bool       zbitmanip = false;
+    bool       zicond    = false;
+
+    if (rc == 0 && probPair.key == KEY_IMA_EXT_0)
     {
-        zbitmanip = (pair.value & EXT_ZB) == EXT_ZB;
-        zicond    = (pair.value & EXT_ZICOND) == EXT_ZICOND;
+        zbitmanip = (probPair.value & EXT_ZB) == EXT_ZB;
+        zicond    = (probPair.value & EXT_ZICOND) == EXT_ZICOND;
     }
 
-    return CpuFeatures{.gcv = gcv, .zbitmanip = zbitmanip, .zicond = zicond, .vlen = vlen};
+    return CpuFeatures{gcv, zbitmanip, zicond, vlen};
+
+#else
+    return CpuFeatures{};
+
+#endif
 }
 
 // Selects the most capable ISA variant supported by current CPU

@@ -21,17 +21,16 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <sstream>
 
-#include "error.h"
 #include "evaluate.h"
+#include "misc.h"
 #include "movegen.h"
 #include "notation.h"
 #include "perft.h"
 #include "shm.h"
-#include "state.h"
 #include "tablebase/syzygy.h"
+#include "utility/error.h"
 
 namespace DON {
 

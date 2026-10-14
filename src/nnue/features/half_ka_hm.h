@@ -22,7 +22,8 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 
@@ -47,7 +48,7 @@ class HalfKAHm final {
 
    public:
     // Hash value embedded in the evaluation file
-    static constexpr u32 Hash = 0x7F234CB8u;
+    static constexpr u32 Hash = u32{0x7F234CB8};
 
     // Number of feature dimensions
     static constexpr Index Dimensions = PS_NB * SQUARE_NB / 2;
@@ -64,7 +65,7 @@ class HalfKAHm final {
         return Square(((file_of(s) >> 2) ^ 1) * FILE_H);
     }
 
-    alignas(CACHE_LINE_SIZE) static constexpr Array<Index, COLOR_NB, PIECE_NB> PieceSquareIndices{{
+    static constexpr Array<Index, COLOR_NB, PIECE_NB> PieceSquareIndices{{
       // Convention: W - us, B - them
       // Viewed from other side, W and B are reversed
       {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
@@ -75,7 +76,7 @@ class HalfKAHm final {
 
 #define B(v) (v * PS_NB)
     // clang-format off
-    alignas(CACHE_LINE_SIZE) static constexpr Array<Index, SQUARE_NB> KingBuckets{
+    static constexpr Array<Index, SQUARE_NB> KingBuckets{
       B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
       B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
       B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //

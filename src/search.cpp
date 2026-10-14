@@ -24,15 +24,16 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "debug.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
 #include "option.h"
-#include "prng.h"
 #include "thread.h"
 #include "tt.h"
 #include "nnue/network.h"
+#include "utility/debug.h"
+#include "utility/multi_array.h"
+#include "utility/prng.h"
 
 namespace DON {
 
@@ -358,7 +359,7 @@ void Worker::start_search() noexcept {
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Therefore simply wait here until the GUI sends one of those commands.
         {
-            std::unique_lock uniqueLock(manager->mutex);
+            std::unique_lock uniqueLock{manager->mutex};
 
             // Wait until either:
             // 1. Threads are stopped, OR

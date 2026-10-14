@@ -21,6 +21,7 @@
 #include <array>
 #include <cassert>
 #include <initializer_list>
+#include <type_traits>  // IWYU pragma: keep
 #include <utility>
 
 #if defined(USE_BMI2)
@@ -47,8 +48,9 @@
 #endif
 
 #include "bitboard.h"
-#include "misc.h"
 #include "types.h"
+#include "utility/attributes.h"
+#include "utility/types.h"
 
 namespace DON::Attacks {
 

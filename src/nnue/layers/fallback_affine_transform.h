@@ -20,11 +20,11 @@
 
 #include <cstring>
 
-#include "../../misc.h"
-#include "../ntypes.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 #if defined(USE_SSE2) || defined(USE_NEON)
-    #include "../simd.h"
+    #include "../../nnue/simd.h"
     #define USE_FALLBACK_AFFINE_SIMD
 #endif
 

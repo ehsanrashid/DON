@@ -19,17 +19,16 @@
 #define NNUE_NETWORK_H_INCLUDED
 
 #include <filesystem>
-#include <functional>  // IWYU pragma: keep
+#include <functional>
 #include <iosfwd>
-// IWYU pragma: no_include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 
-#include "../misc.h"
-#include "architecture.h"
-#include "feature_transformer.h"
-#include "ntypes.h"
+#include "../nnue/architecture.h"
+#include "../nnue/feature_transformer.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
 
 namespace DON {
 
@@ -41,10 +40,6 @@ struct AccumulatorCache;
 struct AccumulatorStack;
 
 class Network final {
-   private:
-    // Hash value of evaluation function structure
-    static constexpr u32 Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
-
    public:
     Network() noexcept                     = default;
     Network(const Network&)                = default;
@@ -83,6 +78,9 @@ class Network final {
 
     // Evaluation function
     Array<NetworkArchitecture, LAYER_STACKS> networkArchitectures;
+
+    // Hash value of evaluation function structure
+    static const u32 Hash;
 
     bool initialized = false;
 

@@ -15,15 +15,15 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "polyglot.h"
+#include "../book/polyglot.h"
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <limits>
+#include <string_view>
 #include <system_error>
 
 #include "../bitboard.h"
@@ -32,10 +32,11 @@
 #include "../notation.h"
 #include "../option.h"
 #include "../position.h"
-#include "../prng.h"
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
+#include "../utility/prng.h"
+#include "../utility/types.h"
 
 namespace DON::Book {
 

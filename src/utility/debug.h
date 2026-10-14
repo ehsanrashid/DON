@@ -15,10 +15,10 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUG_H_INCLUDED
-#define DEBUG_H_INCLUDED
+#ifndef UTILITY_DEBUG_H_INCLUDED
+#define UTILITY_DEBUG_H_INCLUDED
 
-#include "misc.h"
+#include "../utility/types.h"
 
 // Debug functions used mainly to collect run-time statistics
 namespace DON::Debug {
@@ -29,7 +29,7 @@ void min_of(i64 value, usize slot = 0) noexcept;
 
 void max_of(i64 value, usize slot = 0) noexcept;
 
-void extreme_of(i64 value, usize slot = 0) noexcept;
+void min_max_of(i64 value, usize slot = 0) noexcept;
 
 void mean_of(i64 value, usize slot = 0) noexcept;
 
@@ -43,4 +43,4 @@ void reset() noexcept;
 
 }  // namespace DON::Debug
 
-#endif  // DEBUG_H_INCLUDED
+#endif  // UTILITY_DEBUG_H_INCLUDED

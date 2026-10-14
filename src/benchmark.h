@@ -22,8 +22,8 @@
 #include <string>
 #include <string_view>
 
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON::Benchmark {
 

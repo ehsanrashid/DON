@@ -19,9 +19,10 @@
 #define MOVEPICK_H_INCLUDED
 
 #include "history.h"
-#include "misc.h"
 #include "movegen.h"
 #include "types.h"
+#include "utility/attributes.h"
+#include "utility/types.h"
 
 namespace DON {
 

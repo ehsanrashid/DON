@@ -1,25 +1,44 @@
 [
-    # Mappings for libcxx's internal headers
-    { include: [ "<__fwd/fstream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/ios.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/istream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/ostream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/sstream.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/streambuf.h>", private, "<iosfwd>", public ] },
-    { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
-    { include: [ "<__system_error/errc.h>", private, "<system_error>", public ] },
-    { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
-    { include: [ "<__hash_table>", private, "<unordered_map>", public ] },
-    { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
+    # Mappings for libc++ internal headers
+    { include: [ "<__fwd/ios.h>",                   private, "<ios>",               public ] },
+    { include: [ "<__fwd/istream.h>",               private, "<istream>",           public ] },
+    { include: [ "<__fwd/ostream.h>",               private, "<ostream>",           public ] },
+    { include: [ "<__fwd/sstream.h>",               private, "<sstream>",           public ] },
+    { include: [ "<__fwd/fstream.h>",               private, "<fstream>",           public ] },
+    { include: [ "<__fwd/streambuf.h>",             private, "<streambuf>",         public ] },
+    { include: [ "<__fwd/string_view.h>",           private, "<string_view>",       public ] },
+    { include: [ "<__system_error/errc.h>",         private, "<system_error>",      public ] },
+    { include: [ "<__system_error/error_code.h>",   private, "<system_error>",      public ] },
+    { include: [ "<__istream/basic_istream.h>",     private, "<istream>",           public ] },
+    { include: [ "<__ostream/basic_ostream.h>",     private, "<ostream>",           public ] },
+    { include: [ "<__cstddef/byte.h>",              private, "<cstddef>",           public ] },
+    { include: [ "<__math/logarithms.h>",           private, "<cmath>",             public ] },
+    { include: [ "<__new/placement_new_delete.h>",  private, "<new>",               public ] },
+    { include: [ "<__new/launder.h>",               private, "<new>",               public ] },
+    { include: [ "<__vector/vector.h>",             private, "<vector>",            public ] },
 
-    # Mappings for includes between public headers
-    { include: [ "<ios>", public, "<iostream>", public ] },
-    { include: [ "<streambuf>", public, "<iostream>", public ] },
-    { include: [ "<istream>", public, "<iostream>", public ] },
-    { include: [ "<ostream>", public, "<iostream>", public ] },
-    { include: [ "<iosfwd>", public, "<iostream>", public ] },
+    # Map libc++ internal hash header to <functional>
+    { include: [ "@<__functional/hash\\.h>",        private, "<functional>",        public ] },
 
-    # Missing mappings in include-what-you-use's libcxx.imp
-    { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
-    { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
+    # Map libc++ hash table header to public unordered-container headers
+    { include: [ "<__hash_table>",                  private, "<unordered_map>",     public ] },
+    { include: [ "<__hash_table>",                  private, "<unordered_set>",     public ] },
+
+    # Map libc++ synchronization headers to their public counterparts
+    { include: [ "@<__condition_variable/.*>",      private, "<condition_variable>", public ] },
+    { include: [ "@<__mutex/.*>",                   private, "<mutex>",             public ] },
+
+    # Map std::hash to public headers that provide it
+    { symbol: [ "std::hash",                        private, "<functional>",        public ] },
+    { symbol: [ "std::hash",                        private, "<unordered_map>",     public ] },
+    { symbol: [ "std::hash",                        private, "<unordered_set>",     public ] },
+
+    # Map unordered-container symbols to their public headers
+    { symbol: [ "std::unordered_map",               private, "<unordered_map>",     public ] },
+    { symbol: [ "std::unordered_multimap",          private, "<unordered_map>",     public ] },
+    { symbol: [ "std::unordered_set",               private, "<unordered_set>",     public ] },
+    { symbol: [ "std::unordered_multiset",          private, "<unordered_set>",     public ] },
+
+    # Map glibc internal mmap flags header to public <sys/mman.h>
+    { include: [ "<bits/mman-map-flags-generic.h>", private, "<sys/mman.h>",        public ] },
 ]

@@ -101,11 +101,13 @@ PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 
 ### Source and object files
 SRCS := \
-    attacks.cpp benchmark.cpp bitboard.cpp debug.cpp engine.cpp evaluate.cpp main.cpp memory.cpp misc.cpp \
-    movegen.cpp movepick.cpp mutex.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp prng.cpp \
-    search.cpp shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
+    attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp misc.cpp \
+    movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp search.cpp \
+    shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
-    nnue/accumulator.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp
+    nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
+    book/polyglot.cpp tablebase/syzygy.cpp \
+    utility/debug.cpp utility/mutex.cpp utility/prng.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -114,18 +116,20 @@ UNIVERSAL_SRCS := \
     universal/nnue_embed.cpp
 
 HEADERS := \
-    attacks.h benchmark.h bitboard.h color.h concurrent.h cuckoo.h debug.h engine.h error.h evaluate.h history.h \
-    memory.h misc.h movegen.h movepick.h mutex.h native_thread.h notation.h numa.h option.h perft.h platform_win.h \
-    position.h prng.h search.h shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
+    attacks.h benchmark.h bitboard.h cuckoo.h engine.h evaluate.h history.h memory.h misc.h movegen.h movepick.h \
+    native_thread.h notation.h numa.h option.h perft.h platform_win.h position.h search.h \
+    shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \
     nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
-    nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/ntypes.h nnue/serialization.h nnue/simd.h \
-    incbin/incbin.h book/polyglot.h tablebase/syzygy.h
+    nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/types.h nnue/serialization.h nnue/simd.h \
+    incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
+    utility/attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/debug.h utility/error.h utility/list.h \
+    utility/lru.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/thread_attributes.h utility/types.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
-VPATH := nnue:nnue/features:book:tablebase
+VPATH := nnue:nnue/features:book:tablebase:utility
 
 PGO_PROFILE_DIR  := profdir
 PGO_PROFILE_DATA := $(PGO_PROFILE_DIR)/$(NAME).profdata
@@ -1629,9 +1633,11 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c '$<' -o '$@'
 
+ifneq ($(arch),wasm32)
 ifneq ($(TARGET_KERNEL),Darwin)
 ifneq ($(filter gcc mingw,$(COMP)),)
 search.o: CXXFLAGS += -Wno-dangling-pointer
+endif
 endif
 endif
 
@@ -1677,6 +1683,8 @@ icx-profile-use:
 		-e 's@book/\.\./@@g' \
 		-e 's@(.*/)?DON/src/tablebase/@tablebase/@g' \
 		-e 's@tablebase/\.\./@@g' \
+		-e 's@(.*/)?DON/src/utility/@utility/@g' \
+		-e 's@utility/\.\./@@g' \
 		-e 's@(.*/)?DON/src/@@g' \
 		'$@.tmp' > '$@'
 	@rm -f '$@.tmp'

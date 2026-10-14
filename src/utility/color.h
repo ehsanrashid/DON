@@ -15,8 +15,10 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef COLOR_H_INCLUDED
-#define COLOR_H_INCLUDED
+#ifndef UTILITY_COLOR_H_INCLUDED
+#define UTILITY_COLOR_H_INCLUDED
+
+#include "../utility/types.h"
 
 namespace DON::Color {
 
@@ -64,4 +66,4 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 
 }  // namespace DON::Color
 
-#endif  // COLOR_H_INCLUDED
+#endif  // UTILITY_COLOR_H_INCLUDED

@@ -23,6 +23,7 @@
 #include <cassert>
 #include <string>
 #include <string_view>
+#include <type_traits>  // IWYU pragma: keep
 
 #if defined(USE_AVX512)
     #include <immintrin.h>
@@ -32,13 +33,12 @@
     #include <intrin.h>  // _BitScanForward64(), _BitScanForward() intrinsics
     #if defined(USE_POPCNT)
         #include <nmmintrin.h>  // _mm_popcnt_u64() intrinsic (POPCNT)
-
     #endif
-
 #endif
 
-#include "misc.h"
 #include "types.h"
+#include "utility/attributes.h"
+#include "utility/types.h"
 
 namespace DON {
 

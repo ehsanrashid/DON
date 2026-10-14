@@ -77,8 +77,8 @@
     //#pragma message("No SIMD instruction set enabled — falling back to scalar code")
 #endif
 
-#include "../misc.h"
-#include "ntypes.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
 
 #if defined(USE_AVX2)
     #define USE_PAIR_ACTIVATIONS

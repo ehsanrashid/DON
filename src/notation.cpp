@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <string_view>
 
 #include "attacks.h"
 #include "bitboard.h"

@@ -19,11 +19,9 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <chrono>
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
@@ -31,14 +29,12 @@
 #include <functional>
 #include <initializer_list>
 #include <iostream>
-#include <limits>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #if defined(__i386__) || defined(_M_IX86)
     #define X86
@@ -46,10 +42,6 @@
 #elif defined(__x86_64__) || defined(_M_X64)
     #define X86
     #define X86_64
-#endif
-
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
 #endif
 
 #if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
@@ -66,354 +58,16 @@
     #endif
 #endif
 
-#define STRING_LITERAL(x) #x
-#define STRINGIFY(x) STRING_LITERAL(x)
-
-// Enable GNU-style compiler attributes for Clang and GCC, excluding SWIG.
-// Unsupported compilers and SWIG receive an empty attribute macro.
-#if (defined(__clang__) || defined(__GNUC__)) && !defined(SWIG)
-    #define ATTRIBUTE(x) __attribute__((x))
-#else
-    #define ATTRIBUTE(x)
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define ALWAYS_INLINE inline ATTRIBUTE(always_inline)
-#elif defined(_MSC_VER)
-    #define ALWAYS_INLINE __forceinline
-#else
-    #define ALWAYS_INLINE inline
-#endif
-
-// clang-format off
-#if defined(__clang__)
-    #define ASSUME(cond) __builtin_assume(cond)
-#elif defined(__GNUC__)
-    #if __GNUC__ >= 13
-        #define ASSUME(cond) ATTRIBUTE(assume(cond))
-    #else
-        #define ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while (false)
-    #endif
-#elif defined(_MSC_VER)
-    #define ASSUME(cond) __assume(cond)
-#else
-    #define ASSUME(cond)
-#endif
-// clang-format on
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define UNREACHABLE() __builtin_unreachable()
-#elif defined(_MSC_VER)
-    #define UNREACHABLE() __assume(false)
-#else
-    #define UNREACHABLE()
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define RESTRICT __restrict__
-#elif defined(_MSC_VER)
-    #define RESTRICT __restrict
-#else
-    #define RESTRICT
-#endif
-
-#if defined(__clang__) || defined(__GNUC__)
-    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#else
-    #define UNLIKELY(x) (x)
-#endif
-
-#if !defined(__INTELLISENSE__)
-    // Enable compiler thread-safety attributes only for Clang, excluding SWIG.
-    // These attributes have no effect when compiling with other compilers.
-    #if defined(__clang__) && !defined(SWIG)
-        #define THREAD_SAFETY_ATTRIBUTE(x) ATTRIBUTE(x)
-    #else
-        #define THREAD_SAFETY_ATTRIBUTE(x)
-    #endif
-
-    // clang-format off
-    #define ASSERT_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(assert_capability(x))
-    #define ASSERT_SHARED_CAPABILITY(x) THREAD_SAFETY_ATTRIBUTE(assert_shared_capability(x))
-    #define RETURN_CAPABILITY(x)        THREAD_SAFETY_ATTRIBUTE(lock_returned(x))
-    #define SCOPED_CAPABILITY           THREAD_SAFETY_ATTRIBUTE(scoped_lockable)
-    #define CAPABILITY(x)               THREAD_SAFETY_ATTRIBUTE(capability(x))
-    #define GUARDED_BY(x)               THREAD_SAFETY_ATTRIBUTE(guarded_by(x))
-    #define PT_GUARDED_BY(x)            THREAD_SAFETY_ATTRIBUTE(pt_guarded_by(x))
-    #define ACQUIRED_BEFORE(...)        THREAD_SAFETY_ATTRIBUTE(acquired_before(__VA_ARGS__))
-    #define ACQUIRED_AFTER(...)         THREAD_SAFETY_ATTRIBUTE(acquired_after(__VA_ARGS__))
-    #define REQUIRES(...)               THREAD_SAFETY_ATTRIBUTE(requires_capability(__VA_ARGS__))
-    #define REQUIRES_SHARED(...)        THREAD_SAFETY_ATTRIBUTE(requires_shared_capability(__VA_ARGS__))
-    #define ACQUIRE(...)                THREAD_SAFETY_ATTRIBUTE(acquire_capability(__VA_ARGS__))
-    #define ACQUIRE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(acquire_shared_capability(__VA_ARGS__))
-    #define RELEASE(...)                THREAD_SAFETY_ATTRIBUTE(release_capability(__VA_ARGS__))
-    #define RELEASE_SHARED(...)         THREAD_SAFETY_ATTRIBUTE(release_shared_capability(__VA_ARGS__))
-    #define TRY_ACQUIRE(...)            THREAD_SAFETY_ATTRIBUTE(try_acquire_capability(__VA_ARGS__))
-    #define TRY_ACQUIRE_SHARED(...)     THREAD_SAFETY_ATTRIBUTE(try_acquire_shared_capability(__VA_ARGS__))
-    #define EXCLUDES(...)               THREAD_SAFETY_ATTRIBUTE(locks_excluded(__VA_ARGS__))
-    #define NO_THREAD_SAFETY_ANALYSIS   THREAD_SAFETY_ATTRIBUTE(no_thread_safety_analysis)
-
-    #define PACKED_STRUCT ATTRIBUTE(packed)
-    // clang-format on
-#endif
-
-#if !defined(NDEBUG)
-    #define DEBUG_LOG(msg) std::cerr << msg << '\n'
-#else
-    #define DEBUG_LOG(msg) ((void) 0)
-#endif
+#include "utility/attributes.h"
+#include "utility/types.h"
 
 namespace DON {
-
-namespace fs = std::filesystem;
-
-using u64 = std::uint64_t;
-using u32 = std::uint32_t;
-using u16 = std::uint16_t;
-using u8  = std::uint8_t;
-
-using i64 = std::int64_t;
-using i32 = std::int32_t;
-using i16 = std::int16_t;
-using i8  = std::int8_t;
-
-using usize = std::size_t;
-using isize = std::ptrdiff_t;
-
-using uptr = std::uintptr_t;
-using iptr = std::intptr_t;
-
-#if defined(__SIZEOF_INT128__)
-__extension__ using u128 = unsigned __int128;
-__extension__ using i128 = signed __int128;
-#endif
 
 using NumaIndex = u16;
 using CpuIndex  = u16;
 
-using Strings     = std::vector<std::string>;
-using StringViews = std::vector<std::string_view>;
-
-namespace Internal {
-
-template<typename T, usize Size, usize... Sizes>
-struct ArrayDef final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
-};
-
-template<typename T, usize Size>
-struct ArrayDef<T, Size> final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<T, Size>;
-};
-
-}  // namespace Internal
-
-template<typename T, usize Size, usize... Sizes>
-using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
-
-inline constexpr usize BYTE_BITS = 8;
-
-inline constexpr usize HEX64_SIZE = 16;
-inline constexpr usize HEX32_SIZE = 8;
-
-inline constexpr usize KB = 1024;
-inline constexpr usize MB = KB * KB;
-
-inline constexpr usize BLOCK_4  = 4;
-inline constexpr usize BLOCK_8  = 2 * BLOCK_4;
-inline constexpr usize BLOCK_16 = 4 * BLOCK_4;
-inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
-
-inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
-
-inline constexpr double LN2   = 0.693147180559945309417232121458176568;
-inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
-
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\v\f\r"};
-
-// True if and only if the binary is compiled on a little-endian machine
-#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
-#elif defined(_WIN32)
-inline constexpr bool IS_LITTLE_ENDIAN = true;
-#else
-// Fallback runtime check
-inline const bool IS_LITTLE_ENDIAN = []() noexcept -> bool {
-    constexpr u16 LE = 1;
-    return *reinterpret_cast<const u8*>(&LE) == 1;
-}();
-#endif
-
-constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
-
-template<typename To, typename From>
-constexpr bool is_strictly_assignable_v =
-  std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
-
-// Return the sign of a number (-1, 0, +1)
-template<
-  typename T,
-  std::enable_if_t<std::is_arithmetic_v<T> || (std::is_enum_v<T> && std::is_convertible_v<T, int>),
-                   int> = 0>
-constexpr int sign(const T x) noexcept {
-    // NaN -> 0; unsigned types never return -1
-    return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
-}
-
-// Return the square of a number, using a wider type to avoid overflow
-template<typename T>
-constexpr auto sqr(const T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
-    using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
-    return Wider(x) * Wider(x);
-}
-
-// Return the square of a number multiplied by its sign, using a wider type to avoid overflow
-template<typename T>
-constexpr auto sign_sqr(const T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
-    return sign(x) * sqr(x);
-}
-
-template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
-constexpr std::make_unsigned_t<T> constexpr_abs(const T x) noexcept {
-    using U = std::make_unsigned_t<T>;
-    return x < 0 ? U{} - U(x) : U(x);
-}
-constexpr float       constexpr_abs(const float f) noexcept { return f < 0.0f ? -f : f; }
-constexpr double      constexpr_abs(const double d) noexcept { return d < 0.0 ? -d : d; }
-constexpr long double constexpr_abs(const long double ld) noexcept { return ld < 0.0L ? -ld : ld; }
-
-constexpr int constexpr_ceil(const double d) noexcept { return static_cast<int>(d + 0.4999); }
-constexpr int constexpr_floor(const double d) noexcept { return static_cast<int>(d - 0.4999); }
-constexpr int constexpr_round(const double d) noexcept {
-    return d < 0.0 ? constexpr_floor(d) : constexpr_ceil(d);
-}
-
-// Computes ln(1 + d) for f in (-1, sqrt(2)-1] via the identity
-// ln(1 + d) = 2 * atanh(s),   s = d / (d + 2.0)
-// ln(1 + d) = 2 * (s + s^3/3 + s^5/5 + ...), s = d / (d + 2).
-//
-// After the sqrt(2) range reduction below, |s| <= (sqrt(2)-1)/(sqrt(2)+1)
-// = 3 - 2*sqrt(2) ≈ 0.1716, so the series needs only ~10 terms for full
-// double precision (truncation error < 2e-17).
-constexpr double constexpr_log1p_log(const double d) noexcept {
-    double s  = d / (d + 2.0);
-    double s2 = s * s;
-    // clang-format off
-    double p = 1.0
-        + s2 * (1.0 / 3.0
-        + s2 * (1.0 / 5.0
-        + s2 * (1.0 / 7.0
-        + s2 * (1.0 / 9.0
-        + s2 * (1.0 / 11.0
-        + s2 * (1.0 / 13.0
-        + s2 * (1.0 / 15.0
-        + s2 * (1.0 / 17.0
-        + s2 *  1.0 / 19.0))))))));
-    // clang-format on
-    return 2.0 * s * p;
-}
-
-// constexpr natural logarithm using two-stage range reduction + atanh series.
-//
-// Stage 1: x = m * 2^e,  m in [1, 2)
-// Stage 2: if m >= sqrt(2), halve m and increment e  =>  m in [1/sqrt(2), sqrt(2))
-//
-// Then  ln(x) = ln(m) + e * ln(2),  where f = m - 1 in (-0.293, 0.414).
-//
-// Note: the while loops are O(|exponent|) iterations, which is fine for
-// compile-time table generation. For runtime use, prefer std::log.
-constexpr double constexpr_log(double x) noexcept {
-    // Returns an approximation of ln(x) for x > 0.
-    // For x <= 0, returns -1e300 as a constexpr-safe sentinel.
-    if (x <= 0.0)
-        return -1e300;  // Undefined; not NaN/−inf so it stays constexpr-safe
-
-    int exponent = 0;
-
-    // Stage 1: reduce to [1, 2)
-    while (x >= 2.0)
-    {
-        ++exponent;
-        x *= 0.5;
-    }
-    while (x < 1.0)
-    {
-        --exponent;
-        x *= 2.0;
-    }
-
-    // Stage 2: reduce to [1/sqrt(2), sqrt(2))
-    // If x >= sqrt(2), folding the upper half down gives f = x - 1 closer to 0,
-    // keeping |s| <= ~0.172 and making the series converge in ~10 terms.
-    if (x >= SQRT2)
-    {
-        x *= 0.5;
-        ++exponent;
-    }
-
-    // f = x - 1, approximately in (-0.293, 0.414), with |f| <= ~0.414.
-    return constexpr_log1p_log(x - 1.0) + exponent * LN2;
-}
-
-template<typename T>
-constexpr bool is_power_of_2(const T x) noexcept {
-    return x != 0 && (x & (x - 1)) == 0;
-}
-
-template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
-    using R = std::common_type_t<T1, T2>;
-    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
-    return R(n) / R(d) + (R(n) % R(d) != 0);
-}
-
-// Round n up to be a multiple of base
-template<typename T>
-constexpr T ceil_to_multiple(const T n, const T base) noexcept {
-    return ceil_div(n, base) * base;
-}
-
-// Round up to the next power of 2
-constexpr usize round_up_to_pow2(usize x) noexcept {
-    if (x == 0)
-        return 1;
-
-    --x;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-#if defined(SIZE_MAX) && SIZE_MAX > 0xFFFFFFFF
-    x |= x >> 32;  // for 64-bit usize
-#endif
-    return x + 1;
-}
-
-// Round up to a multiple of alignment
-template<typename T>
-[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
-    // Alignment must be non-zero power of 2
-    assert(is_power_of_2(alignment));
-
-    // Safely handle edge case: zero alignment when assertions are disabled
-    if (alignment == 0)
-        return size;
-
-    const T mask = alignment - 1;
-
-    if (size > std::numeric_limits<T>::max() - mask)
-        return std::numeric_limits<T>::max();
-
-    // Round up to the next multiple of alignment
-    return (size + mask) & ~mask;
-}
 
 // Get the first aligned element of an array.
 // ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
@@ -425,19 +79,6 @@ template<usize Alignment, typename T>
 
     const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
     return reinterpret_cast<T*>(uPtr);
-}
-
-constexpr float max_load_factor(const float maxLoadFactor = 0.75f) noexcept {
-    return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
-}
-constexpr usize reserve_count(const usize reserveCount = 1024) noexcept {
-    return std::max(reserveCount, usize{8});
-}
-
-template<typename T1, typename T2>
-constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
-    assert(x0 != x1);
-    return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
@@ -550,20 +191,6 @@ inline TimePoint now() noexcept {
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept;
-
-constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
-#if defined(__SIZEOF_INT128__)
-    return (u128(u1) * u128(u2)) >> 64;
-#else
-    u64 u1L = u32(u1), u1H = u1 >> 32;
-    u64 u2L = u32(u2), u2H = u2 >> 32;
-    u64 mid = u1H * u2L + ((u1L * u2L) >> 32);
-    return u1H * u2H + ((u1L * u2H + u32(mid)) >> 32) + (mid >> 32);
-#endif
-}
-
-static_assert(mul_hi64(u64{0xDEADBEEFDEADBEEF}, u64{0xCAFEBABECAFEBABE}) == u64{0xB092AB7CE9F4B259},
-              "mul_hi64(): Failed");
 
 // PrefetchAccess for explicit call-site control
 enum class PrefetchAccess : u8 {
@@ -724,159 +351,6 @@ class TableView final {
    private:
     T*    data_ = nullptr;
     usize size_ = 0;
-};
-
-template<typename T, usize Size, usize... Sizes>
-class MultiArray;
-
-namespace Internal {
-
-// Recursive template to define multi-dimensional array
-template<typename T, usize Size, usize... Sizes>
-struct MultiArrayDef final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using Type = MultiArray<T, Sizes...>;
-};
-// Base case: single-dimensional array
-template<typename T, usize Size>
-struct MultiArrayDef<T, Size> final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using Type = T;
-};
-
-}  // namespace Internal
-
-// MultiArray is a generic N-dimensional array.
-// The template parameter T is the base type of the MultiArray
-// The template parameters (Size and Sizes) is the dimensions of the MultiArray.
-template<typename T, usize Size, usize... Sizes>
-class MultiArray final {
-    using ElementType = typename Internal::MultiArrayDef<T, Size, Sizes...>::Type;
-    using ArrayType   = Array<ElementType, Size>;
-
-   public:
-    using value_type             = typename ArrayType::value_type;
-    using size_type              = typename ArrayType::size_type;
-    using difference_type        = typename ArrayType::difference_type;
-    using reference              = typename ArrayType::reference;
-    using const_reference        = typename ArrayType::const_reference;
-    using pointer                = typename ArrayType::pointer;
-    using const_pointer          = typename ArrayType::const_pointer;
-    using iterator               = typename ArrayType::iterator;
-    using const_iterator         = typename ArrayType::const_iterator;
-    using reverse_iterator       = typename ArrayType::reverse_iterator;
-    using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
-
-    constexpr auto begin() const noexcept { return data_.begin(); }
-    constexpr auto end() const noexcept { return data_.end(); }
-    constexpr auto begin() noexcept { return data_.begin(); }
-    constexpr auto end() noexcept { return data_.end(); }
-
-    constexpr auto cbegin() const noexcept { return data_.cbegin(); }
-    constexpr auto cend() const noexcept { return data_.cend(); }
-
-    constexpr auto rbegin() const noexcept { return data_.rbegin(); }
-    constexpr auto rend() const noexcept { return data_.rend(); }
-    constexpr auto rbegin() noexcept { return data_.rbegin(); }
-    constexpr auto rend() noexcept { return data_.rend(); }
-
-    constexpr auto crbegin() const noexcept { return data_.crbegin(); }
-    constexpr auto crend() const noexcept { return data_.crend(); }
-
-    constexpr auto&       front() noexcept { return data_.front(); }
-    constexpr const auto& front() const noexcept { return data_.front(); }
-    constexpr auto&       back() noexcept { return data_.back(); }
-    constexpr const auto& back() const noexcept { return data_.back(); }
-
-    auto*       data() noexcept { return data_.data(); }
-    const auto* data() const noexcept { return data_.data(); }
-
-    constexpr auto max_size() const noexcept { return data_.max_size(); }
-
-    constexpr auto size() const noexcept { return data_.size(); }
-    constexpr auto empty() const noexcept { return data_.empty(); }
-
-    constexpr const auto& at(const size_type idx) const { return data_.at(idx); }
-    constexpr auto&       at(const size_type idx) { return data_.at(idx); }
-
-    constexpr const auto& operator[](const size_type idx) const noexcept {
-        assert(idx < size());
-
-        return data_[idx];
-    }
-    constexpr auto& operator[](const size_type idx) noexcept {
-        assert(idx < size());
-
-        return data_[idx];
-    }
-
-    // Recursively fill all dimensions by calling the sub fill method
-    template<typename U>
-    void fill(const U& v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
-
-        for (auto& element : data_)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                element = v;
-            else
-                element.fill(v);
-        }
-    }
-
-    template<typename U>
-    void fill_n(const usize beg, const usize count, const U& v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
-
-        usize end = std::min(beg + count, size());
-        assert(beg <= end && end <= size());
-
-        for (usize idx = beg; idx < end; ++idx)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                data_[idx] = v;
-            else
-                data_[idx].fill(v);
-        }
-    }
-
-    //void print() const noexcept {
-    //    std::cout << Size << ':' << sizeof...(Sizes) << '\n';
-    //
-    //    for (auto& element : data_)
-    //    {
-    //        if constexpr (sizeof...(Sizes) == 0)
-    //            std::cout << element << ' ';
-    //        else
-    //            element.print();
-    //    }
-    //
-    //    std::cout << std::endl;
-    //}
-
-    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
-        data_.swap(multiArr.data_);
-    }
-
-    template<bool NoExtraDimension = sizeof...(Sizes) == 0,
-             typename              = std::enable_if_t<NoExtraDimension, bool>>
-    constexpr operator Array<T, Size>&() noexcept {
-        return data_;
-    }
-    template<bool NoExtraDimension = sizeof...(Sizes) == 0,
-             typename              = std::enable_if_t<NoExtraDimension, bool>>
-    constexpr operator const Array<T, Size>&() const noexcept {
-        return data_;
-    }
-
-    constexpr MultiArray& operator=(const Array<T, Size, Sizes...>& stdArr) noexcept {
-        for (usize i = 0; i < Size; ++i)
-            data_[i] = stdArr[i];
-        return *this;
-    }
-
-   private:
-    ArrayType data_;
 };
 
 template<typename T, usize Capacity, typename SizeType = usize>
@@ -1244,72 +718,6 @@ class RelaxedAtomic final {
     std::conditional_t<UseAtomic, std::atomic<T>, T> value;
 };
 
-// A lightweight intrusive singly linked list that does not own its elements or allocate memory.
-// Each element stores its own next pointer, allowing existing objects
-// (e.g. stack-allocated mutex waiters) to be linked directly into the list without creating separate list nodes.
-// Unlike std::list, it requires no dynamic allocation and stores only one link pointer per element.
-// Elements must remain alive and at stable addresses while linked, and list operations must
-// be externally synchronized when accessed concurrently.
-template<typename T>
-class IntrusiveList final {
-   public:
-    void push_back(T& item) noexcept {
-        item.next = nullptr;
-
-        T*& nextLink = back_ != nullptr ? back_->next : front_;
-
-        nextLink = &item;
-        back_    = &item;
-        ++size_;
-    }
-
-    void erase(T& item) noexcept {
-        T*    pre = nullptr;  // Previous node; nullptr means cur is the front
-        auto* cur = front_;   // Start searching from the front of the list
-
-        // Find the requested item while tracking its previous node
-        while (cur != nullptr && cur != &item)
-        {
-            pre = cur;
-            cur = cur->next;
-        }
-
-        // The item is not in the list; nothing to remove
-        if (cur == nullptr)
-            return;
-
-        // Unlink cur from the list
-        if (pre == nullptr)
-            front_ = cur->next;  // Front: advance to the next node
-        else
-            pre->next = cur->next;  // Otherwise, bypass cur
-
-        // If cur was the back, update it to the previous node.
-        // This also sets back_ to nullptr when removing the only node.
-        if (back_ == cur)
-            back_ = pre;
-
-        // Detach the removed item from the list
-        cur->next = nullptr;
-        // Decrease the number of items
-        --size_;
-    }
-
-    T* front() const noexcept { return front_; }
-    T* back() const noexcept { return back_; }
-
-    usize size() const noexcept { return size_; }
-    bool  empty() const noexcept {
-        assert((front() == nullptr) == (size() == 0));
-        return size() == 0;
-    }
-
-   private:
-    T*    front_ = nullptr;
-    T*    back_  = nullptr;
-    usize size_  = 0;
-};
-
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexcept {
@@ -1423,6 +831,14 @@ u64 hash_raw_data(const T& value) noexcept {
 
 template<typename T>
 void combine_hash(usize& seed, const T& v) noexcept {
+    constexpr usize HashMagic =
+#if defined(SIZE_MAX) && SIZE_MAX == UINT64_MAX
+      usize{0x9E3779B97F4A7C15}
+#else
+      usize{0x9E3779B9}
+#endif
+    ;
+
     usize x;
     // For primitive types we avoid using the default hasher, which may be
     // nondeterministic across program invocations
@@ -1431,7 +847,7 @@ void combine_hash(usize& seed, const T& v) noexcept {
     else
         x = std::hash<T>{}(v);
 
-    seed ^= x + 0x9E3779B9u + (seed << 6) + (seed >> 2);
+    seed ^= x + HashMagic + (seed << 6) + (seed >> 2);
 }
 
 constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {

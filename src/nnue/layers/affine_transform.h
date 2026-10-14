@@ -24,9 +24,9 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
-#include "../serialization.h"
-#include "../simd.h"
+#include "../../nnue/serialization.h"
+#include "../../nnue/simd.h"
+#include "../../nnue/types.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD) || defined(USE_RVV)
     #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
@@ -78,7 +78,7 @@ class AffineTransform final {
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
-        u32 h = 0xCC03DAE4u;
+        u32 h = u32{0xCC03DAE4};
         h += OutputDimensions;
         h ^= preHash >> 1;
         h ^= preHash << 31;

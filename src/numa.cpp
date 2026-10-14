@@ -17,8 +17,6 @@
 
 #include "numa.h"
 
-#include <cstdlib>  // exit(), EXIT_FAILURE
-#include <iostream>
 #include <limits>  // numeric_limits<>
 #include <thread>
 
@@ -30,6 +28,8 @@
     #endif
     #include <sched.h>  // CPU_ALLOC(), CPU_FREE(), sched_getaffinity(), sched_setaffinity()
 #endif
+
+#include "utility/attributes.h"
 
 namespace DON {
 

@@ -20,7 +20,6 @@
 
 #include <cstddef>     // nullptr_t
 #include <functional>  // hash<>
-#include <iostream>    // IWYU pragma: keep
 #include <new>         // launder()
 #include <string>
 #include <string_view>
@@ -28,9 +27,7 @@
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
+#include "utility/types.h"
 
 #if !defined(_WIN32)             /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
@@ -45,33 +42,30 @@
     #define USE_UNIX_SHM
 #endif
 
-#if defined(_WIN32)
-    #if !defined(PATH_MAX)
-        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
+#if !defined(_WIN32)
+    #if defined(USE_UNIX_SHM) || defined(__ANDROID__)
+        #include <unistd.h>  // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
     #endif
-    #if !defined(NAME_MAX)
-        #define NAME_MAX 255
-    #endif
+#endif
 
+#if defined(_WIN32)
     #include "platform_win.h"
 #elif defined(USE_UNIX_SHM)
-    #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC
-    #include <limits.h>
+    #include <fcntl.h>       // open(), fcntl(), FD_CLOEXEC
+    #include <limits.h>      // PATH_MAX, NAME_MAX
     #include <sys/mman.h>    // munmap(), memfd_create(), MFD_CLOEXEC
     #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
-    #include <sys/types.h>  // IWYU pragma: keep
-    #include <sys/uio.h>    // iovec
-    #include <sys/un.h>     // sockaddr_un
-    #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid(), pipe()/pipe2(), fsync()
+    #include <sys/uio.h>  // iovec
+    #include <sys/un.h>   // sockaddr_un
 
     #include <cassert>
     #include <cerrno>
-    #include <cstring>  // strncpy
-    #include <memory>   // unique_ptr<>, make_unique<>
+    #include <cstring>  // strncpy()
+    #include <memory>   // unique_ptr<>, make_unique<>()
     #include <optional>
 
-    #include "concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
+    #include "utility/concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
 
     // Linux (non-Android)
     #if defined(LINUX_NON_ANDROID)
@@ -443,7 +437,8 @@ class BaseSharedMemory {
 // Usage:
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
-inline ConcurrentRegistry<BaseSharedMemory*>  //
+inline ConcurrentRegistry<  //
+  BaseSharedMemory*>
   MemoryRegistry(usize{256}, 0.75f);
 
 // MemoryRegistryCleanup
@@ -458,7 +453,9 @@ inline ConcurrentRegistry<BaseSharedMemory*>  //
 //  - Registry management is handled by MemoryRegistry.
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
-inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
+inline RegistryCleanup<  //
+  ConcurrentRegistry<    //
+    BaseSharedMemory*>>  //
   MemoryRegistryCleanup{MemoryRegistry};
 
 // MemoryRegistryCleanupHook
@@ -479,7 +476,10 @@ inline RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>  //
 //  - The referenced cleanup object must remain valid until program exit.
 //  - The atexit() handler is called only during normal program termination.
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
-inline RegistryCleanupHook<RegistryCleanup<ConcurrentRegistry<BaseSharedMemory*>>>  //
+inline RegistryCleanupHook<  //
+  RegistryCleanup<           //
+    ConcurrentRegistry<      //
+      BaseSharedMemory*>>>   //
   MemoryRegistryCleanupHook{MemoryRegistryCleanup};
 
 // TempRoot
@@ -556,7 +556,7 @@ struct ScmRightsMessage final {
 
     static constexpr usize Alignment = alignof(cmsghdr);
 
-    std::unique_ptr<std::byte[]> controlStorage;
+    std::unique_ptr<byte[]> controlStorage;
 };
 
 void* map_shared(usize size, int fd) noexcept;

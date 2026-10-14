@@ -17,7 +17,7 @@
 
 // Definition of input features HalfKAHm of NNUE evaluation function
 
-#include "half_ka_hm.h"
+#include "../../nnue/features/half_ka_hm.h"
 
 #include <array>
 #include <initializer_list>
@@ -27,9 +27,10 @@
 #endif
 
 #include "../../bitboard.h"
-#include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../../nnue/types.h"
+#include "../../utility/attributes.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 

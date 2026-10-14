@@ -15,10 +15,14 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ERROR_H_INCLUDED
-#define ERROR_H_INCLUDED
+#ifndef UTILITY_ERROR_H_INCLUDED
+#define UTILITY_ERROR_H_INCLUDED
 
 #include <stdexcept>
+#include <string>
+#include <string_view>
+
+#include "../utility/types.h"
 
 namespace DON {
 
@@ -36,4 +40,4 @@ struct FENError final: public Error {
 
 }  // namespace DON
 
-#endif  // ERROR_H_INCLUDED
+#endif  // UTILITY_ERROR_H_INCLUDED

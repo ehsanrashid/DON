@@ -17,7 +17,7 @@
 
 // Definition of input features FullThreats of NNUE evaluation function
 
-#include "full_threats.h"
+#include "../../nnue/features/full_threats.h"
 
 #include <array>
 #include <cassert>
@@ -28,7 +28,9 @@
 #include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../../nnue/types.h"
+#include "../../utility/attributes.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 

@@ -24,8 +24,9 @@
 #include <iosfwd>
 
 #include "../../misc.h"
-#include "../ntypes.h"
-#include "../simd.h"
+#include "../../nnue/simd.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Layers {
 
@@ -51,7 +52,7 @@ class ClippedReLU final {
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
-        u32 h = 0x538D24C7u;
+        u32 h = u32{0x538D24C7};
         h += preHash;
         return h;
     }

@@ -21,10 +21,10 @@
 #include <iostream>
 
 #include "../../misc.h"
-#include "../../types.h"
-#include "../ntypes.h"
-#include "../serialization.h"
-#include "../simd.h"
+#include "../../nnue/serialization.h"
+#include "../../nnue/simd.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
   || defined(USE_RVV)
@@ -33,9 +33,9 @@
         #include "../../memory.h"
         #define USE_SPARSE_AFFINE_SIMD
     #endif
-    #include "../nnz.h"
+    #include "../../nnue/nnz.h"
 #else
-    #include "fallback_affine_transform.h"
+    #include "../../nnue/layers/fallback_affine_transform.h"
 namespace DON::NNUE {
 template<Index Dimensions>
 struct NNZ;
@@ -64,8 +64,8 @@ class SparseAffineTransform final {
     static constexpr Index InputDimensions  = InDims;
     static constexpr Index OutputDimensions = OutDims;
 
-    static_assert(OutputDimensions % 16 == 0,
-                  "Only implemented for OutputDimensions divisible by 16.");
+    static_assert(OutputDimensions % SIMD::WIDTH_MIN == 0,
+                  "Only implemented for OutputDimensions divisible by SIMD::WIDTH_MIN.");
 
     static constexpr Index PaddedInputDimensions =
       ceil_to_multiple<Index>(InputDimensions, SIMD::WIDTH_MAX);
@@ -84,7 +84,7 @@ class SparseAffineTransform final {
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
-        u32 h = 0xCC03DAE4u;
+        u32 h = u32{0xCC03DAE4};
         h += OutputDimensions;
         h ^= preHash >> 1;
         h ^= preHash << 31;

@@ -15,10 +15,10 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PRNG_H_INCLUDED
-#define PRNG_H_INCLUDED
+#ifndef UTILITY_PRNG_H_INCLUDED
+#define UTILITY_PRNG_H_INCLUDED
 
-#include "misc.h"
+#include "../utility/types.h"
 
 namespace DON {
 
@@ -258,4 +258,4 @@ class Xoshiro256ss final {
 
 }  // namespace DON
 
-#endif  // PRNG_H_INCLUDED
+#endif  // UTILITY_PRNG_H_INCLUDED

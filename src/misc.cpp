@@ -22,6 +22,7 @@
 #include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
 #include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
+#include <limits>        // numeric_limits<>
 #include <system_error>  // errc
 
 #if defined(_WIN32)
@@ -31,8 +32,8 @@
     #include <sys/mman.h>  // munmap()
 #endif
 
-#include "color.h"
-#include "concurrent.h"  // ConcurrentMap<>
+#include "utility/color.h"
+#include "utility/concurrent.h"  // ConcurrentMap<>
 
 namespace DON {
 
@@ -189,7 +190,6 @@ std::string engine_info(const bool uci) noexcept {
 std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
-
     // clang-format off
     const auto border = [&logo](const std::string_view sv) noexcept {
         logo += Color::BG_BLACK;
@@ -801,13 +801,13 @@ TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
 }
 
 bool Logger::start(const fs::path& logPath) noexcept {
-    std::lock_guard lockGuard(instance().mutex);
+    std::lock_guard lockGuard{instance().mutex};
 
     return instance().open(logPath);
 }
 
 void Logger::stop() noexcept {
-    std::lock_guard lockGuard(instance().mutex);
+    std::lock_guard lockGuard{instance().mutex};
 
     instance().close();
 }

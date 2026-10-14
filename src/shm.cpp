@@ -17,17 +17,16 @@
 
 #include "shm.h"
 
-#if defined(_WIN32)
-#elif defined(__ANDROID__)
-    #include <unistd.h>
-#elif defined(USE_UNIX_SHM)
-    #include <dirent.h>    // closedir(), opendir(), readdir(), DIR, dirent
-    #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
-    #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
-    #include <sys/time.h>  // timeval
+#if !defined(_WIN32)
+    #if defined(USE_UNIX_SHM)
+        #include <dirent.h>     // opendir(), readdir(), closedir(), DIR, dirent
+        #include <poll.h>       // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
+        #include <sys/file.h>   // flock(), LOCK_EX, LOCK_UN
+        #include <sys/time.h>   // timeval
+        #include <sys/types.h>  // ssize_t, uid_t
 
-    #include <algorithm>  // min()/max()
-    #include <memory>     // make_unique<>
+        #include <algorithm>  // min()/max()
+    #endif
 #endif
 
 namespace DON {
@@ -215,11 +214,11 @@ void InitLock::unlock() noexcept {
 }
 
 ScmRightsMessage::ScmRightsMessage() noexcept :
-    controlStorage{std::make_unique<std::byte[]>(CMSG_SPACE(sizeof(int)) + Alignment)} {
+    controlStorage{std::make_unique<byte[]>(CMSG_SPACE(sizeof(int)) + Alignment)} {
 
     const usize ControlSpace = CMSG_SPACE(sizeof(int));
 
-    std::byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
+    byte* const controlBuf = align_ptr_up<Alignment>(controlStorage.get());
 
     iov[0].iov_base = buf;
     iov[0].iov_len  = 1;

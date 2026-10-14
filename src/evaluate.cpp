@@ -19,19 +19,18 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdio>
-#include <cstring>
+#include <cstdio>   // snprintf()
+#include <cstring>  // memset()
 #include <iomanip>
-#include <iostream>
-#include <memory>
+#include <memory>  // unique_ptr<>, make_unique<>()
 #include <sstream>
-#include <string_view>
 
+#include "misc.h"
 #include "notation.h"
 #include "position.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
-#include "nnue/ntypes.h"
+#include "nnue/types.h"
 
 namespace DON::Evaluate {
 
@@ -226,10 +225,10 @@ std::string trace(const Position& pos, const NNUE::Network& network) noexcept {
     auto accCache = std::make_unique<NNUE::AccumulatorCache>(network);
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
-    const auto fmt_int = [](const i32 value) noexcept -> std::string {
+    const auto fmt_int = [](const i32 i) noexcept -> std::string {
         Array<char, 16> buffer{};
 
-        const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+d", value);
+        const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+d", i);
         const usize copiedSize =
           writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
 

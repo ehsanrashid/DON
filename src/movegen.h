@@ -18,10 +18,11 @@
 #ifndef MOVEGEN_H_INCLUDED
 #define MOVEGEN_H_INCLUDED
 
+#include <algorithm>
 #include <cassert>
 
-#include "misc.h"
 #include "types.h"
+#include "utility/types.h"
 
 namespace DON {
 

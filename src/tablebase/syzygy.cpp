@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "syzygy.h"
+#include "../tablebase/syzygy.h"
 
 #include <algorithm>
 #include <array>
@@ -43,7 +43,6 @@
 
 #include "../attacks.h"
 #include "../bitboard.h"
-#include "../error.h"
 #include "../misc.h"
 #include "../movegen.h"
 #include "../option.h"
@@ -51,6 +50,8 @@
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
+#include "../utility/error.h"
+#include "../utility/types.h"
 
 namespace DON::Tablebase::Syzygy {
 
@@ -68,13 +69,25 @@ int probe_dtz(Position&, ProbeState* const ps) noexcept {
     return 0;
 }
 
-bool rank_root_moves_wdl(Position&, RootMoves&, const bool) noexcept { return false; }
-bool rank_root_moves_dtz(Position&, RootMoves&, const bool, const bool, const AbortFunc) noexcept {
+bool rank_root_moves_wdl(Position&,  //
+                         RootMoves&,
+                         const bool) noexcept {
     return false;
 }
 
-Config
-rank_root_moves(Position&, RootMoves&, const Options&, const bool, const AbortFunc) noexcept {
+bool rank_root_moves_dtz(Position&,  //
+                         RootMoves&,
+                         const bool,
+                         const bool,
+                         const AbortFunc) noexcept {
+    return false;
+}
+
+Config rank_root_moves(Position&,  //
+                       RootMoves&,
+                       const Options&,
+                       const bool,
+                       const AbortFunc) noexcept {
     return Config{};
 }
 
@@ -116,8 +129,8 @@ constexpr Array<std::string_view, TB_TYPE_NB> EXTS{
 };
 
 constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
-  {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
-  {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
+  {u8{0x71}, u8{0xE8}, u8{0x23}, u8{0x5D}},  // Win-Draw-Loss    (WDL) = 0x5D23E871
+  {u8{0xD7}, u8{0x66}, u8{0x0C}, u8{0xA5}}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
 
 constexpr WDLScore WDL_SCORE_OFFSET = -WDLLoss;

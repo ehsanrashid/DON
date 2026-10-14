@@ -15,14 +15,16 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTEX_H_INCLUDED
-#define MUTEX_H_INCLUDED
+#ifndef UTILITY_MUTEX_H_INCLUDED
+#define UTILITY_MUTEX_H_INCLUDED
 
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
 
-#include "misc.h"
+#include "../utility/list.h"
+#include "../utility/thread_attributes.h"
+#include "../utility/types.h"
 
 namespace DON {
 
@@ -45,26 +47,13 @@ void cpu_relax() noexcept;
 // It is not generally suitable for interrupt-service-routine (ISR) contexts
 // because yielding and sleeping are not normally permitted there.
 // ISR use requires platform-specific guarantees.
-#if !defined(__INTELLISENSE__)
-class CAPABILITY("mutex") SpinMutex
-#else
-class SpinMutex
-#endif
-  final {
+class LOCKABLE SpinMutex final {
    public:
     SpinMutex() noexcept = default;
 
-    void lock() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE()
-#endif
-        ;
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    void unlock() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE()
-#endif
-        ;
+    void unlock() noexcept RELEASE_CAPABILITY();
 
    private:
     SpinMutex(const SpinMutex&) noexcept            = delete;
@@ -72,56 +61,31 @@ class SpinMutex
     SpinMutex(SpinMutex&&) noexcept                 = delete;
     SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
 
+    static constexpr usize SpinsMax        = 512;
+    static constexpr usize YieldsMax       = 8;
+    static constexpr usize SleepIntervalUs = 5;
+
     std::atomic<bool> locked{false};
 };
 
 // A shared mutex that gives priority to readers over waiting writers.
 // New readers may acquire the mutex while a writer is waiting,
 // which can cause writer starvation under continuous reader contention.
-#if !defined(__INTELLISENSE__)
-class CAPABILITY("mutex") ReaderSharedMutex
-#else
-class ReaderSharedMutex
-#endif
-  final {
+class LOCKABLE ReaderSharedMutex final {
    public:
     ReaderSharedMutex() noexcept = default;
 
-    void lock() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE()
-#endif
-        ;
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    bool try_lock() noexcept
-#if !defined(__INTELLISENSE__)
-      TRY_ACQUIRE(true)
-#endif
-        ;
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
 
-    void unlock() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE()
-#endif
-        ;
+    void unlock() noexcept RELEASE_CAPABILITY();
 
-    void lock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE_SHARED()
-#endif
-        ;
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
 
-    bool try_lock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      TRY_ACQUIRE_SHARED(true)
-#endif
-        ;
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
 
-    void unlock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE_SHARED()
-#endif
-        ;
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
     [[nodiscard]] usize active_reader_count() const noexcept;
 
@@ -137,70 +101,30 @@ class ReaderSharedMutex
     std::condition_variable readerCondVar;
     std::condition_variable writerCondVar;
 
-    usize activeReaderCount
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = 0;
-    usize waitingWriterCount
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = 0;
-    bool writerActive
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = false;
+    usize activeReaderCount  GUARDED_BY(mutex) = 0;
+    usize waitingWriterCount GUARDED_BY(mutex) = 0;
+
+    bool writerActive GUARDED_BY(mutex) = false;
 };
 
 // A shared mutex that gives priority to waiting writers over new readers.
 // New readers wait while a writer is waiting, which can cause reader
 // starvation under continuous writer contention.
-#if !defined(__INTELLISENSE__)
-class CAPABILITY("mutex") WriterSharedMutex
-#else
-class WriterSharedMutex
-#endif
-  final {
+class LOCKABLE WriterSharedMutex final {
    public:
     WriterSharedMutex() noexcept = default;
 
-    void lock() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE()
-#endif
-        ;
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    bool try_lock() noexcept
-#if !defined(__INTELLISENSE__)
-      TRY_ACQUIRE(true)
-#endif
-        ;
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
 
-    void unlock() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE()
-#endif
-        ;
+    void unlock() noexcept RELEASE_CAPABILITY();
 
-    void lock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE_SHARED()
-#endif
-        ;
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
 
-    bool try_lock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      TRY_ACQUIRE_SHARED(true)
-#endif
-        ;
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
 
-    void unlock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE_SHARED()
-#endif
-        ;
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
 
     [[nodiscard]] usize active_reader_count() const noexcept;
@@ -217,32 +141,16 @@ class WriterSharedMutex
     std::condition_variable readerCondVar;
     std::condition_variable writerCondVar;
 
-    usize activeReaderCount
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = 0;
-    usize waitingWriterCount
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = 0;
-    bool writerActive
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = false;
+    usize activeReaderCount  GUARDED_BY(mutex) = 0;
+    usize waitingWriterCount GUARDED_BY(mutex) = 0;
+
+    bool writerActive GUARDED_BY(mutex) = false;
 };
 
 // A fair shared mutex that preserves FIFO order between readers and writers.
 // Consecutive queued readers may acquire shared access together, but readers cannot bypass
 // a waiting writer. try_lock_shared() fails if a writer is active or waiting.
-#if !defined(__INTELLISENSE__)
-class CAPABILITY("mutex") FairSharedMutex
-#else
-class FairSharedMutex
-#endif
-  final {
+class LOCKABLE FairSharedMutex final {
    private:
     // A node in the wait queue representing a waiting thread.
     struct Waiter final {
@@ -261,41 +169,17 @@ class FairSharedMutex
    public:
     FairSharedMutex() noexcept = default;
 
-    void lock() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE()
-#endif
-        ;
+    void lock() noexcept ACQUIRE_CAPABILITY();
 
-    bool try_lock() noexcept
-#if !defined(__INTELLISENSE__)
-      TRY_ACQUIRE(true)
-#endif
-        ;
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
 
-    void unlock() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE()
-#endif
-        ;
+    void unlock() noexcept RELEASE_CAPABILITY();
 
-    void lock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      ACQUIRE_SHARED()
-#endif
-        ;
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
 
-    bool try_lock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      TRY_ACQUIRE_SHARED(true)
-#endif
-        ;
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
 
-    void unlock_shared() noexcept
-#if !defined(__INTELLISENSE__)
-      RELEASE_SHARED()
-#endif
-        ;
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
     bool has_writer_before(const Waiter* until = nullptr) const noexcept;
 
@@ -312,28 +196,14 @@ class FairSharedMutex
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;
 
-    IntrusiveList<Waiter> waitList
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-        ;
-    usize activeReaderCount
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = 0;
-    usize waitingWriterCount
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = 0;
-    bool writerActive
-#if !defined(__INTELLISENSE__)
-      GUARDED_BY(mutex)
-#endif
-      = false;
+    IntrusiveList<Waiter> waitList GUARDED_BY(mutex);
+
+    usize activeReaderCount  GUARDED_BY(mutex) = 0;
+    usize waitingWriterCount GUARDED_BY(mutex) = 0;
+
+    bool writerActive GUARDED_BY(mutex) = false;
 };
 
 }  // namespace DON
 
-#endif  // MUTEX_H_INCLUDED
+#endif  // UTILITY_MUTEX_H_INCLUDED

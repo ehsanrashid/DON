@@ -20,10 +20,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <string_view>
 #include <thread>
 
 #include "option.h"
 #include "search.h"
+#include "types.h"
 
 namespace DON {
 

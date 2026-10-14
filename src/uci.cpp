@@ -28,12 +28,12 @@
 #include <utility>
 
 #include "benchmark.h"
-#include "debug.h"
-#include "error.h"
 #include "memory.h"
 #include "misc.h"
 #include "option.h"
 #include "search.h"
+#include "utility/debug.h"
+#include "utility/error.h"
 
 namespace DON {
 

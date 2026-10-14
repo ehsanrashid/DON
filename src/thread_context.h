@@ -18,7 +18,7 @@
 #ifndef THREAD_CONTEXT_H_INCLUDED
 #define THREAD_CONTEXT_H_INCLUDED
 
-#include "misc.h"
+#include "utility/types.h"
 
 namespace DON {
 

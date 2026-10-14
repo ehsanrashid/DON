@@ -17,20 +17,21 @@
 
 // Standalone NNUE embedding for universal binary builds
 
-#include "../evaluate.h"
-#include "../misc.h"
-
 #if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
-
-// In a macOS universal binary the network is embedded only in the arm64 slice,
-// and the x86-64 slice mmaps it from the arm64 slice.
-
     #include <fcntl.h>
     #include <limits.h>
     #include <mach-o/dyld.h>
     #include <stdlib.h>
     #include <sys/mman.h>
     #include <unistd.h>
+#endif
+
+#include "../evaluate.h"
+#include "../utility/types.h"
+
+#if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
+// In a macOS universal binary the network is embedded only in the arm64 slice,
+// and the x86-64 slice mmaps it from the arm64 slice.
 
 // Must be kept in sync with patch_x86_64_slice.sh
 extern const volatile DON::u64 gUniversalNNUEOffset = DON::u64{0xCAFE0FF5E70FF5E7};
@@ -81,21 +82,23 @@ extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();
 extern const unsigned int         gEmbeddedNNUESize = (unsigned int) (gUniversalNNUESize);
 
 #else
-    #if defined(__has_embed)
+    #if !defined(__INTELLISENSE__)
+        #if defined(__has_embed)
 // C++23 #embed: embeds the binary data directly
 extern const unsigned char gEmbeddedNNUEData[] = {
-        #embed EvalFileDefaultName
+            #embed EvalFileDefaultName
 };
 
 const unsigned int padding = 0;
-    #else
+        #else
+
 // Fallback for compilers without #embed support
 extern const unsigned char gEmbeddedNNUEData[] =
-        #include "network_dump.inc"
+            #include "network_dump.inc"
   ;
 
 const unsigned int padding = 1;  // Trailing NULL byte
-    #endif
+        #endif
 extern const unsigned int gEmbeddedNNUESize = sizeof(gEmbeddedNNUEData) - padding;
-
+    #endif
 #endif

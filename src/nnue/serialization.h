@@ -29,6 +29,7 @@
 #include <type_traits>
 
 #include "../misc.h"
+#include "../utility/types.h"
 
 namespace DON::NNUE {
 

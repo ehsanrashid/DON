@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-#include "../misc.h"
 #include "../types.h"
+#include "../utility/types.h"
 
 namespace DON {
 

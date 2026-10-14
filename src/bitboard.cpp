@@ -21,7 +21,7 @@
     #include <cstring>  // memcpy()
 #endif
 
-#include "concurrent.h"  // ConcurrentCache<>
+#include "utility/concurrent.h"  // ConcurrentCache<>
 
 namespace DON {
 

@@ -20,8 +20,9 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
-#include "full_threats.h"
+#include "../../nnue/types.h"
+#include "../../nnue/features/full_threats.h"
+#include "../../utility/types.h"
 
 namespace DON {
 
@@ -31,12 +32,12 @@ namespace NNUE::Features {
 
 class PP3Wide final {
    public:
-    static constexpr u32 Hash = 0x86F2B1DDu;
+    static constexpr u32 Hash = u32{0x86F2B1DD};
 
     static constexpr Index PawnIds    = 48 * COLOR_NB;
     static constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
 
-    // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeature::Dimensions;
+    // Pawn pair feature indices are concatenated to threats so this must equal Features::FullThreats::Dimensions;
     // see nnue/feature_transformer.h
     static constexpr Index IndexBase = FullThreats::Dimensions;
     // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.

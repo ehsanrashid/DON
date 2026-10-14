@@ -24,6 +24,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>  // get(), swap()
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
@@ -31,9 +32,10 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "misc.h"
 #include "state.h"
 #include "types.h"
+#include "utility/attributes.h"
+#include "utility/types.h"
 
 namespace DON {
 

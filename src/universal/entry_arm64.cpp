@@ -15,16 +15,19 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdint.h>
-
 #if defined(_WIN32)
-    #include <windows.h>
+    #include "../platform_win.h"
 #else
     #include <sys/auxv.h>
+#endif
+
+#if !defined(_WIN32)
     #if !defined(HWCAP_ASIMDDP)
         #define HWCAP_ASIMDDP (1 << 20)
     #endif
 #endif
+
+#include "../utility/types.h"
 
 #define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
@@ -49,11 +52,13 @@ struct CpuFeatures final {
 
 CpuFeatures query_cpu_features() noexcept {
 #if defined(_WIN32)
-    return {.dotprod = (bool) IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE)};
+    const bool dotprod = IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE) == TRUE;
 #else
-    unsigned long hwcap = getauxval(AT_HWCAP);
-    return {.dotprod = (bool) (hwcap & HWCAP_ASIMDDP)};
+    const unsigned long hwcap = getauxval(AT_HWCAP);
+
+    const bool dotprod = (hwcap & HWCAP_ASIMDDP) == HWCAP_ASIMDDP;
 #endif
+    return {dotprod};
 }
 
 // Selects the most capable ISA variant supported by current CPU

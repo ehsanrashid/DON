@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CONCURRENT_H_INCLUDED
-#define CONCURRENT_H_INCLUDED
+#ifndef UTILITY_CONCURRENT_H_INCLUDED
+#define UTILITY_CONCURRENT_H_INCLUDED
 
 #include <cassert>        // assert()
 #include <cstdlib>        // atexit()
@@ -32,8 +32,9 @@
 #include <unordered_set>  // unordered_set<>
 #include <utility>        // forward<>, pair<>
 
-#include "misc.h"
-#include "mutex.h"
+#include "../misc.h"
+#include "../utility/mutex.h"
+#include "../utility/types.h"
 
 namespace DON {
 
@@ -759,4 +760,4 @@ class RegistryCleanupHook final {
 
 }  // namespace DON
 
-#endif  // CONCURRENT_H_INCLUDED
+#endif  // UTILITY_CONCURRENT_H_INCLUDED

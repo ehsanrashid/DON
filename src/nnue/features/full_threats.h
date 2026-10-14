@@ -22,7 +22,8 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
+#include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 namespace DON {
 
@@ -34,7 +35,7 @@ namespace NNUE::Features {
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr u32 Hash = 0x2E6B9D04u;
+    static constexpr u32 Hash = u32{0x2E6B9D04};
 
     // Number of feature dimensions
     static constexpr Index Dimensions = 59808;

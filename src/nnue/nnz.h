@@ -27,13 +27,13 @@
     #include "../bitboard.h"
 #endif
 
-#include "../misc.h"
-#include "../types.h"  // IWYU pragma: keep
-#include "ntypes.h"
+#include "../types.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
   || defined(VECTOR)
-    #include "simd.h"
+    #include "../nnue/simd.h"
 #endif
 
 namespace DON::NNUE {

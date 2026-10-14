@@ -20,10 +20,10 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>  // exit(), EXIT_FAILURE
-#include <functional>
 #include <iostream>
 #include <limits>
 #include <ratio>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -36,10 +36,6 @@
 #include "position.h"
 #include "types.h"
 #include "tablebase/syzygy.h"
-
-#if !defined(SUPPORTS_PTHREADS)
-    #include "misc.h"
-#endif
 
 namespace DON {
 

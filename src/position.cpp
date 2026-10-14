@@ -22,17 +22,18 @@
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>
-#include <utility>  // for swap()
 
-#include "concurrent.h"  // ConcurrentCache<>
 #include "cuckoo.h"
-#include "error.h"
 #include "history.h"
+#include "misc.h"
 #include "movegen.h"
 #include "search.h"
-#include "tablebase/syzygy.h"
 #include "tt.h"
 #include "zobrist.h"
+#include "tablebase/syzygy.h"
+#include "utility/concurrent.h"  // ConcurrentCache<>
+#include "utility/error.h"
+#include "utility/multi_array.h"
 
 namespace DON {
 

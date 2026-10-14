@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "network.h"
+#include "../nnue/network.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -29,11 +29,12 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "architecture.h"
-#include "feature_transformer.h"
-#include "nnz.h"
-#include "ntypes.h"
-#include "serialization.h"
+#include "../nnue/architecture.h"
+#include "../nnue/feature_transformer.h"
+#include "../nnue/nnz.h"
+#include "../nnue/serialization.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
@@ -59,6 +60,8 @@ const unsigned int  gEmbeddedNNUESize    = 1;
 #endif
 
 namespace DON::NNUE {
+
+const u32 Network::Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
 
 namespace {
 
@@ -226,8 +229,8 @@ void Network::verify(fs::path evalPath, const EvalFile& evalFile) const noexcept
                     + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.InputDimensions) + ", "
                     + std::to_string(networkArchitectures[0].TransformedFeatureDimensions) + ", "
-                    + std::to_string(networkArchitectures[0].FC_0_Outputs) + ", "
-                    + std::to_string(networkArchitectures[0].FC_1_Outputs) + ", 1))"};
+                    + std::to_string(networkArchitectures[0].FC0Outputs) + ", "
+                    + std::to_string(networkArchitectures[0].FC1Outputs) + ", 1))"};
     print_info_string(msg);
 }
 

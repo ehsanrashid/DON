@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "debug.h"
+#include "../utility/debug.h"
 
 #include <atomic>
 #include <cassert>
@@ -23,6 +23,8 @@
 #include <iostream>
 #include <limits>   // numeric_limits<>
 #include <utility>  // as_const()
+
+#include "../utility/types.h"
 
 namespace DON::Debug {
 
@@ -70,6 +72,8 @@ class Info {
     }
 };
 
+using HitInfo = Info<2>;
+
 class MinInfo final: public Info<2> {
    public:
     MinInfo() noexcept :
@@ -86,34 +90,41 @@ class MaxInfo final: public Info<2> {
     }
 };
 
-class ExtremeInfo final: public Info<3> {
+class MinMaxInfo final: public Info<3> {
    public:
-    ExtremeInfo() noexcept :
+    MinMaxInfo() noexcept :
         Info() {
         data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
         data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
+using MeanInfo = Info<2>;
+
+using StdevInfo = Info<3>;
+
+using CorrelInfo = Info<6>;
 
 constexpr usize SLOT_MAX = 64;
 
-Array<Info<2>, SLOT_MAX>     hit;
-Array<MinInfo, SLOT_MAX>     min;
-Array<MaxInfo, SLOT_MAX>     max;
-Array<ExtremeInfo, SLOT_MAX> extreme;
-Array<Info<2>, SLOT_MAX>     mean;
-Array<Info<3>, SLOT_MAX>     stdev;
-Array<Info<6>, SLOT_MAX>     correl;
+// clang-format off
+Array<HitInfo   , SLOT_MAX> Hit;
+Array<MinInfo   , SLOT_MAX> Min;
+Array<MaxInfo   , SLOT_MAX> Max;
+Array<MinMaxInfo, SLOT_MAX> MinMax;
+Array<MeanInfo  , SLOT_MAX> Mean;
+Array<StdevInfo , SLOT_MAX> Stdev;
+Array<CorrelInfo, SLOT_MAX> Correl;
+// clang-format on
 
 }  // namespace
 
 void hit_on(const bool cond, const usize slot) noexcept {
-    assert(slot < hit.size());
-    if (slot >= hit.size())
+    assert(slot < Hit.size());
+    if (slot >= Hit.size())
         return;
 
-    auto& info = hit[slot];
+    auto& info = Hit[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     if (cond)
@@ -121,11 +132,11 @@ void hit_on(const bool cond, const usize slot) noexcept {
 }
 
 void min_of(const i64 value, const usize slot) noexcept {
-    assert(slot < min.size());
-    if (slot >= min.size())
+    assert(slot < Min.size());
+    if (slot >= Min.size())
         return;
 
-    auto& info = min[slot];
+    auto& info = Min[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     auto& info_1   = info[1];
@@ -137,11 +148,11 @@ void min_of(const i64 value, const usize slot) noexcept {
 }
 
 void max_of(const i64 value, const usize slot) noexcept {
-    assert(slot < max.size());
-    if (slot >= max.size())
+    assert(slot < Max.size());
+    if (slot >= Max.size())
         return;
 
-    auto& info = max[slot];
+    auto& info = Max[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     auto& info_1   = info[1];
@@ -152,12 +163,12 @@ void max_of(const i64 value, const usize slot) noexcept {
     {}
 }
 
-void extreme_of(const i64 value, const usize slot) noexcept {
-    assert(slot < extreme.size());
-    if (slot >= extreme.size())
+void min_max_of(const i64 value, const usize slot) noexcept {
+    assert(slot < MinMax.size());
+    if (slot >= MinMax.size())
         return;
 
-    auto& info = extreme[slot];
+    auto& info = MinMax[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     auto& info_1   = info[1];
@@ -175,22 +186,22 @@ void extreme_of(const i64 value, const usize slot) noexcept {
 }
 
 void mean_of(const i64 value, const usize slot) noexcept {
-    assert(slot < mean.size());
-    if (slot >= mean.size())
+    assert(slot < Mean.size());
+    if (slot >= Mean.size())
         return;
 
-    auto& info = mean[slot];
+    auto& info = Mean[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     info[1].fetch_add(value, std::memory_order_relaxed);
 }
 
 void stdev_of(const i64 value, const usize slot) noexcept {
-    assert(slot < stdev.size());
-    if (slot >= stdev.size())
+    assert(slot < Stdev.size());
+    if (slot >= Stdev.size())
         return;
 
-    auto& info = stdev[slot];
+    auto& info = Stdev[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     info[1].fetch_add(value, std::memory_order_relaxed);
@@ -198,11 +209,11 @@ void stdev_of(const i64 value, const usize slot) noexcept {
 }
 
 void correl_of(const i64 value1, const i64 value2, const usize slot) noexcept {
-    assert(slot < correl.size());
-    if (slot >= correl.size())
+    assert(slot < Correl.size());
+    if (slot >= Correl.size())
         return;
 
-    auto& info = correl[slot];
+    auto& info = Correl[slot];
 
     info[0].fetch_add(1, std::memory_order_relaxed);
     info[1].fetch_add(value1, std::memory_order_relaxed);
@@ -217,23 +228,23 @@ void print() noexcept {
     i64        n;
     const auto avg = [&n = std::as_const(n)](const i64 x) noexcept { return double(x) / n; };
 
-    for (usize i = 0; i < hit.size(); ++i)
+    for (usize i = 0; i < Hit.size(); ++i)
     {
-        const auto& info = hit[i];
+        const auto& info = Hit[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        const i64 hits = info[1].load(std::memory_order_relaxed);
+        const i64 hit = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Hit #" << i << ": Count=" << n  //
-                  << " Hits=" << hits                 //
-                  << " Hit Rate (%)=" << 100 * avg(hits) << std::endl;
+                  << " Hit=" << hit                   //
+                  << " Hit Rate (%)=" << 100 * avg(hit) << std::endl;
     }
 
-    for (usize i = 0; i < min.size(); ++i)
+    for (usize i = 0; i < Min.size(); ++i)
     {
-        const auto& info = min[i];
+        const auto& info = Min[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -244,9 +255,9 @@ void print() noexcept {
                   << " Min=" << minValue << std::endl;
     }
 
-    for (usize i = 0; i < max.size(); ++i)
+    for (usize i = 0; i < Max.size(); ++i)
     {
-        const auto& info = max[i];
+        const auto& info = Max[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -257,9 +268,9 @@ void print() noexcept {
                   << " Max=" << maxValue << std::endl;
     }
 
-    for (usize i = 0; i < extreme.size(); ++i)
+    for (usize i = 0; i < MinMax.size(); ++i)
     {
-        const auto& info = extreme[i];
+        const auto& info = MinMax[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -272,9 +283,9 @@ void print() noexcept {
                   << " Max=" << maxValue << std::endl;
     }
 
-    for (usize i = 0; i < mean.size(); ++i)
+    for (usize i = 0; i < Mean.size(); ++i)
     {
-        const auto& info = mean[i];
+        const auto& info = Mean[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -286,9 +297,9 @@ void print() noexcept {
                   << " Mean=" << avg(sum) << std::endl;
     }
 
-    for (usize i = 0; i < stdev.size(); ++i)
+    for (usize i = 0; i < Stdev.size(); ++i)
     {
-        const auto& info = stdev[i];
+        const auto& info = Stdev[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -302,9 +313,9 @@ void print() noexcept {
                   << " Stdev=" << r << std::endl;
     }
 
-    for (usize i = 0; i < correl.size(); ++i)
+    for (usize i = 0; i < Correl.size(); ++i)
     {
-        const auto& info = correl[i];
+        const auto& info = Correl[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -325,13 +336,15 @@ void print() noexcept {
 }
 
 void reset() noexcept {
-    hit.fill({});
-    min.fill({});
-    max.fill({});
-    extreme.fill({});
-    mean.fill({});
-    stdev.fill({});
-    correl.fill({});
+    // clang-format off
+    Hit   .fill({});
+    Min   .fill({});
+    Max   .fill({});
+    MinMax.fill({});
+    Mean  .fill({});
+    Stdev .fill({});
+    Correl.fill({});
+    // clang-format on
 }
 
 }  // namespace DON::Debug

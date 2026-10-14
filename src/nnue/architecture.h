@@ -23,138 +23,56 @@
 #include <functional>
 #include <iosfwd>
 
-#include "../misc.h"
-#include "../types.h"
-#include "features/full_threats.h"
-#include "features/half_ka_hm.h"
-#include "features/pp_3wide.h"
-#include "layers/affine_transform.h"
-#include "layers/clipped_relu.h"
-#include "layers/sparse_affine_transform.h"
-#include "layers/sqr_clipped_relu.h"
-#include "ntypes.h"
+#include "../nnue/layers/affine_transform.h"
+#include "../nnue/layers/clipped_relu.h"
+#include "../nnue/layers/sparse_affine_transform.h"
+#include "../nnue/layers/sqr_clipped_relu.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
 
 namespace DON::NNUE {
-
-// Input features used in evaluation function
-using ThreatFeature = Features::FullThreats;
-using PairFeature   = Features::PP3Wide;
-using PSQFeature    = Features::HalfKAHm;
 
 template<Index Dimensions>
 struct NNZ;
 
 struct NetworkArchitecture final {
    public:
-    static constexpr Index TransformedFeatureDimensions = L1;
-    static constexpr Index FC_0_Outputs                 = L2;
-    static constexpr Index FC_1_Outputs                 = L3;
-
     // Hash value embedded in the evaluation file
-    static constexpr u32 hash() noexcept {
-        // input slice hash
-        u32 h = 0xEC42E90Du;
-        h ^= 2 * TransformedFeatureDimensions;
+    static u32 hash() noexcept;
 
-        h = decltype(fc_0)::hash(h);
-        h = decltype(ac_0)::hash(h);
-        h = decltype(fc_1)::hash(h);
-        h = decltype(ac_1)::hash(h);
-        h = decltype(fc_2)::hash(h);
-        return h;
-    }
-
-    usize content_hash() const noexcept {
-        usize h = 0;
-        combine_hash(h, fc_0.content_hash());
-        combine_hash(h, ac_sqr_0.content_hash());
-        combine_hash(h, ac_0.content_hash());
-        combine_hash(h, fc_1.content_hash());
-        // TODO: hash_combine()
-        // hash_combine(h, ac_sqr_1.get_content_hash());
-        combine_hash(h, ac_1.content_hash());
-        combine_hash(h, fc_2.content_hash());
-        combine_hash(h, hash());
-        return h;
-    }
+    usize content_hash() const noexcept;
 
     // Read network parameters
-    bool read_parameters(std::istream& is) noexcept {
-        return fc_0.read_parameters(is)  //
-            && ac_0.read_parameters(is)  //
-            && fc_1.read_parameters(is)  //
-            && ac_1.read_parameters(is)  //
-            && fc_2.read_parameters(is);
-    }
+    bool read_parameters(std::istream& is) noexcept;
 
     // Write network parameters
-    bool write_parameters(std::ostream& os) const noexcept {
-        return fc_0.write_parameters(os)  //
-            && ac_0.write_parameters(os)  //
-            && fc_1.write_parameters(os)  //
-            && ac_1.write_parameters(os)  //
-            && fc_2.write_parameters(os);
-    }
+    bool write_parameters(std::ostream& os) const noexcept;
+
+    static constexpr Index TransformedFeatureDimensions = L1;
+    static constexpr Index FC0Outputs                   = L2;
+    static constexpr Index FC1Outputs                   = L3;
 
     // Forward propagation
     i32
     propagate(const Array<TransformedFeature, TransformedFeatureDimensions>& transformedFeatures,
-              const NNZ<L1>&                                                 nnz) const noexcept {
-
-        struct alignas(CACHE_LINE_SIZE) Buffer final {
-            alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
-            alignas(CACHE_LINE_SIZE)
-              Array<typename decltype(ac_sqr_0)::Output,
-                    ceil_to_multiple<Index>(FC_0_Outputs * 2 + FC_1_Outputs * 2, 32)> concat_buffer;
-            alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
-            alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
-        };
-
-        Buffer buffer;
-
-        fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data(), nnz);
-#if defined(USE_PAIR_ACTIVATIONS)
-        ac_sqr_0.propagate_pair(buffer.fc_0_out.data(), buffer.concat_buffer.data(),
-                                buffer.concat_buffer.data() + FC_0_Outputs);
-#else
-        ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.concat_buffer.data());
-        ac_0.propagate(buffer.fc_0_out.data(), buffer.concat_buffer.data() + FC_0_Outputs);
-#endif
-        fc_1.propagate(buffer.concat_buffer.data(), buffer.fc_1_out.data());
-#if defined(USE_PAIR_ACTIVATIONS)
-        ac_sqr_1.propagate_pair(buffer.fc_1_out.data(),
-                                buffer.concat_buffer.data() + FC_0_Outputs * 2,
-                                buffer.concat_buffer.data() + FC_0_Outputs * 2 + FC_1_Outputs);
-#else
-        ac_sqr_1.propagate(buffer.fc_1_out.data(), buffer.concat_buffer.data() + FC_0_Outputs * 2);
-        ac_1.propagate(buffer.fc_1_out.data(),
-                       buffer.concat_buffer.data() + FC_0_Outputs * 2 + FC_1_Outputs);
-#endif
-        fc_2.propagate(buffer.concat_buffer.data(), buffer.fc_2_out.data());
-
-        static_assert(FC_0_Outputs >= 2);
-        i32 fwdOut = buffer.fc_2_out[0];
-        i32 skip_0 = buffer.fc_0_out[FC_0_Outputs - 2] - buffer.fc_0_out[FC_0_Outputs - 1];
-        fwdOut += skip_0;
-
-        // fwdOut is such that 1.0 is equal to (1 << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2
-        // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
-        // to make overflow impossible cast to int64_t.
-        constexpr i64 Multiplier  = 600 * OUTPUT_SCALE;
-        constexpr i64 Denominator = (i64{1} << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2;
-
-        return static_cast<i32>((static_cast<i64>(fwdOut) * Multiplier) / Denominator);
-    }
+              const NNZ<L1>&                                                 nnz) const noexcept;
 
    private:
     // clang-format off
-    Layers::SparseAffineTransform<TransformedFeatureDimensions, FC_0_Outputs> fc_0;
-    Layers::SqrClippedReLU       <FC_0_Outputs    , WEIGHT_SCALE_BITS + 1   > ac_sqr_0;
-    Layers::ClippedReLU          <FC_0_Outputs    , WEIGHT_SCALE_BITS + 1   > ac_0;
-    Layers::AffineTransform      <FC_0_Outputs * 2, FC_1_Outputs            > fc_1;
-    Layers::SqrClippedReLU       <FC_1_Outputs    , WEIGHT_SCALE_BITS       > ac_sqr_1;
-    Layers::ClippedReLU          <FC_1_Outputs    , WEIGHT_SCALE_BITS       > ac_1;
-    Layers::AffineTransform      <FC_0_Outputs * 2 + FC_1_Outputs * 2, 1    > fc_2;
+    Layers::SparseAffineTransform<TransformedFeatureDimensions , FC0Outputs           > fc0;
+    Layers::SqrClippedReLU       <FC0Outputs                   , WEIGHT_SCALE_BITS + 1> sqr_ac0;
+    Layers::ClippedReLU          <FC0Outputs                   , WEIGHT_SCALE_BITS + 1> ac0;
+    Layers::AffineTransform      <FC0Outputs * 2               , FC1Outputs           > fc1;
+    Layers::SqrClippedReLU       <FC1Outputs                   , WEIGHT_SCALE_BITS    > sqr_ac1;
+    Layers::ClippedReLU          <FC1Outputs                   , WEIGHT_SCALE_BITS    > ac1;
+    Layers::AffineTransform      <(FC0Outputs + FC1Outputs) * 2, 1                    > fc2;
+
+    struct alignas(CACHE_LINE_SIZE) Buffer final {
+        alignas(CACHE_LINE_SIZE) typename decltype(fc0)::OutputBuffer fc_0_out;
+        alignas(CACHE_LINE_SIZE) typename decltype(fc1)::OutputBuffer fc_1_out;
+        alignas(CACHE_LINE_SIZE) typename decltype(fc2)::OutputBuffer fc_2_out;
+        alignas(CACHE_LINE_SIZE) Array<typename decltype(sqr_ac0)::Output, ceil_to_multiple<Index>((FC0Outputs + FC1Outputs) * 2, 32)> concat_buffer;
+    };
     // clang-format on
 };
 

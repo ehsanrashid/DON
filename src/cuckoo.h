@@ -24,9 +24,9 @@
 
 #include "attacks.h"
 #include "bitboard.h"
-#include "misc.h"
 #include "types.h"
 #include "zobrist.h"
+#include "utility/types.h"
 
 namespace DON {
 

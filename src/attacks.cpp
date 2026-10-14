@@ -18,8 +18,10 @@
 #include "attacks.h"
 
 #if !defined(USE_BMI2)
-    #include "prng.h"
+    #include "utility/prng.h"
 #endif
+
+#include "misc.h"
 
 namespace DON::Attacks {
 
