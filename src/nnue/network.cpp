@@ -62,6 +62,8 @@ const unsigned int  gEmbeddedNNUESize    = 1;
 
 namespace DON::NNUE {
 
+const u32 Network::Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
+
 namespace {
 
 // Read network header
@@ -228,8 +230,8 @@ void Network::verify(fs::path evalPath, const EvalFile& evalFile) const noexcept
                     + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.InputDimensions) + ", "
                     + std::to_string(networkArchitectures[0].TransformedFeatureDimensions) + ", "
-                    + std::to_string(networkArchitectures[0].FC_0_Outputs) + ", "
-                    + std::to_string(networkArchitectures[0].FC_1_Outputs) + ", 1))"};
+                    + std::to_string(networkArchitectures[0].FC0Outputs) + ", "
+                    + std::to_string(networkArchitectures[0].FC1Outputs) + ", 1))"};
     print_info_string(msg);
 }
 

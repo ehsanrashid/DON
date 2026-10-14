@@ -46,10 +46,6 @@ struct AccumulatorCache;
 struct AccumulatorStack;
 
 class Network final {
-   private:
-    // Hash value of evaluation function structure
-    static constexpr u32 Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
-
    public:
     Network() noexcept                     = default;
     Network(const Network&)                = default;
@@ -88,6 +84,9 @@ class Network final {
 
     // Evaluation function
     Array<NetworkArchitecture, LAYER_STACKS> networkArchitectures;
+
+    // Hash value of evaluation function structure
+    static const u32 Hash;
 
     bool initialized = false;
 

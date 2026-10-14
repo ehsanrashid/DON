@@ -51,7 +51,7 @@ class ClippedReLU final {
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
-        u32 h = 0x538D24C7u;
+        u32 h = u32{0x538D24C7};
         h += preHash;
         return h;
     }

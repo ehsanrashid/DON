@@ -874,6 +874,8 @@ u64 hash_raw_data(const T& value) noexcept {
 
 template<typename T>
 void combine_hash(usize& seed, const T& v) noexcept {
+    constexpr usize HashMagic = sizeof(usize) == 8 ? usize{0x9E3779B97F4A7C15} : usize{0x9E3779B9};
+
     usize x;
     // For primitive types we avoid using the default hasher, which may be
     // nondeterministic across program invocations
@@ -882,7 +884,7 @@ void combine_hash(usize& seed, const T& v) noexcept {
     else
         x = std::hash<T>{}(v);
 
-    seed ^= x + 0x9E3779B9u + (seed << 6) + (seed >> 2);
+    seed ^= x + HashMagic + (seed << 6) + (seed >> 2);
 }
 
 constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {

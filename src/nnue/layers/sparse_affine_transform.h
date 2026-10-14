@@ -84,7 +84,7 @@ class SparseAffineTransform final {
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
-        u32 h = 0xCC03DAE4u;
+        u32 h = u32{0xCC03DAE4};
         h += OutputDimensions;
         h ^= preHash >> 1;
         h ^= preHash << 31;
