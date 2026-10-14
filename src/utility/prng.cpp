@@ -21,8 +21,6 @@
 
 #include "../utility/attributes.h"
 
-// IWYU pragma: no_include "utility/types.h"
-
 namespace DON {
 
 // ------------------

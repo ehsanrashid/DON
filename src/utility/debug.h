@@ -29,7 +29,7 @@ void min_of(i64 value, usize slot = 0) noexcept;
 
 void max_of(i64 value, usize slot = 0) noexcept;
 
-void extreme_of(i64 value, usize slot = 0) noexcept;
+void min_max_of(i64 value, usize slot = 0) noexcept;
 
 void mean_of(i64 value, usize slot = 0) noexcept;
 
