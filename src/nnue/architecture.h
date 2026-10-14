@@ -20,8 +20,7 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
-#include <functional>  // IWYU pragma: keep
-// IWYU pragma: no_include <memory>
+#include <functional>
 #include <iosfwd>
 
 #include "../nnue/layers/affine_transform.h"

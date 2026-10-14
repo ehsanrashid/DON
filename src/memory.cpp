@@ -36,8 +36,6 @@
         #endif
     #endif
     #include <cerrno>
-
-// IWYU pragma: no_include <bits/mman-map-flags-generic.h>
 #endif
 
 #if defined(__APPLE__)      /* macOS / iOS */ \

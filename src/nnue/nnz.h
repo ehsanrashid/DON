@@ -27,7 +27,7 @@
     #include "../bitboard.h"
 #endif
 
-#include "../types.h"  // IWYU pragma: keep
+#include "../types.h"
 #include "../nnue/types.h"
 #include "../utility/types.h"
 
