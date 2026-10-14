@@ -42,6 +42,12 @@
     #define USE_UNIX_SHM
 #endif
 
+#if !defined(_WIN32)
+    #if defined(USE_UNIX_SHM) || defined(__ANDROID__)
+        #include <unistd.h>  // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
+    #endif
+#endif
+
 #if defined(_WIN32)
     #include "platform_win.h"
 #elif defined(USE_UNIX_SHM)
@@ -102,10 +108,6 @@
             #define MADV_COLLAPSE 25
         #endif
     #endif
-#endif
-
-#if defined(USE_UNIX_SHM) || defined(__ANDROID__)
-    #include <unistd.h>  // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
 #endif
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
