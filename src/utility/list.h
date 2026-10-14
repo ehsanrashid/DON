@@ -43,30 +43,34 @@ class IntrusiveList final {
 
     IntrusiveList() noexcept = default;
 
-    T* front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
+    [[nodiscard]] T* front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
 
-    const T* front() const noexcept { return front_ != nullptr ? front_->data : nullptr; }
+    [[nodiscard]] const T* front() const noexcept {
+        return front_ != nullptr ? front_->data : nullptr;
+    }
 
-    T* back() noexcept { return back_ != nullptr ? back_->data : nullptr; }
+    [[nodiscard]] T* back() noexcept { return back_ != nullptr ? back_->data : nullptr; }
 
-    const T* back() const noexcept { return back_ != nullptr ? back_->data : nullptr; }
+    [[nodiscard]] const T* back() const noexcept {
+        return back_ != nullptr ? back_->data : nullptr;
+    }
 
-    usize size() const noexcept { return size_; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
 
-    bool empty() const noexcept {
+    [[nodiscard]] bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
         assert((back() == nullptr) == (size() == 0));
 
         return size() == 0;
     }
 
-    void push_back(Node& node, T& data) noexcept {
+    [[nodiscard]] bool push_back(Node& node, T& data) noexcept {
         assert(&data.node == &node);
         assert(node.owner == nullptr);
         assert(node.data == nullptr);
 
         if (&data.node != &node || node.owner != nullptr || node.data != nullptr)
-            return;
+            return false;
 
         node.data = &data;
         node.prev = back_;
@@ -80,13 +84,15 @@ class IntrusiveList final {
         back_      = &node;
         node.owner = this;
         ++size_;
+
+        return true;
     }
 
-    void erase(Node& node) noexcept {
+    [[nodiscard]] bool erase(Node& node) noexcept {
         assert(node.owner == this);
 
         if (node.owner != this)
-            return;
+            return false;
 
         if (node.prev != nullptr)
             node.prev->next = node.next;
@@ -103,9 +109,11 @@ class IntrusiveList final {
         node.owner = nullptr;
         node.data  = nullptr;
         --size_;
+
+        return true;
     }
 
-    T* next(const T& item) const noexcept {
+    [[nodiscard]] T* next(const T& item) const noexcept {
         assert(item.node.owner == this);
 
         if (item.node.owner != this)
@@ -118,7 +126,7 @@ class IntrusiveList final {
    private:
     IntrusiveList(const IntrusiveList&)                = delete;
     IntrusiveList& operator=(const IntrusiveList&)     = delete;
-    IntrusiveList(const IntrusiveList&&) noexcept      = delete;
+    IntrusiveList(IntrusiveList&&) noexcept            = delete;
     IntrusiveList& operator=(IntrusiveList&&) noexcept = delete;
 
     Node*       front_ = nullptr;
