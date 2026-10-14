@@ -32,14 +32,14 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "../nnue/features/full_threats.h"
-#include "../nnue/features/half_ka_hm.h"
-#include "../nnue/features/pp_3wide.h"
 #include "../nnue/accumulator.h"
 #include "../nnue/architecture.h"
 #include "../nnue/types.h"
 #include "../nnue/serialization.h"
 #include "../nnue/simd.h"
+#include "../nnue/features/full_threats.h"
+#include "../nnue/features/half_ka_hm.h"
+#include "../nnue/features/pp_3wide.h"
 
 #if defined(VECTOR) || defined(USE_RVV)
     #include "../nnue/nnz.h"

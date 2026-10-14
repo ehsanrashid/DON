@@ -20,8 +20,6 @@
 
 #include "../utility/types.h"
 
-// IWYU pragma: no_include "utility/types.h"
-
 // Debug functions used mainly to collect run-time statistics
 namespace DON::Debug {
 

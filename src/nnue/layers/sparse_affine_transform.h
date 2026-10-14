@@ -21,10 +21,10 @@
 #include <iostream>
 
 #include "../../misc.h"
-#include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../nnue/serialization.h"
 #include "../../nnue/simd.h"
+#include "../../utility/types.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
   || defined(USE_RVV)
@@ -64,8 +64,8 @@ class SparseAffineTransform final {
     static constexpr Index InputDimensions  = InDims;
     static constexpr Index OutputDimensions = OutDims;
 
-    static_assert(OutputDimensions % 16 == 0,
-                  "Only implemented for OutputDimensions divisible by 16.");
+    static_assert(OutputDimensions % SIMD::WIDTH_MIN == 0,
+                  "Only implemented for OutputDimensions divisible by SIMD::WIDTH_MIN.");
 
     static constexpr Index PaddedInputDimensions =
       ceil_to_multiple<Index>(InputDimensions, SIMD::WIDTH_MAX);

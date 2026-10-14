@@ -20,8 +20,8 @@
 
 #include <cstring>
 
-#include "../../misc.h"
 #include "../../nnue/types.h"
+#include "../../utility/types.h"
 
 #if defined(USE_SSE2) || defined(USE_NEON)
     #include "../../nnue/simd.h"

@@ -25,9 +25,6 @@
 #include "../utility/list.h"
 #include "../utility/types.h"
 
-// IWYU pragma: no_include "utility/list.h"
-// IWYU pragma: no_include "utility/types.h"
-
 namespace DON {
 
 // Architecture-specific processor hint for spin-wait loops.

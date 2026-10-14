@@ -19,6 +19,13 @@
 
 #include "../nnue/architecture.h"  // IWYU pragma: associated
 
+#include "../misc.h"
+
+// IWYU pragma: no_include "nnue/layers/affine_transform.h"
+// IWYU pragma: no_include "nnue/layers/clipped_relu.h"
+// IWYU pragma: no_include "nnue/layers/sparse_affine_transform.h"
+// IWYU pragma: no_include "nnue/layers/sqr_clipped_relu.h"
+// IWYU pragma: no_include "nnue/types.h"
 // IWYU pragma: no_include "utility/types.h"
 
 namespace DON::NNUE {

@@ -26,6 +26,7 @@
 #include "../../misc.h"
 #include "../../nnue/types.h"
 #include "../../nnue/simd.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Layers {
 

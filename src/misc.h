@@ -874,7 +874,12 @@ u64 hash_raw_data(const T& value) noexcept {
 
 template<typename T>
 void combine_hash(usize& seed, const T& v) noexcept {
-    constexpr usize HashMagic = sizeof(usize) == 8 ? usize{0x9E3779B97F4A7C15} : usize{0x9E3779B9};
+    constexpr usize HashMagic = []() constexpr noexcept {
+        if constexpr (sizeof(usize) == 8)
+            return usize{0x9E3779B97F4A7C15};
+        else
+            return usize{0x9E3779B9};
+    }();
 
     usize x;
     // For primitive types we avoid using the default hasher, which may be

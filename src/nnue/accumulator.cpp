@@ -24,9 +24,11 @@
 
 #include "../bitboard.h"
 #include "../position.h"
-#include "../nnue/architecture.h"
 #include "../nnue/feature_transformer.h"
 #include "../nnue/simd.h"
+#include "../nnue/features/full_threats.h"
+#include "../nnue/features/half_ka_hm.h"
+#include "../nnue/features/pp_3wide.h"
 
 // IWYU pragma: no_include "types.h"
 // IWYU pragma: no_include "nnue/types.h"

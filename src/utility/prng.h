@@ -20,8 +20,6 @@
 
 #include "../utility/types.h"
 
-// IWYU pragma: no_include "utility/types.h"
-
 namespace DON {
 
 constexpr u64 rotl(const u64 x, const u8 k) noexcept {
