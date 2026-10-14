@@ -105,7 +105,8 @@ SRCS := \
     movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp search.cpp \
     shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
-    nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp \
+    nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
+    book/polyglot.cpp tablebase/syzygy.cpp \
     utility/debug.cpp utility/mutex.cpp utility/prng.cpp
 
 UNIVERSAL_SRCS := \
@@ -1354,6 +1355,13 @@ help:
 	icx-profile-make icx-profile-use \
 	format install-hooks
 
+ifneq ($(findstring include-what-you-use,$(strip $(CXX))),)
+full_threats.o half_ka_hm.o pp_3wide.o \
+accumulator.o architecture.o network.o \
+polyglot.o syzygy.o \
+debug.o mutex.o prng.o: CXXFLAGS += \
+    -Xiwyu --mapping_file=$(abspath ../.github/ci/mapping.imp)
+endif
 analyze: net config-sanity obj-clean
 	$(MAKE) -k $(OBJS)
 

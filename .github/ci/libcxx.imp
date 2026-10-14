@@ -22,7 +22,4 @@
     # Mappings for libc++ synchronization headers
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
-
-    # Map relative utility includes to canonical utility paths
-    { include: [ "@\"\\.\\./utility/(.*\\.h)\"", public, "\"utility/\\1\"", public ] },
 ]
