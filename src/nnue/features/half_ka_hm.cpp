@@ -27,6 +27,7 @@
 #endif
 
 #include "../../bitboard.h"
+#include "../../utility/attributes.h"
 
 // IWYU pragma: no_include "misc.h"
 // IWYU pragma: no_include "types.h"

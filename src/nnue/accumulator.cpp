@@ -29,6 +29,7 @@
 #include "../nnue/features/full_threats.h"
 #include "../nnue/features/half_ka_hm.h"
 #include "../nnue/features/pp_3wide.h"
+#include "../utility/attributes.h"
 
 // IWYU pragma: no_include "types.h"
 // IWYU pragma: no_include "nnue/types.h"
