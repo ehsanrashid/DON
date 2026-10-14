@@ -22,12 +22,17 @@
 #include <map>
 #include <mutex>
 #include <shared_mutex>
+#include <utility>
 
+#include "../utility/access.h"
 #include "../utility/types.h"
 
 namespace DON {
 
-template <class Key, class Value, class Compare = std::less<Key>>
+template<typename Key,
+         typename Value,
+         typename Mutex   = std::shared_mutex,
+         typename Compare = std::less<Key>>
 class Map final {
    public:
     using key_type        = Key;
@@ -37,59 +42,65 @@ class Map final {
     using difference_type = std::ptrdiff_t;
     using key_compare     = Compare;
 
-    class iterator;
-    class const_iterator;
+    using map_type          = std::map<Key, Value, Compare>;
+    using read_access_type  = ReadAccess<map_type, Mutex>;
+    using write_access_type = WriteAccess<map_type, Mutex>;
 
-    Map() = default;
+    Map() noexcept = default;
 
-    explicit Map(const Compare& compare) :
+    explicit Map(const Compare& compare) noexcept :
         map(compare) {}
 
-    [[nodiscard]] bool empty() const {
+    [[nodiscard]] bool empty() const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return map.empty();
     }
 
-    [[nodiscard]] size_type size() const {
+    [[nodiscard]] size_type size() const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return map.size();
     }
 
-    [[nodiscard]] size_type max_size() const {
+    [[nodiscard]] size_type max_size() const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return map.max_size();
     }
 
-    void clear() {
+    void clear() noexcept {
         std::lock_guard lockGuard{mutex};
 
         map.clear();
     }
 
-    [[nodiscard]] bool contains(const Key& key) const {
+    [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return map.find(key) != map.end();
     }
 
-    [[nodiscard]] size_type count(const Key& key) const {
+    [[nodiscard]] size_type count(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return map.count(key);
     }
 
-    [[nodiscard]] key_compare key_comp() const {
+    [[nodiscard]] key_compare key_comp() const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return map.key_comp();
     }
 
+    [[nodiscard]] read_access_type read() const noexcept { return read_access_type{mutex, map}; }
+
+    [[nodiscard]] write_access_type write() noexcept { return write_access_type{mutex, map}; }
+
    private:
-    mutable std::shared_mutex mutex;
-    std::map<Key, Value, Compare> map;
+    mutable Mutex mutex;
+
+    map_type map;
 };
 
 }  // namespace DON
