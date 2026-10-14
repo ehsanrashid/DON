@@ -17,16 +17,15 @@
 
 // Definition of network structure used in NNUE evaluation function
 
-#include "../nnue/architecture.h"  // IWYU pragma: associated
+#include "../nnue/architecture.h"
 
 #include "../misc.h"
-
-// IWYU pragma: no_include "nnue/layers/affine_transform.h"
-// IWYU pragma: no_include "nnue/layers/clipped_relu.h"
-// IWYU pragma: no_include "nnue/layers/sparse_affine_transform.h"
-// IWYU pragma: no_include "nnue/layers/sqr_clipped_relu.h"
-// IWYU pragma: no_include "nnue/types.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../nnue/layers/affine_transform.h"
+#include "../nnue/layers/clipped_relu.h"
+#include "../nnue/layers/sparse_affine_transform.h"
+#include "../nnue/layers/sqr_clipped_relu.h"
+#include "../nnue/types.h"
+#include "../utility/types.h"
 
 namespace DON::NNUE {
 

@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../utility/mutex.h"  // IWYU pragma: associated
+#include "../utility/mutex.h"
 
 #include <atomic>
 #include <chrono>
@@ -29,8 +29,8 @@
     #include <emmintrin.h>  // _mm_pause() intrinsic
 #endif
 
-// IWYU pragma: no_include "utility/list.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../utility/list.h"
+#include "../utility/types.h"
 
 namespace DON {
 

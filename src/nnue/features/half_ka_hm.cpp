@@ -17,7 +17,7 @@
 
 // Definition of input features HalfKAHm of NNUE evaluation function
 
-#include "../../nnue/features/half_ka_hm.h"  // IWYU pragma: associated
+#include "../../nnue/features/half_ka_hm.h"
 
 #include <array>
 #include <initializer_list>
@@ -27,12 +27,11 @@
 #endif
 
 #include "../../bitboard.h"
+#include "../../misc.h"
+#include "../../types.h"
+#include "../../nnue/types.h"
 #include "../../utility/attributes.h"
-
-// IWYU pragma: no_include "misc.h"
-// IWYU pragma: no_include "types.h"
-// IWYU pragma: no_include "nnue/types.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 

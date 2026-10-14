@@ -15,11 +15,12 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../utility/prng.h"  // IWYU pragma: associated
+#include "../utility/prng.h"
 
 #include <algorithm>  // generate<>(), all_of<>()
 
 #include "../utility/attributes.h"
+#include "../utility/types.h"
 
 namespace DON {
 

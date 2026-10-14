@@ -15,21 +15,20 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../../nnue/features/pp_3wide.h"  // IWYU pragma: associated
+#include "../../nnue/features/pp_3wide.h"
 
 #include <algorithm>
 #include <cassert>
 
 #include "../../attacks.h"
 #include "../../bitboard.h"
+#include "../../misc.h"
 #include "../../position.h"
+#include "../../types.h"
+#include "../../nnue/types.h"
+#include "../../nnue/features/full_threats.h"
 #include "../../utility/attributes.h"
-
-// IWYU pragma: no_include "misc.h"
-// IWYU pragma: no_include "types.h"
-// IWYU pragma: no_include "nnue/types.h"
-// IWYU pragma: no_include "nnue/features/full_threats.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 

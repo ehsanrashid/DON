@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../book/polyglot.h"  // IWYU pragma: associated
+#include "../book/polyglot.h"
 
 #include <algorithm>
 #include <array>
@@ -34,10 +34,9 @@
 #include "../position.h"
 #include "../search.h"
 #include "../state.h"
+#include "../types.h"
 #include "../utility/prng.h"
-
-// IWYU pragma: no_include "types.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../utility/types.h"
 
 namespace DON::Book {
 

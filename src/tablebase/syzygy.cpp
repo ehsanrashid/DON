@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../tablebase/syzygy.h"  // IWYU pragma: associated
+#include "../tablebase/syzygy.h"
 
 #include <algorithm>
 #include <array>
@@ -49,10 +49,9 @@
 #include "../position.h"
 #include "../search.h"
 #include "../state.h"
+#include "../types.h"
 #include "../utility/error.h"
-
-// IWYU pragma: no_include "types.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../utility/types.h"
 
 namespace DON::Tablebase::Syzygy {
 

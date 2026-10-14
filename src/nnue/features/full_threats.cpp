@@ -17,7 +17,7 @@
 
 // Definition of input features FullThreats of NNUE evaluation function
 
-#include "../../nnue/features/full_threats.h"  // IWYU pragma: associated
+#include "../../nnue/features/full_threats.h"
 
 #include <array>
 #include <cassert>
@@ -25,13 +25,12 @@
 
 #include "../../attacks.h"
 #include "../../bitboard.h"
+#include "../../misc.h"
 #include "../../position.h"
+#include "../../types.h"
+#include "../../nnue/types.h"
 #include "../../utility/attributes.h"
-
-// IWYU pragma: no_include "misc.h"
-// IWYU pragma: no_include "types.h"
-// IWYU pragma: no_include "nnue/types.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
 

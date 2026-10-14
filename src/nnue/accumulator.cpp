@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../nnue/accumulator.h"  // IWYU pragma: associated
+#include "../nnue/accumulator.h"
 
 #include <algorithm>
 #include <cassert>
@@ -24,16 +24,15 @@
 
 #include "../bitboard.h"
 #include "../position.h"
+#include "../types.h"
 #include "../nnue/feature_transformer.h"
 #include "../nnue/simd.h"
+#include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
 #include "../nnue/features/half_ka_hm.h"
 #include "../nnue/features/pp_3wide.h"
 #include "../utility/attributes.h"
-
-// IWYU pragma: no_include "types.h"
-// IWYU pragma: no_include "nnue/types.h"
-// IWYU pragma: no_include "utility/types.h"
+#include "../utility/types.h"
 
 namespace DON::NNUE {
 
