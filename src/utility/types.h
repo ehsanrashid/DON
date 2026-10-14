@@ -30,9 +30,7 @@
 #include <type_traits>
 #include <vector>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
+#include "platform.h"
 
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX

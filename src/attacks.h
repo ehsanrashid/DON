@@ -31,14 +31,11 @@
 #if defined(USE_AVX2)
     #include <immintrin.h>
     #define USE_DUAL_HYPERBOLA_QUINT
-
 #elif defined(__loongarch__) && __loongarch_grlen == 64
     #define USE_HYPERBOLA_QUINT
-
 #elif defined(__aarch64__)
     #include <arm_acle.h>
     #define USE_HYPERBOLA_QUINT
-
 #endif
 
 #if defined(__has_builtin)
@@ -59,7 +56,6 @@ namespace DON::Attacks {
 void init() noexcept;
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
-
 struct alignas(32) DualMagic final {
    public:
     DualMagic() noexcept = default;
@@ -128,31 +124,23 @@ struct alignas(32) DualMagic final {
       15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0  //
     };
 };
-
 #elif defined(USE_HYPERBOLA_QUINT)
-
 inline Bitboard reverse_bb(const Bitboard bb) noexcept {
     Bitboard rbb;
 
     #if defined(HAS_BUILTIN_BITREVERSE64)
     rbb = __builtin_bitreverse64(bb);
-
     #elif defined(__loongarch__) && __loongarch_grlen == 64
     __asm__ __volatile__("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
-
     #elif defined(__aarch64__)
         // GCC before 12.2 does not provide __rbitll() in arm_acle.h
-        #if defined(__GNUC__) && !defined(__clang__) \
-          && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
+        #if defined(GCC_NON_CLANG) && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
     __asm__ __volatile__("rbit %0, %1" : "=r"(rbb) : "r"(bb));
-
         #else
     rbb = __rbitll(bb);
-
         #endif
     #else
         #error "reverse_bb(): unsupported architecture/compiler"
-
     #endif
 
     return rbb;
@@ -188,9 +176,7 @@ struct Magic final {
     Magic& operator=(const Magic&) noexcept = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 };
-
 #else
-
     #if defined(USE_BMI2) && defined(USE_CMP)
 using MagicMask = u16;
     #else
@@ -256,7 +242,6 @@ struct Magic final {
     Magic(Magic&&) noexcept                 = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 };
-
 #endif
 
 // Returns the squares pushed by pawns of the given color from the given bitboard
@@ -468,7 +453,6 @@ ALWAYS_INLINE constexpr Bitboard pseudo_attacks_bb(const u8 idx, const Square s)
 }
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
-
 // Sliding attacks within a rank, indexed by the slider's file and the
 // 6 inner bits of the rank occupancy (edge squares never affect the
 // attack set), yielding the 8-bit attack set on that rank
@@ -502,9 +486,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto DUAL_MAGICS = []() constexpr noex
 }();
 
 ALWAYS_INLINE constexpr const DualMagic& dual_magic(const Square s) { return DUAL_MAGICS[s]; }
-
 #else
-
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
 ALWAYS_INLINE constexpr const Magic& magic(const PieceType pt, const Square s) noexcept {
@@ -513,7 +495,6 @@ ALWAYS_INLINE constexpr const Magic& magic(const PieceType pt, const Square s) n
 
     return MAGICS[s][pt - BISHOP];
 }
-
 #endif
 
 // Returns the attacks by the given piece type.

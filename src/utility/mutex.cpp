@@ -20,54 +20,11 @@
 #include <chrono>
 #include <thread>  // sleep_for()
 
-#if defined(_WIN32)
-    #include "../platform_win.h"  // YieldProcessor()
-#elif defined(X86)
-    #include <emmintrin.h>  // _mm_pause() intrinsic
-#endif
-
+#include "../utility/cpu.h"
 #include "../utility/list.h"
 #include "../utility/types.h"
 
 namespace DON {
-
-void cpu_relax() noexcept {
-#if defined(_WIN32)
-    YieldProcessor();
-
-#elif defined(X86)
-    _mm_pause();
-
-#elif defined(__clang__) || defined(__GNUC__)
-    #if defined(__arm__) || defined(__aarch64__)
-    __asm__ __volatile__("yield");
-
-    #elif defined(__riscv)
-        #if defined(__riscv_zihintpause)
-    __builtin_riscv_pause();
-
-        #else
-    __asm__ __volatile__("" ::: "memory");
-
-        #endif
-
-    #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC64__) || defined(_ARCH_PPC)
-    __asm__ __volatile__("or 27,27,27");
-
-    #else
-    // Portable compiler-level no-op for unsupported architectures
-    __asm__ __volatile__("" ::: "memory");
-
-    #endif
-
-#else
-    // No architecture-specific pause hint available for this compiler
-    //__asm__ __volatile__("");
-
-#endif
-}
-
-// ------------------
 
 // A lightweight spin mutex that periodically yields and backs off under contention.
 void SpinMutex::lock() noexcept {
@@ -297,7 +254,7 @@ void FairSharedMutex::lock() noexcept {
     std::unique_lock uniqueLock{mutex};
 
     ++waitingWriterCount;
-    waitList.push_back(writer);
+    waitList.push_back(writer.node, writer);
 
     commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool {
         return !writerActive                // No active writer
@@ -305,7 +262,7 @@ void FairSharedMutex::lock() noexcept {
             && activeReaderCount == 0;      // No active readers
     });
 
-    waitList.erase(writer);
+    waitList.erase(writer.node);
     --waitingWriterCount;
 
     writerActive = true;
@@ -339,14 +296,14 @@ void FairSharedMutex::lock_shared() noexcept {
 
     std::unique_lock uniqueLock{mutex};
 
-    waitList.push_back(reader);
+    waitList.push_back(reader.node, reader);
 
     commonCondVar.wait(uniqueLock, [this, &reader]() noexcept -> bool {
         return !writerActive                 // No active writer
             && !has_writer_before(&reader);  // No writer ahead of this reader
     });
 
-    waitList.erase(reader);
+    waitList.erase(reader.node);
 
     ++activeReaderCount;
 }
@@ -375,7 +332,7 @@ void FairSharedMutex::unlock_shared() noexcept {
 }
 
 bool FairSharedMutex::has_writer_before(const Waiter* const until) const noexcept {
-    for (auto* cur = waitList.front(); cur != nullptr; cur = cur->next)
+    for (auto* cur = waitList.front(); cur != nullptr; cur = waitList.next(*cur))
     {
         if (cur == until)
             break;

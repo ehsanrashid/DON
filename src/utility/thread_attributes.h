@@ -18,6 +18,8 @@
 #ifndef UTILITY_THREAD_ATTRIBUTES_H_INCLUDED
 #define UTILITY_THREAD_ATTRIBUTES_H_INCLUDED
 
+#include "platform.h"
+
 #if defined(__INTELLISENSE__)
     // Dummy thread-safety annotations for IntelliSense
     // clang-format off

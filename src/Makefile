@@ -107,7 +107,7 @@ SRCS := \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
-    utility/debug.cpp utility/mutex.cpp utility/prng.cpp
+    utility/cpu.cpp utility/debug.cpp utility/mutex.cpp utility/prng.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -124,7 +124,7 @@ HEADERS := \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
     nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
-    utility/attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/debug.h utility/error.h utility/list.h \
+    utility/attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/cpu.h utility/debug.h utility/error.h utility/list.h \
     utility/lru.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/thread_attributes.h utility/types.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))

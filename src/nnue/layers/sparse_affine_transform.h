@@ -278,7 +278,6 @@ class SparseAffineTransform final {
             for (Index k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
-
     #else
         static_assert(InputDimensions % 256 == 0);
 
@@ -289,7 +288,7 @@ class SparseAffineTransform final {
             const auto* inBase = input + base * sizeof(i32);
             const auto* wBase  = &w[base * OutputDimensions * ChunkSize];
 
-        #if defined(__GNUC__) && __GNUC__ >= 15 && !defined(__clang__) && defined(USE_NEON_DOTPROD)
+        #if defined(GCC_NON_CLANG) && __GNUC__ >= 15 && defined(USE_NEON_DOTPROD)
             #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
         #endif
         // GCC 15 pessimizes the following code on ARM64 by eliding the intermediate
@@ -330,7 +329,6 @@ class SparseAffineTransform final {
                     vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
                 }
             }
-
         #elif defined(USE_NEON_DOTPROD)
             while (bits != 0)
             {
@@ -386,7 +384,6 @@ class SparseAffineTransform final {
                     vec_add_dpbusd_32(acc[k + AccCount * 2], in2, col2[k]);
                 }
             }
-
         #else
             while (bits != 0)
             {
@@ -406,7 +403,6 @@ class SparseAffineTransform final {
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
         #endif
-
         #undef FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
         }
 

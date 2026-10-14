@@ -28,11 +28,6 @@
 
 namespace DON {
 
-// Architecture-specific processor hint for spin-wait loops.
-// May reduce resource contention, improve progress of sibling hardware threads, or
-// reduce power consumption, depending on the architecture and implementation.
-void cpu_relax() noexcept;
-
 // A lightweight mutex that actively spins while waiting for the lock to
 // become available. Under sustained contention, periodically yields the
 // thread or briefly sleeps to reduce CPU usage and excessive busy-waiting.
@@ -158,7 +153,7 @@ class LOCKABLE FairSharedMutex final {
 
         bool is_writer() const noexcept;
 
-        Waiter* next = nullptr;
+        IntrusiveList<Waiter>::Node node;
 
        private:
         Waiter() noexcept = delete;

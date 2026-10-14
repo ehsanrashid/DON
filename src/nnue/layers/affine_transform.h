@@ -320,7 +320,6 @@ class AffineTransform final {
     #undef vec_add_dpbusd_32
     #undef vec_hadd
         }
-
 #elif defined(USE_RVV)
         const i8* wPtr = weights.data();
 
@@ -361,7 +360,6 @@ class AffineTransform final {
             }
 
     #undef RVV_SINGLE_PROPAGATE
-
 #else
         // Use fallback implementation for the other architectures
         fallback_affine_transform<InputDimensions, PaddedInputDimensions, OutputDimensions>(

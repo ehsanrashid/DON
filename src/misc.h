@@ -36,14 +36,6 @@
 #include <type_traits>
 #include <utility>
 
-#if defined(__i386__) || defined(_M_IX86)
-    #define X86
-    #define X86_32
-#elif defined(__x86_64__) || defined(_M_X64)
-    #define X86
-    #define X86_64
-#endif
-
 #if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
     #define USE_X86_PREFETCH
 #endif
