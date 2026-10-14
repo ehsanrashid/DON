@@ -36,6 +36,10 @@ class ReadAccess final {
 
     [[nodiscard]] const_iterator end() const { return container.end(); }
 
+    [[nodiscard]] const Container* operator->() const noexcept { return &container; }
+
+    [[nodiscard]] const Container& operator*() const noexcept { return container; }
+
    private:
     std::shared_lock<Mutex> sharedLock;
     const Container&        container;
@@ -53,6 +57,10 @@ class WriteAccess final {
     [[nodiscard]] iterator begin() { return container.begin(); }
 
     [[nodiscard]] iterator end() { return container.end(); }
+
+    [[nodiscard]] Container* operator->() noexcept { return &container; }
+
+    [[nodiscard]] Container& operator*() noexcept { return container; }
 
    private:
     std::unique_lock<Mutex> uniqueLock;

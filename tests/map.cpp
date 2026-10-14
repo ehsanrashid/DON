@@ -1,3 +1,22 @@
+/*
+
+Steps:
+
+mkdir -p build
+
+g++ -std=c++17 -O2 -I./src \
+    tests/map.cpp \
+    -o build/map
+g++ -std=c++17 -O2 -I./src \
+    tests/map.cpp \
+    -o build/map
+g++ -std=c++17 -O2 -I./src `
+    tests/map.cpp `
+    -o build/map
+
+./build/map
+*/
+
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -6,8 +25,9 @@
 
 using namespace DON;
 
-int main() {
-    Map<int, std::string> map;
+template<typename MapType>
+void test_map() {
+    MapType map;
 
     // Basic state
     assert(map.empty());
@@ -43,6 +63,68 @@ int main() {
 
     assert(map.empty());
     assert(map.size() == 0);
+
+    // Write access
+    {
+        auto access = map.write();
+
+        access->insert_or_assign(1, "one");
+        access->insert_or_assign(2, "two");
+        access->insert_or_assign(3, "three");
+    }
+
+    assert(!map.empty());
+    assert(map.size() == 3);
+    assert(map.contains(1));
+    assert(map.count(2) == 1);
+    assert(!map.contains(4));
+
+    // Read access
+    {
+        auto access = map.read();
+
+        assert(access->at(1) == "one");
+        assert(access->at(2) == "two");
+
+        usize count = 0;
+        for (const auto& [key, value] : access)
+        {
+            (void) key;
+            (void) value;
+            ++count;
+        }
+        assert(count == 3);
+    }
+
+    // Modify an existing value
+    {
+        auto access   = map.write();
+        access->at(2) = "updated";
+    }
+
+    // Verify the updated value
+    {
+        auto access = map.read();
+        assert(access->at(2) == "updated");
+    }
+
+    map.clear();
+
+    assert(map.empty());
+    assert(map.size() == 0);
+}
+
+int main() {
+    test_map<Map<int, std::string>>();
+
+    // Verify custom allocator template arguments compile.
+    using Pair      = std::pair<const int, std::string>;
+    using Allocator = std::allocator<Pair>;
+
+    test_map<Map<int, std::string, std::shared_mutex, std::less<int>, Allocator>>();
+
+    static_assert(std::is_same_v<Map<int, std::string>::allocator_type,
+                                 std::allocator<std::pair<const int, std::string>>>);
 
     std::cout << "All Map tests passed.\n";
 

@@ -31,8 +31,9 @@ namespace DON {
 
 template<typename Key,
          typename Value,
-         typename Mutex   = std::shared_mutex,
-         typename Compare = std::less<Key>>
+         typename Mutex     = std::shared_mutex,
+         typename Compare   = std::less<Key>,
+         typename Allocator = std::allocator<std::pair<const Key, Value>>>
 class Map final {
    public:
     using key_type        = Key;
@@ -41,15 +42,35 @@ class Map final {
     using size_type       = usize;
     using difference_type = std::ptrdiff_t;
     using key_compare     = Compare;
+    using allocator_type  = Allocator;
 
-    using map_type          = std::map<Key, Value, Compare>;
+    class value_compare {
+        friend class Map;
+
+       protected:
+        explicit value_compare(key_compare compare) :
+            compare(compare) {}
+
+       public:
+        [[nodiscard]] bool operator()(const value_type& v1, const value_type& v2) const {
+            return compare(v1.first, v2.first);
+        }
+
+       private:
+        key_compare compare;
+    };
+
+    using map_type          = std::map<Key, Value, Compare, Allocator>;
     using read_access_type  = ReadAccess<map_type, Mutex>;
     using write_access_type = WriteAccess<map_type, Mutex>;
 
     Map() noexcept = default;
 
-    explicit Map(const Compare& compare) noexcept :
-        map(compare) {}
+    explicit Map(const Compare& compare, const Allocator& allocator = Allocator{}) noexcept :
+        map(compare, allocator) {}
+
+    explicit Map(const Allocator& allocator) noexcept :
+        map(allocator) {}
 
     [[nodiscard]] bool empty() const noexcept {
         std::shared_lock sharedLock{mutex};
@@ -91,6 +112,18 @@ class Map final {
         std::shared_lock sharedLock{mutex};
 
         return map.key_comp();
+    }
+
+    [[nodiscard]] value_compare value_comp() const noexcept {
+        std::shared_lock sharedLock{mutex};
+
+        return value_compare{map.key_comp()};
+    }
+
+    [[nodiscard]] allocator_type get_allocator() const noexcept {
+        std::shared_lock sharedLock{mutex};
+
+        return map.get_allocator();
     }
 
     [[nodiscard]] read_access_type read() const noexcept { return read_access_type{mutex, map}; }
