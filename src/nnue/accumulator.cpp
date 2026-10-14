@@ -165,7 +165,7 @@ usize AccumulatorStack::find_last_usable_index(const Color perspective) const no
 
         // Threat feature set refreshes require a king move across the center, i.e.,
         // a subset of halfka refreshes
-        if (PSQFeature::refresh_required(perspective, accumulators[idx].dirties.dirtyPiece))
+        if (Features::HalfKAHm::refresh_required(perspective, accumulators[idx].dirties.dirtyPiece))
             return idx;
     }
 
@@ -276,10 +276,10 @@ ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexce
 }
 
 template<Op op>
-ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
-                                         const FeatureTransformer&       ft,
-                                         const Index                     j,
-                                         Tile&                           tile) noexcept {
+ALWAYS_INLINE void apply_threat_features(const Features::FullThreats::IndexList& in,
+                                         const FeatureTransformer&               ft,
+                                         const Index                             j,
+                                         Tile&                                   tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize vl = __riscv_vsetvl_e16m8(Dimensions - j);
     for (Index i = 0; i < in.size(); ++i)
@@ -332,10 +332,10 @@ ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexce
 }
 
 template<Op op>
-ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
-                                         const FeatureTransformer&       ft,
-                                         const Index                     j,
-                                         Tile&                           tile) noexcept {
+ALWAYS_INLINE void apply_threat_features(const Features::FullThreats::IndexList& in,
+                                         const FeatureTransformer&               ft,
+                                         const Index                             j,
+                                         Tile&                                   tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     // clang-format off
     for (Index i = 0; i < in.size(); ++i)
@@ -390,10 +390,10 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeature::IndexList& in,
 #endif
 
 template<Op op, bool Incremental = false>
-ALWAYS_INLINE void apply_psq_features(const PSQFeature::IndexList& in,
-                                      const FeatureTransformer&    ft,
-                                      const Index                  j,
-                                      Tile&                        tile) noexcept {
+ALWAYS_INLINE void apply_psq_features(const Features::HalfKAHm::IndexList& in,
+                                      const FeatureTransformer&            ft,
+                                      const Index                          j,
+                                      Tile&                                tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     // Use the loop below for scalar builds to avoid spurious GCC uninitialized warnings.
 #if defined(VECTOR) || defined(USE_RVV)
@@ -579,7 +579,7 @@ void update_hybrid(const Color               perspective,
 
     // "Remove" means we need to remove them from the cache entry,
     // "Add" means add them to the entry to get the accumulator we want
-    PSQFeature::IndexList oldRemove, oldAdd, newRemove, newAdd;
+    Features::HalfKAHm::IndexList oldRemove, oldAdd, newRemove, newAdd;
 
     Bitboard oldChangedBB = changed_bb(oldEntry.pieceMap, prePieceMap);
     Bitboard oldRemovedBB = oldChangedBB & oldEntry.piecesBB;
@@ -589,19 +589,21 @@ void update_hybrid(const Color               perspective,
     Bitboard newRemovedBB = newChangedBB & newEntry.piecesBB;
     Bitboard newAddedBB   = newChangedBB & curPiecesBB;
 
-    PSQFeature::append_map_changed_indices(perspective, oldKingSq, oldEntry.pieceMap, prePieceMap,
-                                           oldRemovedBB, oldAddedBB, oldRemove, oldAdd);
-    PSQFeature::append_map_changed_indices(perspective, newKingSq, newEntry.pieceMap, curPieceMap,
-                                           newRemovedBB, newAddedBB, newRemove, newAdd);
+    Features::HalfKAHm::append_map_changed_indices(perspective, oldKingSq, oldEntry.pieceMap,
+                                                   prePieceMap, oldRemovedBB, oldAddedBB, oldRemove,
+                                                   oldAdd);
+    Features::HalfKAHm::append_map_changed_indices(perspective, newKingSq, newEntry.pieceMap,
+                                                   curPieceMap, newRemovedBB, newAddedBB, newRemove,
+                                                   newAdd);
 
-    ThreatFeature::IndexList thrRemoved, thrAdded;  // also contain pp indices
+    Features::FullThreats::IndexList thrRemoved, thrAdded;  // also contain pp indices
 
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = Dimensions;
-    ThreatFeature::append_changed_indices(perspective, newKingSq, dstAcc.dirties.dirtyThreats,
-                                          thrRemoved, thrAdded, pfBase, pfStride);
-    PairFeature::append_changed_indices(perspective, newKingSq, dstAcc.dirties.dirtyPawnPairs,
-                                        thrRemoved, thrAdded, pfBase, pfStride);
+    Features::FullThreats::append_changed_indices(
+      perspective, newKingSq, dstAcc.dirties.dirtyThreats, thrRemoved, thrAdded, pfBase, pfStride);
+    Features::PP3Wide::append_changed_indices(perspective, newKingSq, dstAcc.dirties.dirtyPawnPairs,
+                                              thrRemoved, thrAdded, pfBase, pfStride);
 
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
@@ -650,9 +652,9 @@ void update_refresh_cache(const Color               perspective,
 
     auto& entry = accCache[kingSq][perspective];
 
-    ThreatFeature::IndexList active;
-    ThreatFeature::append_active_indices(perspective, pos, active);
-    PairFeature::append_active_indices(perspective, pos, active);
+    Features::FullThreats::IndexList active;
+    Features::FullThreats::append_active_indices(perspective, pos, active);
+    Features::PP3Wide::append_active_indices(perspective, pos, active);
 
     const auto& pieceMap = pos.piece_map();
     const auto  piecesBB = pos.pieces_bb();
@@ -662,9 +664,9 @@ void update_refresh_cache(const Color               perspective,
     const Bitboard removedBB = changedBB & entry.piecesBB;
     const Bitboard addedBB   = changedBB & piecesBB;
 
-    PSQFeature::IndexList removed, added;
-    PSQFeature::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap, removedBB,
-                                           addedBB, removed, added);
+    Features::HalfKAHm::IndexList removed, added;
+    Features::HalfKAHm::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
+                                                   removedBB, addedBB, removed, added);
 
     entry.pieceMap = pieceMap;
     entry.piecesBB = piecesBB;
@@ -688,14 +690,14 @@ void update_refresh_cache(const Color               perspective,
     }
 }
 
-void apply_combined(Color                           perspective,
-                    const FeatureTransformer&       featureTransformer,
-                    const Accumulator&              srcAcc,
-                    Accumulator&                    dstAcc,
-                    const PSQFeature::IndexList&    psqRemoved,
-                    const PSQFeature::IndexList&    psqAdded,
-                    const ThreatFeature::IndexList& thrRemoved,
-                    const ThreatFeature::IndexList& thrAdded) noexcept {
+void apply_combined(Color                                   perspective,
+                    const FeatureTransformer&               featureTransformer,
+                    const Accumulator&                      srcAcc,
+                    Accumulator&                            dstAcc,
+                    const Features::HalfKAHm::IndexList&    psqRemoved,
+                    const Features::HalfKAHm::IndexList&    psqAdded,
+                    const Features::FullThreats::IndexList& thrRemoved,
+                    const Features::FullThreats::IndexList& thrAdded) noexcept {
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
@@ -715,13 +717,14 @@ void apply_combined(Color                           perspective,
     }
 }
 
-void apply_combined_both(const FeatureTransformer&                        featureTransformer,
-                         const Accumulator&                               srcAcc,
-                         Accumulator&                                     dstAcc,
-                         const Array<PSQFeature::IndexList, COLOR_NB>&    psqRemoved,
-                         const Array<PSQFeature::IndexList, COLOR_NB>&    psqAdded,
-                         const Array<ThreatFeature::IndexList, COLOR_NB>& thrRemoved,
-                         const Array<ThreatFeature::IndexList, COLOR_NB>& thrAdded) noexcept {
+void apply_combined_both(
+  const FeatureTransformer&                                featureTransformer,
+  const Accumulator&                                       srcAcc,
+  Accumulator&                                             dstAcc,
+  const Array<Features::HalfKAHm::IndexList, COLOR_NB>&    psqRemoved,
+  const Array<Features::HalfKAHm::IndexList, COLOR_NB>&    psqAdded,
+  const Array<Features::FullThreats::IndexList, COLOR_NB>& thrRemoved,
+  const Array<Features::FullThreats::IndexList, COLOR_NB>& thrAdded) noexcept {
     apply_combined(WHITE, featureTransformer, srcAcc, dstAcc,  //
                    psqRemoved[WHITE], psqAdded[WHITE], thrRemoved[WHITE], thrAdded[WHITE]);
     apply_combined(BLACK, featureTransformer, srcAcc, dstAcc,  //
@@ -741,8 +744,8 @@ void update_incremental(const Color               perspective,
     // That might depend on the feature set and generally relies on the
     // feature set's update cost calculation to be correct and never allow
     // updates with more added/removed features than MaxActiveDimensions.
-    PSQFeature::IndexList    psqRemoved, psqAdded;
-    ThreatFeature::IndexList thrRemoved, thrAdded;
+    Features::HalfKAHm::IndexList    psqRemoved, psqAdded;
+    Features::FullThreats::IndexList thrRemoved, thrAdded;
 
     const auto& dirties = Forward ? dstAcc.dirties : srcAcc.dirties;
 
@@ -754,13 +757,15 @@ void update_incremental(const Color               perspective,
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = Dimensions;
 
-    ThreatFeature::append_changed_indices(perspective, kingSq, dTs, Forward ? thrRemoved : thrAdded,
-                                          Forward ? thrAdded : thrRemoved, pfBase, pfStride);
-    PairFeature::append_changed_indices(perspective, kingSq, dPps, Forward ? thrRemoved : thrAdded,
-                                        Forward ? thrAdded : thrRemoved, pfBase, pfStride);
-    PSQFeature::append_changed_indices(perspective, kingSq, dP,  //
-                                       Forward ? psqRemoved : psqAdded,
-                                       Forward ? psqAdded : psqRemoved);
+    Features::FullThreats::append_changed_indices(
+      perspective, kingSq, dTs, Forward ? thrRemoved : thrAdded, Forward ? thrAdded : thrRemoved,
+      pfBase, pfStride);
+    Features::PP3Wide::append_changed_indices(perspective, kingSq, dPps,
+                                              Forward ? thrRemoved : thrAdded,
+                                              Forward ? thrAdded : thrRemoved, pfBase, pfStride);
+    Features::HalfKAHm::append_changed_indices(perspective, kingSq, dP,  //
+                                               Forward ? psqRemoved : psqAdded,
+                                               Forward ? psqAdded : psqRemoved);
 
     apply_combined(perspective, featureTransformer, srcAcc, dstAcc, psqRemoved, psqAdded,
                    thrRemoved, thrAdded);
@@ -778,18 +783,18 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
     assert(!dstAcc.computed[WHITE]);
     assert(!dstAcc.computed[BLACK]);
 
-    Array<PSQFeature::IndexList, COLOR_NB>    psqRemoved, psqAdded;
-    Array<ThreatFeature::IndexList, COLOR_NB> thrRemoved, thrAdded;
+    Array<Features::HalfKAHm::IndexList, COLOR_NB>    psqRemoved, psqAdded;
+    Array<Features::FullThreats::IndexList, COLOR_NB> thrRemoved, thrAdded;
 
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = Dimensions;
 
-    ThreatFeature::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyThreats,
-                                               thrRemoved, thrAdded, pfBase, pfStride);
-    PairFeature::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPawnPairs,
-                                             thrRemoved, thrAdded, pfBase, pfStride);
-    PSQFeature::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPiece, psqRemoved,
-                                            psqAdded);
+    Features::FullThreats::append_changed_indices_both(
+      wKingSq, bKingSq, dstAcc.dirties.dirtyThreats, thrRemoved, thrAdded, pfBase, pfStride);
+    Features::PP3Wide::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPawnPairs,
+                                                   thrRemoved, thrAdded, pfBase, pfStride);
+    Features::HalfKAHm::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPiece,
+                                                    psqRemoved, psqAdded);
 
     apply_combined_both(featureTransformer, srcAcc, dstAcc,  //
                         psqRemoved, psqAdded, thrRemoved, thrAdded);

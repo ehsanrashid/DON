@@ -17,20 +17,9 @@
 
 // Definition of network structure used in NNUE evaluation function
 
-#include <functional>
-#include <iosfwd>
+#include "../nnue/architecture.h"  // IWYU pragma: associated
 
-#include "../misc.h"
-#include "../types.h"
-#include "../nnue/features/full_threats.h"
-#include "../nnue/features/half_ka_hm.h"
-#include "../nnue/features/pp_3wide.h"
-#include "../nnue/layers/affine_transform.h"
-#include "../nnue/layers/clipped_relu.h"
-#include "../nnue/layers/sparse_affine_transform.h"
-#include "../nnue/layers/sqr_clipped_relu.h"
-#include "../nnue/types.h"
-#include "architecture.h"
+// IWYU pragma: no_include "utility/types.h"
 
 namespace DON::NNUE {
 

@@ -43,7 +43,7 @@ class PP3Wide final {
     static constexpr Index PawnIds    = 48 * COLOR_NB;
     static constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
 
-    // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeature::Dimensions;
+    // Pawn pair feature indices are concatenated to threats so this must equal Features::FullThreats::Dimensions;
     // see nnue/feature_transformer.h
     static constexpr Index IndexBase = FullThreats::Dimensions;
     // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.

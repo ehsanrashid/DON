@@ -32,6 +32,9 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
+#include "../nnue/features/full_threats.h"
+#include "../nnue/features/half_ka_hm.h"
+#include "../nnue/features/pp_3wide.h"
 #include "../nnue/accumulator.h"
 #include "../nnue/architecture.h"
 #include "../nnue/types.h"
@@ -100,9 +103,9 @@ class FeatureTransformer final {
     using Output = TransformedFeature;
 
     // Number of input/output dimensions
-    static constexpr usize ThreatInputDimensions = ThreatFeature::Dimensions;
-    static constexpr usize PairInputDimensions   = PairFeature::Dimensions;
-    static constexpr usize PsqDimensions         = PSQFeature::Dimensions;
+    static constexpr usize ThreatInputDimensions = Features::FullThreats::Dimensions;
+    static constexpr usize PairInputDimensions   = Features::PP3Wide::Dimensions;
+    static constexpr usize PsqDimensions         = Features::HalfKAHm::Dimensions;
 
     static constexpr usize ThreatAndPpDimensions = ThreatInputDimensions + PairInputDimensions;
     static constexpr usize InputDimensions       = PsqDimensions + ThreatAndPpDimensions;
@@ -125,7 +128,8 @@ class FeatureTransformer final {
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
-        return combine_hashes({ThreatFeature::Hash, PairFeature::Hash, PSQFeature::Hash})
+        return combine_hashes(
+                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::HalfKAHm::Hash})
              ^ (2 * OutputDimensions);
     }
 

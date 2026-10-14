@@ -20,25 +20,18 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
-#include <functional>
+#include <functional>  // IWYU pragma: keep
+// IWYU pragma: no_include <memory>
 #include <iosfwd>
 
-#include "../misc.h"
-#include "../nnue/features/full_threats.h"
-#include "../nnue/features/half_ka_hm.h"
-#include "../nnue/features/pp_3wide.h"
 #include "../nnue/layers/affine_transform.h"
 #include "../nnue/layers/clipped_relu.h"
 #include "../nnue/layers/sparse_affine_transform.h"
 #include "../nnue/layers/sqr_clipped_relu.h"
 #include "../nnue/types.h"
+#include "../utility/types.h"
 
 namespace DON::NNUE {
-
-// Input features used in evaluation function
-using ThreatFeature = Features::FullThreats;
-using PairFeature   = Features::PP3Wide;
-using PSQFeature    = Features::HalfKAHm;
 
 template<Index Dimensions>
 struct NNZ;
