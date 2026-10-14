@@ -17,10 +17,7 @@
 
 #include "../utility/mutex.h"
 
-#include <atomic>
 #include <chrono>
-#include <condition_variable>
-#include <mutex>
 #include <thread>  // sleep_for()
 
 #if defined(_WIN32)

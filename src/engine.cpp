@@ -21,7 +21,6 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <sstream>
 
 #include "evaluate.h"
@@ -30,7 +29,6 @@
 #include "notation.h"
 #include "perft.h"
 #include "shm.h"
-#include "state.h"
 #include "tablebase/syzygy.h"
 #include "utility/error.h"
 

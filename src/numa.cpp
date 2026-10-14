@@ -17,8 +17,6 @@
 
 #include "numa.h"
 
-#include <cstdlib>  // exit(), EXIT_FAILURE
-#include <iostream>
 #include <limits>  // numeric_limits<>
 #include <thread>
 

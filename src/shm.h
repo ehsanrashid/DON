@@ -52,7 +52,6 @@
     #include <sys/stat.h>
     #include <sys/uio.h>  // iovec
     #include <sys/un.h>   // sockaddr_un
-    #include <unistd.h>   // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
 
     #include <cassert>
     #include <cerrno>
@@ -103,7 +102,9 @@
             #define MADV_COLLAPSE 25
         #endif
     #endif
-#elif defined(__ANDROID__)
+#endif
+
+#if defined(USE_UNIX_SHM) || defined(__ANDROID__)
     #include <unistd.h>  // close(), read()/write(), sleep(), getpid(), pipe()/pipe2(), fsync()
 #endif
 

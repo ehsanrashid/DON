@@ -36,7 +36,6 @@
         #endif
     #endif
     #include <cerrno>
-    #include <cstring>
 
 // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
 #endif

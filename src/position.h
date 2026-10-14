@@ -24,7 +24,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>  // get() (structured bindings)
+#include <utility>  // get(), swap()
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>

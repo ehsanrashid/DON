@@ -26,7 +26,6 @@
         #include <sys/types.h>  // ssize_t, uid_t
 
         #include <algorithm>  // min()/max()
-        #include <memory>     // make_unique<>(), allocator()
     #endif
 #endif
 
