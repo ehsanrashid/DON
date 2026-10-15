@@ -22,43 +22,43 @@
 #if defined(_WIN32)
     #include "../utility/platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
     #include <shellapi.h>                 // CommandLineToArgvW()
+    #include "../utility/functions.h"
 #endif
 
-#include "../utility/functions.h"
 #include "../utility/types.h"
 
 namespace DON {
 
 CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
 #if defined(_WIN32)
-    int wargc = 0;
-    if (LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);  //
-        wargv != nullptr)
+    int w_argc = 0;
+    if (LPWSTR* w_argv = ::CommandLineToArgvW(::GetCommandLineW(), &w_argc);  //
+        w_argv != nullptr)
     {
-        const usize utf8argc = usize(wargc);
+        const usize utf8_argc = usize(w_argc);
 
-        utf8arguments.reserve(utf8argc);
+        utf8_arguments.reserve(utf8_argc);
 
-        for (usize i = 0; i < utf8argc; ++i)
-            utf8arguments.emplace_back(wstring_to_utf8(wargv[i]));
+        for (usize i = 0; i < utf8_argc; ++i)
+            utf8_arguments.emplace_back(wstring_to_utf8(w_argv[i]));
 
-        ::LocalFree(wargv);
+        ::LocalFree(w_argv);
 
-        arguments_.reserve(utf8arguments.size());
+        sv_arguments.reserve(utf8_arguments.size());
 
-        for (const auto& utf8_argv : utf8arguments)
-            arguments_.emplace_back(std::string_view{utf8_argv});
+        for (const auto& utf8_argv : utf8_arguments)
+            sv_arguments.emplace_back(utf8_argv);
 
         return;
     }
 #endif
 
-    const usize uargc = usize(argc);
+    const usize u_argc = usize(argc);
 
-    arguments_.reserve(uargc);
+    sv_arguments.reserve(u_argc);
 
-    for (usize i = 0; i < uargc; ++i)
-        arguments_.emplace_back(argv[i]);  // Store non-owning views.
+    for (usize i = 0; i < u_argc; ++i)
+        sv_arguments.emplace_back(argv[i]);  // Store non-owning views.
 }
 
 fs::path CommandLine::binary_directory(fs::path path) noexcept {
@@ -83,7 +83,9 @@ usize CommandLine::size() const noexcept { return arguments().size(); }
 
 bool CommandLine::empty() const noexcept { return arguments().empty(); }
 
-const std::vector<std::string_view>& CommandLine::arguments() const noexcept { return arguments_; }
+const std::vector<std::string_view>& CommandLine::arguments() const noexcept {
+    return sv_arguments;
+}
 
 std::string_view CommandLine::operator[](const usize idx) const noexcept {
     assert(idx < size());

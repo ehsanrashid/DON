@@ -54,9 +54,9 @@ struct CommandLine final {
 
    private:
 #if defined(_WIN32)
-    std::vector<std::string> utf8arguments;
+    std::vector<std::string> utf8_arguments;
 #endif
-    std::vector<std::string_view> arguments_;
+    std::vector<std::string_view> sv_arguments;
 };
 
 }  // namespace DON

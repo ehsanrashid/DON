@@ -18,7 +18,9 @@
 #ifndef UTILITY_FUNCTIONS_H_INCLUDED
 #define UTILITY_FUNCTIONS_H_INCLUDED
 
+#include <filesystem>
 #include <string>
+#include <string_view>
 
 #include "../utility/types.h"
 

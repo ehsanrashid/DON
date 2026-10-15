@@ -35,6 +35,7 @@
 #include "search.h"
 #include "utility/debug.h"
 #include "utility/error.h"
+#include "utility/functions.h"
 
 namespace DON {
 
