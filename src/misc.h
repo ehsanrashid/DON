@@ -265,7 +265,11 @@ struct CaseInsensitiveLess final {
 // Wrapper around std::call_once that also tracks whether initialization completed.
 struct CallOnce final {
    public:
-    CallOnce() noexcept = default;
+    CallOnce() noexcept                           = default;
+    CallOnce(const CallOnce&) noexcept            = delete;
+    CallOnce& operator=(const CallOnce&) noexcept = delete;
+    CallOnce(CallOnce&&) noexcept                 = delete;
+    CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     // Initialize using the provided function.
     // The function is invoked until one call completes successfully,
@@ -284,11 +288,6 @@ struct CallOnce final {
     }
 
    private:
-    CallOnce(const CallOnce&) noexcept            = delete;
-    CallOnce& operator=(const CallOnce&) noexcept = delete;
-    CallOnce(CallOnce&&) noexcept                 = delete;
-    CallOnce& operator=(CallOnce&&) noexcept      = delete;
-
     std::once_flag    onceFlag;
     std::atomic<bool> onceDone{false};
 };

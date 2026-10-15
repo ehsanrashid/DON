@@ -95,6 +95,12 @@ class MovePicker final {
     // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
     MovePicker(const Position& p, Move ttm, const CaptureHistory* captureHist, int th) noexcept;
 
+    MovePicker() noexcept                             = delete;
+    MovePicker(const MovePicker&) noexcept            = delete;
+    MovePicker& operator=(const MovePicker&) noexcept = delete;
+    MovePicker(MovePicker&&) noexcept                 = delete;
+    MovePicker& operator=(MovePicker&&) noexcept      = delete;
+
     // Most important method of the MovePicker class.
     // It emits a new legal move every time it is called until there are no more moves left,
     // picking the move with the highest score from a list of generated moves.
@@ -109,12 +115,6 @@ class MovePicker final {
     }
 
    private:
-    MovePicker() noexcept                             = delete;
-    MovePicker(const MovePicker&) noexcept            = delete;
-    MovePicker& operator=(const MovePicker&) noexcept = delete;
-    MovePicker(MovePicker&&) noexcept                 = delete;
-    MovePicker& operator=(MovePicker&&) noexcept      = delete;
-
     template<GenType GT>
     void init() noexcept;
 

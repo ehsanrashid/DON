@@ -400,10 +400,8 @@ class BackendSharedMemory final {
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName = {}) noexcept;
-
-    BaseSharedMemory(const BaseSharedMemory&)            = delete;
-    BaseSharedMemory& operator=(const BaseSharedMemory&) = delete;
-
+    BaseSharedMemory(const BaseSharedMemory&)                = delete;
+    BaseSharedMemory& operator=(const BaseSharedMemory&)     = delete;
     BaseSharedMemory(BaseSharedMemory&&) noexcept            = default;
     BaseSharedMemory& operator=(BaseSharedMemory&&) noexcept = default;
 
@@ -521,13 +519,11 @@ struct TempRoot final {
 // Wrapper around ::flock() on a file
 struct InitLock final {
    public:
-    InitLock() noexcept = default;
-
+    InitLock() noexcept                           = default;
     InitLock(const InitLock&) noexcept            = delete;
     InitLock& operator=(const InitLock&) noexcept = delete;
-
-    InitLock(InitLock&&) noexcept            = default;
-    InitLock& operator=(InitLock&&) noexcept = default;
+    InitLock(InitLock&&) noexcept                 = default;
+    InitLock& operator=(InitLock&&) noexcept      = default;
 
     ~InitLock() noexcept { unlock(); }
 
@@ -545,17 +541,16 @@ struct InitLock final {
 
 struct ScmRightsMessage final {
     ScmRightsMessage() noexcept;
+    ScmRightsMessage(const ScmRightsMessage&)            = delete;
+    ScmRightsMessage& operator=(const ScmRightsMessage&) = delete;
+    ScmRightsMessage(ScmRightsMessage&&)                 = delete;
+    ScmRightsMessage& operator=(ScmRightsMessage&&)      = delete;
 
     msghdr msg    = {};
     char   buf[1] = {};
     iovec  iov[1] = {};
 
    private:
-    ScmRightsMessage(const ScmRightsMessage&)            = delete;
-    ScmRightsMessage& operator=(const ScmRightsMessage&) = delete;
-    ScmRightsMessage(ScmRightsMessage&&)                 = delete;
-    ScmRightsMessage& operator=(ScmRightsMessage&&)      = delete;
-
     static constexpr usize Alignment = alignof(cmsghdr);
 
     std::unique_ptr<byte[]> controlStorage;
@@ -859,13 +854,10 @@ template<typename T>
 class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
-
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
         shm(SharedMemory<T>::create(shmName, value)) {}
-
-    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
-    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
-
+    BackendSharedMemory(const BackendSharedMemory&) noexcept                  = delete;
+    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept       = delete;
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
@@ -903,13 +895,10 @@ template<typename T>
 class BackendSharedMemory final {
    public:
     BackendSharedMemory() = default;
-
     BackendSharedMemory([[maybe_unused]] std::string_view shmName,
                         [[maybe_unused]] const T&         value) noexcept {}
-
-    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
-    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
-
+    BackendSharedMemory(const BackendSharedMemory&) noexcept                  = delete;
+    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept       = delete;
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
@@ -932,14 +921,11 @@ template<typename T>
 struct FallbackBackendSharedMemory final {
    public:
     FallbackBackendSharedMemory() noexcept = default;
-
     FallbackBackendSharedMemory([[maybe_unused]] std::string_view shmName, const T& value) noexcept
         :
         fallbackObj{make_unique_aligned_large_page<T>(value)} {}
-
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
     FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
-
     FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept :
         fallbackObj{std::move(fallbackBackendShm.fallbackObj)} {}
     FallbackBackendSharedMemory&
@@ -1008,10 +994,8 @@ struct SystemWideSharedMemory final {
         else
             backendShm = FallbackBackendSharedMemory<T>{shmName, value};
     }
-
     SystemWideSharedMemory(const SystemWideSharedMemory&) noexcept            = delete;
     SystemWideSharedMemory& operator=(const SystemWideSharedMemory&) noexcept = delete;
-
     SystemWideSharedMemory(SystemWideSharedMemory&& systemWideShm) noexcept :
         backendShm{std::move(systemWideShm.backendShm)} {}
     SystemWideSharedMemory& operator=(SystemWideSharedMemory&& systemWideShm) noexcept {

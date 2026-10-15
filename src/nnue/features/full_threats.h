@@ -34,6 +34,13 @@ namespace NNUE::Features {
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
 class FullThreats final {
    public:
+    FullThreats() noexcept                              = delete;
+    ~FullThreats() noexcept                             = delete;
+    FullThreats(const FullThreats&) noexcept            = delete;
+    FullThreats& operator=(const FullThreats&) noexcept = delete;
+    FullThreats(FullThreats&&) noexcept                 = delete;
+    FullThreats& operator=(FullThreats&&) noexcept      = delete;
+
     // Hash value embedded in the evaluation file
     static constexpr u32 Hash = u32{0x2E6B9D04};
 
@@ -72,14 +79,6 @@ class FullThreats final {
                                             Array<IndexList, COLOR_NB>& added,
                                             const ThreatWeight*         pfBase   = nullptr,
                                             usize                       pfStride = 0) noexcept;
-
-   private:
-    FullThreats() noexcept                              = delete;
-    ~FullThreats() noexcept                             = delete;
-    FullThreats(const FullThreats&) noexcept            = delete;
-    FullThreats& operator=(const FullThreats&) noexcept = delete;
-    FullThreats(FullThreats&&) noexcept                 = delete;
-    FullThreats& operator=(FullThreats&&) noexcept      = delete;
 };
 
 static_assert(FullThreats::orientation(SQ_A1) == SQ_A1);

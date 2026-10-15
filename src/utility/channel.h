@@ -35,12 +35,18 @@ template<typename T, u32 Capacity>
 class SingleProducerSingleConsumerChannel final {
    public:
     SingleProducerSingleConsumerChannel() noexcept = default;
+    // clang-format off
+    SingleProducerSingleConsumerChannel(const SingleProducerSingleConsumerChannel&)            = delete;
+    SingleProducerSingleConsumerChannel& operator=(const SingleProducerSingleConsumerChannel&) = delete;
+    SingleProducerSingleConsumerChannel(SingleProducerSingleConsumerChannel&&)                 = delete;
+    SingleProducerSingleConsumerChannel& operator=(SingleProducerSingleConsumerChannel&&)      = delete;
+    // clang-format on
 
     static constexpr u32 capacity() noexcept { return Capacity; }
 
     // Called only by the single producer.
     // Returns false if the queue is full.
-    bool send(const T& item) noexcept { return queue_.push(item); }
+    bool send(const T& item) noexcept { return queue.push(item); }
 
     // Called only by the single consumer.
     // Processes items until should_run() returns false.
@@ -50,7 +56,7 @@ class SingleProducerSingleConsumerChannel final {
 
         while (should_run())
         {
-            if (queue_.pop(item))
+            if (queue.pop(item))
                 handler(item);
             else
                 std::this_thread::yield();
@@ -58,14 +64,7 @@ class SingleProducerSingleConsumerChannel final {
     }
 
    private:
-    // clang-format off
-    SingleProducerSingleConsumerChannel(const SingleProducerSingleConsumerChannel&)            = delete;
-    SingleProducerSingleConsumerChannel& operator=(const SingleProducerSingleConsumerChannel&) = delete;
-    SingleProducerSingleConsumerChannel(SingleProducerSingleConsumerChannel&&)                 = delete;
-    SingleProducerSingleConsumerChannel& operator=(SingleProducerSingleConsumerChannel&&)      = delete;
-    // clang-format on
-
-    SingleProducerSingleConsumerQueue<T, Capacity> queue_;
+    SingleProducerSingleConsumerQueue<T, Capacity> queue;
 };
 
 

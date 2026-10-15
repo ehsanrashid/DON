@@ -31,6 +31,13 @@ namespace DON::NNUE::Features {
 // Position mirrored such that king is always on e...h files.
 class HalfKAHm final {
    private:
+    HalfKAHm() noexcept                           = delete;
+    ~HalfKAHm() noexcept                          = delete;
+    HalfKAHm(const HalfKAHm&) noexcept            = delete;
+    HalfKAHm& operator=(const HalfKAHm&) noexcept = delete;
+    HalfKAHm(HalfKAHm&&) noexcept                 = delete;
+    HalfKAHm& operator=(HalfKAHm&&) noexcept      = delete;
+
     // Unique number for each piece type on each square
     static constexpr Index PS_NONE     = 0;
     static constexpr Index PS_W_PAWN   = 0 * SQUARE_NB;
@@ -112,14 +119,6 @@ class HalfKAHm final {
                                             Array<IndexList, COLOR_NB>& added) noexcept;
     // Determine if a full refresh is required based on the dirty piece
     static bool refresh_required(Color perspective, const DirtyType& dP) noexcept;
-
-   private:
-    HalfKAHm() noexcept                           = delete;
-    ~HalfKAHm() noexcept                          = delete;
-    HalfKAHm(const HalfKAHm&) noexcept            = delete;
-    HalfKAHm& operator=(const HalfKAHm&) noexcept = delete;
-    HalfKAHm(HalfKAHm&&) noexcept                 = delete;
-    HalfKAHm& operator=(HalfKAHm&&) noexcept      = delete;
 };
 
 static_assert(HalfKAHm::orientation(SQ_A1) == SQ_H1);

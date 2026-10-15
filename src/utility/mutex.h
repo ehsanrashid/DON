@@ -44,18 +44,17 @@ namespace DON {
 // ISR use requires platform-specific guarantees.
 class LOCKABLE SpinMutex final {
    public:
-    SpinMutex() noexcept = default;
+    SpinMutex() noexcept                            = default;
+    SpinMutex(const SpinMutex&) noexcept            = delete;
+    SpinMutex& operator=(const SpinMutex&) noexcept = delete;
+    SpinMutex(SpinMutex&&) noexcept                 = delete;
+    SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
     void unlock() noexcept RELEASE_CAPABILITY();
 
    private:
-    SpinMutex(const SpinMutex&) noexcept            = delete;
-    SpinMutex& operator=(const SpinMutex&) noexcept = delete;
-    SpinMutex(SpinMutex&&) noexcept                 = delete;
-    SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
-
     static constexpr usize SpinsMax    = 512;
     static constexpr usize YieldsMax   = 8;
     static constexpr usize SleepTimeUs = 5;
@@ -68,7 +67,11 @@ class LOCKABLE SpinMutex final {
 // which can cause writer starvation under continuous reader contention.
 class LOCKABLE ReaderSharedMutex final {
    public:
-    ReaderSharedMutex() noexcept = default;
+    ReaderSharedMutex() noexcept                                    = default;
+    ReaderSharedMutex(const ReaderSharedMutex&) noexcept            = delete;
+    ReaderSharedMutex& operator=(const ReaderSharedMutex&) noexcept = delete;
+    ReaderSharedMutex(ReaderSharedMutex&&) noexcept                 = delete;
+    ReaderSharedMutex& operator=(ReaderSharedMutex&&) noexcept      = delete;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -87,11 +90,6 @@ class LOCKABLE ReaderSharedMutex final {
     [[nodiscard]] usize waiting_writer_count() const noexcept;
 
    private:
-    ReaderSharedMutex(const ReaderSharedMutex&) noexcept            = delete;
-    ReaderSharedMutex& operator=(const ReaderSharedMutex&) noexcept = delete;
-    ReaderSharedMutex(ReaderSharedMutex&&) noexcept                 = delete;
-    ReaderSharedMutex& operator=(ReaderSharedMutex&&) noexcept      = delete;
-
     [[nodiscard]] bool can_lock() const noexcept;
 
     [[nodiscard]] bool can_try_lock() const noexcept;
@@ -115,7 +113,11 @@ class LOCKABLE ReaderSharedMutex final {
 // starvation under continuous writer contention.
 class LOCKABLE WriterSharedMutex final {
    public:
-    WriterSharedMutex() noexcept = default;
+    WriterSharedMutex() noexcept                                    = default;
+    WriterSharedMutex(const WriterSharedMutex&) noexcept            = delete;
+    WriterSharedMutex& operator=(const WriterSharedMutex&) noexcept = delete;
+    WriterSharedMutex(WriterSharedMutex&&) noexcept                 = delete;
+    WriterSharedMutex& operator=(WriterSharedMutex&&) noexcept      = delete;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -135,11 +137,6 @@ class LOCKABLE WriterSharedMutex final {
     [[nodiscard]] usize waiting_writer_count() const noexcept;
 
    private:
-    WriterSharedMutex(const WriterSharedMutex&) noexcept            = delete;
-    WriterSharedMutex& operator=(const WriterSharedMutex&) noexcept = delete;
-    WriterSharedMutex(WriterSharedMutex&&) noexcept                 = delete;
-    WriterSharedMutex& operator=(WriterSharedMutex&&) noexcept      = delete;
-
     [[nodiscard]] bool can_lock() const noexcept;
 
     [[nodiscard]] bool can_try_lock() const noexcept;
@@ -165,7 +162,7 @@ class LOCKABLE FairSharedMutex final {
    private:
     // A node in the wait queue representing a waiting thread.
     struct Waiter final {
-        explicit Waiter(bool writer_) noexcept;
+        explicit Waiter(bool writer_ = false) noexcept;
 
         bool is_writer() const noexcept;
 
@@ -178,7 +175,11 @@ class LOCKABLE FairSharedMutex final {
     };
 
    public:
-    FairSharedMutex() noexcept = default;
+    FairSharedMutex() noexcept                                  = default;
+    FairSharedMutex(const FairSharedMutex&) noexcept            = delete;
+    FairSharedMutex& operator=(const FairSharedMutex&) noexcept = delete;
+    FairSharedMutex(FairSharedMutex&&) noexcept                 = delete;
+    FairSharedMutex& operator=(FairSharedMutex&&) noexcept      = delete;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -197,11 +198,6 @@ class LOCKABLE FairSharedMutex final {
     [[nodiscard]] usize waiting_writer_count() const noexcept;
 
    private:
-    FairSharedMutex(const FairSharedMutex&) noexcept            = delete;
-    FairSharedMutex& operator=(const FairSharedMutex&) noexcept = delete;
-    FairSharedMutex(FairSharedMutex&&) noexcept                 = delete;
-    FairSharedMutex& operator=(FairSharedMutex&&) noexcept      = delete;
-
     [[nodiscard]] bool can_lock(const Waiter& writer) const noexcept;
 
     [[nodiscard]] bool can_try_lock() const noexcept;

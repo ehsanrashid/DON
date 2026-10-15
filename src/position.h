@@ -55,12 +55,9 @@ class Position final {
     Position() noexcept                           = default;
     Position(const Position&) noexcept            = default;
     Position& operator=(const Position&) noexcept = default;
+    Position(Position&&) noexcept                 = delete;
+    Position& operator=(Position&&) noexcept      = delete;
 
-   private:
-    Position(Position&&) noexcept            = delete;
-    Position& operator=(Position&&) noexcept = delete;
-
-   public:
     void clear() noexcept;
 
     // FEN string input/output
@@ -303,6 +300,11 @@ class Position final {
         constexpr SEE(const Position& p, Move m) noexcept :
             pos(p),
             move(m) {}
+        SEE() noexcept                      = delete;
+        SEE(const SEE&) noexcept            = delete;
+        SEE& operator=(const SEE&) noexcept = delete;
+        SEE(SEE&&) noexcept                 = delete;
+        SEE& operator=(SEE&&) noexcept      = delete;
 
         [[nodiscard]] bool operator>=(int threshold) const noexcept;
         [[nodiscard]] bool operator>(int threshold) const noexcept;
@@ -310,12 +312,6 @@ class Position final {
         [[nodiscard]] bool operator<(int threshold) const noexcept;
 
        private:
-        SEE() noexcept                      = delete;
-        SEE(const SEE&) noexcept            = delete;
-        SEE& operator=(const SEE&) noexcept = delete;
-        SEE(SEE&&) noexcept                 = delete;
-        SEE& operator=(SEE&&) noexcept      = delete;
-
         const Position& pos;
         Move            move;
     };

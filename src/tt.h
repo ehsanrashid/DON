@@ -37,11 +37,14 @@ namespace DON {
 // Probes and reads are racy and non-atomic, possibly resulting in inconsistent data.
 struct TTData final {
    public:
-    TTData(Move m, Value v, Value ev, Depth d, Bound b, bool hit_, bool pv_) noexcept;
-
-    TTData(TTData&&) noexcept = default;
-
     static TTData empty() noexcept;
+
+    TTData(Move m, Value v, Value ev, Depth d, Bound b, bool hit_, bool pv_) noexcept;
+    TTData() noexcept                         = delete;
+    TTData(const TTData&) noexcept            = delete;
+    TTData& operator=(const TTData&) noexcept = delete;
+    TTData(TTData&&) noexcept                 = default;
+    TTData& operator=(TTData&&) noexcept      = delete;
 
     Move  move;
     Value value;
@@ -50,12 +53,6 @@ struct TTData final {
     Bound bound;
     bool  hit;
     bool  pv;
-
-   private:
-    TTData() noexcept                         = delete;
-    TTData(const TTData&) noexcept            = delete;
-    TTData& operator=(const TTData&) noexcept = delete;
-    TTData& operator=(TTData&&) noexcept      = delete;
 };
 
 struct TTEntry;
@@ -67,19 +64,17 @@ struct TTCluster;
 class TTWriter final {
    public:
     TTWriter(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept;
-
-    TTWriter(TTWriter&&) noexcept = default;
+    TTWriter() noexcept                           = delete;
+    TTWriter& operator=(const TTWriter&) noexcept = delete;
+    TTWriter(const TTWriter&) noexcept            = delete;
+    TTWriter(TTWriter&&) noexcept                 = default;
+    TTWriter& operator=(TTWriter&&) noexcept      = delete;
 
     void write(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
     void penalize(u8 penalty) noexcept;
 
    private:
-    TTWriter() noexcept                           = delete;
-    TTWriter& operator=(const TTWriter&) noexcept = delete;
-    TTWriter(const TTWriter&) noexcept            = delete;
-    TTWriter& operator=(TTWriter&&) noexcept      = delete;
-
     TTEntry*         tte;
     TTCluster* const ttc;
     const u16        key;
@@ -98,7 +93,11 @@ class Threads;
 // Each non-empty TTEntry contains information on exactly one position.
 class TranspositionTable final {
    public:
-    TranspositionTable() noexcept = default;
+    TranspositionTable() noexcept                                     = default;
+    TranspositionTable(const TranspositionTable&) noexcept            = delete;
+    TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
+    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
+    TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
 
     ~TranspositionTable() noexcept;
 
@@ -136,11 +135,6 @@ class TranspositionTable final {
     bool save(const fs::path& hashPath) const noexcept;
 
    private:
-    TranspositionTable(const TranspositionTable&) noexcept            = delete;
-    TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
-    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
-    TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
-
     void free() noexcept;
 
     TTCluster* clusters = nullptr;

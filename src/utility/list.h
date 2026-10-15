@@ -41,7 +41,11 @@ class IntrusiveList final {
         T*             data  = nullptr;
     };
 
-    IntrusiveList() noexcept = default;
+    IntrusiveList() noexcept                           = default;
+    IntrusiveList(const IntrusiveList&)                = delete;
+    IntrusiveList& operator=(const IntrusiveList&)     = delete;
+    IntrusiveList(IntrusiveList&&) noexcept            = delete;
+    IntrusiveList& operator=(IntrusiveList&&) noexcept = delete;
 
     [[nodiscard]] T* front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
 
@@ -124,11 +128,6 @@ class IntrusiveList final {
     }
 
    private:
-    IntrusiveList(const IntrusiveList&)                = delete;
-    IntrusiveList& operator=(const IntrusiveList&)     = delete;
-    IntrusiveList(IntrusiveList&&) noexcept            = delete;
-    IntrusiveList& operator=(IntrusiveList&&) noexcept = delete;
-
     Node*       front_ = nullptr;
     Node*       back_  = nullptr;
     std::size_t size_  = 0;

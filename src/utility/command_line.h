@@ -30,6 +30,10 @@ namespace DON {
 struct CommandLine final {
    public:
     CommandLine(const int argc, const char* const argv[]) noexcept;
+    CommandLine(const CommandLine&)            = delete;
+    CommandLine& operator=(const CommandLine&) = delete;
+    CommandLine(CommandLine&&)                 = delete;
+    CommandLine& operator=(CommandLine&&)      = delete;
 
     // Returns the directory containing the executable, or "." if the directory is empty.
     // This is useful because, when the NNUE network is not embedded in the binary,
@@ -49,11 +53,6 @@ struct CommandLine final {
     [[nodiscard]] std::string command() const noexcept;
 
    private:
-    CommandLine(const CommandLine&)            = delete;
-    CommandLine& operator=(const CommandLine&) = delete;
-    CommandLine(CommandLine&&)                 = delete;
-    CommandLine& operator=(CommandLine&&)      = delete;
-
 #if defined(_WIN32)
     std::vector<std::string> utf8arguments;
 #endif

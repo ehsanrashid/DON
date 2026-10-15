@@ -484,7 +484,11 @@ struct Limit final {
 // Skill 0...19.99 covers CCRL Blitz Elo from 1320...3190, approximately.
 struct Skill final {
    public:
-    Skill() noexcept = default;
+    Skill() noexcept                        = default;
+    Skill(const Skill&) noexcept            = delete;
+    Skill& operator=(const Skill&) noexcept = delete;
+    Skill(Skill&&) noexcept                 = delete;
+    Skill& operator=(Skill&&) noexcept      = delete;
 
     void init(const Options& options) noexcept;
 
@@ -507,11 +511,6 @@ struct Skill final {
     static constexpr u16 ELOMax = 3190;
 
    private:
-    Skill(const Skill&) noexcept            = delete;
-    Skill& operator=(const Skill&) noexcept = delete;
-    Skill(Skill&&) noexcept                 = delete;
-    Skill& operator=(Skill&&) noexcept      = delete;
-
     double level_ = LevelMax;
     Move   move_  = Move::None;
 };

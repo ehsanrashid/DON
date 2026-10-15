@@ -33,7 +33,11 @@ class Options;
 // the maximum available time, the game move number, and other parameters.
 class TimeManager final {
    public:
-    TimeManager() noexcept = default;
+    TimeManager() noexcept                              = default;
+    TimeManager(const TimeManager&) noexcept            = delete;
+    TimeManager& operator=(const TimeManager&) noexcept = delete;
+    TimeManager(TimeManager&&) noexcept                 = delete;
+    TimeManager& operator=(TimeManager&&) noexcept      = delete;
 
     [[nodiscard]] TimePoint optimum() const noexcept;
 
@@ -67,11 +71,6 @@ class TimeManager final {
     static constexpr double TimeMaxValue = double(TimeMax - 1023);
 
    private:
-    TimeManager(const TimeManager&) noexcept            = delete;
-    TimeManager& operator=(const TimeManager&) noexcept = delete;
-    TimeManager(TimeManager&&) noexcept                 = delete;
-    TimeManager& operator=(TimeManager&&) noexcept      = delete;
-
     static constexpr TimePoint NoBound = TimeMax / 2;
 
     static constexpr double TimeAdjustDefault = -1.0;

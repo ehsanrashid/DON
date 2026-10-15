@@ -137,6 +137,12 @@ void PerftData::operator+=(const PerftData& perftData) noexcept {
 
 struct PTEntry final {
    public:
+    PTEntry() noexcept                          = delete;
+    PTEntry(const PTEntry&) noexcept            = delete;
+    PTEntry& operator=(const PTEntry&) noexcept = delete;
+    PTEntry(PTEntry&&) noexcept                 = delete;
+    PTEntry& operator=(PTEntry&&) noexcept      = delete;
+
     [[nodiscard]] u32   key() const noexcept { return key32; }
     [[nodiscard]] Depth depth() const noexcept { return depth16; }
     [[nodiscard]] u64   nodes() const noexcept { return nodes64; }
@@ -152,12 +158,6 @@ struct PTEntry final {
     }
 
    private:
-    PTEntry() noexcept                          = delete;
-    PTEntry(const PTEntry&) noexcept            = delete;
-    PTEntry& operator=(const PTEntry&) noexcept = delete;
-    PTEntry(PTEntry&&) noexcept                 = delete;
-    PTEntry& operator=(PTEntry&&) noexcept      = delete;
-
     RelaxedAtomic<u32>   key32;
     RelaxedAtomic<Depth> depth16;
     RelaxedAtomic<u64>   nodes64;
@@ -169,14 +169,13 @@ static_assert(sizeof(PTEntry) == 16, "PTEntry size must be 16 bytes");
 
 struct PTCluster final {
    public:
-    Array<PTEntry, 4> entries;
-
-   private:
     PTCluster() noexcept                            = delete;
     PTCluster(const PTCluster&) noexcept            = delete;
     PTCluster& operator=(const PTCluster&) noexcept = delete;
     PTCluster(PTCluster&&) noexcept                 = delete;
     PTCluster& operator=(PTCluster&&) noexcept      = delete;
+
+    Array<PTEntry, 4> entries;
 };
 
 constexpr usize PT_CLUSTER_SIZE = sizeof(PTCluster);

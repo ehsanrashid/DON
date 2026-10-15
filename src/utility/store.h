@@ -18,11 +18,12 @@
 #ifndef UTILITY_STORE_H_INCLUDED
 #define UTILITY_STORE_H_INCLUDED
 
-#include <cstddef>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <utility>
 
+#include "../utility/access.h"
 #include "../utility/types.h"
 
 namespace DON {
@@ -37,41 +38,71 @@ class Store final {
     using difference_type = std::ptrdiff_t;
     using map_type        = Map;
 
-    explicit Store(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept {
+    using read_access_type  = ReadAccess<Value, Mutex>;
+    using write_access_type = WriteAccess<Value, Mutex>;
+
+    explicit Store(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) {
         configure_map(map, reserveCnt, maxLoadFac, 0);
     }
+    Store(const Store&) noexcept            = delete;
+    Store& operator=(const Store&) noexcept = delete;
+    Store(Store&&) noexcept                 = delete;
+    Store& operator=(Store&&) noexcept      = delete;
 
     // Returns the existing value or inserts a default-constructed value.
-    Value& get(const Key& key) noexcept {
+    [[nodiscard]] write_access_type get(const Key& key) {
         // Fast path: Finds the existing value under a shared lock.
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto itr = map.find(key); itr != map.end())
-                return itr->second;
+            if (map.find(key) != map.end())
+            {
+                sharedLock.unlock();
+
+                std::unique_lock uniqueLock{mutex};
+
+                return get_locked(std::move(uniqueLock), key);
+            }
         }
 
         // Slow path: Acquires an exclusive lock and inserts the value if absent.
-        std::lock_guard lockGuard{mutex};
+        std::unique_lock uniqueLock{mutex};
 
-        return map.try_emplace(key).first->second;
+        return get_locked(std::move(uniqueLock), key);
     }
 
     // Returns the existing value or constructs a new value from the arguments.
     template<typename... Args>
-    Value& get(const Key& key, Args&&... args) noexcept {
+    [[nodiscard]] write_access_type get(const Key& key, Args&&... args) {
         // Fast path: Finds the existing value under a shared lock.
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto itr = map.find(key); itr != map.end())
-                return itr->second;
+            if (map.find(key) != map.end())
+            {
+                sharedLock.unlock();
+
+                std::unique_lock uniqueLock{mutex};
+
+                return get_locked(std::move(uniqueLock), key, std::forward<Args>(args)...);
+            }
         }
 
         // Slow path: Acquires an exclusive lock and inserts the value if absent.
-        std::lock_guard lockGuard{mutex};
+        std::unique_lock uniqueLock{mutex};
 
-        return map.try_emplace(key, std::forward<Args>(args)...).first->second;
+        return get_locked(std::move(uniqueLock), key, std::forward<Args>(args)...);
+    }
+
+    // Returns a read-only access handle if the key exists.
+    [[nodiscard]] std::optional<read_access_type> read(const Key& key) const {
+        std::shared_lock sharedLock{mutex};
+
+        const auto itr = map.find(key);
+        if (itr == map.end())
+            return std::nullopt;
+
+        return std::optional<read_access_type>{std::in_place, itr->second, std::move(sharedLock)};
     }
 
     // Returns true if the map contains the key
@@ -110,10 +141,23 @@ class Store final {
     }
 
    private:
-    Store(const Store&) noexcept            = delete;
-    Store& operator=(const Store&) noexcept = delete;
-    Store(Store&&) noexcept                 = delete;
-    Store& operator=(Store&&) noexcept      = delete;
+    write_access_type get_locked(std::unique_lock<Mutex>&& uniqueLock, const Key& key) {
+        auto itr = map.find(key);
+        if (itr == map.end())
+            itr = map.try_emplace(key).first;
+
+        return write_access_type{itr->second, std::move(uniqueLock)};
+    }
+
+    template<typename Arg, typename... Args>
+    write_access_type
+    get_locked(std::unique_lock<Mutex>&& uniqueLock, const Key& key, Arg&& arg, Args&&... args) {
+        auto itr = map.find(key);
+        if (itr == map.end())
+            itr = map.try_emplace(key, std::forward<Arg>(arg), std::forward<Args>(args)...).first;
+
+        return write_access_type{itr->second, std::move(uniqueLock)};
+    }
 
     template<typename T>
     static auto configure_map(T& map, usize reserveCount, float maxLoadFactor, int) noexcept

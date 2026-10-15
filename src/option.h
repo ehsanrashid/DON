@@ -84,12 +84,6 @@ class Option {
     std::string currentValue;
 
    private:
-    Option() noexcept                         = delete;
-    Option(const Option&) noexcept            = delete;
-    Option& operator=(const Option&) noexcept = delete;
-    Option(Option&&) noexcept                 = delete;
-    Option& operator=(Option&&) noexcept      = delete;
-
     OnChange onChange;
 
     const Options* optionsPtr = nullptr;
@@ -101,6 +95,11 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
 class Options final {
    public:
+    Options(const Options&) noexcept            = delete;
+    Options& operator=(const Options&) noexcept = delete;
+    Options(Options&&) noexcept                 = delete;
+    Options& operator=(Options&&) noexcept      = delete;
+
     // clang-format off
     // Stores the option name view and the polymorphic option, preserving the original name case.
     using Entry    = std::pair<std::string_view, Option::Ptr>;
@@ -153,11 +152,6 @@ class Options final {
     void on_info(ChangeInfo changeInfo) const noexcept;
 
    private:
-    Options(const Options&) noexcept            = delete;
-    Options& operator=(const Options&) noexcept = delete;
-    Options(Options&&) noexcept                 = delete;
-    Options& operator=(Options&&) noexcept      = delete;
-
     List     list;
     IndexMap indexMap;
     Set      set;

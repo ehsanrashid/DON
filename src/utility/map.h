@@ -126,9 +126,9 @@ class Map final {
         return map.get_allocator();
     }
 
-    [[nodiscard]] read_access_type read() const noexcept { return read_access_type{mutex, map}; }
+    [[nodiscard]] read_access_type read() const noexcept { return read_access_type{map, mutex}; }
 
-    [[nodiscard]] write_access_type write() noexcept { return write_access_type{mutex, map}; }
+    [[nodiscard]] write_access_type write() noexcept { return write_access_type{map, mutex}; }
 
    private:
     mutable Mutex mutex;
