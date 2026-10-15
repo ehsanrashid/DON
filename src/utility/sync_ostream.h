@@ -33,7 +33,7 @@ namespace DON {
 // OStreamMutexes and holds the lock for its lifetime.
 //
 // Key features:
-//  - Thread-safe: synchronizes access to the associated ostream.
+//  - Thread-safe: synchronizes access performed through SyncOStream.
 //  - RAII-based: acquires the mutex on construction and releases it on destruction.
 //  - Move-constructible: transfers ownership of the lock.
 //  - Non-copyable and non-move-assignable: prevents accidental lock ownership changes.
@@ -46,10 +46,11 @@ namespace DON {
 // Notes:
 //  - The lock is held for the lifetime of the SyncOStream object.
 //  - Keep SyncOStream objects short-lived to minimize lock contention.
+//  - Concurrent access to the stream outside SyncOStream is not synchronized.
 //  - OStreamMutexes ensures that the same ostream uses the same mutex.
 class [[nodiscard]] SyncOStream final {
    public:
-    explicit SyncOStream(std::ostream& osRef) noexcept;
+    explicit SyncOStream(std::ostream& osRef);
 
     SyncOStream(const SyncOStream&) noexcept            = delete;
     SyncOStream& operator=(const SyncOStream&) noexcept = delete;
@@ -88,7 +89,7 @@ class [[nodiscard]] SyncOStream final {
     std::unique_lock<std::mutex> uniqueLock;
 };
 
-[[nodiscard]] SyncOStream sync_os(std::ostream& os = std::cout) noexcept;
+[[nodiscard]] SyncOStream sync_os(std::ostream& os = std::cout);
 
 }  // namespace DON
 

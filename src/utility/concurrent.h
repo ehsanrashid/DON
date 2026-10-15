@@ -296,8 +296,8 @@ class ConcurrentCache final {
     }
 
     void configure(ValueMap& valueMap) const noexcept {
-        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
-        valueMap.reserve(reserve_count(ceil_div(reserveCount, ShardCount)));
+        valueMap.max_load_factor(maxLoadFactor);
+        valueMap.reserve(ceil_div(reserveCount, ShardCount));
     }
 
     Shard& get_shard(const Key& key) noexcept { return shards[shard_index(key)]; }
@@ -555,13 +555,13 @@ class ConcurrentRegistry final {
     }
 
     void configure(IndexMap& indexMap_) const noexcept {
-        indexMap_.max_load_factor(max_load_factor(maxLoadFactor));
-        indexMap_.reserve(reserve_count(reserveCount));
+        indexMap_.max_load_factor(maxLoadFactor);
+        indexMap_.reserve(reserveCount);
     }
 
     void configure(Set& set_) const noexcept {
-        set_.max_load_factor(max_load_factor(maxLoadFactor));
-        set_.reserve(reserve_count(reserveCount));
+        set_.max_load_factor(maxLoadFactor);
+        set_.reserve(reserveCount);
     }
 
     // Stops accepting new values.

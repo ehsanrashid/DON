@@ -26,6 +26,7 @@
 #include "uci.h"
 #include "tablebase/syzygy.h"
 #include "utility/command_line.h"
+#include "utility/functions.h"
 
 using namespace DON;
 

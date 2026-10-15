@@ -1152,8 +1152,6 @@ void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
 
-fs::path utf8_to_path(std::string_view path) noexcept;
-
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
 // Reads the file as bytes.

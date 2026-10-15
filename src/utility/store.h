@@ -54,7 +54,7 @@ class Store final {
     Store& operator=(Store&&) noexcept      = delete;
 
     // Returns the existing value or inserts a default-constructed value.
-    [[nodiscard]] write_access_type get(const Key& key) {
+    [[nodiscard]] write_access_type get(const Key& key) noexcept {
         // Fast path: Finds the existing value under a shared lock.
         {
             std::shared_lock sharedLock{mutex};
@@ -77,7 +77,7 @@ class Store final {
 
     // Returns the existing value or constructs a new value from the arguments.
     template<typename... Args>
-    [[nodiscard]] write_access_type get(const Key& key, Args&&... args) {
+    [[nodiscard]] write_access_type get(const Key& key, Args&&... args) noexcept {
         // Fast path: Finds the existing value under a shared lock.
         {
             std::shared_lock sharedLock{mutex};
@@ -99,7 +99,7 @@ class Store final {
     }
 
     // Returns a read-only access handle if the key exists.
-    [[nodiscard]] std::optional<read_access_type> read(const Key& key) const {
+    [[nodiscard]] std::optional<read_access_type> read(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
         const auto itr = map.find(key);

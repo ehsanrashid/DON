@@ -24,6 +24,7 @@
     #include <shellapi.h>                 // CommandLineToArgvW()
 #endif
 
+#include "../utility/functions.h"
 #include "../utility/types.h"
 
 namespace DON {

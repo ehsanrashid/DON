@@ -39,15 +39,20 @@ namespace {
 // Lifetime:
 //  - Store does not own the std::ostream objects.
 //  - Mutexes remain stored until Store is destroyed.
-Store<std::ostream*, std::mutex> OStreamMutexes{usize{64}, 0.75f};
+using OStreamMutexStore = Store<std::ostream*, std::mutex>;
+
+OStreamMutexStore& ostream_mutex_store() noexcept {
+    static OStreamMutexStore ostreamMutexStore{usize{64}, 0.75f};
+    return ostreamMutexStore;
+}
 
 std::mutex& get_ostream_mutex(std::ostream* const os) noexcept {
-    return OStreamMutexes.get(os).get();
+    return ostream_mutex_store().get(os).get();
 }
 
 }  // namespace
 
-SyncOStream::SyncOStream(std::ostream& osRef) noexcept :
+SyncOStream::SyncOStream(std::ostream& osRef) :
     os{&osRef},
     uniqueLock{get_ostream_mutex(os)} {}
 
@@ -85,6 +90,6 @@ SyncOStream&& SyncOStream::operator<<(OStreamManip manip) && {
 
 // ----------------------------------
 
-SyncOStream sync_os(std::ostream& os) noexcept { return SyncOStream(os); }
+SyncOStream sync_os(std::ostream& os) { return SyncOStream(os); }
 
 }  // namespace DON

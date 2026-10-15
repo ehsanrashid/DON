@@ -321,16 +321,6 @@ constexpr double constexpr_log(double x) noexcept {
     return constexpr_log1p_log(x - 1.0) + exponent * LN2;
 }
 
-constexpr float max_load_factor(const float maxLoadFactor = 0.75f) noexcept {
-    return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
-}
-constexpr usize reserve_count(const usize reserveCount = 1024) noexcept {
-    return std::max(reserveCount, usize{8});
-}
-
-// Convert a wide string to UTF-8.
-std::string wstring_to_utf8(std::wstring_view wsv) noexcept;
-
 }  // namespace DON
 
 #endif  // UTILITY_TYPES_H_INCLUDED

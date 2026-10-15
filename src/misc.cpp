@@ -34,7 +34,6 @@
 #endif
 
 #include "utility/color.h"
-#include "utility/store.h"
 
 namespace DON {
 
@@ -1133,36 +1132,6 @@ void terminate_on_critical_error(const std::string_view message) noexcept {
     std::cout << std::endl;
     std::exit(EXIT_FAILURE);
 }
-
-// clang-format off
-
-fs::path utf8_to_path(const std::string_view path) noexcept {
-#if defined(_WIN32)
-    const int pathSize = int(path.size());
-
-    if (pathSize > std::numeric_limits<int>::max())
-        return {};
-
-    // First attempt UTF-8, then fall back to ANSI for old GUIs like Arena
-    constexpr Array<UINT, 2> CodePages{CP_UTF8, CP_ACP};
-    for (const UINT codePage : CodePages)
-    {
-        const DWORD flags        = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
-        const int   widePathSize = ::MultiByteToWideChar(codePage, flags, path.data(), pathSize, nullptr, 0);
-
-        if (widePathSize <= 0)
-            continue;
-
-        std::wstring widePath(usize(widePathSize), L'\0');
-        ::MultiByteToWideChar(codePage, 0, path.data(), pathSize, widePath.data(), widePathSize);
-
-        return {widePath};
-    }
-#endif
-    return {path};
-}
-
-// clang-format on
 
 std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     constexpr int Base = 10;
