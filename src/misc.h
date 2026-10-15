@@ -35,6 +35,9 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
+
+#include "utility/platform.h"
 
 #if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
     #define USE_X86_PREFETCH

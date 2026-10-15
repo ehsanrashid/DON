@@ -18,9 +18,12 @@
 #ifndef UTILITY_COMMAND_LINE_H_INCLUDED
 #define UTILITY_COMMAND_LINE_H_INCLUDED
 
-#include <string>
+#include <filesystem>
 #include <string_view>
 #include <vector>
+#if defined(_WIN32)
+    #include <string>
+#endif
 
 #include "../utility/types.h"
 

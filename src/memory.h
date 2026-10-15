@@ -27,14 +27,15 @@
 #include <type_traits>
 #include <utility>
 
-#include "utility/attributes.h"
-#include "utility/types.h"
+#include "utility/platform.h"
 
 #if defined(LINUX_NON_ANDROID)
     #include <sys/types.h>  // off_t
 #endif
 
 #include "types.h"
+#include "utility/attributes.h"
+#include "utility/types.h"
 
 namespace DON {
 

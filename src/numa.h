@@ -38,7 +38,7 @@
     #include <type_traits>
 #endif
 
-#include "utility/types.h"
+#include "utility/platform.h"
 
 #if !defined(_WIN64)              /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID)) /* Linux (Non-Android) */
@@ -48,6 +48,7 @@
 #include "misc.h"
 #include "native_thread.h"
 #include "shm.h"
+#include "utility/types.h"
 
 namespace DON {
 

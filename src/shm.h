@@ -26,9 +26,9 @@
 #include <type_traits>  // decay_t<>
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
+#include <vector>
 
 #include "utility/platform.h"
-#include "utility/types.h"
 
 #if !defined(_WIN32)             /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
@@ -114,6 +114,7 @@
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
 #include "native_thread.h"
+#include "utility/types.h"
 
 namespace DON {
 
