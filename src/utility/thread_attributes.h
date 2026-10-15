@@ -46,7 +46,6 @@
     #define LOCKABLE                            CAPABILITY("mutex")
     #define SCOPED_LOCKABLE
     // clang-format on
-
 #else
     #include "../utility/attributes.h"
 
@@ -82,7 +81,6 @@
     #define LOCKABLE                            CAPABILITY("mutex")
     #define SCOPED_LOCKABLE                     THREAD_ATTRIBUTE(scoped_lockable)
     // clang-format on
-
 #endif
 
 #endif  // UTILITY_THREAD_ATTRIBUTES_H_INCLUDED
