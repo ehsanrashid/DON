@@ -30,8 +30,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "platform.h"
-
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
 #endif

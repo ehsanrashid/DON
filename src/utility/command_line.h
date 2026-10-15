@@ -40,7 +40,15 @@ struct CommandLine final {
     // Returns the process's current working directory.
     static fs::path working_directory() noexcept;
 
+    [[nodiscard]] usize size() const noexcept;
+    [[nodiscard]] bool  empty() const noexcept;
+
     [[nodiscard]] const std::vector<std::string_view>& arguments() const noexcept;
+
+    std::string_view operator[](usize idx) const noexcept;
+
+    [[nodiscard]] std::string command_line() const noexcept;
+    [[nodiscard]] std::string command() const noexcept;
 
    private:
     CommandLine(const CommandLine&)            = delete;
@@ -48,10 +56,10 @@ struct CommandLine final {
     CommandLine(CommandLine&&)                 = delete;
     CommandLine& operator=(CommandLine&&)      = delete;
 
-    std::vector<std::string_view> arguments_;
 #if defined(_WIN32)
-    std::vector<std::string> utf8_arguments;
+    std::vector<std::string> utf8arguments;
 #endif
+    std::vector<std::string_view> arguments_;
 };
 
 }  // namespace DON

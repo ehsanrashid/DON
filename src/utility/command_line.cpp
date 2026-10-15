@@ -27,33 +27,33 @@ namespace DON {
 
 CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
 #if defined(_WIN32)
-    int wide_argc;
-    if (LPWSTR* wide_argv = ::CommandLineToArgvW(::GetCommandLineW(), &wide_argc);  //
-        wide_argv != nullptr)
+    int wargc;
+    if (LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);  //
+        wargv != nullptr)
     {
-        const usize utf8_argc = usize(wide_argc);
+        const usize utf8argc = usize(wargc);
 
-        utf8_arguments.reserve(utf8_argc);
+        utf8arguments.reserve(utf8argc);
 
-        for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(wstring_to_utf8(wide_argv[i]));
+        for (usize i = 0; i < utf8argc; ++i)
+            utf8arguments.emplace_back(wstring_to_utf8(wargv[i]));
 
-        ::LocalFree(wide_argv);
+        ::LocalFree(wargv);
 
-        arguments_.reserve(utf8_arguments.size());
+        arguments_.reserve(utf8arguments.size());
 
-        for (const auto& utf8_argv : utf8_arguments)
+        for (const auto& utf8_argv : utf8arguments)
             arguments_.emplace_back(std::string_view{utf8_argv});
 
         return;
     }
 #endif
 
-    const usize u_argc = usize(argc);
+    const usize uargc = usize(argc);
 
-    arguments_.reserve(u_argc);
+    arguments_.reserve(uargc);
 
-    for (usize i = 0; i < u_argc; ++i)
+    for (usize i = 0; i < uargc; ++i)
         arguments_.emplace_back(argv[i]);  // Store non-owning views.
 }
 
@@ -75,6 +75,43 @@ fs::path CommandLine::binary_directory(fs::path path) noexcept {
 
 fs::path CommandLine::working_directory() noexcept { return fs::current_path(); }
 
+usize CommandLine::size() const noexcept { return arguments().size(); }
+
+bool CommandLine::empty() const noexcept { return arguments().empty(); }
+
 const std::vector<std::string_view>& CommandLine::arguments() const noexcept { return arguments_; }
+
+std::string_view CommandLine::operator[](const usize idx) const noexcept {
+    assert(idx < size());
+    return arguments()[idx];
+}
+
+std::string CommandLine::command_line() const noexcept {
+    std::string commandLine;
+    commandLine.reserve(KB / 2);
+
+    for (const auto& argument : arguments())
+        commandLine.append(argument).push_back(' ');
+
+    // Remove trailing space
+    if (!commandLine.empty())
+        commandLine.pop_back();
+
+    return commandLine;
+}
+
+std::string CommandLine::command() const noexcept {
+    std::string command;
+    command.reserve(KB / 2);
+
+    for (usize i = 1; i < size(); ++i)
+        command.append((*this)[i]).push_back(' ');
+
+    // Remove trailing space
+    if (!command.empty())
+        command.pop_back();
+
+    return command;
+}
 
 }  // namespace DON
