@@ -18,7 +18,6 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "attacks.h"
 #include "misc.h"
@@ -27,7 +26,6 @@
 #include "uci.h"
 #include "tablebase/syzygy.h"
 #include "utility/command_line.h"
-#include "utility/types.h"
 
 using namespace DON;
 

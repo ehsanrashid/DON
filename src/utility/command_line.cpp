@@ -15,19 +15,22 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../utility/command_line.h"
+
+#include <cassert>
+
 #if defined(_WIN32)
     #include "../platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
     #include <shellapi.h>         // CommandLineToArgvW()
 #endif
 
-#include "../utility/command_line.h"
 #include "../utility/types.h"
 
 namespace DON {
 
 CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
 #if defined(_WIN32)
-    int wargc;
+    int wargc = 0;
     if (LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);  //
         wargv != nullptr)
     {
