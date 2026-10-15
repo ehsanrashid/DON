@@ -108,7 +108,7 @@ SRCS := \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
     utility/command_line.cpp utility/cpu.cpp utility/debug.cpp utility/mutex.cpp utility/prng.cpp \
-    utility/types.cpp
+    utility/sync_ostream.cpp utility/types.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -129,8 +129,8 @@ HEADERS := \
     utility/access.h utility/attributes.h utility/channel.h utility/color.h utility/command_line.h \
     utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h utility/error.h utility/list.h \
     utility/lru.h utility/map.h utility/multi_array.h utility/mutex.h utility/platform_win.h utility/prng.h \
-    utility/queue.h utility/static_vector.h utility/store.h utility/thread_attributes.h utility/types.h \
-    utility/unordered_map.h
+    utility/queue.h utility/static_vector.h utility/store.h utility/sync_ostream.h utility/thread_attributes.h \
+    utility/types.h utility/unordered_map.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 

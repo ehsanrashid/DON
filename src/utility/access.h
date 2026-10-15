@@ -38,7 +38,7 @@ class ReadAccess final {
 
     ReadAccess(const ReadAccess&) noexcept            = delete;
     ReadAccess& operator=(const ReadAccess&) noexcept = delete;
-    ReadAccess(ReadAccess&&) noexcept                 = default;
+    ReadAccess(ReadAccess&&) noexcept                 = delete;
     ReadAccess& operator=(ReadAccess&&) noexcept      = delete;
 
     template<typename T = Value, typename = typename T::const_iterator>
@@ -66,16 +66,16 @@ template<typename Value, typename Mutex>
 class WriteAccess final {
    public:
     WriteAccess(Value& valueRef, Mutex& mutex) :
-        uniqueLock(mutex),
-        value(valueRef) {}
+        value(valueRef),
+        uniqueLock(mutex) {}
 
     WriteAccess(Value& valueRef, std::unique_lock<Mutex>&& uniqueLockRef) :
-        uniqueLock(std::move(uniqueLockRef)),
-        value(valueRef) {}
+        value(valueRef),
+        uniqueLock(std::move(uniqueLockRef)) {}
 
     WriteAccess(const WriteAccess&) noexcept            = delete;
     WriteAccess& operator=(const WriteAccess&) noexcept = delete;
-    WriteAccess(WriteAccess&&) noexcept                 = default;
+    WriteAccess(WriteAccess&&) noexcept                 = delete;
     WriteAccess& operator=(WriteAccess&&) noexcept      = delete;
 
     template<typename T = Value, typename = typename T::iterator>
@@ -95,8 +95,8 @@ class WriteAccess final {
     [[nodiscard]] Value& operator*() const noexcept { return value; }
 
    private:
-    std::unique_lock<Mutex> uniqueLock;
     Value&                  value;
+    std::unique_lock<Mutex> uniqueLock;
 };
 
 }  // namespace DON
