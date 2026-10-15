@@ -28,11 +28,6 @@
 
 namespace DON {
 
-// Architecture-specific processor hint for spin-wait loops.
-// May reduce resource contention, improve progress of sibling hardware threads, or
-// reduce power consumption, depending on the architecture and implementation.
-void cpu_relax() noexcept;
-
 // A lightweight mutex that actively spins while waiting for the lock to
 // become available. Under sustained contention, periodically yields the
 // thread or briefly sleeps to reduce CPU usage and excessive busy-waiting.
@@ -61,9 +56,9 @@ class LOCKABLE SpinMutex final {
     SpinMutex(SpinMutex&&) noexcept                 = delete;
     SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
 
-    static constexpr usize SpinsMax        = 512;
-    static constexpr usize YieldsMax       = 8;
-    static constexpr usize SleepIntervalUs = 5;
+    static constexpr usize SpinsMax    = 512;
+    static constexpr usize YieldsMax   = 8;
+    static constexpr usize SleepTimeUs = 5;
 
     std::atomic<bool> locked{false};
 };
@@ -96,6 +91,14 @@ class LOCKABLE ReaderSharedMutex final {
     ReaderSharedMutex& operator=(const ReaderSharedMutex&) noexcept = delete;
     ReaderSharedMutex(ReaderSharedMutex&&) noexcept                 = delete;
     ReaderSharedMutex& operator=(ReaderSharedMutex&&) noexcept      = delete;
+
+    [[nodiscard]] bool can_lock() const noexcept;
+
+    [[nodiscard]] bool can_try_lock() const noexcept;
+
+    [[nodiscard]] bool can_lock_shared() const noexcept;
+
+    [[nodiscard]] bool can_try_lock_shared() const noexcept;
 
     mutable std::mutex      mutex;
     std::condition_variable readerCondVar;
@@ -137,6 +140,14 @@ class LOCKABLE WriterSharedMutex final {
     WriterSharedMutex(WriterSharedMutex&&) noexcept                 = delete;
     WriterSharedMutex& operator=(WriterSharedMutex&&) noexcept      = delete;
 
+    [[nodiscard]] bool can_lock() const noexcept;
+
+    [[nodiscard]] bool can_try_lock() const noexcept;
+
+    [[nodiscard]] bool can_lock_shared() const noexcept;
+
+    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+
     mutable std::mutex      mutex;
     std::condition_variable readerCondVar;
     std::condition_variable writerCondVar;
@@ -158,7 +169,7 @@ class LOCKABLE FairSharedMutex final {
 
         bool is_writer() const noexcept;
 
-        Waiter* next = nullptr;
+        IntrusiveList<Waiter>::Node node;
 
        private:
         Waiter() noexcept = delete;
@@ -181,8 +192,6 @@ class LOCKABLE FairSharedMutex final {
 
     void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
-    bool has_writer_before(const Waiter* until = nullptr) const noexcept;
-
     [[nodiscard]] usize active_reader_count() const noexcept;
 
     [[nodiscard]] usize waiting_writer_count() const noexcept;
@@ -192,6 +201,16 @@ class LOCKABLE FairSharedMutex final {
     FairSharedMutex& operator=(const FairSharedMutex&) noexcept = delete;
     FairSharedMutex(FairSharedMutex&&) noexcept                 = delete;
     FairSharedMutex& operator=(FairSharedMutex&&) noexcept      = delete;
+
+    [[nodiscard]] bool can_lock(const Waiter& writer) const noexcept;
+
+    [[nodiscard]] bool can_try_lock() const noexcept;
+
+    [[nodiscard]] bool can_lock_shared(const Waiter& reader) const noexcept;
+
+    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+
+    bool has_writer_before(const Waiter* until = nullptr) const noexcept;
 
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;

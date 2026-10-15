@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PLATFORM_WIN_H_INCLUDED
-#define PLATFORM_WIN_H_INCLUDED
+#ifndef UTILITY_PLATFORM_WIN_H_INCLUDED
+#define UTILITY_PLATFORM_WIN_H_INCLUDED
 
 // Prevent inclusion of min/max Windows macros to avoid conflicts
 #if !defined(NOMINMAX)
@@ -46,4 +46,4 @@
 // Clean up unwanted macros
 #undef small
 
-#endif  // PLATFORM_WIN_H_INCLUDED
+#endif  // UTILITY_PLATFORM_WIN_H_INCLUDED

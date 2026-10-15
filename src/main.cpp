@@ -25,7 +25,7 @@
 #include "tune.h"
 #include "uci.h"
 #include "tablebase/syzygy.h"
-#include "utility/types.h"
+#include "utility/command_line.h"
 
 using namespace DON;
 
@@ -51,31 +51,15 @@ int main(const int argc, const char* const argv[]) noexcept {
 
     CommandLine commandLine(argc, argv);
 
-    const auto& arguments = commandLine.arguments();
-
-    const auto path = !arguments.empty() ? arguments[0] : ".";
+    const auto path = !commandLine.empty() ? commandLine[0] : ".";
 
     UCI uci(utf8_to_path(path));
 
     Tune::init(uci.options());
 
-    if (arguments.size() > 1)
-    {
-        std::string command;
-        command.reserve(KB / 2);
-
-        for (usize i = 1; i < arguments.size(); ++i)
-            command.append(arguments[i]).push_back(' ');
-
-        if (!command.empty())
-            command.pop_back();  // remove trailing space
-
-        uci.execute(command);
-    }
-    else
-    {
-        uci.process_input(std::cin);
-    }
+    commandLine.size() > 1  //
+      ? uci.execute(commandLine.command())
+      : uci.process_input(std::cin);
 
     uci.execute(QUIT_CMD);
 

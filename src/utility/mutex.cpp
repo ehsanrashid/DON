@@ -20,54 +20,11 @@
 #include <chrono>
 #include <thread>  // sleep_for()
 
-#if defined(_WIN32)
-    #include "../platform_win.h"  // YieldProcessor()
-#elif defined(X86)
-    #include <emmintrin.h>  // _mm_pause() intrinsic
-#endif
-
+#include "../utility/cpu.h"
 #include "../utility/list.h"
 #include "../utility/types.h"
 
 namespace DON {
-
-void cpu_relax() noexcept {
-#if defined(_WIN32)
-    YieldProcessor();
-
-#elif defined(X86)
-    _mm_pause();
-
-#elif defined(__clang__) || defined(__GNUC__)
-    #if defined(__arm__) || defined(__aarch64__)
-    __asm__ __volatile__("yield");
-
-    #elif defined(__riscv)
-        #if defined(__riscv_zihintpause)
-    __builtin_riscv_pause();
-
-        #else
-    __asm__ __volatile__("" ::: "memory");
-
-        #endif
-
-    #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC64__) || defined(_ARCH_PPC)
-    __asm__ __volatile__("or 27,27,27");
-
-    #else
-    // Portable compiler-level no-op for unsupported architectures
-    __asm__ __volatile__("" ::: "memory");
-
-    #endif
-
-#else
-    // No architecture-specific pause hint available for this compiler
-    //__asm__ __volatile__("");
-
-#endif
-}
-
-// ------------------
 
 // A lightweight spin mutex that periodically yields and backs off under contention.
 void SpinMutex::lock() noexcept {
@@ -90,7 +47,7 @@ void SpinMutex::lock() noexcept {
                 {
                     yields = 0;
 
-                    std::this_thread::sleep_for(std::chrono::microseconds(SleepIntervalUs));
+                    std::this_thread::sleep_for(std::chrono::microseconds(SleepTimeUs));
                     continue;
                 }
 
@@ -112,10 +69,7 @@ void ReaderSharedMutex::lock() noexcept {
 
     ++waitingWriterCount;
 
-    writerCondVar.wait(uniqueLock, [this]() noexcept -> bool {
-        return !writerActive            // No active writer
-            && activeReaderCount == 0;  // No active readers
-    });
+    writerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock(); });
 
     --waitingWriterCount;
 
@@ -125,8 +79,7 @@ void ReaderSharedMutex::lock() noexcept {
 bool ReaderSharedMutex::try_lock() noexcept {
     std::lock_guard lockGuard{mutex};
 
-    if (writerActive                // An active writer
-        || activeReaderCount != 0)  // Active readers
+    if (!can_try_lock())
         return false;
 
     writerActive = true;
@@ -148,11 +101,7 @@ void ReaderSharedMutex::unlock() noexcept {
 void ReaderSharedMutex::lock_shared() noexcept {
     std::unique_lock uniqueLock{mutex};
 
-    readerCondVar.wait(uniqueLock, [this]() noexcept -> bool {
-        return !writerActive  // No active writer
-          //&& waitingWriterCount == 0  // No waiting writers
-          ;
-    });
+    readerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock_shared(); });
 
     ++activeReaderCount;
 }
@@ -160,9 +109,7 @@ void ReaderSharedMutex::lock_shared() noexcept {
 bool ReaderSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lockGuard{mutex};
 
-    if (writerActive  // An active writer
-        //|| waitingWriterCount != 0  // Waiting writers; don't bypass them
-    )
+    if (!can_try_lock_shared())
         return false;
 
     ++activeReaderCount;
@@ -179,6 +126,24 @@ void ReaderSharedMutex::unlock_shared() noexcept {
 
     if (wakeWriter)
         writerCondVar.notify_one();
+}
+
+bool ReaderSharedMutex::can_lock() const noexcept {
+    return !writerActive            // No active writer
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool ReaderSharedMutex::can_try_lock() const noexcept {
+    return !writerActive            // No active writer
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool ReaderSharedMutex::can_lock_shared() const noexcept {
+    return !writerActive;  // No active writer
+}
+
+bool ReaderSharedMutex::can_try_lock_shared() const noexcept {
+    return !writerActive;  // No active writer
 }
 
 usize ReaderSharedMutex::active_reader_count() const noexcept {
@@ -200,11 +165,7 @@ void WriterSharedMutex::lock() noexcept {
 
     ++waitingWriterCount;
 
-    writerCondVar.wait(uniqueLock, [this]() noexcept -> bool {
-        return !writerActive  // No active writer
-            // waitingWriterCount includes this writer and is not a readiness condition.
-            && activeReaderCount == 0;  // No active readers
-    });
+    writerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock(); });
 
     --waitingWriterCount;
 
@@ -214,9 +175,7 @@ void WriterSharedMutex::lock() noexcept {
 bool WriterSharedMutex::try_lock() noexcept {
     std::lock_guard lockGuard{mutex};
 
-    if (writerActive                // An active writer
-        || waitingWriterCount != 0  // Waiting writers; don't bypass them
-        || activeReaderCount != 0)  // Active readers
+    if (!can_try_lock())
         return false;
 
     writerActive = true;
@@ -241,10 +200,7 @@ void WriterSharedMutex::unlock() noexcept {
 void WriterSharedMutex::lock_shared() noexcept {
     std::unique_lock uniqueLock{mutex};
 
-    readerCondVar.wait(uniqueLock, [this]() noexcept -> bool {
-        return !writerActive             // No active writer
-            && waitingWriterCount == 0;  // No waiting writers
-    });
+    readerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock_shared(); });
 
     ++activeReaderCount;
 }
@@ -252,8 +208,7 @@ void WriterSharedMutex::lock_shared() noexcept {
 bool WriterSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lockGuard{mutex};
 
-    if (writerActive                 // Writer active
-        || waitingWriterCount != 0)  // Waiting writers; don't bypass them
+    if (!can_try_lock_shared())
         return false;
 
     ++activeReaderCount;
@@ -270,6 +225,27 @@ void WriterSharedMutex::unlock_shared() noexcept {
 
     if (wakeWriter)
         writerCondVar.notify_one();
+}
+
+bool WriterSharedMutex::can_lock() const noexcept {
+    return !writerActive            // No active writer
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool WriterSharedMutex::can_try_lock() const noexcept {
+    return !writerActive            // No active writer
+        && waitingWriterCount == 0  // No waiting writer
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool WriterSharedMutex::can_lock_shared() const noexcept {
+    return !writerActive             // No active writer
+        && waitingWriterCount == 0;  // No waiting writers
+}
+
+bool WriterSharedMutex::can_try_lock_shared() const noexcept {
+    return !writerActive             // No active writer
+        && waitingWriterCount == 0;  // No waiting writers
 }
 
 usize WriterSharedMutex::active_reader_count() const noexcept {
@@ -297,15 +273,11 @@ void FairSharedMutex::lock() noexcept {
     std::unique_lock uniqueLock{mutex};
 
     ++waitingWriterCount;
-    waitList.push_back(writer);
+    (void) waitList.push_back(writer.node, writer);
 
-    commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool {
-        return !writerActive                // No active writer
-            && waitList.front() == &writer  // This writer is first in line
-            && activeReaderCount == 0;      // No active readers
-    });
+    commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool { return can_lock(writer); });
 
-    waitList.erase(writer);
+    (void) waitList.erase(writer.node);
     --waitingWriterCount;
 
     writerActive = true;
@@ -314,9 +286,7 @@ void FairSharedMutex::lock() noexcept {
 bool FairSharedMutex::try_lock() noexcept {
     std::lock_guard lockGuard{mutex};
 
-    if (writerActive                // An active writer
-        || !waitList.empty()        // Waiting threads
-        || activeReaderCount != 0)  // Active readers
+    if (!can_try_lock())
         return false;
 
     writerActive = true;
@@ -339,14 +309,12 @@ void FairSharedMutex::lock_shared() noexcept {
 
     std::unique_lock uniqueLock{mutex};
 
-    waitList.push_back(reader);
+    (void) waitList.push_back(reader.node, reader);
 
-    commonCondVar.wait(uniqueLock, [this, &reader]() noexcept -> bool {
-        return !writerActive                 // No active writer
-            && !has_writer_before(&reader);  // No writer ahead of this reader
-    });
+    commonCondVar.wait(uniqueLock,
+                       [this, &reader]() noexcept -> bool { return can_lock_shared(reader); });
 
-    waitList.erase(reader);
+    (void) waitList.erase(reader.node);
 
     ++activeReaderCount;
 }
@@ -354,9 +322,7 @@ void FairSharedMutex::lock_shared() noexcept {
 bool FairSharedMutex::try_lock_shared() noexcept {
     std::lock_guard lockGuard{mutex};
 
-    // Do not bypass an active writer or any waiting writer.
-    if (writerActive             // An active writer
-        || has_writer_before())  // A waiting writer
+    if (!can_try_lock_shared())
         return false;
 
     ++activeReaderCount;
@@ -374,8 +340,30 @@ void FairSharedMutex::unlock_shared() noexcept {
     commonCondVar.notify_all();
 }
 
+bool FairSharedMutex::can_lock(const Waiter& writer) const noexcept {
+    return !writerActive                // No active writer
+        && waitList.front() == &writer  // This writer is first in line
+        && activeReaderCount == 0;      // No active readers
+}
+
+bool FairSharedMutex::can_try_lock() const noexcept {
+    return !writerActive            // No active writer
+        && waitList.empty()         // No waiting threads
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool FairSharedMutex::can_lock_shared(const Waiter& reader) const noexcept {
+    return !writerActive                 // No active writer
+        && !has_writer_before(&reader);  // No writer ahead of this reader
+}
+
+bool FairSharedMutex::can_try_lock_shared() const noexcept {
+    return !writerActive          // No active writer
+        && !has_writer_before();  // No waiting writers
+}
+
 bool FairSharedMutex::has_writer_before(const Waiter* const until) const noexcept {
-    for (auto* cur = waitList.front(); cur != nullptr; cur = cur->next)
+    for (auto* cur = waitList.front(); cur != nullptr; cur = waitList.next(*cur))
     {
         if (cur == until)
             break;

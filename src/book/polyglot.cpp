@@ -35,6 +35,7 @@
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
+#include "../utility/environment.h"
 #include "../utility/prng.h"
 #include "../utility/types.h"
 
@@ -313,9 +314,7 @@ constexpr Zobrist PG_ZOBRIST{{
 // clang-format on
 
 u16 swap_uint16(const u16 n) noexcept {
-#if defined(__clang__)
-    return __builtin_bswap16(n);
-#elif defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     return __builtin_bswap16(n);
 #elif defined(_MSC_VER)
     return _byteswap_ushort(n);
@@ -327,38 +326,34 @@ u16 swap_uint16(const u16 n) noexcept {
 }
 
 u32 swap_uint32(const u32 n) noexcept {
-#if defined(__clang__)
-    return __builtin_bswap32(n);
-#elif defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     return __builtin_bswap32(n);
 #elif defined(_MSC_VER)
     return _byteswap_ulong(n);
 #else
     // Portable fallback
-    return ((n & 0x000000FF) << 24)  //
-         | ((n & 0x0000FF00) << 8)   //
-         | ((n & 0x00FF0000) >> 8)   //
-         | ((n & 0xFF000000) >> 24);
+    return ((n & u32{0x000000FF}) << 24)  //
+         | ((n & u32{0x0000FF00}) << 8)   //
+         | ((n & u32{0x00FF0000}) >> 8)   //
+         | ((n & u32{0xFF000000}) >> 24);
 #endif
 }
 
 u64 swap_uint64(const u64 n) noexcept {
-#if defined(__clang__)
-    return __builtin_bswap64(n);
-#elif defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     return __builtin_bswap64(n);
 #elif defined(_MSC_VER)
     return _byteswap_uint64(n);
 #else
     // Portable fallback
-    return ((n & 0x00000000000000FFull) << 56)  //
-         | ((n & 0x000000000000FF00ull) << 40)  //
-         | ((n & 0x0000000000FF0000ull) << 24)  //
-         | ((n & 0x00000000FF000000ull) << 8)   //
-         | ((n & 0x000000FF00000000ull) >> 8)   //
-         | ((n & 0x0000FF0000000000ull) >> 24)  //
-         | ((n & 0x00FF000000000000ull) >> 40)  //
-         | ((n & 0xFF00000000000000ull) >> 56);
+    return ((n & u64{0x00000000000000FF}) << 56)  //
+         | ((n & u64{0x000000000000FF00}) << 40)  //
+         | ((n & u64{0x0000000000FF0000}) << 24)  //
+         | ((n & u64{0x00000000FF000000}) << 8)   //
+         | ((n & u64{0x000000FF00000000}) >> 8)   //
+         | ((n & u64{0x0000FF0000000000}) >> 24)  //
+         | ((n & u64{0x00FF000000000000}) >> 40)  //
+         | ((n & u64{0xFF00000000000000}) >> 56);
 #endif
 }
 

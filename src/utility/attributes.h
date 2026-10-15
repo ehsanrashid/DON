@@ -18,9 +18,11 @@
 #ifndef UTILITY_ATTRIBUTES_H_INCLUDED
 #define UTILITY_ATTRIBUTES_H_INCLUDED
 
+#include "../utility/environment.h"
+
 // Enable GNU-style compiler attributes for Clang and GCC, excluding SWIG.
 // Unsupported compilers and SWIG receive an empty attribute macro.
-#if (defined(__clang__) || defined(__GNUC__)) && !defined(SWIG)
+#if defined(CLANG_OR_GCC) && !defined(SWIG)
     #define ATTRIBUTE(x) __attribute__((x))
 #else
     #define ATTRIBUTE(x)
@@ -28,7 +30,7 @@
 
 // --------------------
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     #define ALWAYS_INLINE inline ATTRIBUTE(always_inline)
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
@@ -52,7 +54,7 @@
 #endif
 // clang-format on
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     #define UNREACHABLE() __builtin_unreachable()
 #elif defined(_MSC_VER)
     #define UNREACHABLE() __assume(false)
@@ -60,7 +62,7 @@
     #define UNREACHABLE() ((void) 0)
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     #define RESTRICT __restrict__
 #elif defined(_MSC_VER)
     #define RESTRICT __restrict
@@ -68,7 +70,7 @@
     #define RESTRICT
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(CLANG_OR_GCC)
     #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
     #define UNLIKELY(x) (x)

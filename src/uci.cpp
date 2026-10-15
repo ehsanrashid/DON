@@ -26,6 +26,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "benchmark.h"
 #include "memory.h"
@@ -479,7 +480,7 @@ void UCI::position(std::istream& is) noexcept {
 
     assert(token.empty() || lower_case(token[0]) == 'm');
 
-    Strings moves;
+    std::vector<std::string> moves;
     while (is >> token)
         moves.push_back(token);
 

@@ -155,7 +155,6 @@ void PP3Wide::append_changed_indices(const Color               perspective,
     };
     (void) pfBase;
     (void) pfStride;
-
 #else
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
@@ -200,7 +199,6 @@ void PP3Wide::append_changed_indices_both(const Square                wKingSq,
 #if defined(USE_AVX512ICL)
     append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
     append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
-
 #else
     const auto& before = dPps.before;
     const auto& after  = dPps.after;

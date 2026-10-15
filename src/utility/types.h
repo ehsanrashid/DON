@@ -30,10 +30,6 @@
 #include <type_traits>
 #include <vector>
 
-#if defined(__linux__) && !defined(__ANDROID__)
-    #define LINUX_NON_ANDROID
-#endif
-
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
 #endif
@@ -80,6 +76,25 @@ __extension__ using i128 = signed __int128;
 
 using uptr = std::uintptr_t;
 using iptr = std::intptr_t;
+
+namespace _internal {
+
+// Recursive template to define multi-dimensional array
+template<typename T, usize Size, usize... Sizes>
+struct ArrayDef final {
+    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
+};
+
+// Base case: single-dimensional array
+template<typename T, usize Size>
+struct ArrayDef<T, Size> final {
+    using type = std::array<T, Size>;
+};
+
+}  // namespace _internal
+
+template<typename T, usize Size, usize... Sizes>
+using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
 
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
@@ -313,24 +328,8 @@ constexpr usize reserve_count(const usize reserveCount = 1024) noexcept {
     return std::max(reserveCount, usize{8});
 }
 
-namespace _internal {
-
-// Recursive template to define multi-dimensional array
-template<typename T, usize Size, usize... Sizes>
-struct ArrayDef final {
-    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
-};
-
-// Base case: single-dimensional array
-template<typename T, usize Size>
-struct ArrayDef<T, Size> final {
-    using type = std::array<T, Size>;
-};
-
-}  // namespace _internal
-
-template<typename T, usize Size, usize... Sizes>
-using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
+// Convert a wide string to UTF-8.
+std::string wstring_to_utf8(std::wstring_view wsv) noexcept;
 
 }  // namespace DON
 

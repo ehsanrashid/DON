@@ -60,17 +60,17 @@ constexpr u8 PV_MASK         = u8{1} << PV_SHIFT;
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
    public:
+    // clang-format off
     [[nodiscard]] u16   key() const noexcept { return key16; }
     [[nodiscard]] bool  occupied() const noexcept { return depth8 != 0; }
     [[nodiscard]] Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
     [[nodiscard]] Move  move() const noexcept { return move16; }
     [[nodiscard]] Value value() const noexcept { return value16; }
     [[nodiscard]] Value evalue() const noexcept { return evalue16; }
-    [[nodiscard]] Bound bound() const noexcept {
-        return Bound((meta8 & BOUND_MASK) >> BOUND_SHIFT);
-    }
+    [[nodiscard]] Bound bound() const noexcept { return Bound((meta8 & BOUND_MASK) >> BOUND_SHIFT); }
     [[nodiscard]] bool pv() const noexcept { return ((meta8 & PV_MASK) /* >> PV_SHIFT*/) != 0; }
     [[nodiscard]] u8   generation() const noexcept { return meta8 & GENERATION_MASK; }
+    // clang-format on
 
     TTData read() const noexcept;
 

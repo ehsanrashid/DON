@@ -48,10 +48,8 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
     const __m128i zero        = _mm_setzero_si128();
 
     const auto* inputVec = reinterpret_cast<const __m128i*>(input);
-
         #elif defined(USE_NEON)
     const auto* inputVec = reinterpret_cast<const int8x8_t*>(input);
-
         #endif
 
     for (Index i = 0; i < OutputDimensions; ++i)
@@ -84,7 +82,6 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         __m128i loShuffled = _mm_shufflelo_epi16(sum, Shuffle1032);
         sum                = _mm_add_epi32(sum, loShuffled);
         output[i]          = _mm_cvtsi128_si32(sum);
-
         #elif defined(USE_NEON)
         int32x4_t sum = {biases[i]};
 
@@ -100,10 +97,8 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         }
 
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
-
         #endif
     }
-
     #else
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(i32));
 
@@ -116,7 +111,6 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
             for (Index j = 0; j < OutputDimensions; ++j)
                 output[j] += in * wPtr[j * PaddedInputDimensions];
         }
-
     #endif
 }
 #endif

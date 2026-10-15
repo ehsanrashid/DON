@@ -26,8 +26,9 @@
 #include <type_traits>  // decay_t<>
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
+#include <vector>
 
-#include "utility/types.h"
+#include "utility/environment.h"
 
 #if !defined(_WIN32)             /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
@@ -49,7 +50,7 @@
 #endif
 
 #if defined(_WIN32)
-    #include "platform_win.h"
+    #include "utility/platform_win.h"
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>       // open(), fcntl(), FD_CLOEXEC
     #include <limits.h>      // PATH_MAX, NAME_MAX
@@ -113,6 +114,7 @@
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
 #include "native_thread.h"
+#include "utility/types.h"
 
 namespace DON {
 
@@ -568,7 +570,7 @@ void set_cloexec(const int fd) noexcept;
 UniqueFd create_unix_socket() noexcept;
 
 // Discover all peers in the shared dir
-Strings get_peer_sockets(const std::string& sharedDir) noexcept;
+std::vector<std::string> get_peer_sockets(const std::string& sharedDir) noexcept;
 
 UniqueFd try_create_memfd(const std::string& sockPath) noexcept;
 
@@ -644,8 +646,8 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         // Try to receive the shared memFd
-        UniqueFd memFd;
-        Strings  peerSockets = get_peer_sockets(sharedDir);
+        UniqueFd                 memFd;
+        std::vector<std::string> peerSockets = get_peer_sockets(sharedDir);
         for (const auto& sockPath : peerSockets)
         {
             memFd = try_create_memfd(sockPath);

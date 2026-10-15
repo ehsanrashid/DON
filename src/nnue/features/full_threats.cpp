@@ -30,6 +30,7 @@
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../utility/attributes.h"
+#include "../../utility/static_vector.h"
 #include "../../utility/types.h"
 
 namespace DON::NNUE::Features {

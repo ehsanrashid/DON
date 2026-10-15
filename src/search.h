@@ -48,6 +48,7 @@
 #include "nnue/accumulator.h"
 #include "tablebase/syzygy.h"
 #include "utility/attributes.h"
+#include "utility/static_vector.h"
 #include "utility/types.h"
 
 namespace DON {
@@ -63,7 +64,7 @@ class Network;
 // Maximum number of moves stored during search
 inline constexpr usize MOVES_CAPACITY = 32;
 
-using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
+using MoveVector = StaticVector<Move, MOVES_CAPACITY, u16>;
 
 inline Book::PolyGlot PGBook;
 
@@ -466,7 +467,7 @@ struct Limit final {
 
     Array<Clock, COLOR_NB> clocks{};
 
-    Strings searchMoves, ignoreMoves;
+    std::vector<std::string> searchMoves, ignoreMoves;
 
     u64       nodes     = 0;
     TimePoint moveTime  = 0;

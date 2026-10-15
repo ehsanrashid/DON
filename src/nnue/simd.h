@@ -21,29 +21,20 @@
 #if defined(USE_SSE2)
     #if defined(USE_AVX2)
         #include <immintrin.h>
-
     #elif defined(USE_SSE41)
         #include <smmintrin.h>
-
     #elif defined(USE_SSSE3)
         #include <tmmintrin.h>
-
     #else
         #include <emmintrin.h>
-
     #endif
-
 #elif defined(USE_LSX)
     #include <lsxintrin.h>
-
     #if defined(USE_LASX)
         #include <lasxintrin.h>
-
     #endif
-
     #if defined(__clang__)
         #if defined(__has_builtin)
-
             #if defined(USE_LSX)
                 #if __has_builtin(__builtin_lsx_vssrani_bu_h)
                     #define HAS_BUILTIN_LSX_VSSRANI_BU_H
@@ -51,7 +42,6 @@
                 #if __has_builtin(__builtin_lsx_vssrani_hu_w)
                     #define HAS_BUILTIN_LSX_VSSRANI_HU_W
                 #endif
-
                 #if defined(USE_LASX)
                     #if __has_builtin(__builtin_lasx_xvssrani_bu_h)
                         #define HAS_BUILTIN_LASX_XVSSRANI_BU_H
@@ -66,13 +56,10 @@
             #endif
         #endif
     #endif
-
 #elif defined(USE_NEON)
     #include <arm_neon.h>
-
 #elif defined(USE_RVV)
     #include <riscv_vector.h>
-
 #else
     //#pragma message("No SIMD instruction set enabled — falling back to scalar code")
 #endif
@@ -128,7 +115,6 @@ using vec_i8_t = __m256i;
 
         inline constexpr usize REGISTER_COUNT_MAX = 16;
         inline constexpr usize CHUNK_SIZE_MAX = 64;
-
     #elif defined(USE_AVX2)
 using vec_t    = __m256i;
 using vec_i8_t = __m128i;
@@ -151,7 +137,6 @@ using vec_i8_t = __m128i;
 
         inline constexpr usize REGISTER_COUNT_MAX = 12;
         inline constexpr usize CHUNK_SIZE_MAX = 32;
-
     #else
 using vec_t    = __m128i;
 using vec_i8_t = u64;
@@ -202,9 +187,7 @@ ALWAYS_INLINE __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
         #endif
             ;
         inline constexpr usize CHUNK_SIZE_MAX = 16;
-
     #endif
-
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
 using vec_t    = __m256i;
@@ -223,7 +206,7 @@ ALWAYS_INLINE void lasx_store256(__m256i* dst, const __m256i value) noexcept {
 ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #if defined(HAS_BUILTIN_LASX_CAST_128)
     return __lasx_vext2xv_h_b(__lasx_cast_128(a));
-        #elif defined(__GNUC__) && !defined(__clang__)
+        #elif defined(GCC_NON_CLANG)
     __m256i epi16;
     __asm__("vext2xv.h.b %u0, %u1" : "=f"(epi16) : "f"(a));
     return epi16;
@@ -283,7 +266,6 @@ ALWAYS_INLINE vec_t vec_srli_8(const vec_t a, const unsigned shift) noexcept {
 
         inline constexpr usize REGISTER_COUNT_MAX = 24;
         inline constexpr usize CHUNK_SIZE_MAX = 32;
-
     #else
 using vec_t    = __m128i;
 using vec_i8_t = u64;
@@ -341,9 +323,7 @@ ALWAYS_INLINE vec_t vec_srli_8(const vec_t a, const unsigned shift) noexcept {
 
         inline constexpr usize REGISTER_COUNT_MAX = 24;
         inline constexpr usize CHUNK_SIZE_MAX = 16;
-
     #endif
-
 #elif defined(USE_NEON)
 using vec_i8x8_t  __attribute__((may_alias)) = int8x8_t;
 using vec_i16x8_t __attribute__((may_alias)) = int16x8_t;
@@ -380,10 +360,8 @@ ALWAYS_INLINE int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b
         #define vaddw_high_s8(a, b) SIMD::arm32_vaddw_high_s8(a, b)
         #define vsubw_high_s8(a, b) SIMD::arm32_vsubw_high_s8(a, b)
     #endif
-
 #elif defined(USE_RVV)
     #undef VECTOR
-
 #else
     #undef VECTOR
 using vec_t    = i16;
@@ -392,7 +370,6 @@ using vec_i8_t = i8;
     #define vec_add_16(a, b) ((a) + (b))
     #define vec_sub_16(a, b) ((a) - (b))
     #define vec_convert_8_16(a) (i16(a))
-
 #endif
 // clang-format on
 
@@ -578,7 +555,6 @@ struct Tiling final {
     Tiling(Tiling&&) noexcept                 = delete;
     Tiling& operator=(Tiling&&) noexcept      = delete;
 };
-
 #else
 // Treat scalar impl as degenerate size-1 vector
 namespace Tiling {
@@ -587,7 +563,6 @@ inline constexpr Index RegCount = 1;
 inline constexpr Index TileHeight = 1;
     #endif
 }  // namespace Tiling
-
 #endif
 
 }  // namespace DON::NNUE::SIMD

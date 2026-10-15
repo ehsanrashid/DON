@@ -20,9 +20,9 @@
 #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 
-#include "../../misc.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
+#include "../../utility/static_vector.h"
 #include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
@@ -56,7 +56,7 @@ class HalfKAHm final {
     // Maximum number of simultaneously active features
     static constexpr Index MaxActiveDimensions = 32;
 
-    using IndexList = FixedVector<Index, MaxActiveDimensions, Index>;
+    using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
     using DirtyType = DirtyPiece;
 
     // Mirror square to have king always on e..h files

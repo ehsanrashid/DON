@@ -30,6 +30,7 @@
 #include "perft.h"
 #include "shm.h"
 #include "tablebase/syzygy.h"
+#include "utility/command_line.h"
 #include "utility/error.h"
 
 namespace DON {
@@ -118,7 +119,8 @@ void Engine::wait_finish() const noexcept {
         mainThread->wait_finish();
 }
 
-std::optional<Error> Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
+std::optional<Error> Engine::setup(const std::string_view          fen,
+                                   const std::vector<std::string>& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<State::List>(1);
 

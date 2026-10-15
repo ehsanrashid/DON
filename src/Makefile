@@ -107,7 +107,8 @@ SRCS := \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
-    utility/debug.cpp utility/mutex.cpp utility/prng.cpp
+    utility/command_line.cpp utility/cpu.cpp utility/debug.cpp utility/mutex.cpp utility/prng.cpp \
+    utility/types.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -116,16 +117,20 @@ UNIVERSAL_SRCS := \
     universal/nnue_embed.cpp
 
 HEADERS := \
-    attacks.h benchmark.h bitboard.h cuckoo.h engine.h evaluate.h history.h memory.h misc.h movegen.h movepick.h \
-    native_thread.h notation.h numa.h option.h perft.h platform_win.h position.h search.h \
-    shm.h state.h thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
+    attacks.h benchmark.h bitboard.h cuckoo.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
+    movepick.h native_thread.h notation.h numa.h option.h perft.h position.h search.h shm.h state.h \
+    thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \
-    nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
-    nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
-    nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/types.h nnue/serialization.h nnue/simd.h \
+    nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h \
+    nnue/layers/sparse_affine_transform.h nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
+    nnue/accumulator.h nnue/architecture.h nnue/feature_transformer.h nnue/network.h nnue/nnz.h \
+    nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
-    utility/attributes.h utility/channel.h utility/color.h utility/concurrent.h utility/debug.h utility/error.h utility/list.h \
-    utility/lru.h utility/multi_array.h utility/mutex.h utility/prng.h utility/queue.h utility/thread_attributes.h utility/types.h
+    utility/access.h utility/attributes.h utility/channel.h utility/color.h utility/command_line.h \
+    utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h utility/error.h utility/list.h \
+    utility/lru.h utility/map.h utility/multi_array.h utility/mutex.h utility/platform_win.h utility/prng.h \
+    utility/queue.h utility/static_vector.h utility/store.h utility/thread_attributes.h utility/types.h \
+    utility/unordered_map.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
