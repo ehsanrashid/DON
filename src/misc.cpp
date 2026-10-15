@@ -33,7 +33,7 @@
 #endif
 
 #include "utility/color.h"
-#include "utility/concurrent.h"  // ConcurrentMap<>
+#include "utility/store.h"
 
 namespace DON {
 
@@ -563,13 +563,13 @@ namespace {
 // Lifetime:
 //  - The map does not own the std::ostream objects.
 //  - Mutexes remain in the map for the lifetime of the process.
-ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
+Store<std::ostream*, std::mutex> OStreamMutexes{usize{16}, 0.75f};
 
 }  // namespace
 
 SyncOS::SyncOS(std::ostream& os) noexcept :
     osPtr{&os},
-    uniqueLock{OsToMutex.get(osPtr)} {}
+    uniqueLock{OStreamMutexes.get(osPtr).get()} {}
 
 SyncOS::SyncOS(SyncOS&& syncOs) noexcept :
     osPtr{std::exchange(syncOs.osPtr, nullptr)},

@@ -21,6 +21,7 @@
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
+#include <unordered_map>
 #include <utility>
 
 #include "../utility/access.h"
@@ -28,7 +29,10 @@
 
 namespace DON {
 
-template<typename Key, typename Value, typename Map, typename Mutex = std::shared_mutex>
+template<typename Key,
+         typename Value,
+         typename Map   = std::unordered_map<Key, Value>,
+         typename Mutex = std::shared_mutex>
 class Store final {
    public:
     using key_type        = Key;
@@ -169,8 +173,7 @@ class Store final {
     static void configure_map(Map&, usize, float, long) noexcept {}
 
     mutable Mutex mutex;
-
-    Map map;
+    Map           map;
 };
 
 }  // namespace DON

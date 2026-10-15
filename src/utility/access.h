@@ -28,13 +28,13 @@ namespace DON {
 template<typename Value, typename Mutex>
 class ReadAccess final {
    public:
-    ReadAccess(const Value& value, Mutex& mutex) :
-        sharedLock(mutex),
-        value(value) {}
+    ReadAccess(const Value& valueRef, Mutex& mutex) :
+        value(valueRef),
+        sharedLock(mutex) {}
 
-    ReadAccess(const Value& value, std::shared_lock<Mutex>&& sharedLock) :
-        sharedLock(std::move(sharedLock)),
-        value(value) {}
+    ReadAccess(const Value& valueRef, std::shared_lock<Mutex>&& sharedLockRef) :
+        value(valueRef),
+        sharedLock(std::move(sharedLockRef)) {}
 
     ReadAccess(const ReadAccess&) noexcept            = delete;
     ReadAccess& operator=(const ReadAccess&) noexcept = delete;
@@ -58,20 +58,20 @@ class ReadAccess final {
     [[nodiscard]] const Value& operator*() const noexcept { return value; }
 
    private:
-    std::shared_lock<Mutex> sharedLock;
     const Value&            value;
+    std::shared_lock<Mutex> sharedLock;
 };
 
 template<typename Value, typename Mutex>
 class WriteAccess final {
    public:
-    WriteAccess(Value& value, Mutex& mutex) :
+    WriteAccess(Value& valueRef, Mutex& mutex) :
         uniqueLock(mutex),
-        value(value) {}
+        value(valueRef) {}
 
-    WriteAccess(Value& value, std::unique_lock<Mutex>&& uniqueLock) :
-        uniqueLock(std::move(uniqueLock)),
-        value(value) {}
+    WriteAccess(Value& valueRef, std::unique_lock<Mutex>&& uniqueLockRef) :
+        uniqueLock(std::move(uniqueLockRef)),
+        value(valueRef) {}
 
     WriteAccess(const WriteAccess&) noexcept            = delete;
     WriteAccess& operator=(const WriteAccess&) noexcept = delete;
@@ -90,9 +90,9 @@ class WriteAccess final {
 
     [[nodiscard]] Value& get() const noexcept { return value; }
 
-    [[nodiscard]] Value* operator->() noexcept { return &value; }
+    [[nodiscard]] Value* operator->() const noexcept { return &value; }
 
-    [[nodiscard]] Value& operator*() noexcept { return value; }
+    [[nodiscard]] Value& operator*() const noexcept { return value; }
 
    private:
     std::unique_lock<Mutex> uniqueLock;

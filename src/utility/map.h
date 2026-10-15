@@ -132,8 +132,7 @@ class Map final {
 
    private:
     mutable Mutex mutex;
-
-    map_type map;
+    map_type      map;
 };
 
 }  // namespace DON
