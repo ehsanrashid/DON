@@ -47,7 +47,7 @@ OStreamMutexStore& ostream_mutex_store() noexcept {
 }
 
 std::mutex& get_ostream_mutex(std::ostream* const os) noexcept {
-    return ostream_mutex_store().get(os).get();
+    return ostream_mutex_store().read_or_write_default(os);
 }
 
 }  // namespace
