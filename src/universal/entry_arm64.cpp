@@ -16,7 +16,7 @@
 */
 
 #if defined(_WIN32)
-    #include "../platform_win.h"
+    #include "../utility/platform_win.h"
 #else
     #include <sys/auxv.h>
 #endif

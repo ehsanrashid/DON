@@ -18,7 +18,7 @@
 #ifndef UTILITY_ATTRIBUTES_H_INCLUDED
 #define UTILITY_ATTRIBUTES_H_INCLUDED
 
-#include "platform.h"
+#include "../utility/environment.h"
 
 // Enable GNU-style compiler attributes for Clang and GCC, excluding SWIG.
 // Unsupported compilers and SWIG receive an empty attribute macro.

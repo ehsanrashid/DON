@@ -20,8 +20,8 @@
 #include <cassert>
 
 #if defined(_WIN32)
-    #include "../platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
-    #include <shellapi.h>         // CommandLineToArgvW()
+    #include "../utility/platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
+    #include <shellapi.h>                 // CommandLineToArgvW()
 #endif
 
 #include "../utility/types.h"

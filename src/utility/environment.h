@@ -15,8 +15,21 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_PLATFORM_H_INCLUDED
-#define UTILITY_PLATFORM_H_INCLUDED
+#ifndef UTILITY_ENVIRONMENT_H_INCLUDED
+#define UTILITY_ENVIRONMENT_H_INCLUDED
+
+// Architecture ---------------------------------
+
+#if defined(__i386__) || defined(_M_IX86)
+    #define X86
+    #define X86_32
+#elif defined(__x86_64__) || defined(_M_X64)
+    #define X86
+    #define X86_64
+#endif
+
+
+// Compiler  ------------------------------------
 
 #if defined(__clang__) || defined(__GNUC__)
     #define CLANG_OR_GCC
@@ -34,16 +47,11 @@
     #define GCC_NON_INTEL_LLVM
 #endif
 
-#if defined(__i386__) || defined(_M_IX86)
-    #define X86
-    #define X86_32
-#elif defined(__x86_64__) || defined(_M_X64)
-    #define X86
-    #define X86_64
-#endif
+
+// Platform -------------------------------------
 
 #if defined(__linux__) && !defined(__ANDROID__)
     #define LINUX_NON_ANDROID
 #endif
 
-#endif  // UTILITY_PLATFORM_H_INCLUDED
+#endif  // UTILITY_ENVIRONMENT_H_INCLUDED

@@ -47,7 +47,7 @@ void SpinMutex::lock() noexcept {
                 {
                     yields = 0;
 
-                    std::this_thread::sleep_for(std::chrono::microseconds(SleepIntervalUs));
+                    std::this_thread::sleep_for(std::chrono::microseconds(SleepTimeUs));
                     continue;
                 }
 

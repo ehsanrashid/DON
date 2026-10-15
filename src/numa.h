@@ -38,7 +38,7 @@
     #include <type_traits>
 #endif
 
-#include "utility/platform.h"
+#include "utility/environment.h"
 
 #if !defined(_WIN64)              /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID)) /* Linux (Non-Android) */

@@ -27,7 +27,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "utility/platform.h"
+#include "utility/environment.h"
 
 #if defined(LINUX_NON_ANDROID)
     #include <sys/types.h>  // off_t

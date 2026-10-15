@@ -56,9 +56,9 @@ class LOCKABLE SpinMutex final {
     SpinMutex(SpinMutex&&) noexcept                 = delete;
     SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
 
-    static constexpr usize SpinsMax        = 512;
-    static constexpr usize YieldsMax       = 8;
-    static constexpr usize SleepIntervalUs = 5;
+    static constexpr usize SpinsMax    = 512;
+    static constexpr usize YieldsMax   = 8;
+    static constexpr usize SleepTimeUs = 5;
 
     std::atomic<bool> locked{false};
 };

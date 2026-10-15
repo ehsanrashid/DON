@@ -18,7 +18,7 @@
 #include "../utility/types.h"
 
 #if defined(_WIN32)
-    #include "../platform_win.h"  // WideCharToMultiByte()
+    #include "../utility/platform_win.h"  // WideCharToMultiByte()
 #endif
 
 namespace DON {

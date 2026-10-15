@@ -35,7 +35,7 @@
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
-#include "../utility/platform.h"
+#include "../utility/environment.h"
 #include "../utility/prng.h"
 #include "../utility/types.h"
 

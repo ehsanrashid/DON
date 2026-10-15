@@ -20,10 +20,10 @@
 #include <cstdlib>  // exit(), malloc(), free(), std::aligned_alloc()
 #include <iostream>
 
+
 #if defined(_WIN32)
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
-
-    #include "platform_win.h"
+    #include "utility/platform_win.h"
 #else
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // glibc feature-test macros

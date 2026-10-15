@@ -37,18 +37,18 @@
 #include <utility>
 #include <vector>
 
-#include "utility/platform.h"
+#include "utility/environment.h"
 
-#if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+#if defined(X86) && defined(USE_PREFETCH) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
     #define USE_X86_PREFETCH
 #endif
 
 #if defined(_WIN32)
-    #include "platform_win.h"  // GetCommandLineW(), PreFetchCacheLine()
+    #include "utility/platform_win.h"  // PreFetchCacheLine()
 #endif
 
 #if defined(USE_X86_PREFETCH)
-    #if !(defined(_MSC_VER) && defined(_WIN32))
+    #if !defined(_MSC_VER)
         #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
     #endif
 #endif
@@ -232,10 +232,10 @@ inline void prefetch(const void* addr) noexcept {
     }();
 
         #if defined(_MSC_VER)
-    PreFetchCacheLine(Hint, addr);
+    ::PreFetchCacheLine(Hint, addr);
 
         #else
-    _mm_prefetch(static_cast<const char*>(addr), Hint);
+    ::_mm_prefetch(static_cast<const char*>(addr), Hint);
 
         #endif
 

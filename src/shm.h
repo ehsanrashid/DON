@@ -28,7 +28,7 @@
 #include <variant>      // monostate, visit(), variant<>
 #include <vector>
 
-#include "utility/platform.h"
+#include "utility/environment.h"
 
 #if !defined(_WIN32)             /* Non-Windows */ \
   && (defined(LINUX_NON_ANDROID) /* Linux (Non-Android) */ \
@@ -50,7 +50,7 @@
 #endif
 
 #if defined(_WIN32)
-    #include "platform_win.h"
+    #include "utility/platform_win.h"
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>       // open(), fcntl(), FD_CLOEXEC
     #include <limits.h>      // PATH_MAX, NAME_MAX

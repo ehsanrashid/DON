@@ -17,17 +17,19 @@
 
 #include "../utility/cpu.h"
 
-#include "../utility/platform.h"
+#include "../utility/environment.h"
 
 #if defined(X86)
     #if defined(_MSC_VER)
         #include <emmintrin.h>  // _mm_pause() intrinsic
     #endif
+#elif defined(__aarch64__) || defined(_M_ARM64) \
+  || ((defined(__arm__) || defined(_M_ARM)) && defined(__ARM_ARCH) && __ARM_ARCH >= 7)
+    #if defined(_MSC_VER)
+        #include <intrin.h>  // __yield()
+    #endif
 #elif defined(_WIN32)
-    #include "../platform_win.h"  // YieldProcessor()
-#elif defined(_MSC_VER) \
-  && (defined(__aarch64__) || defined(_M_ARM64) || defined(__arm__) || defined(_M_ARM))
-    #include <intrin.h>  // __yield()
+    #include "../utility/platform_win.h"  // YieldProcessor()
 #endif
 
 namespace DON {
@@ -50,7 +52,7 @@ void cpu_relax() noexcept {
     __asm__ __volatile__("yield");
     #endif
     // ARM32 (ARMv7+)
-#elif (defined(__arm__) || defined(_M_ARM)) && defined(__ARM_ARCH) && (__ARM_ARCH >= 7)
+#elif (defined(__arm__) || defined(_M_ARM)) && defined(__ARM_ARCH) && __ARM_ARCH >= 7
     #if defined(_MSC_VER)
     __yield();
     #elif defined(CLANG_OR_GCC)
@@ -83,7 +85,7 @@ void cpu_relax() noexcept {
     __asm__ __volatile__("" ::: "memory");
     // Windows fallback
 #elif defined(_WIN32)
-    YieldProcessor();
+    ::YieldProcessor();
     // Compiler barrier when no architecture-specific hint is available
 #elif defined(CLANG_OR_GCC)
     __asm__ __volatile__("" ::: "memory");
