@@ -17,8 +17,6 @@
 
 #include "../utility/sync_ostream.h"
 
-#include <utility>
-
 #include "../utility/store.h"
 #include "../utility/types.h"
 

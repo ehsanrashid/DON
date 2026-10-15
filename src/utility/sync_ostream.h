@@ -18,10 +18,10 @@
 #ifndef UTILITY_SYNC_OSTREAM_H_INCLUDED
 #define UTILITY_SYNC_OSTREAM_H_INCLUDED
 
-#include <mutex>
+#include <cassert>
 #include <iostream>
-
-#include "../utility/types.h"
+#include <mutex>
+#include <utility>
 
 namespace DON {
 

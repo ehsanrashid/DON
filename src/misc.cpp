@@ -22,6 +22,7 @@
 #include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
 #include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
+#include <iostream>      // cout, cin
 #include <limits>        // numeric_limits<>
 #include <system_error>  // errc
 
