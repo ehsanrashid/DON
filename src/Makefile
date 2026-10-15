@@ -108,7 +108,7 @@ SRCS := \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
     utility/command_line.cpp utility/cpu.cpp utility/debug.cpp utility/mutex.cpp utility/prng.cpp \
-    utility/types.h
+    utility/types.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
