@@ -81,19 +81,25 @@ class StaticVector final {
         size_ += int(value < maxValue);
     }
 
+    void remove(const SizeType idx) noexcept {
+        assert(idx < size());
+
+        for (SizeType i = idx + 1; i < size_; ++i)
+            buffer[i - 1] = std::move(buffer[i]);
+
+        --size_;
+    }
+
     void pop_back() noexcept {
         assert(size() != 0);
 
-        --size_;
+        remove(size() - 1);
     }
 
     void pop_front() noexcept {
         assert(size() != 0);
 
-        for (SizeType i = 1; i < size(); ++i)
-            buffer[i - 1] = std::move(buffer[i]);
-
-        --size_;
+        remove(0);
     }
 
     T& front() noexcept {
