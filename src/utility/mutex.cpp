@@ -263,7 +263,9 @@ usize WriterSharedMutex::waiting_writer_count() const noexcept {
 // ------------------
 
 FairSharedMutex::Waiter::Waiter(bool writer_) noexcept :
-    writer(writer_) {}
+    writer(writer_) {
+    node.data = this;
+}
 
 bool FairSharedMutex::Waiter::is_writer() const noexcept { return writer; }
 
@@ -273,7 +275,7 @@ void FairSharedMutex::lock() noexcept {
     std::unique_lock uniqueLock{mutex};
 
     ++waitingWriterCount;
-    (void) waitList.push_back(writer.node, writer);
+    (void) waitList.push_back(writer.node);
 
     commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool { return can_lock(writer); });
 
@@ -309,7 +311,7 @@ void FairSharedMutex::lock_shared() noexcept {
 
     std::unique_lock uniqueLock{mutex};
 
-    (void) waitList.push_back(reader.node, reader);
+    (void) waitList.push_back(reader.node);
 
     commonCondVar.wait(uniqueLock,
                        [this, &reader]() noexcept -> bool { return can_lock_shared(reader); });
