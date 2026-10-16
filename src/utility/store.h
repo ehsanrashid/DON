@@ -18,9 +18,11 @@
 #ifndef UTILITY_STORE_H_INCLUDED
 #define UTILITY_STORE_H_INCLUDED
 
+#include <list>
+#include <memory>
 #include <mutex>
-#include <optional>
 #include <shared_mutex>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -28,140 +30,173 @@
 
 namespace DON {
 
-template<typename Key,
-         typename Value,
-         typename Map   = std::unordered_map<Key, Value>,
-         typename Mutex = std::shared_mutex>
+template<typename Key, typename Value, typename Return = Value, typename Mutex = std::shared_mutex>
 class Store final {
+    static constexpr usize ThresholdSize = 128;
+
+    using storage_value_type =
+      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::shared_ptr<Value>>;
+
+    using list_type     = std::list<storage_value_type>;
+    using list_iterator = typename list_type::iterator;
+    using map_type      = std::unordered_map<Key, list_iterator>;
+
    public:
-    using key_type        = Key;
-    using mapped_type     = Value;
-    using value_type      = typename Map::value_type;
-    using size_type       = usize;
-    using difference_type = std::ptrdiff_t;
-    using map_type        = Map;
-
-    explicit Store(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) {
-        configure_map(map, reserveCnt, maxLoadFac, 0);
-    }
-    Store(const Store&) noexcept            = delete;
-    Store& operator=(const Store&) noexcept = delete;
-    Store(Store&&) noexcept                 = delete;
-    Store& operator=(Store&&) noexcept      = delete;
-
-    // 1. Default-construct Value if the key is absent.
-    [[nodiscard]] Value& read_or_write_default(const Key& key) noexcept {
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock{mutex};
-
-            if (const auto itr = map.find(key); itr != map.end())
-                return read(itr->second);
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
+    explicit Store(const usize reserveCnt = 1024, const float maxLoadFtr = 0.75F) :
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFtr) {
         std::lock_guard lockGuard{mutex};
 
-        return write(key);
+        nolock_configure();
     }
 
-    // 2. Construct Value from arguments if the key is absent.
     template<typename... Args>
-    [[nodiscard]] Value& read_or_write(const Key& key, Args&&... args) noexcept {
-        // Fast path: check for an existing value under a shared lock.
+    Return read_or_write(const Key& key, Args&&... args) {
+        // Fast path: shared lock for an existing key.
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto itr = map.find(key); itr != map.end())
-                return read(itr->second);
+            if (const auto itr = nolock_find(key); itr != map.end())
+                return nolock_read(*itr->second);
         }
 
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
+        // Slow path: exclusive lock to insert a missing key.
         std::lock_guard lockGuard{mutex};
 
-        return write(key, std::forward<Args>(args)...);
+        return nolock_write(key, std::forward<Args>(args)...);
     }
 
-    // 3. Construct Value using a builder if the key is absent.
     template<typename Builder, typename... Args>
-    [[nodiscard]] Value&
-    read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        // Fast path: check for an existing value under a shared lock.
+    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) {
+        // Fast path: shared lock for an existing key.
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto itr = map.find(key); itr != map.end())
-                return read(itr->second);
+            if (const auto itr = nolock_find(key); itr != map.end())
+                return nolock_read(*itr->second);
         }
 
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
+        // Slow path: exclusive lock to insert a missing key.
         std::lock_guard lockGuard{mutex};
 
-        return write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
+        return nolock_write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
     }
 
-    // Returns true if the map contains the key
-    bool contains(const Key& key) const noexcept {
+    [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return map.find(key) != map.end();
+        return nolock_find(key) != map.end();
     }
 
-    // Returns the number of entries in the map
-    usize size() const noexcept {
+    [[nodiscard]] auto find(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return map.size();
+        return nolock_find(key);
     }
 
-    // Returns true if the map contains no entries
-    bool empty() const noexcept {
+    [[nodiscard]] usize size() const noexcept {
         std::shared_lock sharedLock{mutex};
+        assert(map.size() == list.size());
 
-        return map.empty();
+        return list.size();
     }
 
-    // Removes the entry associated with the key.
+    [[nodiscard]] bool empty() const noexcept {
+        std::shared_lock sharedLock{mutex};
+        assert(map.empty() == list.empty());
+
+        return list.empty();
+    }
+
     bool remove(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        return map.erase(key) != 0;
+        const auto mapItr = nolock_find(key);
+
+        if (mapItr == map.end())
+            return false;
+
+        const auto listItr = mapItr->second;
+
+        map.erase(mapItr);
+        list.erase(listItr);
+
+        return true;
     }
 
-    // Removes all entries from the map
     void clear() noexcept {
         std::lock_guard lockGuard{mutex};
 
-        map.clear();
+        nolock_clear();
+    }
+
+    void reset() {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+
+        nolock_configure();
     }
 
    private:
-    template<typename T>
-    static auto configure_map(T& map, usize reserveCount, float maxLoadFactor, int) noexcept
-      -> decltype(map.max_load_factor(maxLoadFactor), map.reserve(reserveCount), void()) {
+    auto nolock_find(const Key& key) const { return map.find(key); }
+
+    Return nolock_read(storage_value_type& value) const noexcept {
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            return value;
+        else
+            return *value;
+    }
+
+    template<typename... Args>
+    Return nolock_write(const Key& key, Args&&... args) noexcept {
+        const auto [itr, inserted] = map.try_emplace(key, list.end());
+
+        if (!inserted)
+            return nolock_read(*itr->second);
+
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            itr->second = list.emplace(list.end(), std::forward<Args>(args)...);
+        else
+            itr->second = list.emplace(list.end(), std::make_shared<Value>(  //
+                                                     std::forward<Args>(args)...));
+
+        return nolock_read(*itr->second);
+    }
+
+    template<typename Builder, typename... Args>
+    Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        const auto [itr, inserted] = map.try_emplace(key, list.end());
+
+        if (!inserted)
+            return nolock_read(*itr->second);
+
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            itr->second =
+              list.emplace(list.end(), std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        else
+            itr->second = list.emplace(list.end(), std::make_shared<Value>(std::forward<Builder>(
+                                                     builder)(std::forward<Args>(args)...)));
+
+        return nolock_read(*itr->second);
+    }
+
+    void nolock_clear() noexcept {
+        map.clear();
+        list.clear();
+    }
+
+    void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         map.reserve(reserveCount);
     }
 
-    [[nodiscard]] Value& read(Value& value) noexcept { return value; }
-
-    template<typename... Args>
-    [[nodiscard]] Value& write(const Key& key, Args&&... args) noexcept {
-        return read(map.try_emplace(key, std::forward<Args>(args)...).first->second);
-    }
-
-    template<typename Builder, typename... Args>
-    [[nodiscard]] Value& write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        if (const auto itr = map.find(key); itr != map.end())
-            return read(itr->second);
-
-        return write(key, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-    }
-
-    static void configure_map(Map&, usize, float, long) noexcept {}
+    const usize reserveCount;
+    const float maxLoadFactor;
 
     mutable Mutex mutex;
-    Map           map;
+    map_type      map;
+    list_type     list;
 };
 
 }  // namespace DON

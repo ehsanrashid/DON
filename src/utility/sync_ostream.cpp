@@ -39,7 +39,7 @@ namespace {
 // Lifetime:
 //  - Store does not own the std::ostream objects.
 //  - Mutexes remain stored until Store is destroyed.
-using OStreamMutexStore = Store<std::ostream*, std::mutex>;
+using OStreamMutexStore = Store<std::ostream*, std::mutex, std::mutex&>;
 
 OStreamMutexStore& ostream_mutex_store() noexcept {
     static OStreamMutexStore ostreamMutexStore{usize{64}, 0.75f};
@@ -47,7 +47,7 @@ OStreamMutexStore& ostream_mutex_store() noexcept {
 }
 
 std::mutex& get_ostream_mutex(std::ostream* const os) noexcept {
-    return ostream_mutex_store().read_or_write_default(os);
+    return ostream_mutex_store().read_or_write(os);
 }
 
 }  // namespace
