@@ -31,7 +31,6 @@
 #include "tt.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
-#include "utility/concurrent.h"  // ConcurrentCache<>
 #include "utility/error.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
@@ -45,9 +44,9 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-Store<Key, Value, WriterSharedMutex> NonPawnStore{32 * KB, 0.75f};
-Store<Key, Value, WriterSharedMutex> MaterialStore{16 * KB, 0.75f};
-Store<Key, Value, WriterSharedMutex> EvaluateStore{16 * KB, 0.75f};
+SharedStore<Key, Value, 32, WriterSharedMutex> NonPawnStore{32 * KB, 0.75f};
+SharedStore<Key, Value, 32, WriterSharedMutex> MaterialStore{16 * KB, 0.75f};
+SharedStore<Key, Value, 32, WriterSharedMutex> EvaluateStore{16 * KB, 0.75f};
 
 }  // namespace
 
