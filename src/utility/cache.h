@@ -45,18 +45,37 @@ class LRUCache final {
     using list_iterator   = typename list_type::iterator;
     using map_type        = std::unordered_map<Key, list_iterator>;
 
+    class MapGuard final {
+       public:
+        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+            map(mapRef),
+            iterator(mapItr) {}
+
+        ~MapGuard() noexcept {
+            if (active)
+                map.erase(iterator);
+        }
+
+        void commit() noexcept { active = false; }
+
+       private:
+        map_type&                   map;
+        typename map_type::iterator iterator;
+        bool                        active = true;
+    };
+
    public:
     explicit LRUCache(const usize cap        = 2 * KB,
                       const usize reserveCnt = 1 * KB,
                       const float maxLoadFac = 0.75F) :
-        capacity(cap),
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
+        set_capacity(cap);
         configure();
     }
 
     template<typename... Args>
-    Return read_or_write(const Key& key, Args&&... args) {
+    Return read_or_write(const Key& key, Args&&... args) noexcept {
         // Fast path: shared lock for an existing key.
         {
             std::shared_lock sharedLock{mutex};
@@ -68,8 +87,12 @@ class LRUCache final {
 
                 std::lock_guard lockGuard{mutex};
 
-                return nolock_read(
-                  nolock_write_touch(mapItr->second, key, std::forward<Args>(args)...));
+                const auto currentMapItr = nolock_find(key);
+
+                if (currentMapItr != nolock_map_end())
+                    return nolock_read(nolock_touch(currentMapItr->second));
+
+                return nolock_write(key, std::forward<Args>(args)...);
             }
         }
 
@@ -80,7 +103,7 @@ class LRUCache final {
     }
 
     template<typename Builder, typename... Args>
-    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) {
+    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         // Fast path: shared lock for an existing key.
         {
             std::shared_lock sharedLock{mutex};
@@ -92,9 +115,13 @@ class LRUCache final {
 
                 std::lock_guard lockGuard{mutex};
 
-                return nolock_read(nolock_write_touch_with(mapItr->second, key,
-                                                           std::forward<Builder>(builder),
-                                                           std::forward<Args>(args)...));
+                const auto currentMapItr = nolock_find(key);
+
+                if (currentMapItr != nolock_map_end())
+                    return nolock_read(nolock_touch(currentMapItr->second));
+
+                return nolock_write_with(key, std::forward<Builder>(builder),
+                                         std::forward<Args>(args)...);
             }
         }
 
@@ -129,16 +156,24 @@ class LRUCache final {
         nolock_evict_excess(capacity);
     }
 
-    [[nodiscard]] bool contains(const Key& key) const noexcept {
+    // The returned iterator does not retain the lock; callers must prevent concurrent mutation
+    // while using it.
+    [[nodiscard]] auto find(const Key& key) noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return nolock_find(key) != nolock_map_end();
+        return nolock_find(key);
     }
 
     [[nodiscard]] auto find(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return nolock_find(key);
+    }
+
+    [[nodiscard]] bool contains(const Key& key) const noexcept {
+        std::shared_lock sharedLock{mutex};
+
+        return nolock_find(key) != nolock_map_end();
     }
 
     [[nodiscard]] usize size() const noexcept {
@@ -155,7 +190,7 @@ class LRUCache final {
         return list.empty();
     }
 
-    bool remove(const Key& key) noexcept {
+    [[nodiscard]] bool remove(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
         return nolock_remove(key);
@@ -240,10 +275,15 @@ class LRUCache final {
 
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
+        if (capacity == 0)
+            return Return{std::forward<Args>(args)...};
+
         const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
+
+        MapGuard mapGuard{map, mapItr};
 
         if constexpr (sizeof(Value) <= ThresholdSize)
             mapItr->second = list.emplace(nolock_list_pos(),  //
@@ -254,7 +294,7 @@ class LRUCache final {
                                           key,                      //
                                           std::make_shared<Value>(  //
                                             std::forward<Args>(args)...));
-        assert(capacity != 0);
+        mapGuard.commit();
         nolock_evict_excess(capacity);
 
         return nolock_read(mapItr->second);
@@ -262,10 +302,15 @@ class LRUCache final {
 
     template<typename Builder, typename... Args>
     Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        if (capacity == 0)
+            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
         const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
+
+        MapGuard mapGuard{map, mapItr};
 
         if constexpr (sizeof(Value) <= ThresholdSize)
             mapItr->second = list.emplace(nolock_list_pos(),      //
@@ -278,7 +323,7 @@ class LRUCache final {
                                           std::make_shared<Value>(  //
                                             std::forward<Builder>(  //
                                               builder)(std::forward<Args>(args)...)));
-        assert(capacity != 0);
+        mapGuard.commit();
         nolock_evict_excess(capacity);
 
         return nolock_read(mapItr->second);
@@ -323,11 +368,11 @@ class LRUCache final {
         map.reserve(reserveCount);
     }
 
-    usize       capacity;
     const usize reserveCount;
     const float maxLoadFactor;
 
     mutable Mutex mutex;
+    usize         capacity;
     map_type      map;
     list_type     list;
 };
@@ -354,9 +399,28 @@ class SharedLRUCache final {
 
     struct Shard final {
         mutable Mutex mutex;
+        usize         capacity;
         map_type      map;
         list_type     list;
-        usize         capacity;
+
+        class MapGuard final {
+           public:
+            MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+                map(mapRef),
+                iterator(mapItr) {}
+
+            ~MapGuard() noexcept {
+                if (active)
+                    map.erase(iterator);
+            }
+
+            void commit() noexcept { active = false; }
+
+           private:
+            map_type&                   map;
+            typename map_type::iterator iterator;
+            bool                        active = true;
+        };
 
         template<typename... Args>
         Return read_or_write(const Key& key, Args&&... args) noexcept {
@@ -414,13 +478,60 @@ class SharedLRUCache final {
             nolock_evict_excess(size);
         }
 
-        bool contains(const Key& key) const noexcept {
-            std::shared_lock lockGuard{mutex};
+        void evict_excess() noexcept {
+            std::lock_guard lockGuard{mutex};
+
+            nolock_evict_excess(capacity);
+        }
+
+        [[nodiscard]] usize get_capacity() const noexcept {
+            std::shared_lock sharedLock{mutex};
+
+            return capacity;
+        }
+
+        void set_capacity(const usize size) noexcept {
+            std::lock_guard lockGuard{mutex};
+
+            capacity = size;
+            nolock_evict_excess(capacity);
+        }
+
+        // The returned iterator does not retain the lock; callers must prevent concurrent
+        // mutation while using it.
+        [[nodiscard]] auto find(const Key& key) noexcept {
+            std::shared_lock sharedLock{mutex};
+
+            return nolock_find(key);
+        }
+
+        [[nodiscard]] auto find(const Key& key) const noexcept {
+            std::shared_lock sharedLock{mutex};
+
+            return nolock_find(key);
+        }
+
+        [[nodiscard]] bool contains(const Key& key) const noexcept {
+            std::shared_lock sharedLock{mutex};
 
             return nolock_find(key) != nolock_map_end();
         }
 
-        bool remove(const Key& key) noexcept {
+        [[nodiscard]] usize size() const noexcept {
+            std::shared_lock sharedLock{mutex};
+            assert(map.size() == list.size());
+
+            return list.size();
+        }
+
+        [[nodiscard]] bool empty() const noexcept {
+            std::shared_lock sharedLock{mutex};
+            assert(map.empty() == list.empty());
+
+            return list.empty();
+        }
+
+        [[nodiscard]] bool remove(const Key& key) noexcept {
             std::lock_guard lockGuard{mutex};
 
             return nolock_remove(key);
@@ -432,29 +543,22 @@ class SharedLRUCache final {
             nolock_clear();
         }
 
-        usize size() const noexcept {
-            std::shared_lock lockGuard{mutex};
-
-            return list.size();
-        }
-
-        bool empty() const noexcept {
-            std::shared_lock lockGuard{mutex};
-
-            return list.empty();
-        }
-
-        void configure(const usize shardCapacity,
-                       const usize reserveCnt,
-                       const float maxLoadFac) noexcept {
+        void configure(const usize reserveCnt, const float maxLoadFac) noexcept {
             std::lock_guard lockGuard{mutex};
 
-            capacity = shardCapacity;
             nolock_configure(reserveCnt, maxLoadFac);
-            nolock_evict_excess(capacity);
         }
 
        private:
+        auto nolock_map_end() const noexcept { return map.end(); }
+
+        auto nolock_list_end() noexcept { return list.end(); }
+
+        auto nolock_list_pos() noexcept { return list.begin(); }
+
+        auto nolock_find(const Key& key) noexcept { return map.find(key); }
+        auto nolock_find(const Key& key) const noexcept { return map.find(key); }
+
         list_iterator nolock_touch(list_iterator listItr) noexcept {
             assert(listItr != nolock_list_end());
 
@@ -507,23 +611,25 @@ class SharedLRUCache final {
             if (capacity == 0)
                 return Return{std::forward<Args>(args)...};
 
-            const auto [itr, inserted] = map.try_emplace(key, nolock_list_end());
+            const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
             if (!inserted)
-                return nolock_read(nolock_touch(itr->second));
+                return nolock_read(nolock_touch(mapItr->second));
+
+            MapGuard mapGuard{map, mapItr};
 
             if constexpr (sizeof(Value) <= ThresholdSize)
-                itr->second = list.emplace(nolock_list_pos(),  //
-                                           key,                //
-                                           std::forward<Args>(args)...);
+                mapItr->second = list.emplace(nolock_list_pos(),  //
+                                              key,                //
+                                              std::forward<Args>(args)...);
             else
-                itr->second = list.emplace(nolock_list_pos(),  //
-                                           key,                //
-                                           std::make_shared<Value>(std::forward<Args>(args)...));
-
+                mapItr->second = list.emplace(nolock_list_pos(),  //
+                                              key,                //
+                                              std::make_shared<Value>(std::forward<Args>(args)...));
+            mapGuard.commit();
             nolock_evict_excess(capacity);
 
-            return nolock_read(itr->second);
+            return nolock_read(mapItr->second);
         }
 
         template<typename Builder, typename... Args>
@@ -531,43 +637,39 @@ class SharedLRUCache final {
             if (capacity == 0)
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            const auto [itr, inserted] = map.try_emplace(key, nolock_list_end());
+            const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
             if (!inserted)
-                return nolock_read(nolock_touch(itr->second));
+                return nolock_read(nolock_touch(mapItr->second));
+
+            MapGuard mapGuard{map, mapItr};
 
             if constexpr (sizeof(Value) <= ThresholdSize)
-                itr->second = list.emplace(nolock_list_pos(),      //
-                                           key,                    //
-                                           std::forward<Builder>(  //
-                                             builder)(std::forward<Args>(args)...));
+                mapItr->second = list.emplace(nolock_list_pos(),      //
+                                              key,                    //
+                                              std::forward<Builder>(  //
+                                                builder)(std::forward<Args>(args)...));
             else
-                itr->second = list.emplace(nolock_list_pos(),                 //
-                                           key,                               //
-                                           std::make_shared<Value>(           //
-                                             std::forward<Builder>(builder)(  //
-                                               std::forward<Args>(args)...)));
-
+                mapItr->second = list.emplace(nolock_list_pos(),                 //
+                                              key,                               //
+                                              std::make_shared<Value>(           //
+                                                std::forward<Builder>(builder)(  //
+                                                  std::forward<Args>(args)...)));
+            mapGuard.commit();
             nolock_evict_excess(capacity);
 
-            return nolock_read(itr->second);
+            return nolock_read(mapItr->second);
         }
 
-        auto nolock_map_end() const noexcept { return map.end(); }
-
-        auto nolock_list_end() noexcept { return list.end(); }
-
-        auto nolock_list_pos() noexcept { return list.begin(); }
-
-        auto nolock_find(const Key& key) noexcept { return map.find(key); }
-        auto nolock_find(const Key& key) const noexcept { return map.find(key); }
-
         void nolock_erase(typename map_type::iterator mapItr) noexcept {
-            list.erase(mapItr->second);
+            const auto listItr = mapItr->second;
+
             map.erase(mapItr);
+            list.erase(listItr);
         }
 
         void nolock_evict_excess(const usize size) noexcept {
+
             for (auto listSize = list.size(); listSize > size; --listSize)
             {
                 const auto mapItr = nolock_find(std::prev(nolock_list_end())->first);
@@ -578,12 +680,12 @@ class SharedLRUCache final {
         }
 
         bool nolock_remove(const Key& key) noexcept {
-            const auto itr = nolock_find(key);
+            const auto mapItr = nolock_find(key);
 
-            if (itr == nolock_map_end())
+            if (mapItr == nolock_map_end())
                 return false;
 
-            nolock_erase(itr);
+            nolock_erase(mapItr);
 
             return true;
         }
@@ -605,34 +707,28 @@ class SharedLRUCache final {
     explicit SharedLRUCache(const usize cap        = 2 * KB,
                             const usize reserveCnt = 1 * KB,
                             const float maxLoadFac = 0.75F) :
-        capacity(cap),
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
+        set_capacity(cap);
         configure();
     }
 
     template<typename... Args>
-    Return read_or_write(const Key& key, Args&&... args) {
-        return nolock_shard(key).read_or_write(key, std::forward<Args>(args)...);
+    Return read_or_write(const Key& key, Args&&... args) noexcept {
+        return shard(key).read_or_write(key, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
-    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) {
-        return nolock_shard(key).read_or_write_with(key, std::forward<Builder>(builder),
-                                                    std::forward<Args>(args)...);
+    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        return shard(key).read_or_write_with(key, std::forward<Builder>(builder),
+                                             std::forward<Args>(args)...);
     }
-
-    [[nodiscard]] bool contains(const Key& key) const noexcept {
-        return nolock_shard(key).contains(key);
-    }
-
-    bool remove(const Key& key) noexcept { return nolock_shard(key).remove(key); }
 
     void evict_excess(const usize size) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        for (auto& shard : shards)
-            shard.evict_excess(ceil_div(size, ShardCount));
+        for (usize index = 0; index < ShardCount; ++index)
+            shards[index].evict_excess(shard_capacity(size, index));
     }
 
     void evict_excess() noexcept { evict_excess(get_capacity()); }
@@ -642,9 +738,8 @@ class SharedLRUCache final {
 
         capacity = cap;
 
-        for (auto& shard : shards)
-            shard.configure(ceil_div(capacity, ShardCount), ceil_div(reserveCount, ShardCount),
-                            maxLoadFactor);
+        for (usize index = 0; index < ShardCount; ++index)
+            shards[index].set_capacity(shard_capacity(capacity, index));
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
@@ -652,6 +747,14 @@ class SharedLRUCache final {
 
         return capacity;
     }
+
+    // The returned iterator does not retain the shard lock; callers must prevent concurrent
+    // mutation of this key's shard while using it.
+    [[nodiscard]] auto find(const Key& key) noexcept { return shard(key).find(key); }
+
+    [[nodiscard]] auto find(const Key& key) const noexcept { return shard(key).find(key); }
+
+    [[nodiscard]] bool contains(const Key& key) const noexcept { return shard(key).contains(key); }
 
     [[nodiscard]] usize size() const noexcept {
         usize count = 0;
@@ -670,6 +773,8 @@ class SharedLRUCache final {
         return true;
     }
 
+    bool remove(const Key& key) noexcept { return shard(key).remove(key); }
+
     void clear() noexcept {
         for (auto& shard : shards)
             shard.clear();
@@ -678,9 +783,8 @@ class SharedLRUCache final {
     void configure() noexcept {
         std::lock_guard lockGuard{mutex};
 
-        for (auto& shard : shards)
-            shard.configure(ceil_div(capacity, ShardCount), ceil_div(reserveCount, ShardCount),
-                            maxLoadFactor);
+        for (usize index = 0; index < ShardCount; ++index)
+            shards[index].configure(ceil_div(reserveCount, ShardCount), maxLoadFactor);
     }
 
     void reset() noexcept {
@@ -689,21 +793,25 @@ class SharedLRUCache final {
     }
 
    private:
+    static constexpr usize shard_capacity(const usize totalCapacity, const usize index) noexcept {
+        return totalCapacity / ShardCount + int(index < totalCapacity % ShardCount);
+    }
+
     static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
 
-    [[nodiscard]] Shard& nolock_shard(const Key& key) noexcept {
+    [[nodiscard]] Shard& shard(const Key& key) noexcept {
         return shards[hash_key(key) & ShardMask];
     }
 
-    [[nodiscard]] const Shard& nolock_shard(const Key& key) const noexcept {
+    [[nodiscard]] const Shard& shard(const Key& key) const noexcept {
         return shards[hash_key(key) & ShardMask];
     }
 
-    mutable Mutex mutex;
-    usize         capacity;
-    const usize   reserveCount;
-    const float   maxLoadFactor;
+    const usize reserveCount;
+    const float maxLoadFactor;
 
+    mutable Mutex    mutex;
+    usize            capacity;
     shard_array_type shards;
 };
 
