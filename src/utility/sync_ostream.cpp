@@ -17,6 +17,8 @@
 
 #include "../utility/sync_ostream.h"
 
+#include <shared_mutex>
+
 #include "../utility/store.h"
 #include "../utility/types.h"
 

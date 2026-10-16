@@ -256,10 +256,10 @@ class SharedStore final {
             nolock_clear();
         }
 
-        void configure(const usize reserveCount, const float maxLoadFactor) noexcept {
+        void configure(const usize reserveCnt, const float maxLoadFac) noexcept {
             std::lock_guard lockGuard{mutex};
 
-            nolock_configure(reserveCount, maxLoadFactor);
+            nolock_configure(reserveCnt, maxLoadFac);
         }
 
         auto nolock_map_end() const noexcept { return map.end(); }
@@ -290,9 +290,9 @@ class SharedStore final {
             list.clear();
         }
 
-        void nolock_configure(const usize reserveCount, const float maxLoadFactor) noexcept {
-            map.max_load_factor(maxLoadFactor);
-            map.reserve(reserveCount);
+        void nolock_configure(const usize reserveCnt, const float maxLoadFac) noexcept {
+            map.max_load_factor(maxLoadFac);
+            map.reserve(reserveCnt);
         }
     };
 
