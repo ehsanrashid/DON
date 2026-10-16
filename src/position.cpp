@@ -34,6 +34,8 @@
 #include "utility/concurrent.h"  // ConcurrentCache<>
 #include "utility/error.h"
 #include "utility/multi_array.h"
+#include "utility/mutex.h"
+#include "utility/store.h"
 
 namespace DON {
 
@@ -43,9 +45,9 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-ConcurrentCache<Key, Value> NonPawnCache{32 * KB, 0.75f};
-ConcurrentCache<Key, Value> MaterialCache{16 * KB, 0.75f};
-ConcurrentCache<Key, Value> EvaluateCache{16 * KB, 0.75f};
+Store<Key, Value, WriterSharedMutex> NonPawnStore{32 * KB, 0.75f};
+Store<Key, Value, WriterSharedMutex> MaterialStore{16 * KB, 0.75f};
+Store<Key, Value, WriterSharedMutex> EvaluateStore{16 * KB, 0.75f};
 
 }  // namespace
 
@@ -57,9 +59,9 @@ void Position::init() noexcept {
 }
 
 void Position::reset() noexcept {
-    NonPawnCache.reset();
-    MaterialCache.reset();
-    EvaluateCache.reset();
+    NonPawnStore.reset();
+    MaterialStore.reset();
+    EvaluateStore.reset();
 }
 
 void Position::clear() noexcept {
@@ -105,7 +107,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     //    Following X-FEN standard, this is recorded only if there is a pawn in position
     //    to make an en-passant capture, and if there really is a pawn that might have advanced 2-squares.
     //
-    // 5) Halfmove clock. The number of halfmoves since the last pawn advance or capture.
+    // 5) Halfmove clock. The number of half moves since the last pawn advance or capture.
     //    This is used to determine if a draw can be claimed under the fifty-move rule.
     //
     // 6) Fullmove number. The number of the full move.
@@ -1399,7 +1401,7 @@ bool Position::fork(const Move m) const noexcept {
 }
 
 Value Position::non_pawn_value(const Color c) const noexcept {
-    return NonPawnCache.access_or_build_with(
+    return NonPawnStore.read_or_write_with(
       material_key(c),
       [this](const Color c_) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
@@ -1413,20 +1415,19 @@ Value Position::non_pawn_value(const Color c) const noexcept {
 }
 
 Value Position::material_value() const noexcept {
-    return MaterialCache.access_or_build_with(
-      material_key(), [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
+    return MaterialStore.read_or_write_with(
+      material_key(),  //
+      [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
 }
 
 Value Position::evaluate() const noexcept {
-    const Color ac          = active_color();
-    const Key   materialKey = material_key() ^ (ac == BLACK ? Zobrist_.turn() : 0);
-    return EvaluateCache.access_or_build_with(  //
-      materialKey,
-      [this](const Color ac_) noexcept -> Value {
-          return VALUE_PAWN * (count(ac_, PAWN) - count(~ac_, PAWN))
-               + (non_pawn_value(ac_) - non_pawn_value(~ac_));
-      },
-      ac);
+    return EvaluateStore.read_or_write_with(
+      material_key() ^ (active_color() == BLACK ? Zobrist_.turn() : 0),  //
+      [this]() noexcept -> Value {
+          const Color ac = active_color();
+          return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
+               + (non_pawn_value(ac) - non_pawn_value(~ac));
+      });
 }
 
 Key Position::key() const noexcept { return raw_key() ^ Zobrist_.mr50(rule50_count()); }

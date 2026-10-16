@@ -18,6 +18,7 @@
 #ifndef UTILITY_STORE_H_INCLUDED
 #define UTILITY_STORE_H_INCLUDED
 
+#include <cassert>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -30,7 +31,7 @@
 
 namespace DON {
 
-template<typename Key, typename Value, typename Return = Value, typename Mutex = std::shared_mutex>
+template<typename Key, typename Value, typename Mutex = std::shared_mutex, typename Return = Value>
 class Store final {
     static constexpr usize ThresholdSize = 128;
 
@@ -42,9 +43,9 @@ class Store final {
     using map_type      = std::unordered_map<Key, list_iterator>;
 
    public:
-    explicit Store(const usize reserveCnt = 1024, const float maxLoadFtr = 0.75F) :
+    explicit Store(const usize reserveCnt = 1 * KB, const float maxLoadFac = 0.75F) :
         reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFtr) {
+        maxLoadFactor(maxLoadFac) {
         std::lock_guard lockGuard{mutex};
 
         nolock_configure();
@@ -56,8 +57,8 @@ class Store final {
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto itr = nolock_find(key); itr != map.end())
-                return nolock_read(*itr->second);
+            if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
+                return nolock_read(*mapItr->second);
         }
 
         // Slow path: exclusive lock to insert a missing key.
@@ -72,8 +73,8 @@ class Store final {
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto itr = nolock_find(key); itr != map.end())
-                return nolock_read(*itr->second);
+            if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
+                return nolock_read(*mapItr->second);
         }
 
         // Slow path: exclusive lock to insert a missing key.
@@ -85,7 +86,7 @@ class Store final {
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return nolock_find(key) != map.end();
+        return nolock_find(key) != nolock_map_end();
     }
 
     [[nodiscard]] auto find(const Key& key) const noexcept {
@@ -113,7 +114,7 @@ class Store final {
 
         const auto mapItr = nolock_find(key);
 
-        if (mapItr == map.end())
+        if (mapItr == nolock_map_end())
             return false;
 
         const auto listItr = mapItr->second;
@@ -130,7 +131,7 @@ class Store final {
         nolock_clear();
     }
 
-    void reset() {
+    void reset() noexcept {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
@@ -139,6 +140,12 @@ class Store final {
     }
 
    private:
+    auto nolock_map_end() const noexcept { return map.end(); }
+
+    auto nolock_list_end() noexcept { return list.end(); }
+
+    auto nolock_list_pos() noexcept { return list.begin(); }
+
     auto nolock_find(const Key& key) const { return map.find(key); }
 
     Return nolock_read(storage_value_type& value) const noexcept {
@@ -150,35 +157,40 @@ class Store final {
 
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
-        const auto [itr, inserted] = map.try_emplace(key, list.end());
+        const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
-            return nolock_read(*itr->second);
+            return nolock_read(*mapItr->second);
 
         if constexpr (sizeof(Value) <= ThresholdSize)
-            itr->second = list.emplace(list.end(), std::forward<Args>(args)...);
+            mapItr->second = list.emplace(nolock_list_pos(),  //
+                                          std::forward<Args>(args)...);
         else
-            itr->second = list.emplace(list.end(), std::make_shared<Value>(  //
-                                                     std::forward<Args>(args)...));
+            mapItr->second = list.emplace(nolock_list_pos(),        //
+                                          std::make_shared<Value>(  //
+                                            std::forward<Args>(args)...));
 
-        return nolock_read(*itr->second);
+        return nolock_read(*mapItr->second);
     }
 
     template<typename Builder, typename... Args>
     Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        const auto [itr, inserted] = map.try_emplace(key, list.end());
+        const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
-            return nolock_read(*itr->second);
+            return nolock_read(*mapItr->second);
 
         if constexpr (sizeof(Value) <= ThresholdSize)
-            itr->second =
-              list.emplace(list.end(), std::forward<Builder>(builder)(std::forward<Args>(args)...));
+            mapItr->second = list.emplace(nolock_list_pos(),      //
+                                          std::forward<Builder>(  //
+                                            builder)(std::forward<Args>(args)...));
         else
-            itr->second = list.emplace(list.end(), std::make_shared<Value>(std::forward<Builder>(
-                                                     builder)(std::forward<Args>(args)...)));
+            mapItr->second = list.emplace(nolock_list_pos(),        //
+                                          std::make_shared<Value>(  //
+                                            std::forward<Builder>(  //
+                                              builder)(std::forward<Args>(args)...)));
 
-        return nolock_read(*itr->second);
+        return nolock_read(*mapItr->second);
     }
 
     void nolock_clear() noexcept {

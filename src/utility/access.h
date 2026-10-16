@@ -18,10 +18,9 @@
 #ifndef UTILITY_ACCESS_H_INCLUDED
 #define UTILITY_ACCESS_H_INCLUDED
 
-#include <mutex>
-#include <shared_mutex>
-#include <type_traits>
-#include <utility>
+#include <mutex>         // unique_lock<>, mutex
+#include <shared_mutex>  // shared_lock<>, shared_mutex<>
+#include <utility>       // move()
 
 namespace DON {
 
