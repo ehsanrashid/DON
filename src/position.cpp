@@ -31,10 +31,10 @@
 #include "tt.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
+#include "utility/cache.h"
 #include "utility/error.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
-#include "utility/store.h"
 
 namespace DON {
 
@@ -44,9 +44,9 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-SharedStore<Key, Value, 32, WriterSharedMutex> NonPawnStore{32 * KB, 0.75f};
-SharedStore<Key, Value, 32, WriterSharedMutex> MaterialStore{16 * KB, 0.75f};
-SharedStore<Key, Value, 32, WriterSharedMutex> EvaluateStore{16 * KB, 0.75f};
+SharedLRUCache<Key, Value, 32, WriterSharedMutex> NonPawnCache{64 * KB, 16 * KB, 0.75f};
+SharedLRUCache<Key, Value, 32, WriterSharedMutex> MaterialCache{32 * KB, 8 * KB, 0.75f};
+SharedLRUCache<Key, Value, 32, WriterSharedMutex> EvaluateCache{32 * KB, 8 * KB, 0.75f};
 
 }  // namespace
 
@@ -58,9 +58,9 @@ void Position::init() noexcept {
 }
 
 void Position::reset() noexcept {
-    NonPawnStore.reset();
-    MaterialStore.reset();
-    EvaluateStore.reset();
+    NonPawnCache.reset();
+    MaterialCache.reset();
+    EvaluateCache.reset();
 }
 
 void Position::clear() noexcept {
@@ -1400,7 +1400,7 @@ bool Position::fork(const Move m) const noexcept {
 }
 
 Value Position::non_pawn_value(const Color c) const noexcept {
-    return NonPawnStore.read_or_write_with(
+    return NonPawnCache.read_or_write_with(
       material_key(c),
       [this](const Color c_) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
@@ -1414,13 +1414,13 @@ Value Position::non_pawn_value(const Color c) const noexcept {
 }
 
 Value Position::material_value() const noexcept {
-    return MaterialStore.read_or_write_with(
+    return MaterialCache.read_or_write_with(
       material_key(),  //
       [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
 }
 
 Value Position::evaluate() const noexcept {
-    return EvaluateStore.read_or_write_with(
+    return EvaluateCache.read_or_write_with(
       material_key() ^ (active_color() == BLACK ? Zobrist_.turn() : 0),  //
       [this]() noexcept -> Value {
           const Color ac = active_color();
