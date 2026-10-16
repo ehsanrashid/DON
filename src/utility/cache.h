@@ -34,7 +34,7 @@
 namespace DON {
 
 template<typename Key, typename Value, typename Mutex = std::shared_mutex, typename Return = Value>
-class LRUCache final {
+class ListLRUCache final {
     static constexpr usize ThresholdSize = 128;
 
     using storage_value_type =
@@ -65,9 +65,9 @@ class LRUCache final {
     };
 
    public:
-    explicit LRUCache(const usize cap        = 2 * KB,
-                      const usize reserveCnt = 1 * KB,
-                      const float maxLoadFac = 0.75F) :
+    explicit ListLRUCache(const usize cap        = 2 * KB,
+                          const usize reserveCnt = 1 * KB,
+                          const float maxLoadFac = 0.75F) :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
         set_capacity(cap);
@@ -87,12 +87,8 @@ class LRUCache final {
 
                 std::lock_guard lockGuard{mutex};
 
-                const auto currentMapItr = nolock_find(key);
-
-                if (currentMapItr != nolock_map_end())
-                    return nolock_read(nolock_touch(currentMapItr->second));
-
-                return nolock_write(key, std::forward<Args>(args)...);
+                return nolock_read(
+                  nolock_write_touch(mapItr->second, key, std::forward<Args>(args)...));
             }
         }
 
@@ -115,13 +111,9 @@ class LRUCache final {
 
                 std::lock_guard lockGuard{mutex};
 
-                const auto currentMapItr = nolock_find(key);
-
-                if (currentMapItr != nolock_map_end())
-                    return nolock_read(nolock_touch(currentMapItr->second));
-
-                return nolock_write_with(key, std::forward<Builder>(builder),
-                                         std::forward<Args>(args)...);
+                return nolock_read(nolock_write_touch_with(mapItr->second, key,
+                                                           std::forward<Builder>(builder),
+                                                           std::forward<Args>(args)...));
             }
         }
 
