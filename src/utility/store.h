@@ -481,7 +481,7 @@ class SharedStore final {
         }
     };
 
-    using shard_array_type = std::array<Shard, ShardCount>;
+    using shard_array_type = Array<Shard, ShardCount>;
 
    public:
     explicit SharedStore(const usize reserveCnt = 1 * KB, const float maxLoadFac = 0.75F) :

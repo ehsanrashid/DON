@@ -166,7 +166,7 @@ class LOCKABLE FairSharedMutex final {
 
         bool is_writer() const noexcept;
 
-        OwnedIntrusiveList<Waiter>::Node node;
+        OwnedDoublyIntrusiveList<Waiter>::Node node;
 
        private:
         Waiter() noexcept = delete;
@@ -211,7 +211,7 @@ class LOCKABLE FairSharedMutex final {
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;
 
-    OwnedIntrusiveList<Waiter> waitList GUARDED_BY(mutex);
+    OwnedDoublyIntrusiveList<Waiter> waitList GUARDED_BY(mutex);
 
     usize activeReaderCount  GUARDED_BY(mutex) = 0;
     usize waitingWriterCount GUARDED_BY(mutex) = 0;

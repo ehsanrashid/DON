@@ -20,32 +20,40 @@
 
 #include <cassert>
 #include <array>
+#include <cstddef>
 #include <functional>
-//#include <iostream>
 #include <iterator>
 #include <list>
 #include <memory>
+#include <memory_resource>
 #include <mutex>
+#include <new>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
 
 #include "../utility/list.h"
-#include "../utility/static_vector.h"
+#include "../utility/pool.h"
 #include "../utility/types.h"
+
+// std::pmr::list<list_value_type> is a doubly linked list that uses a polymorphic memory resource for dynamic memory allocation.
+// header needed:
+// #include <memory_resource>
+// #include <list>
 
 namespace DON {
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class ListLRUCache final {
-    static constexpr usize ThresholdSize = 128;
+    static constexpr usize InlineValueThreshold = 128;
 
     using storage_value_type =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::shared_ptr<Value>>;
+      std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
     using list_value_type = std::pair<Key, storage_value_type>;
-    using list_type       = std::list<list_value_type>;
+    using list_type       = std::pmr::list<list_value_type>;
     using list_iterator   = typename list_type::iterator;
+    using list_pool_type  = std::pmr::unsynchronized_pool_resource;
     using map_type        = std::unordered_map<Key, list_iterator>;
 
     class MapGuard final {
@@ -72,7 +80,9 @@ class ListLRUCache final {
                           const usize reserveCnt = 1 * KB,
                           const float maxLoadFac = 0.75F) :
         reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFac) {
+        maxLoadFactor(maxLoadFac),
+        listPool(),
+        list(&listPool) {
         set_capacity(cap);
         configure();
     }
@@ -172,6 +182,8 @@ class ListLRUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+        map.rehash(0);
+        listPool.release();
 
         nolock_configure();
     }
@@ -195,10 +207,18 @@ class ListLRUCache final {
     }
 
     Return nolock_read(list_iterator listItr) const noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
             return listItr->second;
         else
             return *listItr->second;
+    }
+
+    template<typename... Args>
+    static storage_value_type make_storage(Args&&... args) {
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
+            return Value(std::forward<Args>(args)...);
+        else
+            return std::make_shared<Value>(std::forward<Args>(args)...);
     }
 
     template<typename... Args>
@@ -206,26 +226,7 @@ class ListLRUCache final {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
-
-        if (!inserted)
-            return nolock_read(nolock_touch(mapItr->second));
-
-        MapGuard mapGuard{map, mapItr};
-
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            mapItr->second = list.emplace(nolock_list_pos(),  //
-                                          key,                //
-                                          std::forward<Args>(args)...);
-        else
-            mapItr->second = list.emplace(nolock_list_pos(),        //
-                                          key,                      //
-                                          std::make_shared<Value>(  //
-                                            std::forward<Args>(args)...));
-        mapGuard.commit();
-        nolock_evict_excess(capacity);
-
-        return nolock_read(mapItr->second);
+        return nolock_insert(key, [&] { return make_storage(std::forward<Args>(args)...); });
     }
 
     template<typename Builder, typename... Args>
@@ -233,24 +234,38 @@ class ListLRUCache final {
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
+        return nolock_insert(key, [&] {
+            return make_storage(std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        });
+    }
+
+    template<typename CreateStorage>
+    Return nolock_insert(const Key& key, CreateStorage&& createStorage) noexcept {
         const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard           mapGuard{map, mapItr};
+        storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            mapItr->second = list.emplace(nolock_list_pos(),      //
-                                          key,                    //
-                                          std::forward<Builder>(  //
-                                            builder)(std::forward<Args>(args)...));
+        // Reuse the LRU node to avoid allocating a list node on a full-cache miss.
+        if (!list.empty() && list.size() >= capacity)
+        {
+            const auto listItr   = std::prev(nolock_list_end());
+            const auto oldMapItr = nolock_find(listItr->first);
+            assert(oldMapItr != nolock_map_end());
+
+            map.erase(oldMapItr);
+            list.splice(nolock_list_pos(), list, listItr);
+            std::destroy_at(std::addressof(*listItr));
+            new (static_cast<void*>(std::addressof(*listItr)))
+              list_value_type(key, std::move(value));
+            mapItr->second = listItr;
+        }
         else
-            mapItr->second = list.emplace(nolock_list_pos(),        //
-                                          key,                      //
-                                          std::make_shared<Value>(  //
-                                            std::forward<Builder>(  //
-                                              builder)(std::forward<Args>(args)...)));
+            mapItr->second = list.emplace(nolock_list_pos(), key, std::move(value));
+
         mapGuard.commit();
         nolock_evict_excess(capacity);
 
@@ -298,18 +313,19 @@ class ListLRUCache final {
     const usize reserveCount;
     const float maxLoadFactor;
 
-    mutable Mutex mutex;
-    usize         capacity;
-    map_type      map;
-    list_type     list;
+    mutable Mutex  mutex;
+    usize          capacity;
+    map_type       map;
+    list_pool_type listPool;
+    list_type      list;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class IntrusiveLRUCache final {
-    static constexpr usize ThresholdSize = 128;
+    static constexpr usize InlineValueThreshold = 128;
 
     using storage_value_type =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::shared_ptr<Value>>;
+      std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
     struct Entry {
         template<typename... Args>
@@ -318,8 +334,8 @@ class IntrusiveLRUCache final {
             value(make_storage(std::forward<Args>(args)...)) {}
 
         template<typename... Args>
-        static storage_value_type make_storage(Args&&... args) {
-            if constexpr (sizeof(Value) <= ThresholdSize)
+        static storage_value_type make_storage(Args&&... args) noexcept {
+            if constexpr (sizeof(Value) <= InlineValueThreshold)
                 return Value(std::forward<Args>(args)...);
             else
                 return std::make_shared<Value>(std::forward<Args>(args)...);
@@ -332,7 +348,7 @@ class IntrusiveLRUCache final {
     };
 
     using list_value_type = Entry;
-    using list_type       = IntrusiveList<list_value_type>;
+    using list_type       = LRUIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
 
@@ -477,7 +493,7 @@ class IntrusiveLRUCache final {
     list_iterator nolock_touch(list_iterator listItr) noexcept {
         assert(listItr != nullptr);
 
-        (void) list.move_front(*listItr);
+        list.move_front(*listItr);
 
         return listItr;
     }
@@ -494,12 +510,12 @@ class IntrusiveLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        Entry* const entry = new Entry(key, std::forward<Args>(args)...);
-
-        mapItr->second = entry;
-
-        [[maybe_unused]] const bool entryInserted = list.push_front(*entry);
-        assert(entryInserted);
+        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        Entry* const entry        = pool.create(requiredSize, key,  //
+                                                std::forward<Args>(args)...);
+        mapItr->second            = entry;
+        [[maybe_unused]] const bool listInserted = list.push_front(*entry);
+        assert(listInserted);
 
         mapGuard.commit();
 
@@ -520,11 +536,13 @@ class IntrusiveLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        Entry* const entry =
-          new Entry(key, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-
-        mapItr->second = entry;
-        (void) list.push_front(*entry);
+        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        Entry* const entry        = pool.create(requiredSize, key,      //
+                                                std::forward<Builder>(  //
+                                                  builder)(std::forward<Args>(args)...));
+        mapItr->second            = entry;
+        [[maybe_unused]] const bool listInserted = list.push_front(*entry);
+        assert(listInserted);
 
         mapGuard.commit();
 
@@ -534,7 +552,7 @@ class IntrusiveLRUCache final {
     }
 
     Return nolock_read(const list_iterator listItr) const noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
             return listItr->value;
         else
             return *listItr->value;
@@ -544,9 +562,9 @@ class IntrusiveLRUCache final {
         Entry* const entry = mapItr->second;
 
         map.erase(mapItr);
-        (void) list.erase(*entry);
+        list.erase(*entry);
 
-        delete entry;
+        pool.destroy(entry);
     }
 
     void nolock_evict_excess(const usize size) noexcept {
@@ -578,11 +596,12 @@ class IntrusiveLRUCache final {
     void nolock_clear() noexcept {
         while (Entry* const entry = list.back())
         {
-            (void) list.erase(*entry);
-            delete entry;
+            list.erase(*entry);
+            pool.destroy(entry);
         }
 
         map.clear();
+        pool.release();
     }
 
     void nolock_configure() noexcept {
@@ -597,14 +616,15 @@ class IntrusiveLRUCache final {
     usize         capacity = 0;
     map_type      map;
     list_type     list;
+    Pool<Entry>   pool;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class PoolLRUCache final {
-    static constexpr usize ThresholdSize = 128;
+    static constexpr usize InlineValueThreshold = 128;
 
     using storage_value_type =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::shared_ptr<Value>>;
+      std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
     struct Entry {
        public:
@@ -615,7 +635,7 @@ class PoolLRUCache final {
 
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
-            if constexpr (sizeof(Value) <= ThresholdSize)
+            if constexpr (sizeof(Value) <= InlineValueThreshold)
                 return Value(std::forward<Args>(args)...);
             else
                 return std::make_shared<Value>(std::forward<Args>(args)...);
@@ -627,34 +647,10 @@ class PoolLRUCache final {
         Entry*             next = nullptr;
     };
 
-    struct Slot {
-       public:
-        alignas(Entry) std::byte storage[sizeof(Entry)];
-        Slot* next = nullptr;
-    };
-
-    struct Block {
-       public:
-        std::unique_ptr<Slot[]> slots;
-        usize                   size;
-    };
-
     using list_value_type = Entry;
-    using list_type       = IntrusiveList<list_value_type>;
+    using list_type       = LRUIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
-
-    static constexpr usize BaseBlockSize = []() constexpr {
-        constexpr usize TargetBytes = 64 * KB;
-
-        const usize count = TargetBytes / sizeof(Slot);
-        usize       size  = 1;
-
-        while (size <= count / 2)
-            size *= 2;
-
-        return size;
-    }();
 
     class MapGuard final {
        public:
@@ -684,10 +680,6 @@ class PoolLRUCache final {
         maxLoadFactor(maxLoadFac),
         capacity(cap) {
         nolock_configure();
-        // std::cout << "sizeof(Entry): " << sizeof(Entry) << '\n'
-        //           << "sizeof(Slot): " << sizeof(Slot) << '\n'
-        //           << "BaseBlockSize: " << BaseBlockSize << '\n'
-        //           << "Block bytes: " << BaseBlockSize * sizeof(Slot) << '\n';
     }
 
     PoolLRUCache(const PoolLRUCache&) noexcept            = delete;
@@ -809,21 +801,6 @@ class PoolLRUCache final {
     }
 
    private:
-    [[nodiscard]] static constexpr usize block_size(const usize requiredSize) noexcept {
-        usize size = 1;
-
-        while (size < requiredSize && size < BaseBlockSize)
-            size *= 2;
-
-        return size;
-    }
-
-    [[nodiscard]] static Slot* slot_from_entry(Entry* entry) noexcept {
-        constexpr usize StorageOffset = offsetof(Slot, storage);
-
-        return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(entry) - StorageOffset);
-    }
-
     auto nolock_map_end() const noexcept { return map.end(); }
 
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
@@ -833,13 +810,13 @@ class PoolLRUCache final {
     list_iterator nolock_touch(list_iterator listItr) noexcept {
         assert(listItr != nullptr);
 
-        (void) list.move_front(*listItr);
+        list.move_front(*listItr);
 
         return listItr;
     }
 
     Return nolock_read(const list_iterator listItr) const noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
             return listItr->value;
         else
             return *listItr->value;
@@ -857,10 +834,12 @@ class PoolLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        Entry* const entry = nolock_construct(key, std::forward<Args>(args)...);
-
-        mapItr->second = entry;
-        (void) list.push_front(*entry);
+        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        Entry* const entry        = pool.create(requiredSize, key,  //
+                                                std::forward<Args>(args)...);
+        mapItr->second            = entry;
+        [[maybe_unused]] const bool listInserted = list.push_front(*entry);
+        assert(listInserted);
 
         mapGuard.commit();
 
@@ -881,11 +860,13 @@ class PoolLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        Entry* const entry =
-          nolock_construct(key, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-
-        mapItr->second = entry;
-        (void) list.push_front(*entry);
+        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        Entry* const entry        = pool.create(requiredSize, key,      //
+                                                std::forward<Builder>(  //
+                                                  builder)(std::forward<Args>(args)...));
+        mapItr->second            = entry;
+        [[maybe_unused]] const bool listInserted = list.push_front(*entry);
+        assert(listInserted);
 
         mapGuard.commit();
 
@@ -894,64 +875,12 @@ class PoolLRUCache final {
         return nolock_read(entry);
     }
 
-    [[nodiscard]] Entry* nolock_acquire() noexcept {
-        if (slotList == nullptr)
-            nolock_allocate_block();
-
-        Slot* const slot = slotList;
-
-        assert(slot != nullptr);
-
-        slotList   = slot->next;
-        slot->next = nullptr;
-
-        return reinterpret_cast<Entry*>(slot->storage);
-    }
-
-    void nolock_allocate_block() noexcept {
-        // Called only when no reusable slots remain.
-        if (blocks.full())
-            std::terminate();
-
-        const usize requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
-        const usize blockSize    = block_size(requiredSize);
-
-        blocks.push_back(Block{std::unique_ptr<Slot[]>{new Slot[blockSize]}, blockSize});
-
-        Slot* const slots = blocks.back().slots.get();
-
-        for (usize i = 0; i < blockSize; ++i)
-        {
-            slots[i].next = slotList;
-            slotList      = &slots[i];
-        }
-    }
-
-    template<typename... Args>
-    Entry* nolock_construct(const Key& key, Args&&... args) noexcept {
-        Entry* const storage = nolock_acquire();
-
-        return ::new (static_cast<void*>(storage)) Entry(key, std::forward<Args>(args)...);
-    }
-
-    void nolock_recycle(Entry* entry) noexcept {
-        assert(entry != nullptr);
-
-        Slot* const slot = slot_from_entry(entry);
-
-        entry->~Entry();
-
-        slot->next = slotList;
-        slotList   = slot;
-    }
-
     void nolock_erase(typename map_type::iterator mapItr) noexcept {
         Entry* const entry = mapItr->second;
 
         map.erase(mapItr);
-        (void) list.erase(*entry);
-
-        nolock_recycle(entry);
+        list.erase(*entry);
+        pool.destroy(entry);
     }
 
     void nolock_evict_excess(const usize size) noexcept {
@@ -983,17 +912,14 @@ class PoolLRUCache final {
     void nolock_clear() noexcept {
         while (Entry* const entry = list.back())
         {
-            (void) list.erase(*entry);
-            nolock_recycle(entry);
+            list.erase(*entry);
+            pool.destroy(entry);
         }
 
         map.clear();
     }
 
-    void nolock_release_pool() noexcept {
-        slotList = nullptr;
-        blocks.clear_and_release();
-    }
+    void nolock_release_pool() noexcept { pool.release(); }
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
@@ -1008,11 +934,7 @@ class PoolLRUCache final {
     usize         capacity = 0;
     map_type      map;
     list_type     list;
-
-    static constexpr usize MaxBlocks = 128;
-
-    StaticVector<Block, MaxBlocks> blocks;
-    Slot*                          slotList = nullptr;
+    Pool<Entry>   pool;
 };
 
 }  // namespace DON

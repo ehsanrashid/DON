@@ -15,9 +15,10 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_SHARED_CACHE_H_INCLUDED
-#define UTILITY_SHARED_CACHE_H_INCLUDED
+#ifndef UTILITY_SHARDED_CACHE_H_INCLUDED
+#define UTILITY_SHARDED_CACHE_H_INCLUDED
 
+#include <array>
 #include <functional>
 #include <mutex>
 #include <utility>
@@ -179,4 +180,4 @@ class ShardedCache final {
 
 }  // namespace DON
 
-#endif  // UTILITY_SHARED_CACHE_H_INCLUDED
+#endif  // UTILITY_SHARDED_CACHE_H_INCLUDED

@@ -24,21 +24,131 @@
 
 namespace DON {
 
+// A lightweight intrusive singly linked list that does not own its elements or allocate memory.
+// Each element must contain a `next` pointer, allowing existing objects to be linked directly
+// into the list without allocating separate nodes. Elements must remain alive and at stable
+// addresses while linked. List operations must be externally synchronized when accessed concurrently.
+template<typename T>
+class SinglyIntrusiveList final {
+   public:
+    using value_type = T;
+    using pointer    = T*;
+
+    [[nodiscard]] bool empty() const noexcept { return head == nullptr; }
+
+    [[nodiscard]] pointer front() noexcept { return head; }
+
+    [[nodiscard]] const T* front() const noexcept { return head; }
+
+    void push_front(T& node) noexcept {
+        node.next = head;
+        head      = &node;
+    }
+
+    [[nodiscard]] pointer pop_front() noexcept {
+        T* const node = head;
+
+        if (node != nullptr)
+        {
+            head       = node->next;
+            node->next = nullptr;
+        }
+
+        return node;
+    }
+
+    void clear() noexcept { head = nullptr; }
+
+   private:
+    pointer head = nullptr;
+};
+
+// Intrusive doubly linked list optimized for LRU policy operations.
+template<typename T>
+class LRUIntrusiveList final {
+   public:
+    LRUIntrusiveList() noexcept                              = default;
+    LRUIntrusiveList(const LRUIntrusiveList&)                = delete;
+    LRUIntrusiveList& operator=(const LRUIntrusiveList&)     = delete;
+    LRUIntrusiveList(LRUIntrusiveList&&) noexcept            = delete;
+    LRUIntrusiveList& operator=(LRUIntrusiveList&&) noexcept = delete;
+
+    [[nodiscard]] T* back() noexcept { return back_; }
+
+    [[nodiscard]] usize size() const noexcept { return size_; }
+
+    [[nodiscard]] bool empty() const noexcept { return size_ == 0; }
+
+    [[nodiscard]] bool push_front(T& item) noexcept {
+        assert(item.prev == nullptr && item.next == nullptr);
+
+        if (item.prev != nullptr || item.next != nullptr)
+            return false;
+
+        item.prev = nullptr;
+        item.next = front_;
+
+        if (front_ != nullptr)
+            front_->prev = &item;
+        else
+            back_ = &item;
+
+        front_ = &item;
+        ++size_;
+        return true;
+    }
+
+    void move_front(T& item) noexcept {
+        if (front_ == &item)
+            return;
+
+        unlink(item);
+        item.prev    = nullptr;
+        item.next    = front_;
+        front_->prev = &item;
+        front_       = &item;
+    }
+
+    void erase(T& item) noexcept {
+        unlink(item);
+        item.prev = nullptr;
+        item.next = nullptr;
+        --size_;
+    }
+
+   private:
+    void unlink(T& item) noexcept {
+        if (item.prev != nullptr)
+            item.prev->next = item.next;
+        else
+            front_ = item.next;
+
+        if (item.next != nullptr)
+            item.next->prev = item.prev;
+        else
+            back_ = item.prev;
+    }
+
+    T*    front_ = nullptr;
+    T*    back_  = nullptr;
+    usize size_  = 0;
+};
+
 // A lightweight intrusive doubly linked list that does not own its elements or allocate memory.
 // Each element stores pointers to the previous and next elements, allowing existing objects
 // (e.g. stack-allocated mutex waiters) to be linked directly into the list without allocating
 // separate nodes. Unlike std::list, it requires no dynamic allocation.
 // Elements must remain alive and at stable addresses while linked, and list operations must
 // be externally synchronized when accessed concurrently.
-// Unlike OwnedIntrusiveList, it does not track list ownership for individual elements.
+// Unlike OwnedDoublyIntrusiveList, it does not track list ownership for individual elements.
 template<typename T>
-class IntrusiveList final {
+class DoublyIntrusiveList final {
    public:
-    IntrusiveList() noexcept                           = default;
-    IntrusiveList(const IntrusiveList&)                = delete;
-    IntrusiveList& operator=(const IntrusiveList&)     = delete;
-    IntrusiveList(IntrusiveList&&) noexcept            = delete;
-    IntrusiveList& operator=(IntrusiveList&&) noexcept = delete;
+    DoublyIntrusiveList() noexcept                                 = default;
+    DoublyIntrusiveList(const DoublyIntrusiveList&)                = delete;
+    DoublyIntrusiveList& operator=(const DoublyIntrusiveList&)     = delete;
+    DoublyIntrusiveList(DoublyIntrusiveList&&) noexcept            = delete;
+    DoublyIntrusiveList& operator=(DoublyIntrusiveList&&) noexcept = delete;
 
     [[nodiscard]] T* front() noexcept { return front_; }
 
@@ -56,7 +166,41 @@ class IntrusiveList final {
         return size() == 0;
     }
 
-    [[nodiscard]] bool push_front(T& item) noexcept {
+    [[nodiscard]] T* next(T& item) noexcept {
+        assert(contains(item));
+        //if (!contains(item))
+        //    return nullptr;
+
+        return item.next;
+    }
+
+    [[nodiscard]] const T* next(const T& item) const noexcept {
+        assert(contains(item));
+        //if (!contains(item))
+        //    return nullptr;
+
+        return item.next;
+    }
+
+    [[nodiscard]] T* prev(T& item) noexcept {
+        assert(contains(item));
+        //if (!contains(item))
+        //    return nullptr;
+
+        return item.prev;
+    }
+
+    [[nodiscard]] const T* prev(const T& item) const noexcept {
+        assert(contains(item));
+        //if (!contains(item))
+        //    return nullptr;
+
+        return item.prev;
+    }
+
+    // ----------------------------------------------
+
+    bool push_front(T& item) noexcept {
         assert(item.prev == nullptr);
         assert(item.next == nullptr);
 
@@ -68,7 +212,7 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool push_back(T& item) noexcept {
+    bool push_back(T& item) noexcept {
         assert(item.prev == nullptr);
         assert(item.next == nullptr);
 
@@ -80,7 +224,7 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool insert_before(T& item, T& node) noexcept {
+    bool insert_before(T& item, T& node) noexcept {
         assert(&item != &node);
         assert(item.prev == nullptr);
         assert(item.next == nullptr);
@@ -95,7 +239,7 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool insert_after(T& item, T& node) noexcept {
+    bool insert_after(T& item, T& node) noexcept {
         assert(&item != &node);
         assert(item.prev == nullptr);
         assert(item.next == nullptr);
@@ -112,11 +256,10 @@ class IntrusiveList final {
 
     // ----------------------------------------------
 
-    [[nodiscard]] bool move_front(T& item) noexcept {
+    bool move_front(T& item) noexcept {
         assert(contains(item));
-
-        if (!contains(item))
-            return false;
+        //if (!contains(item))
+        //    return false;
 
         if (front_ == &item)
             return true;
@@ -128,11 +271,10 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool move_back(T& item) noexcept {
+    bool move_back(T& item) noexcept {
         assert(contains(item));
-
-        if (!contains(item))
-            return false;
+        //if (!contains(item))
+        //    return false;
 
         if (back_ == &item)
             return true;
@@ -144,12 +286,11 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool move_before(T& item, T& node) noexcept {
+    bool move_before(T& item, T& node) noexcept {
         assert(contains(item));
         assert(contains(node));
-
-        if (!contains(item) || !contains(node))
-            return false;
+        //if (!contains(item) || !contains(node))
+        //    return false;
 
         if (&item == &node || item.next == &node)
             return true;
@@ -161,12 +302,11 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool move_after(T& item, T& node) noexcept {
+    bool move_after(T& item, T& node) noexcept {
         assert(contains(item));
         assert(contains(node));
-
-        if (!contains(item) || !contains(node))
-            return false;
+        //if (!contains(item) || !contains(node))
+        //    return false;
 
         if (&item == &node || item.prev == &node)
             return true;
@@ -178,33 +318,16 @@ class IntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool erase(T& item) noexcept {
-        assert(contains(item));
+    // ----------------------------------------------
 
-        if (!contains(item))
-            return false;
+    bool erase(T& item) noexcept {
+        assert(contains(item));
+        //if (!contains(item))
+        //    return false;
 
         detach(item);
 
         return true;
-    }
-
-    [[nodiscard]] T* next(T& item) noexcept {
-        assert(contains(item));
-
-        if (!contains(item))
-            return nullptr;
-
-        return item.next;
-    }
-
-    [[nodiscard]] const T* next(const T& item) const noexcept {
-        assert(contains(item));
-
-        if (!contains(item))
-            return nullptr;
-
-        return item.next;
     }
 
    private:
@@ -300,7 +423,6 @@ class IntrusiveList final {
         attach();
     }
 
-
     T*    front_ = nullptr;
     T*    back_  = nullptr;
     usize size_  = 0;
@@ -315,20 +437,20 @@ class IntrusiveList final {
 // Elements must remain alive and at stable addresses while linked, and list operations must
 // be externally synchronized when accessed concurrently.
 template<typename T>
-class OwnedIntrusiveList final {
+class OwnedDoublyIntrusiveList final {
    public:
     struct Node {
-        Node*               prev  = nullptr;
-        Node*               next  = nullptr;
-        OwnedIntrusiveList* owner = nullptr;
-        T*                  data  = nullptr;
+        Node*                     prev  = nullptr;
+        Node*                     next  = nullptr;
+        OwnedDoublyIntrusiveList* owner = nullptr;
+        T*                        data  = nullptr;
     };
 
-    OwnedIntrusiveList() noexcept                                = default;
-    OwnedIntrusiveList(const OwnedIntrusiveList&)                = delete;
-    OwnedIntrusiveList& operator=(const OwnedIntrusiveList&)     = delete;
-    OwnedIntrusiveList(OwnedIntrusiveList&&) noexcept            = delete;
-    OwnedIntrusiveList& operator=(OwnedIntrusiveList&&) noexcept = delete;
+    OwnedDoublyIntrusiveList() noexcept                                      = default;
+    OwnedDoublyIntrusiveList(const OwnedDoublyIntrusiveList&)                = delete;
+    OwnedDoublyIntrusiveList& operator=(const OwnedDoublyIntrusiveList&)     = delete;
+    OwnedDoublyIntrusiveList(OwnedDoublyIntrusiveList&&) noexcept            = delete;
+    OwnedDoublyIntrusiveList& operator=(OwnedDoublyIntrusiveList&&) noexcept = delete;
 
     [[nodiscard]] T* front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
 
@@ -351,10 +473,45 @@ class OwnedIntrusiveList final {
         return size() == 0;
     }
 
-    [[nodiscard]] bool push_front(Node& node) noexcept {
+    [[nodiscard]] T* next(const T& item) noexcept {
+        assert(item.node.owner == this);
+        if (item.node.owner != this)
+            return nullptr;
+
+        const Node* node = item.node.next;
+        return node != nullptr ? node->data : nullptr;
+    }
+
+    [[nodiscard]] const T* next(const T& item) const noexcept {
+        assert(item.node.owner == this);
+        if (item.node.owner != this)
+            return nullptr;
+
+        const Node* node = item.node.next;
+        return node != nullptr ? node->data : nullptr;
+    }
+
+    [[nodiscard]] T* prev(T& item) noexcept {
+        assert(item.node.owner == this);
+        if (item.node.owner != this)
+            return nullptr;
+
+        const Node* node = item.node.prev;
+        return node != nullptr ? node->data : nullptr;
+    }
+
+    [[nodiscard]] const T* prev(const T& item) const noexcept {
+        assert(item.node.owner == this);
+        if (item.node.owner != this)
+            return nullptr;
+
+        const Node* node = item.node.prev;
+        return node != nullptr ? node->data : nullptr;
+    }
+
+    bool push_front(Node& node) noexcept {
         assert(node.owner == nullptr);
         assert(node.data != nullptr);
-
         if (node.owner != nullptr || node.data == nullptr)
             return false;
 
@@ -363,10 +520,9 @@ class OwnedIntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool push_back(Node& node) noexcept {
+    bool push_back(Node& node) noexcept {
         assert(node.owner == nullptr);
         assert(node.data != nullptr);
-
         if (node.owner != nullptr || node.data == nullptr)
             return false;
 
@@ -375,9 +531,8 @@ class OwnedIntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool move_front(Node& node) noexcept {
+    bool move_front(Node& node) noexcept {
         assert(node.owner == this);
-
         if (node.owner != this)
             return false;
 
@@ -390,9 +545,8 @@ class OwnedIntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool move_back(Node& node) noexcept {
+    bool move_back(Node& node) noexcept {
         assert(node.owner == this);
-
         if (node.owner != this)
             return false;
 
@@ -405,25 +559,14 @@ class OwnedIntrusiveList final {
         return true;
     }
 
-    [[nodiscard]] bool erase(Node& node) noexcept {
+    bool erase(Node& node) noexcept {
         assert(node.owner == this);
-
         if (node.owner != this)
             return false;
 
         detach(node);
 
         return true;
-    }
-
-    [[nodiscard]] const T* next(const T& item) const noexcept {
-        assert(item.node.owner == this);
-
-        if (item.node.owner != this)
-            return nullptr;
-
-        const Node* node = item.node.next;
-        return node != nullptr ? node->data : nullptr;
     }
 
    private:

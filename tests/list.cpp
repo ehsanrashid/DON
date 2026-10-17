@@ -36,7 +36,7 @@ struct Item {
         id(value) {}
 };
 
-using List = IntrusiveList<Item>;
+using List = DoublyIntrusiveList<Item>;
 
 void check_list(const List& list, const std::vector<const Item*>& expected) {
     assert(list.size() == expected.size());
@@ -188,6 +188,6 @@ int main() {
     CHECK(list.erase(a));
     check_list(list, {});
 
-    std::cout << "All IntrusiveList tests passed.\n";
+    std::cout << "All DoublyIntrusiveList tests passed.\n";
     return 0;
 }

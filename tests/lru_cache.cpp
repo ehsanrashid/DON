@@ -51,9 +51,9 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 constexpr int   Capacity            = 128;
-constexpr int   RandomOperations    = 50'000;
+constexpr int   RandomOperations    = 70'000;
 constexpr usize BenchmarkCapacity   = 8192;
-constexpr usize BenchmarkOperations = 500'000;
+constexpr usize BenchmarkOperations = 700'000;
 
 // Exercise the shared_ptr storage path (> 128 bytes).
 struct LargeValue {
@@ -178,14 +178,35 @@ int large_value_tests() {
     return EXIT_SUCCESS;
 }
 
+int pool_growth_tests() {
+    constexpr int EntryCount = 270'000;
+    PoolLRUCache<int, int> cache{EntryCount, 16};
+
+    for (int key = 0; key < EntryCount; ++key)
+        (void) cache.read_or_write(key, key);
+
+    CHECK(cache.size() == EntryCount);
+    CHECK(cache.read_or_write(EntryCount - 1, -1) == EntryCount - 1);
+    CHECK(cache.contains(0));
+
+    cache.clear();
+    CHECK(cache.empty());
+    CHECK(cache.get_capacity() == EntryCount);
+
+    std::cout << "Pool growth test passed.\n";
+    return EXIT_SUCCESS;
+}
+
 template<typename CacheA, typename CacheB, typename CacheC>
 int randomized_tests() {
-    CacheA a{Capacity, Capacity * 2};
-    CacheB b{Capacity, Capacity * 2};
+    CacheA a{Capacity, Capacity / 2};
+    CacheB b{Capacity, Capacity / 2};
+    CacheC c{Capacity, Capacity / 2};
 
     std::mt19937 rng{0xD04CACE};
     int          buildsA = 0;
     int          buildsB = 0;
+    int          buildsC = 0;
 
     for (int i = 0; i < RandomOperations; ++i)
     {
@@ -197,7 +218,9 @@ int randomized_tests() {
         {
         case 0 :
         case 1 : {
-            CHECK(a.read_or_write(key, value) == b.read_or_write(key, value));
+            const int resultA = a.read_or_write(key, value);
+            CHECK(resultA == b.read_or_write(key, value));
+            CHECK(resultA == c.read_or_write(key, value));
             break;
         }
         case 2 : {
@@ -209,34 +232,44 @@ int randomized_tests() {
                 ++buildsB;
                 return v * 3 + 1;
             };
+            const auto builderC = [&buildsC](const int v) {
+                ++buildsC;
+                return v * 3 + 1;
+            };
 
-            CHECK(a.read_or_write_with(key, builderA, value)
-                  == b.read_or_write_with(key, builderB, value));
-            CHECK(buildsA == buildsB);
+            const int resultA = a.read_or_write_with(key, builderA, value);
+            CHECK(resultA == b.read_or_write_with(key, builderB, value));
+            CHECK(resultA == c.read_or_write_with(key, builderC, value));
+            CHECK(buildsA == buildsB && buildsA == buildsC);
             break;
         }
-        case 3 :
-            CHECK(a.remove(key) == b.remove(key));
+        case 3 : {
+            const bool removedA = a.remove(key);
+            CHECK(removedA == b.remove(key));
+            CHECK(removedA == c.remove(key));
             break;
+        }
         case 4 : {
             const usize capacity = rng() % 40;
             a.set_capacity(capacity);
             b.set_capacity(capacity);
+            c.set_capacity(capacity);
             break;
         }
         case 5 : {
             const usize size = rng() % 40;
             a.evict_excess(size);
             b.evict_excess(size);
+            c.evict_excess(size);
             break;
         }
         }
 
-        CHECK(a.size() == b.size());
-        CHECK(a.empty() == b.empty());
+        CHECK(a.size() == b.size() && a.size() == c.size());
+        CHECK(a.empty() == b.empty() && a.empty() == c.empty());
 
         for (int k = 0; k < 256; ++k)
-            CHECK(a.contains(k) == b.contains(k));
+            CHECK(a.contains(k) == b.contains(k) && a.contains(k) == c.contains(k));
     }
 
     std::cout << "Randomized differential tests passed (" << RandomOperations << " operations).\n";
@@ -245,7 +278,7 @@ int randomized_tests() {
 
 template<typename Cache>
 double benchmark_case(const char* name, const std::vector<int>& keys, const bool prefill) {
-    Cache cache{BenchmarkCapacity, BenchmarkCapacity * 2};
+    Cache cache{BenchmarkCapacity, BenchmarkCapacity / 2};
 
     if (prefill)
     {
@@ -313,6 +346,9 @@ int main() {
         return EXIT_FAILURE;
 
     if (large_value_tests<LargePoolCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (pool_growth_tests() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     // ------------------------------------------------
