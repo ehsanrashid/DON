@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_CACHE_H_INCLUDED
-#define UTILITY_CACHE_H_INCLUDED
+#ifndef UTILITY_LRU_CACHE_H_INCLUDED
+#define UTILITY_LRU_CACHE_H_INCLUDED
 
 #include <cassert>
 #include <array>
@@ -333,8 +333,7 @@ class ListLRUCache final {
     }
 
     void nolock_evict_excess(const usize size) noexcept {
-
-        for (auto listSize = list.size(); listSize > size; --listSize)
+        while (list.size() > size)
         {
             const auto mapItr = nolock_find(std::prev(nolock_list_end())->first);
             assert(mapItr != nolock_map_end());
@@ -372,7 +371,6 @@ class ListLRUCache final {
     map_type      map;
     list_type     list;
 };
-
 
 template<typename Key, typename Value, typename Mutex = std::shared_mutex, typename Return = Value>
 class IntrusiveLRUCache final {
@@ -426,17 +424,17 @@ class IntrusiveLRUCache final {
    public:
     explicit IntrusiveLRUCache(const usize cap        = 2 * KB,
                                const usize reserveCnt = 1 * KB,
-                               const float maxLoadFac = 0.75F) :
+                               const float maxLoadFac = 0.75F) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
         set_capacity(cap);
         configure();
     }
 
-    ~IntrusiveLRUCache() noexcept { nolock_clear(); }
+    IntrusiveLRUCache(const IntrusiveLRUCache&) noexcept            = delete;
+    IntrusiveLRUCache& operator=(const IntrusiveLRUCache&) noexcept = delete;
 
-    IntrusiveLRUCache(const IntrusiveLRUCache&)            = delete;
-    IntrusiveLRUCache& operator=(const IntrusiveLRUCache&) = delete;
+    ~IntrusiveLRUCache() noexcept { clear(); }
 
     template<typename... Args>
     Return read_or_write(const Key& key, Args&&... args) noexcept {
@@ -444,7 +442,7 @@ class IntrusiveLRUCache final {
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto mapItr = nolock_find(key); mapItr != map.end())
+            if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
             {
                 // Release the shared lock before acquiring the exclusive lock.
                 sharedLock.unlock();
@@ -467,7 +465,7 @@ class IntrusiveLRUCache final {
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto mapItr = nolock_find(key); mapItr != map.end())
+            if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
             {
                 // Release the shared lock before acquiring the exclusive lock.
                 sharedLock.unlock();
@@ -526,7 +524,7 @@ class IntrusiveLRUCache final {
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return nolock_find(key) != map.end();
+        return nolock_find(key) != nolock_map_end();
     }
 
     [[nodiscard]] usize size() const noexcept {
@@ -569,6 +567,8 @@ class IntrusiveLRUCache final {
     }
 
    private:
+    auto nolock_map_end() const noexcept { return map.end(); }
+
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
@@ -595,7 +595,9 @@ class IntrusiveLRUCache final {
         Entry* const entry = new Entry(key, std::forward<Args>(args)...);
 
         mapItr->second = entry;
-        (void) list.push_front(*entry);
+
+        [[maybe_unused]] const bool entryInserted = list.push_front(*entry);
+        assert(entryInserted);
 
         mapGuard.commit();
 
@@ -654,7 +656,7 @@ class IntrusiveLRUCache final {
 
             const auto mapItr = nolock_find(entry->key);
 
-            assert(mapItr != map.end());
+            assert(mapItr != nolock_map_end());
 
             nolock_erase(mapItr);
         }
@@ -663,7 +665,7 @@ class IntrusiveLRUCache final {
     bool nolock_remove(const Key& key) noexcept {
         const auto mapItr = nolock_find(key);
 
-        if (mapItr == map.end())
+        if (mapItr == nolock_map_end())
             return false;
 
         nolock_erase(mapItr);
@@ -703,13 +705,14 @@ class PoolLRUCache final {
       std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::shared_ptr<Value>>;
 
     struct Entry {
+       public:
         template<typename... Args>
-        explicit Entry(const Key& k, Args&&... args) :
+        explicit Entry(const Key& k, Args&&... args) noexcept :
             key(k),
             value(make_storage(std::forward<Args>(args)...)) {}
 
         template<typename... Args>
-        static storage_value_type make_storage(Args&&... args) {
+        static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= ThresholdSize)
                 return Value(std::forward<Args>(args)...);
             else
@@ -723,11 +726,13 @@ class PoolLRUCache final {
     };
 
     struct Slot {
+       public:
         alignas(Entry) std::byte storage[sizeof(Entry)];
         Slot* next = nullptr;
     };
 
     struct Block {
+       public:
         std::unique_ptr<Slot[]> slots;
         usize                   size;
     };
@@ -781,20 +786,24 @@ class PoolLRUCache final {
         //           << "Block bytes: " << BaseBlockSize * sizeof(Slot) << '\n';
     }
 
+    PoolLRUCache(const PoolLRUCache&) noexcept            = delete;
+    PoolLRUCache& operator=(const PoolLRUCache&) noexcept = delete;
+    PoolLRUCache(PoolLRUCache&&) noexcept                 = delete;
+    PoolLRUCache& operator=(PoolLRUCache&&) noexcept      = delete;
+
     ~PoolLRUCache() noexcept {
+        std::lock_guard lockGuard{mutex};
+
         nolock_clear();
         nolock_release_pool();
     }
-
-    PoolLRUCache(const PoolLRUCache&)            = delete;
-    PoolLRUCache& operator=(const PoolLRUCache&) = delete;
 
     template<typename... Args>
     Return read_or_write(const Key& key, Args&&... args) noexcept {
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto mapItr = nolock_find(key); mapItr != map.end())
+            if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
             {
                 sharedLock.unlock();
 
@@ -814,7 +823,7 @@ class PoolLRUCache final {
         {
             std::shared_lock sharedLock{mutex};
 
-            if (const auto mapItr = nolock_find(key); mapItr != map.end())
+            if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
             {
                 sharedLock.unlock();
 
@@ -871,7 +880,7 @@ class PoolLRUCache final {
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::shared_lock sharedLock{mutex};
 
-        return nolock_find(key) != map.end();
+        return nolock_find(key) != nolock_map_end();
     }
 
     [[nodiscard]] usize size() const noexcept {
@@ -922,20 +931,22 @@ class PoolLRUCache final {
     }
 
    private:
-    [[nodiscard]] static constexpr usize nolock_block_size(const usize required) noexcept {
+    [[nodiscard]] static constexpr usize block_size(const usize requiredSize) noexcept {
         usize size = 1;
 
-        while (size < required && size < BaseBlockSize)
+        while (size < requiredSize && size < BaseBlockSize)
             size *= 2;
 
         return size;
     }
 
-    [[nodiscard]] static Slot* nolock_slot_from_entry(Entry* entry) noexcept {
+    [[nodiscard]] static Slot* slot_from_entry(Entry* entry) noexcept {
         constexpr usize StorageOffset = offsetof(Slot, storage);
 
         return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(entry) - StorageOffset);
     }
+
+    auto nolock_map_end() const noexcept { return map.end(); }
 
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
 
@@ -968,8 +979,8 @@ class PoolLRUCache final {
         if (blocks.full())
             std::terminate();
 
-        const usize required  = capacity > list.size() ? capacity - list.size() : 1;
-        const usize blockSize = nolock_block_size(required);
+        const usize requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        const usize blockSize    = block_size(requiredSize);
 
         blocks.push_back(Block{std::unique_ptr<Slot[]>{new Slot[blockSize]}, blockSize});
 
@@ -992,7 +1003,7 @@ class PoolLRUCache final {
     void nolock_recycle(Entry* entry) noexcept {
         assert(entry != nullptr);
 
-        Slot* const slot = nolock_slot_from_entry(entry);
+        Slot* const slot = slot_from_entry(entry);
 
         entry->~Entry();
 
@@ -1074,7 +1085,7 @@ class PoolLRUCache final {
 
             const auto mapItr = nolock_find(entry->key);
 
-            assert(mapItr != map.end());
+            assert(mapItr != nolock_map_end());
 
             nolock_erase(mapItr);
         }
@@ -1083,7 +1094,7 @@ class PoolLRUCache final {
     bool nolock_remove(const Key& key) noexcept {
         const auto mapItr = nolock_find(key);
 
-        if (mapItr == map.end())
+        if (mapItr == nolock_map_end())
             return false;
 
         nolock_erase(mapItr);
@@ -1126,158 +1137,6 @@ class PoolLRUCache final {
     Slot*                          slotList = nullptr;
 };
 
-
-template<typename Key,
-         typename Value,
-         template<typename, typename, typename, typename> class LRUCache,
-         usize ShardCount = 16,
-         typename Mutex   = std::shared_mutex,
-         typename Return  = Value>
-class SharedLRUCache final {
-    static_assert(ShardCount != 0, "ShardCount must be != 0");
-    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
-
-    static constexpr usize ShardMask = ShardCount - 1;
-
-    using cache_type = LRUCache<Key, Value, Mutex, Return>;
-
-    template<usize... I>
-    static Array<cache_type, ShardCount> make_shards(std::index_sequence<I...>,
-                                                     const usize cap,
-                                                     const usize reserveCnt,
-                                                     const float maxLoadFac) {
-        return {(static_cast<void>(I), cache_type{cap, reserveCnt, maxLoadFac})...};
-    }
-
-    [[nodiscard]] static constexpr usize shard_capacity(const usize cap) noexcept {
-        return ceil_div(cap, ShardCount);
-    }
-
-    [[nodiscard]] static constexpr usize total_capacity(const usize cap) noexcept {
-        return shard_capacity(cap) * ShardCount;
-    }
-
-    [[nodiscard]] usize shard_index(const Key& key) const noexcept {
-        return std::hash<Key>{}(key) &ShardMask;
-    }
-
-   public:
-    explicit SharedLRUCache(const usize cap        = 2 * KB,
-                            const usize reserveCnt = 1 * KB,
-                            const float maxLoadFac = 0.75F) :
-        defaultCapacity(total_capacity(cap)),
-        capacity(defaultCapacity),
-        shards(make_shards(std::make_index_sequence<ShardCount>{},
-                           shard_capacity(cap),
-                           shard_capacity(reserveCnt),
-                           maxLoadFac)) {}
-
-    SharedLRUCache(const SharedLRUCache&)            = delete;
-    SharedLRUCache& operator=(const SharedLRUCache&) = delete;
-
-    template<typename... Args>
-    Return read_or_write(const Key& key, Args&&... args) noexcept {
-        return shards[shard_index(key)].read_or_write(key, std::forward<Args>(args)...);
-    }
-
-    template<typename Builder, typename... Args>
-    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        return shards[shard_index(key)].read_or_write_with(key, std::forward<Builder>(builder),
-                                                           std::forward<Args>(args)...);
-    }
-
-    void evict_excess(const usize size) noexcept {
-        const usize cap = shard_capacity(size);
-
-        for (auto& shard : shards)
-            shard.evict_excess(cap);
-    }
-
-    void evict_excess() noexcept {
-        for (auto& shard : shards)
-            shard.evict_excess();
-    }
-
-    [[nodiscard]] usize get_capacity() const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return capacity;
-    }
-
-    void set_capacity(const usize size) noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        const usize cap = shard_capacity(size);
-
-        for (auto& shard : shards)
-            shard.set_capacity(cap);
-
-        capacity = cap * ShardCount;
-    }
-
-    // The returned iterator does not retain the underlying shard's lock.
-    // Callers must prevent concurrent mutation while using it.
-    [[nodiscard]] auto find(const Key& key) noexcept { return shards[shard_index(key)].find(key); }
-
-    [[nodiscard]] auto find(const Key& key) const noexcept {
-        return shards[shard_index(key)].find(key);
-    }
-
-    [[nodiscard]] bool contains(const Key& key) const noexcept {
-        return shards[shard_index(key)].contains(key);
-    }
-
-    [[nodiscard]] usize size() const noexcept {
-        usize count = 0;
-
-        for (const auto& shard : shards)
-            count += shard.size();
-
-        return count;
-    }
-
-    [[nodiscard]] bool empty() const noexcept {
-        for (const auto& shard : shards)
-            if (!shard.empty())
-                return false;
-
-        return true;
-    }
-
-    [[nodiscard]] bool remove(const Key& key) noexcept {
-        return shards[shard_index(key)].remove(key);
-    }
-
-    void clear() noexcept {
-        for (auto& shard : shards)
-            shard.clear();
-    }
-
-    void configure() noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        for (auto& shard : shards)
-            shard.configure();
-    }
-
-    void reset() noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        for (auto& shard : shards)
-            shard.reset();
-
-        capacity = defaultCapacity;
-    }
-
-   private:
-    const usize defaultCapacity;
-
-    mutable std::mutex mutex;
-    usize              capacity;
-
-    Array<cache_type, ShardCount> shards;
-};
-
 }  // namespace DON
 
-#endif  // UTILITY_CACHE_H_INCLUDED
+#endif  // UTILITY_LRU_CACHE_H_INCLUDED

@@ -35,6 +35,7 @@
 #include "utility/error.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
+#include "utility/sharded_cache.h"
 
 namespace DON {
 
@@ -44,15 +45,14 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-
-SharedLRUCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> NonPawnCache{
-  64 * KB, 16 * KB, 0.75f  //
+ShardedCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> NonPawnCache{
+  64 * KB, 16 * KB, 0.75F  //
 };
-SharedLRUCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> MaterialCache{
-  32 * KB, 8 * KB, 0.75f  //
+ShardedCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> MaterialCache{
+  32 * KB, 8 * KB, 0.75F  //
 };
-SharedLRUCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> EvaluateCache{
-  32 * KB, 8 * KB, 0.75f  //
+ShardedCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> EvaluateCache{
+  32 * KB, 8 * KB, 0.75F  //
 };
 
 }  // namespace

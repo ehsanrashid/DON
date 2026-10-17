@@ -21,7 +21,9 @@
     #include <cstring>  // memcpy()
 #endif
 
-#include "utility/concurrent.h"  // ConcurrentCache<>
+#include "utility/lru_cache.h"
+#include "utility/mutex.h"
+#include "utility/sharded_cache.h"
 
 namespace DON {
 
@@ -40,7 +42,13 @@ alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
 
 #endif
 
-ConcurrentCache<Bitboard, std::string> BitboardCache{1 * KB, 0.75f};
+using BitboardCache =
+  ShardedCache<Bitboard, std::string, PoolLRUCache, 32, WriterSharedMutex, std::string_view>;
+
+BitboardCache& bitboard_cache() noexcept {
+    static BitboardCache bitboardCache{usize{256}, usize{64}, 0.75F};
+    return bitboardCache;
+}
 
 }  // namespace
 
@@ -186,12 +194,8 @@ std::string pretty_str(const Bitboard b) noexcept {
 }
 
 std::string_view pretty(const Bitboard b) noexcept {
-    //return BitboardCache.access_or_build(b, pretty_str(b));
-    //return BitboardCache.transform_access_or_build(
-    //  b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
-    return BitboardCache.transform_access_or_build_with(
-      b, [](const std::string& str) noexcept -> std::string_view { return str; },
-      [](const Bitboard _b) noexcept -> std::string { return pretty_str(_b); }, b);
+    return bitboard_cache().read_or_write_with(
+      b, [](const Bitboard b_) noexcept -> std::string { return pretty_str(b_); }, b);
 }
 
 }  // namespace DON

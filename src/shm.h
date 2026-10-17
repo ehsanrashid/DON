@@ -439,7 +439,7 @@ class BaseSharedMemory {
 //  - Unregister memory before destruction
 inline ConcurrentRegistry<  //
   BaseSharedMemory*>
-  MemoryRegistry(usize{256}, 0.75f);
+  MemoryRegistry(usize{256}, 0.75F);
 
 // MemoryRegistryCleanup
 //
