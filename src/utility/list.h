@@ -31,36 +31,50 @@ namespace DON {
 template<typename T>
 class SinglyIntrusiveList final {
    public:
-    using value_type = T;
-    using pointer    = T*;
-
-    [[nodiscard]] bool empty() const noexcept { return head == nullptr; }
+    using value_type    = T;
+    using pointer       = T*;
+    using const_pointer = const T*;
 
     [[nodiscard]] pointer front() noexcept { return head; }
 
-    [[nodiscard]] const T* front() const noexcept { return head; }
+    [[nodiscard]] const_pointer front() const noexcept { return head; }
+
+    [[nodiscard]] bool size() const noexcept { return size_; }
+
+    [[nodiscard]] bool empty() const noexcept {
+        assert((front() == nullptr) == (size() == 0));
+
+        return size() == 0;
+    }
 
     void push_front(T& node) noexcept {
         node.next = head;
         head      = &node;
+
+        ++size_;
     }
 
     [[nodiscard]] pointer pop_front() noexcept {
         T* const node = head;
 
-        if (node != nullptr)
-        {
-            head       = node->next;
-            node->next = nullptr;
-        }
+        if (node == nullptr)
+            return node;
 
+        head       = node->next;
+        node->next = nullptr;
+
+        --size_;
         return node;
     }
 
-    void clear() noexcept { head = nullptr; }
+    void clear() noexcept {
+        head  = nullptr;
+        size_ = 0;
+    }
 
    private:
-    pointer head = nullptr;
+    pointer head  = nullptr;
+    usize   size_ = 0;
 };
 
 // Intrusive doubly linked list optimized for LRU policy operations.
@@ -73,13 +87,22 @@ class LRUIntrusiveList final {
     LRUIntrusiveList(LRUIntrusiveList&&) noexcept            = delete;
     LRUIntrusiveList& operator=(LRUIntrusiveList&&) noexcept = delete;
 
-    [[nodiscard]] T* back() noexcept { return back_; }
+    [[nodiscard]] T*       front() noexcept { return front_; }
+    [[nodiscard]] const T* front() const noexcept { return front_; }
+
+    [[nodiscard]] T*       back() noexcept { return back_; }
+    [[nodiscard]] const T* back() const noexcept { return back_; }
 
     [[nodiscard]] usize size() const noexcept { return size_; }
 
-    [[nodiscard]] bool empty() const noexcept { return size_ == 0; }
+    [[nodiscard]] bool empty() const noexcept {
+        assert((front() == nullptr) == (size() == 0));
+        assert((back() == nullptr) == (size() == 0));
 
-    [[nodiscard]] bool push_front(T& item) noexcept {
+        return size() == 0;
+    }
+
+    bool push_front(T& item) noexcept {
         assert(item.prev == nullptr && item.next == nullptr);
 
         if (item.prev != nullptr || item.next != nullptr)
@@ -94,6 +117,7 @@ class LRUIntrusiveList final {
             back_ = &item;
 
         front_ = &item;
+
         ++size_;
         return true;
     }
@@ -103,16 +127,20 @@ class LRUIntrusiveList final {
             return;
 
         unlink(item);
-        item.prev    = nullptr;
-        item.next    = front_;
+
+        item.prev = nullptr;
+        item.next = front_;
+
         front_->prev = &item;
         front_       = &item;
     }
 
     void erase(T& item) noexcept {
         unlink(item);
+
         item.prev = nullptr;
         item.next = nullptr;
+
         --size_;
     }
 
@@ -163,6 +191,7 @@ class DoublyIntrusiveList final {
     [[nodiscard]] bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
         assert((back() == nullptr) == (size() == 0));
+
         return size() == 0;
     }
 
@@ -224,6 +253,7 @@ class DoublyIntrusiveList final {
         return true;
     }
 
+    // Inserts a detached item before a node already in this list.
     bool insert_before(T& item, T& node) noexcept {
         assert(&item != &node);
         assert(item.prev == nullptr);
@@ -239,6 +269,7 @@ class DoublyIntrusiveList final {
         return true;
     }
 
+    // Inserts a detached item after a node already in this list.
     bool insert_after(T& item, T& node) noexcept {
         assert(&item != &node);
         assert(item.prev == nullptr);
@@ -406,20 +437,25 @@ class DoublyIntrusiveList final {
         node.prev = &item;
     }
 
-    void attach() noexcept { ++size_; }
+    void attach() noexcept {  //
+        ++size_;
+    }
 
     void detach(T& item) noexcept {
         unlink(item);
+
         --size_;
     }
 
     void attach_front(T& item) noexcept {
         link_front(item);
+
         attach();
     }
 
     void attach_back(T& item) noexcept {
         link_back(item);
+
         attach();
     }
 
@@ -540,6 +576,7 @@ class OwnedDoublyIntrusiveList final {
             return true;
 
         unlink(node);
+
         attach_front(node);
 
         return true;

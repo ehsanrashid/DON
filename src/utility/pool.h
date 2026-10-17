@@ -58,7 +58,7 @@ class Pool final {
 #else
     {
 
-        constexpr usize reserveCapacity = 16;
+        constexpr usize reserveCapacity = 32;
         // Reserve blocks
         blocks.reserve(reserveCapacity);
     }
@@ -82,9 +82,11 @@ class Pool final {
     void destroy(T* const object) noexcept {
         assert(object != nullptr);
 
-        Slot* const slot =
-          reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(object) - offsetof(Slot, storage));
+        Slot* const slot = reinterpret_cast<Slot*>(  //
+          reinterpret_cast<std::byte*>(object) - StorageOffset);
+
         object->~T();
+
         freeSlotList.push_front(*slot);
     }
 
@@ -119,6 +121,8 @@ class Pool final {
         for (usize index = 0; index < count; ++index)
             freeSlotList.push_front(first[index]);
     }
+
+    static constexpr usize StorageOffset = offsetof(Slot, storage);
 
 #if defined(USE_STATIC_VECTOR)
     static constexpr usize BlockMax = 256;

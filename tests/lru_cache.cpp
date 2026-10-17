@@ -50,10 +50,12 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
+constexpr float MaxLoadFactor = 0.75F;
+
 constexpr int   Capacity            = 128;
-constexpr int   RandomOperations    = 70'000;
-constexpr usize BenchmarkCapacity   = 8192;
-constexpr usize BenchmarkOperations = 700'000;
+constexpr int   RandomOperations    = 80'000;
+constexpr usize BenchmarkCapacity   = 16;
+constexpr usize BenchmarkOperations = 1600'000;
 
 // Exercise the shared_ptr storage path (> 128 bytes).
 struct LargeValue {
@@ -165,7 +167,7 @@ int correctness_tests() {
 // Large values exercise shared_ptr-backed storage.
 template<typename Cache>
 int large_value_tests() {
-    Cache cache{4, 8};
+    Cache cache{4, 8, MaxLoadFactor};
 
     CHECK(cache.read_or_write(1, 101).id == 101);
     CHECK(cache.read_or_write(2, 202).id == 202);
@@ -180,7 +182,7 @@ int large_value_tests() {
 
 int pool_growth_tests() {
     constexpr int EntryCount = 270'000;
-    PoolLRUCache<int, int> cache{EntryCount, 16};
+    PoolLRUCache<int, int> cache{EntryCount, 16, MaxLoadFactor};
 
     for (int key = 0; key < EntryCount; ++key)
         (void) cache.read_or_write(key, key);
@@ -199,9 +201,9 @@ int pool_growth_tests() {
 
 template<typename CacheA, typename CacheB, typename CacheC>
 int randomized_tests() {
-    CacheA a{Capacity, Capacity / 2};
-    CacheB b{Capacity, Capacity / 2};
-    CacheC c{Capacity, Capacity / 2};
+    CacheA a{Capacity, Capacity / 4, MaxLoadFactor};
+    CacheB b{Capacity, Capacity / 4, MaxLoadFactor};
+    CacheC c{Capacity, Capacity / 4, MaxLoadFactor};
 
     std::mt19937 rng{0xD04CACE};
     int          buildsA = 0;
@@ -278,7 +280,7 @@ int randomized_tests() {
 
 template<typename Cache>
 double benchmark_case(const char* name, const std::vector<int>& keys, const bool prefill) {
-    Cache cache{BenchmarkCapacity, BenchmarkCapacity / 2};
+    Cache cache{BenchmarkCapacity, BenchmarkCapacity / 4, MaxLoadFactor};
 
     if (prefill)
     {
