@@ -3131,12 +3131,12 @@ private:
         // Taking it back out is what makes a failed insert have no effect, which is what the
         // unordered containers promise for inserting a single element.
         if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()) {
-            try {
+            //try {
                 allocate_buckets_from_shift(static_cast<std::uint8_t>(m_shifts - 1));
-            } catch (...) {
-                m_values.pop_back();
-                throw;
-            }
+            //} catch (...) {
+            //    m_values.pop_back();
+            //    throw;
+            //}
         } else {
             allocate_buckets_from_shift(static_cast<std::uint8_t>(m_shifts - 1));
         }
@@ -3177,12 +3177,12 @@ private:
         // erase() hands the value to a callback that cannot throw, so the branch below is not even instantiated for it.
         // extract() moves the value out into the caller's storage, and that move is the one that can throw.
         if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() && !noexcept(handle_erased_value(std::move(erased_value)))) {
-            try {
+            //try {
                 handle_erased_value(std::move(erased_value));
-            } catch (...) {
-                finish_erase(value_idx_to_remove);
-                throw;
-            }
+            //} catch (...) {
+            //    finish_erase(value_idx_to_remove);
+            //    throw;
+            //}
         } else {
             handle_erased_value(std::move(erased_value));
         }
@@ -3615,16 +3615,16 @@ private:
             }
         };
         if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()) {
-            try {
+            //try {
                 walk_either();
-            } catch (...) {
-                // The source's index stopped describing its values at the first element taken, and
-                // the source is a container the caller still owns and did not hand over. Putting it
-                // back together is what keeps the throw at the basic guarantee instead of leaving a
-                // map whose next lookup reads an index into elements that have gone.
-                source.compact_and_reindex(static_cast<std::size_t>(write - first), static_cast<std::size_t>(read - first));
-                throw;
-            }
+            //} catch (...) {
+            //    // The source's index stopped describing its values at the first element taken, and
+            //    // the source is a container the caller still owns and did not hand over. Putting it
+            //    // back together is what keeps the throw at the basic guarantee instead of leaving a
+            //    // map whose next lookup reads an index into elements that have gone.
+            //    source.compact_and_reindex(static_cast<std::size_t>(write - first), static_cast<std::size_t>(read - first));
+            //    throw;
+            //}
         } else {
             walk_either();
         }
@@ -4059,12 +4059,12 @@ public:
             // used to leave it that way, so size() counted elements that find() could not reach and
             // the next lookup probed a bucket array that was not there. See reset_to_empty().
             if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()) {
-                try {
+                //try {
                     copy_everything_from(other);
-                } catch (...) {
-                    reset_to_empty();
-                    throw;
-                }
+                //} catch (...) {
+                //    reset_to_empty();
+                //    throw;
+                //}
             } else {
                 copy_everything_from(other);
             }
@@ -4085,12 +4085,12 @@ public:
             // Exactly when this operator does not promise noexcept, which is what makes the
             // recovery reachable rather than a rethrow inside a noexcept function.
             if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() && !move_assign_is_nothrow) {
-                try {
+                //try {
                     move_everything_from(std::move(other));
-                } catch (...) {
-                    reset_to_empty();
-                    throw;
-                }
+                //} catch (...) {
+                //    reset_to_empty();
+                //    throw;
+                //}
             } else {
                 move_everything_from(std::move(other));
             }
