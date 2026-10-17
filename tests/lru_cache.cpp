@@ -5,12 +5,18 @@ Steps:
 mkdir -p build
 
 g++ -std=c++17 -O2 -I./src \
+    src/utility/cpu.cpp \
+    src/utility/mutex.cpp \
     tests/lru_cache.cpp \
     -o build/lru_cache
 g++ -std=c++17 -O2 -I./src \
+    src/utility/cpu.cpp \
+    src/utility/mutex.cpp \
     tests/lru_cache.cpp \
     -o build/lru_cache
 g++ -std=c++17 -O2 -I./src `
+    src/utility/cpu.cpp `
+    src/utility/mutex.cpp `
     tests/lru_cache.cpp `
     -o build/lru_cache
 
@@ -27,6 +33,7 @@ g++ -std=c++17 -O2 -I./src `
 #include <vector>
 
 #include "utility/lru_cache.h"
+#include "utility/mutex.h"
 
 using namespace DON;
 
@@ -280,13 +287,13 @@ void benchmark_cache(const char*             cacheName,
 }  // namespace
 
 int main() {
-    using ListCache      = ListLRUCache<int, int>;
-    using IntrusiveCache = IntrusiveLRUCache<int, int>;
-    using PoolCache      = PoolLRUCache<int, int>;
+    using ListCache      = ListLRUCache<int, int, SpinMutex>;
+    using IntrusiveCache = IntrusiveLRUCache<int, int, SpinMutex>;
+    using PoolCache      = PoolLRUCache<int, int, SpinMutex>;
 
-    using LargeListCache      = ListLRUCache<int, LargeValue>;
-    using LargeIntrusiveCache = IntrusiveLRUCache<int, LargeValue>;
-    using LargePoolCache      = PoolLRUCache<int, LargeValue>;
+    using LargeListCache      = ListLRUCache<int, LargeValue, SpinMutex>;
+    using LargeIntrusiveCache = IntrusiveLRUCache<int, LargeValue, SpinMutex>;
+    using LargePoolCache      = PoolLRUCache<int, LargeValue, SpinMutex>;
 
     // ------------------------------------------------
     if (correctness_tests<ListCache>() != EXIT_SUCCESS)

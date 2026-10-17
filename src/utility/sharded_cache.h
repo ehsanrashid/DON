@@ -20,7 +20,6 @@
 
 #include <functional>
 #include <mutex>
-#include <shared_mutex>
 #include <utility>
 
 #include "../utility/types.h"
@@ -31,7 +30,7 @@ template<typename Key,
          typename Value,
          template<typename, typename, typename, typename> class Cache,
          usize ShardCount = 16,
-         typename Mutex   = std::shared_mutex,
+         typename Mutex   = std::mutex,
          typename Return  = Value>
 class ShardedCache final {
     static_assert(ShardCount != 0, "ShardCount must be != 0");
@@ -101,7 +100,7 @@ class ShardedCache final {
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
-        std::shared_lock sharedLock{mutex};
+        std::lock_guard lockGuard{mutex};
 
         return capacity;
     }
