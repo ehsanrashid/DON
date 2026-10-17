@@ -20,7 +20,8 @@
 
 #include <cassert>
 #include <array>
-#include <iostream>
+#include <functional>
+//#include <iostream>
 #include <iterator>
 #include <list>
 #include <memory>
@@ -921,18 +922,6 @@ class PoolLRUCache final {
     }
 
    private:
-    auto nolock_find(const Key& key) noexcept { return map.find(key); }
-
-    auto nolock_find(const Key& key) const noexcept { return map.find(key); }
-
-    Entry* nolock_touch(Entry* entry) noexcept {
-        assert(entry != nullptr);
-
-        (void) list.move_front(*entry);
-
-        return entry;
-    }
-
     [[nodiscard]] static constexpr usize nolock_block_size(const usize required) noexcept {
         usize size = 1;
 
@@ -946,6 +935,18 @@ class PoolLRUCache final {
         constexpr usize StorageOffset = offsetof(Slot, storage);
 
         return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(entry) - StorageOffset);
+    }
+
+    auto nolock_find(const Key& key) noexcept { return map.find(key); }
+
+    auto nolock_find(const Key& key) const noexcept { return map.find(key); }
+
+    Entry* nolock_touch(Entry* entry) noexcept {
+        assert(entry != nullptr);
+
+        (void) list.move_front(*entry);
+
+        return entry;
     }
 
     [[nodiscard]] Entry* nolock_acquire() noexcept {
@@ -1141,10 +1142,10 @@ class SharedLRUCache final {
     using cache_type = LRUCache<Key, Value, Mutex, Return>;
 
     template<usize... I>
-    static std::array<cache_type, ShardCount> make_shards(std::index_sequence<I...>,
-                                                          const usize cap,
-                                                          const usize reserveCnt,
-                                                          const float maxLoadFac) {
+    static Array<cache_type, ShardCount> make_shards(std::index_sequence<I...>,
+                                                     const usize cap,
+                                                     const usize reserveCnt,
+                                                     const float maxLoadFac) {
         return {(static_cast<void>(I), cache_type{cap, reserveCnt, maxLoadFac})...};
     }
 
@@ -1276,448 +1277,6 @@ class SharedLRUCache final {
 
     Array<cache_type, ShardCount> shards;
 };
-
-
-/*
-template<typename Key,
-         typename Value,
-         usize ShardCount = 16,
-         typename Mutex   = std::shared_mutex,
-         typename Return  = Value>
-class SharedListLRUCache final {
-    static_assert(ShardCount != 0, "ShardCount has to be != 0");
-    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
-
-    static constexpr usize ThresholdSize = 128;
-    static constexpr usize ShardMask     = ShardCount - 1;
-
-    using storage_value_type =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::shared_ptr<Value>>;
-
-    using list_value_type = std::pair<Key, storage_value_type>;
-    using list_type       = std::list<list_value_type>;
-    using list_iterator   = typename list_type::iterator;
-    using map_type        = std::unordered_map<Key, list_iterator>;
-
-    struct Shard final {
-        mutable Mutex mutex;
-        usize         capacity;
-        map_type      map;
-        list_type     list;
-
-        class MapGuard final {
-           public:
-            MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
-                map(mapRef),
-                iterator(mapItr) {}
-
-            ~MapGuard() noexcept {
-                if (active)
-                    map.erase(iterator);
-            }
-
-            void commit() noexcept { active = false; }
-
-           private:
-            map_type&                   map;
-            typename map_type::iterator iterator;
-            bool                        active = true;
-        };
-
-        template<typename... Args>
-        Return read_or_write(const Key& key, Args&&... args) noexcept {
-            // Fast path: shared lock for an existing key.
-            {
-                std::shared_lock sharedLock{mutex};
-
-                if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
-                {
-                    // Release the shared lock before acquiring the exclusive lock.
-                    sharedLock.unlock();
-
-                    std::lock_guard lockGuard{mutex};
-
-                    return nolock_read(
-                      nolock_write_touch(mapItr->second, key, std::forward<Args>(args)...));
-                }
-            }
-
-            // Slow path: exclusive lock to insert a missing key.
-            std::lock_guard lockGuard{mutex};
-
-            return nolock_write(key, std::forward<Args>(args)...);
-        }
-
-        template<typename Builder, typename... Args>
-        Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-            // Fast path: shared lock for an existing key.
-            {
-                std::shared_lock sharedLock{mutex};
-
-                if (const auto mapItr = nolock_find(key); mapItr != nolock_map_end())
-                {
-                    // Release the shared lock before acquiring the exclusive lock.
-                    sharedLock.unlock();
-
-                    std::lock_guard lockGuard{mutex};
-
-                    return nolock_read(nolock_write_touch_with(mapItr->second, key,
-                                                               std::forward<Builder>(builder),
-                                                               std::forward<Args>(args)...));
-                }
-            }
-
-            // Slow path: exclusive lock to insert a missing key.
-            std::lock_guard lockGuard{mutex};
-
-            return nolock_write_with(key, std::forward<Builder>(builder),
-                                     std::forward<Args>(args)...);
-        }
-
-        void evict_excess(const usize size) noexcept {
-            std::lock_guard lockGuard{mutex};
-
-            nolock_evict_excess(size);
-        }
-
-        void evict_excess() noexcept {
-            std::lock_guard lockGuard{mutex};
-
-            nolock_evict_excess(capacity);
-        }
-
-        [[nodiscard]] usize get_capacity() const noexcept {
-            std::shared_lock sharedLock{mutex};
-
-            return capacity;
-        }
-
-        void set_capacity(const usize size) noexcept {
-            std::lock_guard lockGuard{mutex};
-
-            capacity = size;
-            nolock_evict_excess(capacity);
-        }
-
-        // The returned iterator does not retain the lock; callers must prevent concurrent
-        // mutation while using it.
-        [[nodiscard]] auto find(const Key& key) noexcept {
-            std::shared_lock sharedLock{mutex};
-
-            return nolock_find(key);
-        }
-
-        [[nodiscard]] auto find(const Key& key) const noexcept {
-            std::shared_lock sharedLock{mutex};
-
-            return nolock_find(key);
-        }
-
-        [[nodiscard]] bool contains(const Key& key) const noexcept {
-            std::shared_lock sharedLock{mutex};
-
-            return nolock_find(key) != nolock_map_end();
-        }
-
-        [[nodiscard]] usize size() const noexcept {
-            std::shared_lock sharedLock{mutex};
-            assert(map.size() == list.size());
-
-            return list.size();
-        }
-
-        [[nodiscard]] bool empty() const noexcept {
-            std::shared_lock sharedLock{mutex};
-            assert(map.empty() == list.empty());
-
-            return list.empty();
-        }
-
-        [[nodiscard]] bool remove(const Key& key) noexcept {
-            std::lock_guard lockGuard{mutex};
-
-            return nolock_remove(key);
-        }
-
-        void clear() noexcept {
-            std::lock_guard lockGuard{mutex};
-
-            nolock_clear();
-        }
-
-        void configure(const usize reserveCnt, const float maxLoadFac) noexcept {
-            std::lock_guard lockGuard{mutex};
-
-            nolock_configure(reserveCnt, maxLoadFac);
-        }
-
-       private:
-        auto nolock_map_end() const noexcept { return map.end(); }
-
-        auto nolock_list_end() noexcept { return list.end(); }
-
-        auto nolock_list_pos() noexcept { return list.begin(); }
-
-        auto nolock_find(const Key& key) noexcept { return map.find(key); }
-        auto nolock_find(const Key& key) const noexcept { return map.find(key); }
-
-        list_iterator nolock_touch(list_iterator listItr) noexcept {
-            assert(listItr != nolock_list_end());
-
-            list.splice(nolock_list_pos(), list, listItr);
-
-            return listItr;
-        }
-
-        template<typename... Args>
-        list_iterator
-        nolock_write_touch(list_iterator listItr, const Key& key, Args&&... args) noexcept {
-            if (listItr == nolock_list_end())
-            {
-                nolock_write(key, std::forward<Args>(args)...);
-
-                return nolock_find(key)->second;
-            }    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
-
-
-            list.splice(nolock_list_pos(), list, listItr);
-
-            return listItr;
-        }
-
-        template<typename Builder, typename... Args>
-        list_iterator nolock_write_touch_with(list_iterator listItr,
-                                              const Key&    key,
-                                              Builder&&     builder,
-                                              Args&&... args) noexcept {
-            if (listItr == nolock_list_end())
-            {
-                nolock_write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
-
-                return nolock_find(key)->second;
-            }
-
-            list.splice(nolock_list_pos(), list, listItr);
-
-            return listItr;
-        }
-
-        Return nolock_read(list_iterator listItr) const noexcept {
-            if constexpr (sizeof(Value) <= ThresholdSize)
-                return listItr->second;
-            else
-                return *listItr->second;
-        }
-
-        template<typename... Args>
-        Return nolock_write(const Key& key, Args&&... args) noexcept {
-            if (capacity == 0)
-                return Return{std::forward<Args>(args)...};
-
-            const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
-
-            if (!inserted)
-                return nolock_read(nolock_touch(mapItr->second));
-
-            MapGuard mapGuard{map, mapItr};
-
-            if constexpr (sizeof(Value) <= ThresholdSize)
-                mapItr->second = list.emplace(nolock_list_pos(),  //
-                                              key,                //
-                                              std::forward<Args>(args)...);
-            else
-                mapItr->second = list.emplace(nolock_list_pos(),  //
-                                              key,                //
-                                              std::make_shared<Value>(std::forward<Args>(args)...));
-            mapGuard.commit();
-            nolock_evict_excess(capacity);
-
-            return nolock_read(mapItr->second);
-        }
-
-        template<typename Builder, typename... Args>
-        Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-            if (capacity == 0)
-                return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
-
-            const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
-
-            if (!inserted)
-                return nolock_read(nolock_touch(mapItr->second));
-
-            MapGuard mapGuard{map, mapItr};
-
-            if constexpr (sizeof(Value) <= ThresholdSize)
-                mapItr->second = list.emplace(nolock_list_pos(),      //
-                                              key,                    //
-                                              std::forward<Builder>(  //
-                                                builder)(std::forward<Args>(args)...));
-            else
-                mapItr->second = list.emplace(nolock_list_pos(),                 //
-                                              key,                               //
-                                              std::make_shared<Value>(           //
-                                                std::forward<Builder>(builder)(  //
-                                                  std::forward<Args>(args)...)));
-            mapGuard.commit();
-            nolock_evict_excess(capacity);
-
-            return nolock_read(mapItr->second);
-        }
-
-        void nolock_erase(typename map_type::iterator mapItr) noexcept {
-            const auto listItr = mapItr->second;
-
-            map.erase(mapItr);
-            list.erase(listItr);
-        }
-
-        void nolock_evict_excess(const usize size) noexcept {
-
-            for (auto listSize = list.size(); listSize > size; --listSize)
-            {
-                const auto mapItr = nolock_find(std::prev(nolock_list_end())->first);
-                assert(mapItr != nolock_map_end());
-
-                nolock_erase(mapItr);
-            }
-        }
-
-        bool nolock_remove(const Key& key) noexcept {
-            const auto mapItr = nolock_find(key);
-
-            if (mapItr == nolock_map_end())
-                return false;
-
-            nolock_erase(mapItr);
-
-            return true;
-        }
-
-        void nolock_clear() noexcept {
-            map.clear();
-            list.clear();
-        }
-
-        void nolock_configure(const usize reserveCnt, const float maxLoadFac) noexcept {
-            map.max_load_factor(maxLoadFac);
-            map.reserve(reserveCnt);
-        }
-    };
-
-    using shard_array_type = std::array<Shard, ShardCount>;
-
-   public:
-    explicit SharedListLRUCache(const usize cap        = 2 * KB,
-                                const usize reserveCnt = 1 * KB,
-                                const float maxLoadFac = 0.75F) :
-        reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFac) {
-        set_capacity(cap);
-        configure();
-    }
-
-    template<typename... Args>
-    Return read_or_write(const Key& key, Args&&... args) noexcept {
-        return shard(key).read_or_write(key, std::forward<Args>(args)...);
-    }
-
-    template<typename Builder, typename... Args>
-    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        return shard(key).read_or_write_with(key, std::forward<Builder>(builder),
-                                             std::forward<Args>(args)...);
-    }
-
-    void evict_excess(const usize size) noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        for (usize index = 0; index < ShardCount; ++index)
-            shards[index].evict_excess(shard_capacity(size, index));
-    }
-
-    void evict_excess() noexcept { evict_excess(get_capacity()); }
-
-    void set_capacity(const usize cap) noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        capacity = cap;
-
-        for (usize index = 0; index < ShardCount; ++index)
-            shards[index].set_capacity(shard_capacity(capacity, index));
-    }
-
-    [[nodiscard]] usize get_capacity() const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return capacity;
-    }
-
-    // The returned iterator does not retain the shard lock; callers must prevent concurrent
-    // mutation of this key's shard while using it.
-    [[nodiscard]] auto find(const Key& key) noexcept { return shard(key).find(key); }
-
-    [[nodiscard]] auto finconfigMutexd(const Key& key) const noexcept { return shard(key).find(key); }
-
-    [[nodiscard]] bool contains(const Key& key) const noexcept { return shard(key).contains(key); }
-
-    [[nodiscard]] usize size() const noexcept {
-        usize count = 0;
-
-        for (const auto& shard : shards)
-            count += shard.size();
-
-        return count;
-    }
-
-    [[nodiscard]] bool empty() const noexcept {
-        for (const auto& shard : shards)
-            if (!shard.empty())
-                return false;
-
-        return true;
-    }
-
-    bool remove(const Key& key) noexcept { return shard(key).remove(key); }
-
-    void clear() noexcept {
-        for (auto& shard : shards)
-            shard.clear();
-    }
-
-    void configure() noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        for (usize index = 0; index < ShardCount; ++index)
-            shards[index].configure(ceil_div(reserveCount, ShardCount), maxLoadFactor);
-    }
-
-    void reset() noexcept {
-        clear();
-        configure();
-    }
-
-   private:
-    static constexpr usize shard_capacity(const usize totalCapacity, const usize index) noexcept {
-        return totalCapacity / ShardCount + int(index < totalCapacity % ShardCount);
-    }
-
-    static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
-
-    [[nodiscard]] Shard& shard(const Key& key) noexcept {
-        return shards[hash_key(key) & ShardMask];
-    }
-
-    [[nodiscard]] const Shard& shard(const Key& key) const noexcept {
-        return shards[hash_key(key) & ShardMask];
-    }
-
-    const usize reserveCount;
-    const float maxLoadFactor;
-
-    mutable Mutex    mutex;
-    usize            capacity;
-    shard_array_type shards;
-};
-*/
 
 }  // namespace DON
 
