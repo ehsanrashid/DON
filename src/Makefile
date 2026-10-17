@@ -557,8 +557,6 @@ LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
 LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 ENTRY_FLAG  = $(strip $(ENV_ENTRY_FLAG))
 
-CPPFLAGS += -I../third_party/unordered_dense
-
 BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
 STRIP := strip

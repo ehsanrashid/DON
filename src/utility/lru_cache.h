@@ -32,11 +32,10 @@
 #include <unordered_map>
 #include <utility>
 
-#include <ankerl/unordered_dense.h>
-
 #include "../utility/list.h"
 #include "../utility/pool.h"
 #include "../utility/types.h"
+#include "../utility/ankerl/unordered_dense.h"
 
 namespace DON {
 
