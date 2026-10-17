@@ -18,7 +18,7 @@
 #ifndef UTILITY_POOL_H_INCLUDED
 #define UTILITY_POOL_H_INCLUDED
 
-//#define USE_STATIC_VECTOR
+#define USE_STATIC_VECTOR
 
 #if defined(USE_STATIC_VECTOR)
     #include "../utility/static_vector.h"
@@ -112,6 +112,11 @@ class Pool final {
     }
 
     void allocate_block(const usize requiredSize) noexcept {
+#if defined(USE_STATIC_VECTOR)
+        if (blocks.full())
+            std::terminate();
+#endif
+
         const usize count = block_size(requiredSize == 0 ? 1 : requiredSize);
         auto        slots = std::make_unique<Slot[]>(count);
         Slot* const first = slots.get();

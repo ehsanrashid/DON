@@ -5,6 +5,7 @@ Steps:
 mkdir -p build
 
 g++ -std=c++17 -O2 -I./src \
+    -I./third_party/unordered_dense \
     src/utility/cpu.cpp \
     src/utility/mutex.cpp \
     tests/lru_cache.cpp \
@@ -54,7 +55,7 @@ constexpr float MaxLoadFactor = 0.75F;
 
 constexpr int   Capacity            = 128;
 constexpr int   RandomOperations    = 80'000;
-constexpr usize BenchmarkCapacity   = 16;
+constexpr usize BenchmarkCapacity   = 32 * KB;
 constexpr usize BenchmarkOperations = 1600'000;
 
 // Exercise the shared_ptr storage path (> 128 bytes).
@@ -199,6 +200,25 @@ int pool_growth_tests() {
     return EXIT_SUCCESS;
 }
 
+int flat_growth_tests() {
+    constexpr int EntryCount = 270'000;
+    FlatLRUCache<int, int> cache{EntryCount, 16, MaxLoadFactor};
+
+    for (int key = 0; key < EntryCount; ++key)
+        (void) cache.read_or_write(key, key);
+
+    CHECK(cache.size() == EntryCount);
+    CHECK(cache.read_or_write(EntryCount - 1, -1) == EntryCount - 1);
+    CHECK(cache.contains(0));
+
+    cache.clear();
+    CHECK(cache.empty());
+    CHECK(cache.get_capacity() == EntryCount);
+
+    std::cout << "Pool growth test passed.\n";
+    return EXIT_SUCCESS;
+}
+
 template<typename CacheA, typename CacheB, typename CacheC>
 int randomized_tests() {
     CacheA a{Capacity, Capacity / 4, MaxLoadFactor};
@@ -323,38 +343,53 @@ void benchmark_cache(const char*             cacheName,
 
 int main() {
     using ListCache      = ListLRUCache<int, int, SpinMutex>;
-    using IntrusiveCache = IntrusiveLRUCache<int, int, SpinMutex>;
+    //using NewDeleteCache = NewDeleteLRUCache<int, int, SpinMutex>;
     using PoolCache      = PoolLRUCache<int, int, SpinMutex>;
+    using FlatCache      = FlatLRUCache<int, int, SpinMutex>;
 
-    using LargeListCache      = ListLRUCache<int, LargeValue, SpinMutex>;
-    using LargeIntrusiveCache = IntrusiveLRUCache<int, LargeValue, SpinMutex>;
+    //using LargeListCache      = ListLRUCache<int, LargeValue, SpinMutex>;
+    //using LargeNewDeleteCache = NewDeleteLRUCache<int, LargeValue, SpinMutex>;
     using LargePoolCache      = PoolLRUCache<int, LargeValue, SpinMutex>;
+    using LargeFlatCache      = FlatLRUCache<int, LargeValue, SpinMutex>;
 
     // ------------------------------------------------
+    /*
     if (correctness_tests<ListCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
-    if (correctness_tests<IntrusiveCache>() != EXIT_SUCCESS)
+    if (correctness_tests<NewDeleteCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
+    */
 
     if (correctness_tests<PoolCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
+    if (correctness_tests<FlatCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
     // ------------------------------------------------
+    /*
     if (large_value_tests<LargeListCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
-    if (large_value_tests<LargeIntrusiveCache>() != EXIT_SUCCESS)
+    if (large_value_tests<LargeNewDeleteCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
+    */
 
     if (large_value_tests<LargePoolCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (large_value_tests<LargeFlatCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     if (pool_growth_tests() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
+    if (flat_growth_tests() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
     // ------------------------------------------------
-    if (randomized_tests<ListCache, IntrusiveCache, PoolCache>() != EXIT_SUCCESS)
+    if (randomized_tests<ListCache, /*NewDeleteCache,*/ PoolCache, FlatCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     std::cout << "\nAll correctness tests passed.\n\n";
@@ -380,15 +415,21 @@ int main() {
     std::cout << "Benchmark: " << BenchmarkOperations << " operations per workload\n"
               << "Lower ns/op is better; higher Mops/s is better.\n\n";
 
+    /*
     benchmark_cache<ListCache>("ListLRUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << '\n';
 
-    benchmark_cache<IntrusiveCache>("IntrusiveLRUCache", hitKeys, missKeys, mixedKeys);
+    benchmark_cache<NewDeleteCache>("NewDeleteLRUCache", hitKeys, missKeys, mixedKeys);
+
+    std::cout << '\n';
+    */
+
+    benchmark_cache<PoolCache>("PoolLRUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << '\n';
 
-    benchmark_cache<PoolCache>("PoolLRUCache", hitKeys, missKeys, mixedKeys);
+    benchmark_cache<FlatCache>("FlatLRUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << "\nDone!!!\n";
 

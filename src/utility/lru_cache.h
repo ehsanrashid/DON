@@ -32,6 +32,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include <ankerl/unordered_dense.h>
+
 #include "../utility/list.h"
 #include "../utility/pool.h"
 #include "../utility/types.h"
@@ -137,8 +139,8 @@ class ListLRUCache final {
         nolock_evict_excess(capacity);
     }
 
-    // The returned iterator does not retain the lock; callers must prevent concurrent mutation
-    // while using it.
+    // The returned iterator does not retain the lock;
+    // callers must prevent concurrent mutation while using it.
     [[nodiscard]] auto find(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
@@ -340,7 +342,7 @@ class ListLRUCache final {
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
-class IntrusiveLRUCache final {
+class NewDeleteLRUCache final {
     static constexpr usize InlineValueThreshold = 128;
 
     using storage_value_type =
@@ -391,7 +393,7 @@ class IntrusiveLRUCache final {
     };
 
    public:
-    explicit IntrusiveLRUCache(const usize cap        = 2 * KB,
+    explicit NewDeleteLRUCache(const usize cap        = 2 * KB,
                                const usize reserveCnt = 1 * KB,
                                const float maxLoadFac = 0.75F) noexcept :
         defaultCapacity(cap),
@@ -400,12 +402,12 @@ class IntrusiveLRUCache final {
         capacity(cap) {
         configure();
     }
-    IntrusiveLRUCache(const IntrusiveLRUCache&) noexcept            = delete;
-    IntrusiveLRUCache& operator=(const IntrusiveLRUCache&) noexcept = delete;
-    IntrusiveLRUCache(IntrusiveLRUCache&&) noexcept                 = delete;
-    IntrusiveLRUCache& operator=(IntrusiveLRUCache&&) noexcept      = delete;
+    NewDeleteLRUCache(const NewDeleteLRUCache&) noexcept            = delete;
+    NewDeleteLRUCache& operator=(const NewDeleteLRUCache&) noexcept = delete;
+    NewDeleteLRUCache(NewDeleteLRUCache&&) noexcept                 = delete;
+    NewDeleteLRUCache& operator=(NewDeleteLRUCache&&) noexcept      = delete;
 
-    ~IntrusiveLRUCache() noexcept {
+    ~NewDeleteLRUCache() noexcept {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
@@ -453,8 +455,8 @@ class IntrusiveLRUCache final {
         nolock_evict_excess(capacity);
     }
 
-    // The returned iterator does not retain the lock; callers must prevent concurrent mutation
-    // while using it.
+    // The returned iterator does not retain the lock;
+    // callers must prevent concurrent mutation while using it.
     [[nodiscard]] auto find(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
@@ -776,8 +778,329 @@ class PoolLRUCache final {
         nolock_evict_excess(capacity);
     }
 
-    // The returned iterator does not retain the lock; callers must prevent concurrent
-    // mutation while using it.
+    // The returned iterator does not retain the lock;
+    // callers must prevent concurrent mutation while using it.
+    [[nodiscard]] auto find(const Key& key) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_find(key);
+    }
+
+    [[nodiscard]] auto find(const Key& key) const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_find(key);
+    }
+
+    [[nodiscard]] bool contains(const Key& key) const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_find(key) != nolock_map_end();
+    }
+
+    [[nodiscard]] usize size() const noexcept {
+        std::lock_guard lockGuard{mutex};
+        assert(map.size() == list.size());
+
+        return list.size();
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::lock_guard lockGuard{mutex};
+        assert(map.empty() == list.empty());
+
+        return list.empty();
+    }
+
+    [[nodiscard]] bool remove(const Key& key) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_remove(key);
+    }
+
+    // Retains pooled storage for reuse.
+    void clear() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+    }
+
+    void configure() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_configure();
+    }
+
+    // Releases pooled storage and restores the original configuration.
+    void reset() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+
+        nolock_release_pool();
+
+        map.rehash(0);
+
+        capacity = defaultCapacity;
+
+        nolock_configure();
+    }
+
+   private:
+    auto nolock_map_end() const noexcept { return map.end(); }
+
+    auto nolock_find(const Key& key) noexcept { return map.find(key); }
+
+    auto nolock_find(const Key& key) const noexcept { return map.find(key); }
+
+    template<typename... Args>
+    Return nolock_write(const Key& key, Args&&... args) noexcept {
+        if (capacity == 0)
+            return Return{std::forward<Args>(args)...};
+
+        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+
+        if (!inserted)
+            return nolock_read(nolock_touch(mapItr->second));
+
+        MapGuard mapGuard{map, mapItr};
+
+        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        Entry* const entry        = pool.create(requiredSize, key,  //
+                                                std::forward<Args>(args)...);
+        mapItr->second            = entry;
+        [[maybe_unused]] const bool listInserted = list.push_front(*entry);
+        assert(listInserted);
+
+        mapGuard.commit();
+
+        nolock_evict_excess(capacity);
+
+        return nolock_read(entry);
+    }
+
+    template<typename Builder, typename... Args>
+    Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        if (capacity == 0)
+            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
+        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+
+        if (!inserted)
+            return nolock_read(nolock_touch(mapItr->second));
+
+        MapGuard mapGuard{map, mapItr};
+
+        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        Entry* const entry        = pool.create(requiredSize, key,      //
+                                                std::forward<Builder>(  //
+                                                  builder)(std::forward<Args>(args)...));
+        mapItr->second            = entry;
+        [[maybe_unused]] const bool listInserted = list.push_front(*entry);
+        assert(listInserted);
+
+        mapGuard.commit();
+
+        nolock_evict_excess(capacity);
+
+        return nolock_read(entry);
+    }
+
+    list_iterator nolock_touch(list_iterator listItr) noexcept {
+        assert(listItr != nullptr);
+
+        list.move_front(*listItr);
+
+        return listItr;
+    }
+
+    Return nolock_read(const list_iterator listItr) const noexcept {
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
+            return listItr->value;
+        else
+            return *listItr->value;
+    }
+
+    void nolock_erase(typename map_type::iterator mapItr) noexcept {
+        Entry* const entry = mapItr->second;
+
+        map.erase(mapItr);
+
+        list.erase(*entry);
+
+        pool.destroy(entry);
+    }
+
+    void nolock_evict_excess(const usize size) noexcept {
+        while (list.size() > size)
+        {
+            Entry* const entry = list.back();
+            assert(entry != nullptr);
+
+            const auto mapItr = nolock_find(entry->key);
+            assert(mapItr != nolock_map_end());
+
+            nolock_erase(mapItr);
+        }
+    }
+
+    bool nolock_remove(const Key& key) noexcept {
+        const auto mapItr = nolock_find(key);
+
+        if (mapItr == nolock_map_end())
+            return false;
+
+        nolock_erase(mapItr);
+
+        return true;
+    }
+
+    void nolock_clear() noexcept {
+        map.clear();
+
+        while (Entry* const entry = list.back())
+        {
+            list.erase(*entry);  // T&: requires an existing object
+
+            pool.destroy(entry);  // T*: pointer identifies the object to destroy
+        }
+    }
+
+    void nolock_release_pool() noexcept { pool.release(); }
+
+    void nolock_configure() noexcept {
+        map.max_load_factor(maxLoadFactor);
+        map.reserve(reserveCount);
+    }
+
+    const usize defaultCapacity;
+    const usize reserveCount;
+    const float maxLoadFactor;
+
+    mutable Mutex mutex;
+    usize         capacity = 0;
+    map_type      map;
+    list_type     list;
+    Pool<Entry>   pool;
+};
+
+template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
+class FlatLRUCache final {
+    static constexpr usize InlineValueThreshold = 128;
+
+    using storage_value_type =
+      std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
+
+    struct Entry {
+       public:
+        template<typename... Args>
+        explicit Entry(const Key& k, Args&&... args) noexcept :
+            key(k),
+            value(make_storage(std::forward<Args>(args)...)) {}
+
+        template<typename... Args>
+        static storage_value_type make_storage(Args&&... args) noexcept {
+            if constexpr (sizeof(Value) <= InlineValueThreshold)
+                return Value(std::forward<Args>(args)...);
+            else
+                return std::make_shared<Value>(std::forward<Args>(args)...);
+        }
+
+        Key                key;
+        storage_value_type value;
+        Entry*             prev = nullptr;
+        Entry*             next = nullptr;
+    };
+
+    using list_value_type = Entry;
+    using list_type       = LRUIntrusiveList<list_value_type>;
+    using list_iterator   = list_value_type*;
+    using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
+
+    class MapGuard final {
+       public:
+        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+            map(mapRef),
+            iterator(mapItr) {}
+
+        ~MapGuard() noexcept {
+            if (active)
+                map.erase(iterator);
+        }
+
+        void commit() noexcept { active = false; }
+
+       private:
+        map_type&                   map;
+        typename map_type::iterator iterator;
+        bool                        active = true;
+    };
+
+   public:
+    explicit FlatLRUCache(const usize cap        = 2 * KB,
+                          const usize reserveCnt = 1 * KB,
+                          const float maxLoadFac = 0.75F) noexcept :
+        defaultCapacity(cap),
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFac),
+        capacity(cap) {
+        configure();
+    }
+    FlatLRUCache(const FlatLRUCache&) noexcept            = delete;
+    FlatLRUCache& operator=(const FlatLRUCache&) noexcept = delete;
+    FlatLRUCache(FlatLRUCache&&) noexcept                 = delete;
+    FlatLRUCache& operator=(FlatLRUCache&&) noexcept      = delete;
+
+    ~FlatLRUCache() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+
+        nolock_release_pool();
+    }
+
+    template<typename... Args>
+    Return read_or_write(const Key& key, Args&&... args) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_write(key, std::forward<Args>(args)...);
+    }
+
+    template<typename Builder, typename... Args>
+    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
+    }
+
+    void evict_excess(const usize size) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_evict_excess(size);
+    }
+
+    void evict_excess() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_evict_excess(capacity);
+    }
+
+    [[nodiscard]] usize get_capacity() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return capacity;
+    }
+
+    void set_capacity(const usize size) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        capacity = size;
+
+        nolock_evict_excess(capacity);
+    }
+
+    // The returned iterator does not retain the lock;
+    // callers must prevent concurrent mutation while using it.
     [[nodiscard]] auto find(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
