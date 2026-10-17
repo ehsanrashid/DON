@@ -264,7 +264,7 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
     const usize ttBytes = clusterCount * TT_CLUSTER_SIZE;
 
     // Request 1GB pages if get at least eight per NUMA node, to avoid memory oversubscription
-    const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
+    const bool hugePageHint = ttBytes >= usize{8} * threads.numa_nodes() * HUGE_PAGE_SIZE;
 
     clusters = static_cast<TTCluster*>(alloc_aligned_large_page_with_hint(ttBytes, hugePageHint));
 

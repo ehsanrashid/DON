@@ -30,48 +30,53 @@
 #define ANKERL_UNORDERED_DENSE_H
 
 // see https://semver.org/spec/v2.0.0.html
-#define ANKERL_UNORDERED_DENSE_VERSION_MAJOR 5 // NOLINT(cppcoreguidelines-macro-usage) incompatible API changes
-#define ANKERL_UNORDERED_DENSE_VERSION_MINOR 3 // NOLINT(cppcoreguidelines-macro-usage) backwards compatible functionality
-#define ANKERL_UNORDERED_DENSE_VERSION_PATCH 2 // NOLINT(cppcoreguidelines-macro-usage) backwards compatible bug fixes
+constexpr auto ANKERL_UNORDERED_DENSE_VERSION_MAJOR =
+  5;  // NOLINT(cppcoreguidelines-macro-usage) incompatible API changes
+constexpr auto ANKERL_UNORDERED_DENSE_VERSION_MINOR =
+  3;  // NOLINT(cppcoreguidelines-macro-usage) backwards compatible functionality
+constexpr auto ANKERL_UNORDERED_DENSE_VERSION_PATCH =
+  2;  // NOLINT(cppcoreguidelines-macro-usage) backwards compatible bug fixes
 
 // API versioning with inline namespace, see https://www.foonathan.net/2018/11/inline-namespaces/
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define ANKERL_UNORDERED_DENSE_VERSION_CONCAT1(major, minor, patch) v##major##_##minor##_##patch
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define ANKERL_UNORDERED_DENSE_VERSION_CONCAT(major, minor, patch) ANKERL_UNORDERED_DENSE_VERSION_CONCAT1(major, minor, patch)
-#define ANKERL_UNORDERED_DENSE_NAMESPACE   \
-    ANKERL_UNORDERED_DENSE_VERSION_CONCAT( \
-        ANKERL_UNORDERED_DENSE_VERSION_MAJOR, ANKERL_UNORDERED_DENSE_VERSION_MINOR, ANKERL_UNORDERED_DENSE_VERSION_PATCH)
+#define ANKERL_UNORDERED_DENSE_VERSION_CONCAT(major, minor, patch) \
+    ANKERL_UNORDERED_DENSE_VERSION_CONCAT1(major, minor, patch)
+#define ANKERL_UNORDERED_DENSE_NAMESPACE \
+    ANKERL_UNORDERED_DENSE_VERSION_CONCAT(ANKERL_UNORDERED_DENSE_VERSION_MAJOR, \
+                                          ANKERL_UNORDERED_DENSE_VERSION_MINOR, \
+                                          ANKERL_UNORDERED_DENSE_VERSION_PATCH)
 
 #if defined(_MSVC_LANG)
-#    define ANKERL_UNORDERED_DENSE_CPP_VERSION _MSVC_LANG
+    #define ANKERL_UNORDERED_DENSE_CPP_VERSION _MSVC_LANG
 #else
-#    define ANKERL_UNORDERED_DENSE_CPP_VERSION __cplusplus
+    #define ANKERL_UNORDERED_DENSE_CPP_VERSION __cplusplus
 #endif
 
 #if defined(__GNUC__)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#    define ANKERL_UNORDERED_DENSE_PACK(decl) decl __attribute__((__packed__))
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_PACK(decl) decl __attribute__((__packed__))
 #elif defined(_MSC_VER)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#    define ANKERL_UNORDERED_DENSE_PACK(decl) __pragma(pack(push, 1)) decl __pragma(pack(pop))
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_PACK(decl) __pragma(pack(push, 1)) decl __pragma(pack(pop))
 #endif
 
 // exceptions
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-#    define ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() 1 // NOLINT(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() 1  // NOLINT(cppcoreguidelines-macro-usage)
 #else
-#    define ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() 0 // NOLINT(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() 0  // NOLINT(cppcoreguidelines-macro-usage)
 #endif
 #ifdef _MSC_VER
-#    define ANKERL_UNORDERED_DENSE_NOINLINE __declspec(noinline)
-#    define ANKERL_UNORDERED_DENSE_FORCEINLINE __forceinline
-#    define ANKERL_UNORDERED_DENSE_FLATTEN
+    #define ANKERL_UNORDERED_DENSE_NOINLINE __declspec(noinline)
+    #define ANKERL_UNORDERED_DENSE_FORCEINLINE __forceinline
+    #define ANKERL_UNORDERED_DENSE_FLATTEN
 #else
-#    define ANKERL_UNORDERED_DENSE_NOINLINE __attribute__((noinline))
-#    define ANKERL_UNORDERED_DENSE_FORCEINLINE inline __attribute__((always_inline))
-#    define ANKERL_UNORDERED_DENSE_FLATTEN __attribute__((flatten))
+    #define ANKERL_UNORDERED_DENSE_NOINLINE __attribute__((noinline))
+    #define ANKERL_UNORDERED_DENSE_FORCEINLINE inline __attribute__((always_inline))
+    #define ANKERL_UNORDERED_DENSE_FLATTEN __attribute__((flatten))
 #endif
 
 // Data prefetch hint, a no-op where there is nothing to spell it with. MSVC has no
@@ -81,14 +86,18 @@
 // that is in time, because a macro needs its declarations where it is expanded and every expansion
 // is inside the table. Taken from boost, which covers the same three cases.
 #if defined(__GNUC__) || defined(__clang__)
-#    define ANKERL_UNORDERED_DENSE_PREFETCH(addr) __builtin_prefetch(addr) // NOLINT(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_PREFETCH(addr) \
+        __builtin_prefetch(addr)  // NOLINT(cppcoreguidelines-macro-usage)
 #elif defined(_MSC_VER) && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#    define ANKERL_UNORDERED_DENSE_PREFETCH(addr) _mm_prefetch(reinterpret_cast<char const*>(addr), _MM_HINT_T0)
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_PREFETCH(addr) \
+        _mm_prefetch(reinterpret_cast<char const*>(addr), _MM_HINT_T0)
 #elif defined(_MSC_VER) && defined(_M_ARM64)
-#    define ANKERL_UNORDERED_DENSE_PREFETCH(addr) __prefetch(addr) // NOLINT(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_PREFETCH(addr) \
+        __prefetch(addr)  // NOLINT(cppcoreguidelines-macro-usage)
 #else
-#    define ANKERL_UNORDERED_DENSE_PREFETCH(addr) static_cast<void>(addr) // NOLINT(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_PREFETCH(addr) \
+        static_cast<void>(addr)  // NOLINT(cppcoreguidelines-macro-usage)
 #endif
 
 // SSE2 is part of the x86-64 baseline, so comparing a group's sixteen fingerprints in one
@@ -99,11 +108,12 @@
 // units that disagree about this macro -- which they may, it is documented as a per-target switch
 // -- still agree about every byte of the index they share.
 #if !defined(ANKERL_UNORDERED_DENSE_HAS_SSE2)
-#    if defined(__SSE2__) || (defined(_MSC_VER) && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)))
-#        define ANKERL_UNORDERED_DENSE_HAS_SSE2 1 // NOLINT(cppcoreguidelines-macro-usage)
-#    else
-#        define ANKERL_UNORDERED_DENSE_HAS_SSE2 0 // NOLINT(cppcoreguidelines-macro-usage)
-#    endif
+    #if defined(__SSE2__) \
+      || (defined(_MSC_VER) && (defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)))
+        #define ANKERL_UNORDERED_DENSE_HAS_SSE2 1  // NOLINT(cppcoreguidelines-macro-usage)
+    #else
+        #define ANKERL_UNORDERED_DENSE_HAS_SSE2 0  // NOLINT(cppcoreguidelines-macro-usage)
+    #endif
 #endif
 
 // The same sixteen-at-once compare on AArch64, which is the other baseline worth having: NEON is
@@ -111,75 +121,81 @@
 // the mask below reads the comparison result as one 64 bit word, and to AArch64 because 32 bit ARM
 // lacks the horizontal ops -- both fall back to SWAR, which is correct everywhere.
 #if !defined(ANKERL_UNORDERED_DENSE_HAS_NEON)
-#    if defined(__ARM_NEON) && defined(__aarch64__) && \
-        (!defined(__BYTE_ORDER__) || !defined(__ORDER_BIG_ENDIAN__) || (__BYTE_ORDER__ != __ORDER_BIG_ENDIAN__))
-#        define ANKERL_UNORDERED_DENSE_HAS_NEON 1 // NOLINT(cppcoreguidelines-macro-usage)
-#    else
-#        define ANKERL_UNORDERED_DENSE_HAS_NEON 0 // NOLINT(cppcoreguidelines-macro-usage)
-#    endif
+    #if defined(__ARM_NEON) && defined(__aarch64__) \
+      && (!defined(__BYTE_ORDER__) || !defined(__ORDER_BIG_ENDIAN__) \
+          || (__BYTE_ORDER__ != __ORDER_BIG_ENDIAN__))
+        #define ANKERL_UNORDERED_DENSE_HAS_NEON 1  // NOLINT(cppcoreguidelines-macro-usage)
+    #else
+        #define ANKERL_UNORDERED_DENSE_HAS_NEON 0  // NOLINT(cppcoreguidelines-macro-usage)
+    #endif
 #endif
 #if ANKERL_UNORDERED_DENSE_HAS_SSE2 && ANKERL_UNORDERED_DENSE_HAS_NEON
-#    error "ANKERL_UNORDERED_DENSE_HAS_SSE2 and ANKERL_UNORDERED_DENSE_HAS_NEON cannot both be on"
+    #error "ANKERL_UNORDERED_DENSE_HAS_SSE2 and ANKERL_UNORDERED_DENSE_HAS_NEON cannot both be on"
 #endif
 
 #if defined(__clang__) && defined(__has_attribute)
-#    if __has_attribute(__no_sanitize__)
-#        define ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK \
+    #if __has_attribute(__no_sanitize__)
+        #define ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK \
             __attribute__((__no_sanitize__("unsigned-integer-overflow")))
-#    endif
+    #endif
 #endif
 
 #if !defined(ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK)
-#    define ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK
+    #define ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK
 #endif
 
 #if ANKERL_UNORDERED_DENSE_CPP_VERSION < 201703L
-#    error ankerl::unordered_dense requires C++17 or higher
+    #error ankerl::unordered_dense requires C++17 or higher
 #else
 
-#    if !defined(ANKERL_UNORDERED_DENSE_STD_MODULE)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#        define ANKERL_UNORDERED_DENSE_STD_MODULE 0
-#    endif
+    #if !defined(ANKERL_UNORDERED_DENSE_STD_MODULE)
+        // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+        #define ANKERL_UNORDERED_DENSE_STD_MODULE 0
+    #endif
 
-#    if !ANKERL_UNORDERED_DENSE_STD_MODULE
-#        include "stl.h"
-#    endif
-#    if ANKERL_UNORDERED_DENSE_HAS_SSE2
-#        include <emmintrin.h> // for _mm_loadu_si128, _mm_cmpeq_epi8, ...
-#    endif
-#    if ANKERL_UNORDERED_DENSE_HAS_NEON
-#        include <arm_neon.h> // for vld1q_u8, vceqq_u8, vshrn_n_u16, ...
-#    endif
-#    if defined(_MSC_VER)
-#        include <intrin.h> // for _BitScanForward
-#    endif
+    #if !ANKERL_UNORDERED_DENSE_STD_MODULE
+        #include "stl.h"
+    #endif
+    #if ANKERL_UNORDERED_DENSE_HAS_SSE2
+        #include <emmintrin.h>  // for _mm_loadu_si128, _mm_cmpeq_epi8, ...
+    #endif
+    #if ANKERL_UNORDERED_DENSE_HAS_NEON
+        #include <arm_neon.h>  // for vld1q_u8, vceqq_u8, vshrn_n_u16, ...
+    #endif
+    #if defined(_MSC_VER)
+        #include <intrin.h>  // for _BitScanForward
+    #endif
 
-#    if __has_cpp_attribute(likely) && __has_cpp_attribute(unlikely) && ANKERL_UNORDERED_DENSE_CPP_VERSION >= 202002L
-#        define ANKERL_UNORDERED_DENSE_LIKELY_ATTR [[likely]]     // NOLINT(cppcoreguidelines-macro-usage)
-#        define ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR [[unlikely]] // NOLINT(cppcoreguidelines-macro-usage)
-#        define ANKERL_UNORDERED_DENSE_LIKELY(x) (x)              // NOLINT(cppcoreguidelines-macro-usage)
-#        define ANKERL_UNORDERED_DENSE_UNLIKELY(x) (x)            // NOLINT(cppcoreguidelines-macro-usage)
-#    else
-#        define ANKERL_UNORDERED_DENSE_LIKELY_ATTR   // NOLINT(cppcoreguidelines-macro-usage)
-#        define ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR // NOLINT(cppcoreguidelines-macro-usage)
+    #if __has_cpp_attribute(likely) && __has_cpp_attribute(unlikely) \
+      && ANKERL_UNORDERED_DENSE_CPP_VERSION >= 202002L
+        #define ANKERL_UNORDERED_DENSE_LIKELY_ATTR \
+            [[likely]]  // NOLINT(cppcoreguidelines-macro-usage)
+        #define ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR \
+            [[unlikely]]                                // NOLINT(cppcoreguidelines-macro-usage)
+        #define ANKERL_UNORDERED_DENSE_LIKELY(x) (x)    // NOLINT(cppcoreguidelines-macro-usage)
+        #define ANKERL_UNORDERED_DENSE_UNLIKELY(x) (x)  // NOLINT(cppcoreguidelines-macro-usage)
+    #else
+        #define ANKERL_UNORDERED_DENSE_LIKELY_ATTR    // NOLINT(cppcoreguidelines-macro-usage)
+        #define ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR  // NOLINT(cppcoreguidelines-macro-usage)
 
-#        if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
-#            define ANKERL_UNORDERED_DENSE_LIKELY(x) __builtin_expect(x, 1)   // NOLINT(cppcoreguidelines-macro-usage)
-#            define ANKERL_UNORDERED_DENSE_UNLIKELY(x) __builtin_expect(x, 0) // NOLINT(cppcoreguidelines-macro-usage)
-#        else
-#            define ANKERL_UNORDERED_DENSE_LIKELY(x) (x)   // NOLINT(cppcoreguidelines-macro-usage)
-#            define ANKERL_UNORDERED_DENSE_UNLIKELY(x) (x) // NOLINT(cppcoreguidelines-macro-usage)
-#        endif
+        #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
+            #define ANKERL_UNORDERED_DENSE_LIKELY(x) \
+                __builtin_expect(x, 1)  // NOLINT(cppcoreguidelines-macro-usage)
+            #define ANKERL_UNORDERED_DENSE_UNLIKELY(x) \
+                __builtin_expect(x, 0)  // NOLINT(cppcoreguidelines-macro-usage)
+        #else
+            #define ANKERL_UNORDERED_DENSE_LIKELY(x) (x)    // NOLINT(cppcoreguidelines-macro-usage)
+            #define ANKERL_UNORDERED_DENSE_UNLIKELY(x) (x)  // NOLINT(cppcoreguidelines-macro-usage)
+        #endif
 
-#    endif
+    #endif
 
 namespace ankerl::unordered_dense {
 inline namespace ANKERL_UNORDERED_DENSE_NAMESPACE {
 
 namespace detail {
 
-#    if ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()
+    #if ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()
 
 // make sure this is not inlined as it is slow and dramatically enlarges code, thus making other
 // inlinings more difficult. Throws are also generally the slow path.
@@ -187,66 +203,59 @@ namespace detail {
     throw std::out_of_range("ankerl::unordered_dense::map::at(): key not found");
 }
 [[noreturn]] inline ANKERL_UNORDERED_DENSE_NOINLINE void on_error_bucket_overflow() {
-    throw std::overflow_error("ankerl::unordered_dense: reached max bucket size, cannot increase size");
+    throw std::overflow_error(
+      "ankerl::unordered_dense: reached max bucket size, cannot increase size");
 }
 [[noreturn]] inline ANKERL_UNORDERED_DENSE_NOINLINE void on_error_too_many_elements() {
     throw std::out_of_range("ankerl::unordered_dense::map::replace(): too many elements");
 }
 [[noreturn]] inline ANKERL_UNORDERED_DENSE_NOINLINE void on_error_key_changed() {
-    throw std::logic_error("ankerl::unordered_dense: an element's key changed after it was inserted (use replace_key()), or "
-                           "the index was loaded from bytes that do not match the values (check with verify())");
+    throw std::logic_error(
+      "ankerl::unordered_dense: an element's key changed after it was inserted (use replace_key()), or "
+      "the index was loaded from bytes that do not match the values (check with verify())");
 }
 [[noreturn]] inline ANKERL_UNORDERED_DENSE_NOINLINE void on_error_bad_index() {
-    throw std::invalid_argument("ankerl::unordered_dense: the index does not fit the values: a block count that is not 0 or a "
-                                "power of two in range, a misaligned array, or a slot pointing past the values");
+    throw std::invalid_argument(
+      "ankerl::unordered_dense: the index does not fit the values: a block count that is not 0 or a "
+      "power of two in range, a misaligned array, or a slot pointing past the values");
 }
 
-#    else
+    #else
 
-[[noreturn]] inline void on_error_key_not_found() {
-    abort();
-}
-[[noreturn]] inline void on_error_bucket_overflow() {
-    abort();
-}
-[[noreturn]] inline void on_error_too_many_elements() {
-    abort();
-}
-[[noreturn]] inline void on_error_key_changed() {
-    abort();
-}
-[[noreturn]] inline void on_error_bad_index() {
-    abort();
-}
+[[noreturn]] inline void on_error_key_not_found() { abort(); }
+[[noreturn]] inline void on_error_bucket_overflow() { abort(); }
+[[noreturn]] inline void on_error_too_many_elements() { abort(); }
+[[noreturn]] inline void on_error_key_changed() { abort(); }
+[[noreturn]] inline void on_error_bad_index() { abort(); }
 
-#    endif
+    #endif
 
 // Index of the lowest set bit, for the lane mask a group compare produces. x
 // must not be zero.
 [[nodiscard]] inline auto countr_zero(std::uint32_t x) -> unsigned {
-#    if defined(_MSC_VER)
+    #if defined(_MSC_VER)
     unsigned long idx{};
     _BitScanForward(&idx, x);
     return static_cast<unsigned>(idx);
-#    else
+    #else
     return static_cast<unsigned>(__builtin_ctz(x));
-#    endif
+    #endif
 }
 
-#    if ANKERL_UNORDERED_DENSE_HAS_NEON
+    #if ANKERL_UNORDERED_DENSE_HAS_NEON
 // NEON's match mask is one bit per lane four bits apart, so it needs the whole word.
 [[nodiscard]] inline auto countr_zero(std::uint64_t x) -> unsigned {
-#        if defined(_MSC_VER)
+        #if defined(_MSC_VER)
     unsigned long idx{};
     _BitScanForward64(&idx, x);
     return static_cast<unsigned>(idx);
-#        else
+        #else
     return static_cast<unsigned>(__builtin_ctzll(x));
-#        endif
+        #endif
 }
-#    endif
+    #endif
 
-} // namespace detail
+}  // namespace detail
 
 // hash ///////////////////////////////////////////////////////////////////////
 
@@ -262,32 +271,32 @@ namespace detail {
 namespace detail::hash_impl {
 
 inline void mum(std::uint64_t* a, std::uint64_t* b) {
-#    if defined(__SIZEOF_INT128__)
+    #if defined(__SIZEOF_INT128__)
     __uint128_t r = *a;
     r *= *b;
     *a = static_cast<std::uint64_t>(r);
     *b = static_cast<std::uint64_t>(r >> 64U);
-#    elif defined(_MSC_VER) && defined(_M_X64)
+    #elif defined(_MSC_VER) && defined(_M_X64)
     *a = _umul128(*a, *b, b);
-#    else
+    #else
     std::uint64_t ha = *a >> 32U;
     std::uint64_t hb = *b >> 32U;
     std::uint64_t la = static_cast<std::uint32_t>(*a);
     std::uint64_t lb = static_cast<std::uint32_t>(*b);
     std::uint64_t hi{};
     std::uint64_t lo{};
-    std::uint64_t rh = ha * hb;
+    std::uint64_t rh  = ha * hb;
     std::uint64_t rm0 = ha * lb;
     std::uint64_t rm1 = hb * la;
-    std::uint64_t rl = la * lb;
-    std::uint64_t t = rl + (rm0 << 32U);
-    auto c = static_cast<std::uint64_t>(t < rl);
-    lo = t + (rm1 << 32U);
+    std::uint64_t rl  = la * lb;
+    std::uint64_t t   = rl + (rm0 << 32U);
+    auto          c   = static_cast<std::uint64_t>(t < rl);
+    lo                = t + (rm1 << 32U);
     c += static_cast<std::uint64_t>(lo < t);
     hi = rh + (rm0 >> 32U) + (rm1 >> 32U) + c;
     *a = lo;
     *b = hi;
-#    endif
+    #endif
 }
 
 // multiply and xor mix function, aka MUM
@@ -309,7 +318,7 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
     return v;
 }
 
-// A 4 byte read the compiler may not fuse with its neighbour into one 8 byte read: the empty asm
+// A 4 byte read the compiler may not fuse with its neighbor into one 8 byte read: the empty asm
 // makes the value opaque, and clang otherwise turns `r4(p) | r4(p + 4) << 32` back into r8(p).
 // For a key the caller has just written field by field (#311): a load that spans two of the
 // caller's stores cannot be forwarded from them and waits until both are written to the cache,
@@ -318,15 +327,19 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
 // 8 + 4 (clang), and is forwarded either way.
 [[nodiscard]] inline auto r4_unfused(const std::uint8_t* p) -> std::uint64_t {
     auto v = r4(p);
-#    if defined(__GNUC__) || defined(__clang__)
-    __asm__("" : "+r"(v)); // NOLINT(hicpp-no-assembler): emits nothing; it only hides v from the load combiner
-#    endif
+    #if defined(__GNUC__) || defined(__clang__)
+    __asm__(
+      ""
+      : "+r"(
+        v));  // NOLINT(hicpp-no-assembler): emits nothing; it only hides v from the load combiner
+    #endif
     return v;
 }
 
 // reads 1, 2, or 3 bytes
 [[nodiscard]] inline auto r3(const std::uint8_t* p, std::size_t k) -> std::uint64_t {
-    return (static_cast<std::uint64_t>(p[0]) << 16U) | (static_cast<std::uint64_t>(p[k >> 1U]) << 8U) | p[k - 1];
+    return (static_cast<std::uint64_t>(p[0]) << 16U)
+         | (static_cast<std::uint64_t>(p[k >> 1U]) << 8U) | p[k - 1];
 }
 
 // The shape of this is wyhash's up to 16 bytes and for anything past 144, and in between it is
@@ -335,7 +348,7 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
 // three multiplies one after another and then the finalizer, and a map lookup waits for all of
 // them before it can so much as form the group address. Here the block multiplies are independent,
 // so the latency of any key up to 144 bytes is one multiply plus the finalizer, and the block
-// loop's trip count -- a data-dependent branch that mispredicts whenever lengths vary -- is a
+// loop's trip count -- a data-dependent branch that mis predicts whenever lengths vary -- is a
 // short chain of compares that the predictor learns from the top. The last sixteen bytes are
 // always a block of their own, wherever they fall, so every byte is read at least once and nothing
 // is read past the end.
@@ -353,16 +366,18 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
 // hash. Sixteen pairs cover 144 bytes, and past that the chained lanes take over, where reuse is
 // harmless because the chain carries the position. The secrets have wyhash's property, every
 // byte with four bits set, odd, and were drawn once from a fixed seed.
-[[maybe_unused]] [[nodiscard]] inline auto hash_bytes(void const* key, std::size_t len) -> std::uint64_t {
+[[maybe_unused]] [[nodiscard]] inline auto hash_bytes(void const* key, std::size_t len)
+  -> std::uint64_t {
     static constexpr auto secret = std::array{
-        UINT64_C(0xa0761d6478bd642f), UINT64_C(0xe7037ed1a0b428db), UINT64_C(0x8ebc6af09c88c6e3), UINT64_C(0x589965cc75374cc3),
-        UINT64_C(0x2d358dccaa6c78a5), UINT64_C(0x8bb84b93962eacc9), UINT64_C(0x4b33a62ed433d4a3), UINT64_C(0xa693c93927d87217),
-        UINT64_C(0x2b63728e53473c2b), UINT64_C(0x696cb2a95635a3c5), UINT64_C(0xa9ccd81ed1b29359), UINT64_C(0x5c2d66ace48db84d),
-        UINT64_C(0x69a99c5c53b4ca2d), UINT64_C(0x9a9c5a1b27d10f69), UINT64_C(0x2b27f02dc3d4360f), UINT64_C(0x2b39665c8d2d5553),
-        UINT64_C(0x966cd8878bb4b187), UINT64_C(0xc6351e99932b1ee1), UINT64_C(0xd1c5d24d63c959c9), UINT64_C(0x56c54d9c955aca2b),
-        UINT64_C(0xd136d27872563559)};
+      UINT64_C(0xa0761d6478bd642f), UINT64_C(0xe7037ed1a0b428db), UINT64_C(0x8ebc6af09c88c6e3),
+      UINT64_C(0x589965cc75374cc3), UINT64_C(0x2d358dccaa6c78a5), UINT64_C(0x8bb84b93962eacc9),
+      UINT64_C(0x4b33a62ed433d4a3), UINT64_C(0xa693c93927d87217), UINT64_C(0x2b63728e53473c2b),
+      UINT64_C(0x696cb2a95635a3c5), UINT64_C(0xa9ccd81ed1b29359), UINT64_C(0x5c2d66ace48db84d),
+      UINT64_C(0x69a99c5c53b4ca2d), UINT64_C(0x9a9c5a1b27d10f69), UINT64_C(0x2b27f02dc3d4360f),
+      UINT64_C(0x2b39665c8d2d5553), UINT64_C(0x966cd8878bb4b187), UINT64_C(0xc6351e99932b1ee1),
+      UINT64_C(0xd1c5d24d63c959c9), UINT64_C(0x56c54d9c955aca2b), UINT64_C(0xd136d27872563559)};
 
-    auto const* p = static_cast<std::uint8_t const*>(key);
+    auto const*   p    = static_cast<std::uint8_t const*>(key);
     std::uint64_t seed = secret[0];
     std::uint64_t a{};
     std::uint64_t b{};
@@ -370,7 +385,8 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
         ANKERL_UNORDERED_DENSE_LIKELY_ATTR {
             if (ANKERL_UNORDERED_DENSE_LIKELY(len >= 8))
                 ANKERL_UNORDERED_DENSE_LIKELY_ATTR {
-#    if (defined(__GNUC__) || defined(__clang__)) && defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    #if (defined(__GNUC__) || defined(__clang__)) && defined(__BYTE_ORDER__) \
+      && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
                     // A length known at compile time is a struct's, which may have just been written
                     // field by field; read it as 4 byte words and put together the same two words
                     // (#311). A lookup right after writing a 12 byte key: 146 -> 40 cycles under clang
@@ -378,21 +394,25 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
                     // only known at run time is a string's and keeps the two 8 byte reads. Both paths
                     // give the same value -- which one runs depends on inlining, so they must -- and on
                     // little-endian only is `r4 | r4 << 32` the same as r8.
-                    if (__builtin_constant_p(len) != 0 && len % 4 == 0) {
+                    if (__builtin_constant_p(len) != 0 && len % 4 == 0)
+                    {
                         a = r4_unfused(p) | (r4_unfused(p + 4) << 32U);
                         b = r4_unfused(p + len - 8) | (r4_unfused(p + len - 4) << 32U);
-                    } else
-#    endif
+                    }
+                    else
+    #endif
                     {
                         // two (potentially overlapping) 8 byte reads cover the whole input
                         a = r8(p);
                         b = r8(p + len - 8);
                     }
                 }
-            else if (len >= 4) {
+            else if (len >= 4)
+            {
                 a = r4(p);
                 b = r4(p + len - 4);
-            } else if (ANKERL_UNORDERED_DENSE_LIKELY(len > 0))
+            }
+            else if (ANKERL_UNORDERED_DENSE_LIKELY(len > 0))
                 ANKERL_UNORDERED_DENSE_LIKELY_ATTR {
                     // b stays zero: r3 packs all len bytes it is given into a, and there are at
                     // most three of them.
@@ -414,22 +434,30 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
             // The first block and the last sixteen bytes, then whole blocks from the front for as
             // long as there are any: a key of 17 to 32 bytes is two multiplies, one of 129 to 144
             // is nine, all of them independent.
-            auto x =
-                mix(r8(p) ^ secret[1], r8(p + 8) ^ secret[2]) ^ mix(r8(p + len - 16) ^ secret[3], r8(p + len - 8) ^ secret[4]);
-            if (len > 32) {
+            auto x = mix(r8(p) ^ secret[1], r8(p + 8) ^ secret[2])
+                   ^ mix(r8(p + len - 16) ^ secret[3], r8(p + len - 8) ^ secret[4]);
+            if (len > 32)
+            {
                 x ^= mix(r8(p + 16) ^ secret[5], r8(p + 24) ^ secret[6]);
-                if (len > 48) {
+                if (len > 48)
+                {
                     x ^= mix(r8(p + 32) ^ secret[7], r8(p + 40) ^ secret[8]);
-                    if (len > 64) {
+                    if (len > 64)
+                    {
                         x ^= mix(r8(p + 48) ^ secret[9], r8(p + 56) ^ secret[10]);
-                        if (len > 80) {
+                        if (len > 80)
+                        {
                             x ^= mix(r8(p + 64) ^ secret[11], r8(p + 72) ^ secret[12]);
-                            if (len > 96) {
+                            if (len > 96)
+                            {
                                 x ^= mix(r8(p + 80) ^ secret[13], r8(p + 88) ^ secret[14]);
-                                if (len > 112) {
+                                if (len > 112)
+                                {
                                     x ^= mix(r8(p + 96) ^ secret[15], r8(p + 104) ^ secret[16]);
-                                    if (len > 128) {
-                                        x ^= mix(r8(p + 112) ^ secret[17], r8(p + 120) ^ secret[18]);
+                                    if (len > 128)
+                                    {
+                                        x ^=
+                                          mix(r8(p + 112) ^ secret[17], r8(p + 120) ^ secret[18]);
                                     }
                                 }
                             }
@@ -441,7 +469,7 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
         }
 
     // Anything longer, in chained lanes of 16 bytes, ending on the same expression as above.
-    std::size_t i = len;
+    std::size_t   i    = len;
     std::uint64_t see1 = seed;
     std::uint64_t see2 = seed;
     // Six lanes cost three more accumulators to set up and fold back in, so the block has to
@@ -450,12 +478,14 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
     // against 21.8 when it takes the 48 byte loop instead, and 29.3 against 28.2 at 150. Above
     // 192 the block runs at least twice and wins again -- 143.5 cycles against 147.1 at 1000
     // bytes -- so it keeps those.
-    if (i > 192) {
+    if (i > 192)
+    {
         // 6 independent lanes: twice the instruction level parallelism of the 48 byte loop below
         std::uint64_t see3 = seed;
         std::uint64_t see4 = seed;
         std::uint64_t see5 = seed;
-        do {
+        do
+        {
             seed = mix(r8(p) ^ secret[1], r8(p + 8) ^ seed);
             see1 = mix(r8(p + 16) ^ secret[2], r8(p + 24) ^ see1);
             see2 = mix(r8(p + 32) ^ secret[3], r8(p + 40) ^ see2);
@@ -467,7 +497,8 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
         } while (ANKERL_UNORDERED_DENSE_LIKELY(i > 96));
         seed ^= see3 ^ see4 ^ see5;
     }
-    while (i > 48) {
+    while (i > 48)
+    {
         seed = mix(r8(p) ^ secret[1], r8(p + 8) ^ seed);
         see1 = mix(r8(p + 16) ^ secret[2], r8(p + 24) ^ see1);
         see2 = mix(r8(p + 32) ^ secret[3], r8(p + 40) ^ see2);
@@ -475,7 +506,8 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
         i -= 48;
     }
     seed ^= see1 ^ see2;
-    while (i > 16) {
+    while (i > 16)
+    {
         seed = mix(r8(p) ^ secret[1], r8(p + 8) ^ seed);
         i -= 16;
         p += 16;
@@ -491,7 +523,7 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
     return mix(x, UINT64_C(0x9E3779B97F4A7C15));
 }
 
-} // namespace detail::hash_impl
+}  // namespace detail::hash_impl
 
 namespace detail {
 
@@ -500,42 +532,42 @@ namespace detail {
 using hash_impl::hash_bytes;
 using hash_impl::hash_int;
 
-} // namespace detail
+}  // namespace detail
 
 namespace detail {
 
 struct nonesuch {};
 
-template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
+template<class Default, class AlwaysVoid, template<class...> class Op, class... Args>
 struct detector {
     using value_t = std::false_type;
-    using type = Default;
+    using type    = Default;
 };
 
-template <class Default, template <class...> class Op, class... Args>
+template<class Default, template<class...> class Op, class... Args>
 struct detector<Default, std::void_t<Op<Args...>>, Op, Args...> {
     using value_t = std::true_type;
-    using type = Op<Args...>;
+    using type    = Op<Args...>;
 };
 
-template <template <class...> class Op, class... Args>
+template<template<class...> class Op, class... Args>
 using is_detected = typename detail::detector<detail::nonesuch, void, Op, Args...>::value_t;
 
-template <template <class...> class Op, class... Args>
+template<template<class...> class Op, class... Args>
 constexpr bool is_detected_v = is_detected<Op, Args...>::value;
 
-template <typename>
+template<typename>
 constexpr bool dependent_false = false;
 
-template <typename T>
+template<typename T>
 using detect_avalanching = typename T::is_avalanching;
 
 // The member written as a value instead of a type, which is the near miss that would otherwise
 // answer "not avalanching" and say nothing about why.
-template <typename T>
-using detect_avalanching_as_value = decltype((void)T::is_avalanching);
+template<typename T>
+using detect_avalanching_as_value = decltype((void) T::is_avalanching);
 
-template <typename T>
+template<typename T>
 using detect_bool_value = std::enable_if_t<std::is_convertible_v<decltype(T::value), bool>>;
 
 // What a hash's is_avalanching member means. void is this library's spelling, and Boost's original
@@ -545,18 +577,26 @@ using detect_bool_value = std::enable_if_t<std::is_convertible_v<decltype(T::val
 // answer that costs the table its distribution.
 //
 // Anything else is a mistake, and is said to be one rather than guessed at.
-template <typename Hash>
+template<typename Hash>
 [[nodiscard]] constexpr auto is_avalanching_member() -> bool {
-    if constexpr (!is_detected_v<detect_avalanching, Hash>) {
-        static_assert(!is_detected_v<detect_avalanching_as_value, Hash>,
-                      "is_avalanching must be a type: write 'using is_avalanching = std::true_type;' "
-                      "rather than 'static constexpr bool is_avalanching = true;'");
+    if constexpr (!is_detected_v<detect_avalanching, Hash>)
+    {
+        static_assert(
+          !is_detected_v<detect_avalanching_as_value, Hash>,
+          "is_avalanching must be a type: write 'using is_avalanching = std::true_type;' "
+          "rather than 'static constexpr bool is_avalanching = true;'");
         return false;
-    } else if constexpr (std::is_void_v<detect_avalanching<Hash>>) {
+    }
+    else if constexpr (std::is_void_v<detect_avalanching<Hash>>)
+    {
         return true;
-    } else if constexpr (is_detected_v<detect_bool_value, detect_avalanching<Hash>>) {
+    }
+    else if constexpr (is_detected_v<detect_bool_value, detect_avalanching<Hash>>)
+    {
         return static_cast<bool>(detect_avalanching<Hash>::value);
-    } else {
+    }
+    else
+    {
         static_assert(dependent_false<Hash>,
                       "is_avalanching must be void, or a type with a compile time bool value such "
                       "as std::true_type or std::false_type");
@@ -564,7 +604,7 @@ template <typename Hash>
     }
 }
 
-} // namespace detail
+}  // namespace detail
 
 namespace detail {
 
@@ -577,9 +617,8 @@ namespace detail {
 inline constexpr std::uint64_t hash_version = 1;
 
 // One step of folding a value into an id. Compile time only; nothing on a lookup path calls it.
-[[nodiscard]] ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK constexpr auto fold_format_id(std::uint64_t h,
-                                                                                                        std::uint64_t v)
-    -> std::uint64_t {
+[[nodiscard]] ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK constexpr auto
+fold_format_id(std::uint64_t h, std::uint64_t v) -> std::uint64_t {
     h = (h ^ v) * UINT64_C(0x100000001b3);
     return h ^ (h >> 29U);
 }
@@ -587,24 +626,29 @@ inline constexpr std::uint64_t hash_version = 1;
 // The ids of this header's hash families: a hash's `format_id` says which function computed it.
 // Integers and enums go through hash_int(); strings and string views through hash_bytes() over their
 // bytes, which depend on the character width; a tuple or a pair mixes its elements.
-inline constexpr std::uint64_t integer_hash_format_id = fold_format_id(fold_format_id(hash_version, 'i'), 0);
-template <typename CharT>
-inline constexpr std::uint64_t bytes_hash_format_id = fold_format_id(fold_format_id(hash_version, 's'), sizeof(CharT));
+inline constexpr std::uint64_t integer_hash_format_id =
+  fold_format_id(fold_format_id(hash_version, 'i'), 0);
+template<typename CharT>
+inline constexpr std::uint64_t bytes_hash_format_id =
+  fold_format_id(fold_format_id(hash_version, 's'), sizeof(CharT));
 
-template <typename T>
+template<typename T>
 using detect_format_id = decltype(T::format_id);
 
 // Hash::format_id when it declares one, else 0: unknown, and only verify() can tell.
-template <typename Hash>
+template<typename Hash>
 [[nodiscard]] constexpr auto hash_format_id() -> std::uint64_t {
-    if constexpr (is_detected_v<detect_format_id, Hash>) {
+    if constexpr (is_detected_v<detect_format_id, Hash>)
+    {
         return static_cast<std::uint64_t>(Hash::format_id);
-    } else {
+    }
+    else
+    {
         return 0;
     }
 }
 
-} // namespace detail
+}  // namespace detail
 
 // Whether a hash is high quality -- every bit of its result independently well distributed -- so
 // that a table can index with those bits as they come instead of mixing them first. The default
@@ -616,15 +660,16 @@ template <typename Hash>
 // boost::hash_is_avalanching, so that a hash annotated for either library is read correctly by the
 // other. See "Marking a Hash Avalanching From Outside" in
 // https://github.com/martinus/unordered_dense/blob/main/doc/usage.md
-template <typename Hash>
-struct hash_is_avalanching : std::bool_constant<detail::is_avalanching_member<Hash>()> {};
+template<typename Hash>
+struct hash_is_avalanching: std::bool_constant<detail::is_avalanching_member<Hash>()> {};
 
-template <typename Hash>
+template<typename Hash>
 constexpr bool hash_is_avalanching_v = hash_is_avalanching<Hash>::value;
 
-template <typename T, typename Enable = void>
+template<typename T, typename Enable = void>
 struct hash {
-    auto operator()(T const& obj) const noexcept(noexcept(std::declval<std::hash<T>>().operator()(std::declval<T const&>())))
+    auto operator()(T const& obj) const
+      noexcept(noexcept(std::declval<std::hash<T>>().operator()(std::declval<T const&>())))
         -> std::uint64_t {
         return std::hash<T>{}(obj);
     }
@@ -634,34 +679,35 @@ struct hash {
 // is one reader of the marker and not two: a std::hash spelling its marker the way Boost asks, or
 // named avalanching by a specialization because it cannot be edited, reaches the table through here
 // as well.
-template <typename T>
+template<typename T>
 struct hash<T, std::enable_if_t<hash_is_avalanching_v<std::hash<T>>>> {
     using is_avalanching = void;
-    auto operator()(T const& obj) const noexcept(noexcept(std::declval<std::hash<T>>().operator()(std::declval<T const&>())))
+    auto operator()(T const& obj) const
+      noexcept(noexcept(std::declval<std::hash<T>>().operator()(std::declval<T const&>())))
         -> std::uint64_t {
         return std::hash<T>{}(obj);
     }
 };
 
-template <typename CharT>
+template<typename CharT>
 struct hash<std::basic_string<CharT>> {
-    using is_avalanching = void;
+    using is_avalanching                     = void;
     static constexpr std::uint64_t format_id = detail::bytes_hash_format_id<CharT>;
     auto operator()(std::basic_string<CharT> const& str) const noexcept -> std::uint64_t {
         return detail::hash_bytes(str.data(), sizeof(CharT) * str.size());
     }
 };
 
-template <typename CharT>
+template<typename CharT>
 struct hash<std::basic_string_view<CharT>> {
-    using is_avalanching = void;
+    using is_avalanching                     = void;
     static constexpr std::uint64_t format_id = detail::bytes_hash_format_id<CharT>;
     auto operator()(std::basic_string_view<CharT> const& sv) const noexcept -> std::uint64_t {
         return detail::hash_bytes(sv.data(), sizeof(CharT) * sv.size());
     }
 };
 
-template <class T>
+template<class T>
 struct hash<T*> {
     using is_avalanching = void;
     auto operator()(T* ptr) const noexcept -> std::uint64_t {
@@ -670,7 +716,7 @@ struct hash<T*> {
     }
 };
 
-template <class T>
+template<class T>
 struct hash<std::unique_ptr<T>> {
     using is_avalanching = void;
     auto operator()(std::unique_ptr<T> const& ptr) const noexcept -> std::uint64_t {
@@ -679,7 +725,7 @@ struct hash<std::unique_ptr<T>> {
     }
 };
 
-template <class T>
+template<class T>
 struct hash<std::shared_ptr<T>> {
     using is_avalanching = void;
     auto operator()(std::shared_ptr<T> const& ptr) const noexcept -> std::uint64_t {
@@ -688,11 +734,11 @@ struct hash<std::shared_ptr<T>> {
     }
 };
 
-template <typename Enum>
+template<typename Enum>
 struct hash<Enum, typename std::enable_if_t<std::is_enum_v<Enum>>> {
-    using is_avalanching = void;
+    using is_avalanching                     = void;
     static constexpr std::uint64_t format_id = detail::integer_hash_format_id;
-    auto operator()(Enum e) const noexcept -> std::uint64_t {
+    auto                           operator()(Enum e) const noexcept -> std::uint64_t {
         using underlying = std::underlying_type_t<Enum>;
         return detail::hash_int(static_cast<std::uint64_t>(static_cast<underlying>(e)));
     }
@@ -700,19 +746,22 @@ struct hash<Enum, typename std::enable_if_t<std::is_enum_v<Enum>>> {
 
 // A tuple's or a pair's format_id, when every element has one: an integer or an enum is mixed in
 // as it is, anything else through hash<Arg>, whose own id then has to be known.
-template <typename Arg>
+template<typename Arg>
 [[nodiscard]] constexpr auto tuple_element_format_id() -> std::uint64_t {
-    if constexpr (std::is_integral_v<Arg> || std::is_enum_v<Arg>) {
+    if constexpr (std::is_integral_v<Arg> || std::is_enum_v<Arg>)
+    {
         return 1;
-    } else {
+    }
+    else
+    {
         return detail::hash_format_id<hash<Arg>>();
     }
 }
 
-template <bool Known, typename... Args>
+template<bool Known, typename... Args>
 struct tuple_format_id {};
 
-template <typename... Args>
+template<typename... Args>
 struct tuple_format_id<true, Args...> {
     static constexpr std::uint64_t format_id = []() -> std::uint64_t {
         auto h = detail::fold_format_id(detail::hash_version, 't');
@@ -721,75 +770,79 @@ struct tuple_format_id<true, Args...> {
     }();
 };
 
-template <typename... Args>
-struct tuple_hash_helper : tuple_format_id<((tuple_element_format_id<Args>() != 0) && ...), Args...> {
+template<typename... Args>
+struct tuple_hash_helper
+    : tuple_format_id<((tuple_element_format_id<Args>() != 0) && ...), Args...> {
     // Converts the value into 64bit. If it is an integral type, just cast it. Mixing is doing the rest.
     // If it isn't an integral we need to hash it.
-    template <typename Arg>
+    template<typename Arg>
     [[nodiscard]] constexpr static auto to64(Arg const& arg) -> std::uint64_t {
-        if constexpr (std::is_integral_v<Arg> || std::is_enum_v<Arg>) {
+        if constexpr (std::is_integral_v<Arg> || std::is_enum_v<Arg>)
+        {
             return static_cast<std::uint64_t>(arg);
-        } else {
+        }
+        else
+        {
             return hash<Arg>{}(arg);
         }
     }
 
-    [[nodiscard]] ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK static auto mix64(std::uint64_t state,
-                                                                                                std::uint64_t v)
-        -> std::uint64_t {
+    [[nodiscard]] ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK static auto
+    mix64(std::uint64_t state, std::uint64_t v) -> std::uint64_t {
         return detail::hash_impl::mix(state + v, std::uint64_t{0x9ddfea08eb382d69});
     }
 
     // Creates a buffer that holds all the data from each element of the tuple. If possible we memcpy the data directly. If
     // not, we hash the object and use this for the array. Size of the array is known at compile time, and memcpy is optimized
     // away, so filling the buffer is highly efficient. Finally, call hash_bytes with this buffer.
-    template <typename T, std::size_t... Idx>
-    [[nodiscard]] static auto calc_hash(T const& t, std::index_sequence<Idx...> /*unused*/) noexcept -> std::uint64_t {
+    template<typename T, std::size_t... Idx>
+    [[nodiscard]] static auto calc_hash(T const& t, std::index_sequence<Idx...> /*unused*/) noexcept
+      -> std::uint64_t {
         auto h = std::uint64_t{};
         ((h = mix64(h, to64(std::get<Idx>(t)))), ...);
         return h;
     }
 };
 
-template <typename... Args>
-struct hash<std::tuple<Args...>> : tuple_hash_helper<Args...> {
+template<typename... Args>
+struct hash<std::tuple<Args...>>: tuple_hash_helper<Args...> {
     using is_avalanching = void;
     auto operator()(std::tuple<Args...> const& t) const noexcept -> std::uint64_t {
         return tuple_hash_helper<Args...>::calc_hash(t, std::index_sequence_for<Args...>{});
     }
 };
 
-template <typename A, typename B>
-struct hash<std::pair<A, B>> : tuple_hash_helper<A, B> {
+template<typename A, typename B>
+struct hash<std::pair<A, B>>: tuple_hash_helper<A, B> {
     using is_avalanching = void;
     auto operator()(std::pair<A, B> const& t) const noexcept -> std::uint64_t {
         return tuple_hash_helper<A, B>::calc_hash(t, std::index_sequence_for<A, B>{});
     }
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#    define ANKERL_UNORDERED_DENSE_HASH_STATICCAST(T)                                  \
-        template <>                                                                    \
-        struct hash<T> {                                                               \
-            using is_avalanching = void;                                               \
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+    #define ANKERL_UNORDERED_DENSE_HASH_STATICCAST(T) \
+        template<> \
+        struct hash<T> { \
+            using is_avalanching                     = void; \
             static constexpr std::uint64_t format_id = detail::integer_hash_format_id; \
-            auto operator()(T const& obj) const noexcept -> std::uint64_t {            \
-                return detail::hash_int(static_cast<std::uint64_t>(obj));              \
-            }                                                                          \
+            auto operator()(T const& obj) const noexcept -> std::uint64_t { \
+                return detail::hash_int(static_cast<std::uint64_t>(obj)); \
+            } \
         }
 
-#    if defined(__GNUC__) && !defined(__clang__)
-#        pragma GCC diagnostic push
-#        pragma GCC diagnostic ignored "-Wuseless-cast"
-#    endif
+    #if defined(__GNUC__) && !defined(__clang__)
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wuseless-cast"
+    #endif
 // see https://en.cppreference.com/w/cpp/utility/hash
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(bool);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(char);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(signed char);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(unsigned char);
-#    if ANKERL_UNORDERED_DENSE_CPP_VERSION >= 202002L && defined(__cpp_char8_t)
+    #if ANKERL_UNORDERED_DENSE_CPP_VERSION >= 202002L && defined(__cpp_char8_t)
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(char8_t);
-#    endif
+    #endif
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(char16_t);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(char32_t);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(wchar_t);
@@ -802,9 +855,9 @@ ANKERL_UNORDERED_DENSE_HASH_STATICCAST(long long);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(unsigned long);
 ANKERL_UNORDERED_DENSE_HASH_STATICCAST(unsigned long long);
 
-#    if defined(__GNUC__) && !defined(__clang__)
-#        pragma GCC diagnostic pop
-#    endif
+    #if defined(__GNUC__) && !defined(__clang__)
+        #pragma GCC diagnostic pop
+    #endif
 
 // bucket_type //////////////////////////////////////////////////////////
 
@@ -812,10 +865,16 @@ ANKERL_UNORDERED_DENSE_HASH_STATICCAST(unsigned long long);
 // default, because both answers cost something: a view's check reads every byte of the index, which
 // on a lazily paged mapping means paging all of it in, and the owning constructor's check costs it
 // 4.3-6.1x at 1M entries against the copy alone. Without the check the caller vouches for the bytes.
-enum class trust : std::uint8_t { checked, unchecked };
+enum class trust : std::uint8_t {
+    checked,
+    unchecked
+};
 
 // How much of a table verify() checks: `spot` 16 values spread over the table, `full` every value.
-enum class verify_level : std::uint8_t { spot, full };
+enum class verify_level : std::uint8_t {
+    spot,
+    full
+};
 
 namespace bucket_type {
 
@@ -829,17 +888,18 @@ namespace bucket_type {
 //
 // The width of the value index is the one thing the two bucket types differ in: `group` indexes
 // up to 2^32 values at 24 + 64 bytes per sixteen slots, `group_big` up to 2^63 at 24 + 128.
-template <typename ValueIdx>
+template<typename ValueIdx>
 struct basic_group {
     using value_idx_type = ValueIdx;
-    std::array<std::uint8_t, 16> m_fingerprints; // one per slot; 0 is an empty slot
-    std::array<std::uint8_t, 8> m_overflows;     // how many entries with (fingerprint & 7) == i probed past this group
+    std::array<std::uint8_t, 16> m_fingerprints;  // one per slot; 0 is an empty slot
+    std::array<std::uint8_t, 8>
+      m_overflows;  // how many entries with (fingerprint & 7) == i probed past this group
 };
 
-using group = basic_group<std::uint32_t>;
+using group     = basic_group<std::uint32_t>;
 using group_big = basic_group<std::size_t>;
 
-} // namespace bucket_type
+}  // namespace bucket_type
 
 namespace detail {
 
@@ -852,7 +912,8 @@ namespace detail {
 // under clang and 1.14x under gcc, strings level. Boost's group15 keeps the same table.
 [[nodiscard]] constexpr auto make_fingerprint_words() -> std::array<std::uint32_t, 256> {
     auto t = std::array<std::uint32_t, 256>{};
-    for (std::uint32_t i = 0; i < 256; ++i) {
+    for (std::uint32_t i = 0; i < 256; ++i)
+    {
         t[i] = (i == 0 ? 8U : i) * 0x01010101U;
     }
     return t;
@@ -888,52 +949,56 @@ inline constexpr std::array<std::uint32_t, 256> fingerprint_words = make_fingerp
 // A user type that is trivially copy-constructible and still compares through a call (a large byte
 // array) is treated as cheap and does not get the split. Measured, that costs it about 2%, and the
 // heuristic never misfires in the expensive direction.
-template <typename Key>
-struct key_compare_is_call : std::bool_constant<!std::is_trivially_copy_constructible_v<Key>> {};
+template<typename Key>
+struct key_compare_is_call: std::bool_constant<!std::is_trivially_copy_constructible_v<Key>> {};
 
-template <typename CharT, typename Traits>
-struct key_compare_is_call<std::basic_string_view<CharT, Traits>> : std::true_type {};
+template<typename CharT, typename Traits>
+struct key_compare_is_call<std::basic_string_view<CharT, Traits>>: std::true_type {};
 
-template <typename A, typename B>
+template<typename A, typename B>
 struct key_compare_is_call<std::pair<A, B>>
     : std::bool_constant<key_compare_is_call<A>::value || key_compare_is_call<B>::value> {};
 
-template <typename... Ts>
-struct key_compare_is_call<std::tuple<Ts...>> : std::bool_constant<(key_compare_is_call<Ts>::value || ...)> {};
+template<typename... Ts>
+struct key_compare_is_call<std::tuple<Ts...>>
+    : std::bool_constant<(key_compare_is_call<Ts>::value || ...)> {};
 
-template <typename Key>
+template<typename Key>
 constexpr bool key_compare_is_call_v = key_compare_is_call<Key>::value;
 
-template <typename T>
+template<typename T>
 using detect_is_transparent = typename T::is_transparent;
 
-template <typename T>
+template<typename T>
 using detect_iterator = typename T::iterator;
 
-template <typename T>
+template<typename T>
 using detect_iterator_category = typename std::iterator_traits<T>::iterator_category;
 
 // Whether a range can be walked twice, which is what reading ahead of where you are writing needs.
 // A type with no iterator_traits at all -- a test's hand-rolled iterator, say -- has to answer no
 // rather than fail to compile, which is what is_detected_v is for.
-template <typename T>
+template<typename T>
 [[nodiscard]] constexpr auto is_forward_iterator() -> bool {
-    if constexpr (is_detected_v<detect_iterator_category, T>) {
+    if constexpr (is_detected_v<detect_iterator_category, T>)
+    {
         return std::is_convertible_v<detect_iterator_category<T>, std::forward_iterator_tag>;
-    } else {
+    }
+    else
+    {
         return false;
     }
 }
 
-template <typename T>
+template<typename T>
 constexpr bool is_forward_iterator_v = is_forward_iterator<T>();
 
-template <typename T>
+template<typename T>
 using detect_reserve = decltype(std::declval<T&>().reserve(std::size_t{}));
 
 // enable_if helpers
 
-template <typename Mapped>
+template<typename Mapped>
 constexpr bool is_map_v = !std::is_void_v<Mapped>;
 
 // clang-format off
@@ -941,27 +1006,29 @@ template <typename Hash, typename KeyEqual>
 constexpr bool is_transparent_v = is_detected_v<detect_is_transparent, Hash> && is_detected_v<detect_is_transparent, KeyEqual>;
 // clang-format on
 
-template <typename From, typename To1, typename To2>
-constexpr bool is_neither_convertible_v = !std::is_convertible_v<From, To1> && !std::is_convertible_v<From, To2>;
+template<typename From, typename To1, typename To2>
+constexpr bool is_neither_convertible_v =
+  !std::is_convertible_v<From, To1> && !std::is_convertible_v<From, To2>;
 
-template <typename T>
+template<typename T>
 constexpr bool has_reserve = is_detected_v<detect_reserve, T>;
 
 // Whether a pack is exactly one Value, by value or by reference.
-template <typename Value, typename... /*Args*/>
-struct is_one : std::false_type {};
-template <typename Value, typename A>
-struct is_one<Value, A> : std::is_same<std::decay_t<A>, Value> {};
+template<typename Value, typename... /*Args*/>
+struct is_one: std::false_type {};
+template<typename Value, typename A>
+struct is_one<Value, A>: std::is_same<std::decay_t<A>, Value> {};
 
 // Whether a pack is exactly a Key and a Mapped, each by value or by reference.
-template <typename Key, typename Mapped, typename... /*Args*/>
-struct is_key_and_mapped : std::false_type {};
-template <typename Key, typename Mapped, typename A, typename B>
+template<typename Key, typename Mapped, typename... /*Args*/>
+struct is_key_and_mapped: std::false_type {};
+template<typename Key, typename Mapped, typename A, typename B>
 struct is_key_and_mapped<Key, Mapped, A, B>
-    : std::bool_constant<std::is_same_v<std::decay_t<A>, Key> && std::is_same_v<std::decay_t<B>, Mapped>> {};
+    : std::bool_constant<std::is_same_v<std::decay_t<A>, Key>
+                         && std::is_same_v<std::decay_t<B>, Mapped>> {};
 
 // base type for map has mapped_type
-template <class T>
+template<class T>
 struct base_table_type_map {
     using mapped_type = T;
 };
@@ -976,12 +1043,12 @@ struct base_table_type_set {};
 // set and a segmented_map that hash the key the same way can pass one around between them. It is a
 // type of its own rather than a plain integer so that an integer does not convert to it by
 // accident -- in particular what hash_function() returns, which is not this number.
-template <typename Hash>
+template<typename Hash>
 struct precomputed_hash {
     std::uint64_t m_mixed_hash;
 };
 
-} // namespace detail
+}  // namespace detail
 
 // A hash that has to be a high quality one, for a codebase where they all are meant to be and
 // forgetting to say so is the easy mistake:
@@ -994,8 +1061,8 @@ struct precomputed_hash {
 //
 // It inherits, which is what keeps the hash's own operator() overloads and its is_transparent, and
 // costs nothing: the wrapper is the same size as the hash and compiles to the same code.
-template <typename Hash>
-struct require_avalanching : Hash {
+template<typename Hash>
+struct require_avalanching: Hash {
     static_assert(hash_is_avalanching_v<Hash>,
                   "hash is not avalanching: give it 'using is_avalanching = void;', or specialize "
                   "ankerl::unordered_dense::hash_is_avalanching for it, or stop requiring it here");
@@ -1007,8 +1074,8 @@ struct require_avalanching : Hash {
 
     // So that a stateful hash can be handed over by value as well as braced into place -- an
     // aggregate would take require_avalanching<H>{h} but not require_avalanching<H>(h).
-    explicit require_avalanching(Hash const& hash)
-        : Hash(hash) {}
+    explicit require_avalanching(Hash const& hash) :
+        Hash(hash) {}
 
     // Restated rather than inherited, because a hash named avalanching by a specialization of
     // hash_is_avalanching has no member typedef to inherit.
@@ -1031,70 +1098,77 @@ inline constexpr std::size_t default_segment_size_bytes = 4096;
 // It allocates blocks of equal size and puts them into the m_blocks vector. That means it can grow simply by adding a new
 // block to the back of m_blocks, and doesn't double its size like an std::vector. The disadvantage is that memory is not
 // linear and thus there is one more indirection necessary for indexing.
-template <typename T, typename Allocator = std::allocator<T>, std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
+template<typename T,
+         typename Allocator              = std::allocator<T>,
+         std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
 class segmented_vector {
-    template <bool IsConst>
+    template<bool IsConst>
     class iter_t;
 
-public:
-    using allocator_type = Allocator;
-    using pointer = typename std::allocator_traits<allocator_type>::pointer;
-    using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
+   public:
+    using allocator_type  = Allocator;
+    using pointer         = typename std::allocator_traits<allocator_type>::pointer;
+    using const_pointer   = typename std::allocator_traits<allocator_type>::const_pointer;
     using difference_type = typename std::allocator_traits<allocator_type>::difference_type;
-    using value_type = T;
-    using size_type = std::size_t;
-    using reference = T&;
+    using value_type      = T;
+    using size_type       = std::size_t;
+    using reference       = T&;
     using const_reference = T const&;
-    using iterator = iter_t<false>;
-    using const_iterator = iter_t<true>;
+    using iterator        = iter_t<false>;
+    using const_iterator  = iter_t<true>;
 
-private:
+   private:
     using vec_alloc = typename std::allocator_traits<Allocator>::template rebind_alloc<pointer>;
     using vec_alloc_traits = std::allocator_traits<vec_alloc>;
 
     // The allocator lives in m_blocks, so these are what the assignment operators below act on --
     // and what their noexcept specifications are written over, so that the condition and the
     // promise cannot drift apart.
-    static constexpr bool propagates_on_copy_assign = vec_alloc_traits::propagate_on_container_copy_assignment::value;
-    static constexpr bool propagates_on_move_assign = vec_alloc_traits::propagate_on_container_move_assignment::value;
+    static constexpr bool propagates_on_copy_assign =
+      vec_alloc_traits::propagate_on_container_copy_assignment::value;
+    static constexpr bool propagates_on_move_assign =
+      vec_alloc_traits::propagate_on_container_move_assignment::value;
     static constexpr bool allocators_always_equal = vec_alloc_traits::is_always_equal::value;
     static constexpr bool propagates_on_swap = vec_alloc_traits::propagate_on_container_swap::value;
 
     std::vector<pointer, vec_alloc> m_blocks{};
-    std::size_t m_size{};
+    std::size_t                     m_size{};
 
     // Calculates the maximum number for x in  (s << x) <= max_val
     static constexpr auto num_bits_closest(std::size_t max_val, std::size_t s) -> std::size_t {
         auto f = std::size_t{0};
-        while (s << (f + 1) <= max_val) {
+        while (s << (f + 1) <= max_val)
+        {
             ++f;
         }
         return f;
     }
 
-    using self_t = segmented_vector<T, Allocator, MaxSegmentSizeBytes>;
+    using self_t                   = segmented_vector<T, Allocator, MaxSegmentSizeBytes>;
     static constexpr auto num_bits = num_bits_closest(MaxSegmentSizeBytes, sizeof(T));
     static constexpr auto num_elements_in_block = 1U << num_bits;
-    static constexpr auto mask = num_elements_in_block - 1U;
+    static constexpr auto mask                  = num_elements_in_block - 1U;
 
     /**
      * Iterator class doubles as const_iterator and iterator
      */
-    template <bool IsConst>
+    template<bool IsConst>
     class iter_t {
         // The block array holds `pointer`, so a const iterator points into `pointer const*`.
-        using ptr_t = std::conditional_t<IsConst, segmented_vector::pointer const*, segmented_vector::pointer*>;
-        ptr_t m_data{};
+        using ptr_t =
+          std::conditional_t<IsConst, segmented_vector::pointer const*, segmented_vector::pointer*>;
+        ptr_t       m_data{};
         std::size_t m_idx{};
 
-        template <bool B>
+        template<bool B>
         friend class iter_t;
 
-    public:
+       public:
         using difference_type = segmented_vector::difference_type;
-        using value_type = segmented_vector::value_type;
-        using reference = std::conditional_t<IsConst, value_type const&, value_type&>;
-        using pointer = std::conditional_t<IsConst, segmented_vector::const_pointer, segmented_vector::pointer>;
+        using value_type      = segmented_vector::value_type;
+        using reference       = std::conditional_t<IsConst, value_type const&, value_type&>;
+        using pointer =
+          std::conditional_t<IsConst, segmented_vector::const_pointer, segmented_vector::pointer>;
         // Everything a random access iterator needs is right here -- the position is an index, so jumping and
         // subtracting are single operations. Saying "forward" instead meant std::distance walked the whole container
         // one element at a time to compute what operator-() answers directly, and every algorithm that requires
@@ -1103,20 +1177,20 @@ private:
 
         iter_t() noexcept = default;
 
-        template <bool OtherIsConst, typename = std::enable_if_t<IsConst && !OtherIsConst>>
+        template<bool OtherIsConst, typename = std::enable_if_t<IsConst && !OtherIsConst>>
         // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
-        constexpr iter_t(iter_t<OtherIsConst> const& other) noexcept
-            : m_data(other.m_data)
-            , m_idx(other.m_idx) {}
+        constexpr iter_t(iter_t<OtherIsConst> const& other) noexcept :
+            m_data(other.m_data),
+            m_idx(other.m_idx) {}
 
-        constexpr iter_t(ptr_t data, std::size_t idx) noexcept
-            : m_data(data)
-            , m_idx(idx) {}
+        constexpr iter_t(ptr_t data, std::size_t idx) noexcept :
+            m_data(data),
+            m_idx(idx) {}
 
-        template <bool OtherIsConst, typename = std::enable_if_t<IsConst && !OtherIsConst>>
+        template<bool OtherIsConst, typename = std::enable_if_t<IsConst && !OtherIsConst>>
         constexpr auto operator=(iter_t<OtherIsConst> const& other) noexcept -> iter_t& {
             m_data = other.m_data;
-            m_idx = other.m_idx;
+            m_idx  = other.m_idx;
             return *this;
         }
 
@@ -1147,7 +1221,8 @@ private:
         }
 
         // n + it, which a random access iterator has to support just as it + n does
-        [[nodiscard]] friend constexpr auto operator+(difference_type diff, iter_t const& it) noexcept -> iter_t {
+        [[nodiscard]] friend constexpr auto operator+(difference_type diff,
+                                                      iter_t const&   it) noexcept -> iter_t {
             return it + diff;
         }
 
@@ -1168,8 +1243,9 @@ private:
             return *this;
         }
 
-        template <bool OtherIsConst>
-        [[nodiscard]] constexpr auto operator-(iter_t<OtherIsConst> const& other) const noexcept -> difference_type {
+        template<bool OtherIsConst>
+        [[nodiscard]] constexpr auto operator-(iter_t<OtherIsConst> const& other) const noexcept
+          -> difference_type {
             return static_cast<difference_type>(m_idx) - static_cast<difference_type>(other.m_idx);
         }
 
@@ -1185,32 +1261,32 @@ private:
             return &m_data[m_idx >> num_bits][m_idx & mask];
         }
 
-        template <bool O>
+        template<bool O>
         [[nodiscard]] constexpr auto operator==(iter_t<O> const& o) const noexcept -> bool {
             return m_idx == o.m_idx;
         }
 
-        template <bool O>
+        template<bool O>
         [[nodiscard]] constexpr auto operator!=(iter_t<O> const& o) const noexcept -> bool {
             return !(*this == o);
         }
 
-        template <bool O>
+        template<bool O>
         [[nodiscard]] constexpr auto operator<(iter_t<O> const& o) const noexcept -> bool {
             return m_idx < o.m_idx;
         }
 
-        template <bool O>
+        template<bool O>
         [[nodiscard]] constexpr auto operator>(iter_t<O> const& o) const noexcept -> bool {
             return o < *this;
         }
 
-        template <bool O>
+        template<bool O>
         [[nodiscard]] constexpr auto operator<=(iter_t<O> const& o) const noexcept -> bool {
             return !(o < *this);
         }
 
-        template <bool O>
+        template<bool O>
         [[nodiscard]] constexpr auto operator>=(iter_t<O> const& o) const noexcept -> bool {
             return !(*this < o);
         }
@@ -1226,17 +1302,20 @@ private:
         // when something fails is one that has not happened yet, and the push_back below cannot
         // fail because the capacity is already there. Grow geometrically to avoid reallocation
         // on every new segment.
-        if (m_blocks.size() == m_blocks.capacity()) {
-            m_blocks.reserve((std::max)(std::size_t{1}, m_blocks.capacity() * 2));
+        if (m_blocks.size() == m_blocks.capacity())
+        {
+            m_blocks.reserve((std::max) (std::size_t{1}, m_blocks.capacity() * 2));
         }
         pointer block = std::allocator_traits<Allocator>::allocate(ba, num_elements_in_block);
         m_blocks.push_back(block);
     }
 
     // Moves everything from other
-    void append_everything_from(segmented_vector&& other) { // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
+    void append_everything_from(
+      segmented_vector&& other) {  // NOLINT(cppcoreguidelines-rvalue-reference-param-not-moved)
         reserve(size() + other.size());
-        for (auto&& o : other) {
+        for (auto&& o : other)
+        {
             emplace_back(std::move(o));
         }
     }
@@ -1244,7 +1323,8 @@ private:
     // Copies everything from other
     void append_everything_from(segmented_vector const& other) {
         reserve(size() + other.size());
-        for (auto const& o : other) {
+        for (auto const& o : other)
+        {
             emplace_back(o);
         }
     }
@@ -1252,7 +1332,8 @@ private:
     // Last block first, like destroy_tail() below.
     void dealloc() {
         auto ba = Allocator(m_blocks.get_allocator());
-        for (auto it = m_blocks.rbegin(); it != m_blocks.rend(); ++it) {
+        for (auto it = m_blocks.rbegin(); it != m_blocks.rend(); ++it)
+        {
             std::allocator_traits<Allocator>::deallocate(ba, *it, num_elements_in_block);
         }
     }
@@ -1270,62 +1351,72 @@ private:
     // reused or malloc_trim() is called, which std::unordered_map shares. notes/index-design.md,
     // "Tearing a segmented_map down in reverse".
     void destroy_tail(std::size_t new_size) {
-        if constexpr (!std::is_trivially_destructible_v<T>) {
-            for (auto i = m_size; i != new_size; --i) {
+        if constexpr (!std::is_trivially_destructible_v<T>)
+        {
+            for (auto i = m_size; i != new_size; --i)
+            {
                 operator[](i - 1).~T();
             }
         }
         m_size = new_size;
     }
 
-public:
+   public:
     segmented_vector() = default;
 
     // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions)
-    segmented_vector(Allocator alloc)
-        : m_blocks(vec_alloc(alloc)) {}
+    segmented_vector(Allocator alloc) :
+        m_blocks(vec_alloc(alloc)) {}
 
     // Uses alloc, unconditionally -- that is the whole point of an extended move constructor. It
     // used to delegate to move assignment, which cannot express it: assignment has to consult
     // propagate_on_container_move_assignment, so with a propagating allocator it adopted other's
     // and the allocator the caller named was quietly dropped.
-    segmented_vector(segmented_vector&& other, Allocator alloc) noexcept(allocators_always_equal)
-        : m_blocks(vec_alloc(alloc)) {
-        if (allocators_always_equal || alloc == other.get_allocator()) {
+    segmented_vector(segmented_vector&& other, Allocator alloc) noexcept(allocators_always_equal) :
+        m_blocks(vec_alloc(alloc)) {
+        if (allocators_always_equal || alloc == other.get_allocator())
+        {
             // Nothing to move element by element, the blocks just change hands.
             m_blocks = std::move(other.m_blocks);
-            m_size = std::exchange(other.m_size, {});
-        } else {
+            m_size   = std::exchange(other.m_size, {});
+        }
+        else
+        {
             append_everything_from(std::move(other));
         }
     }
 
-    segmented_vector(segmented_vector const& other, Allocator alloc)
-        : m_blocks(vec_alloc(alloc)) {
+    segmented_vector(segmented_vector const& other, Allocator alloc) :
+        m_blocks(vec_alloc(alloc)) {
         append_everything_from(other);
     }
 
-    segmented_vector(segmented_vector&& other) noexcept
-        : segmented_vector(std::move(other), other.get_allocator()) {}
+    segmented_vector(segmented_vector&& other) noexcept :
+        segmented_vector(std::move(other), other.get_allocator()) {}
 
-    segmented_vector(segmented_vector const& other)
-        : m_blocks(vec_alloc_traits::select_on_container_copy_construction(other.m_blocks.get_allocator())) {
+    segmented_vector(segmented_vector const& other) :
+        m_blocks(
+          vec_alloc_traits::select_on_container_copy_construction(other.m_blocks.get_allocator())) {
         append_everything_from(other);
     }
 
     auto operator=(segmented_vector const& other) -> segmented_vector& {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
         clear();
-        if constexpr (propagates_on_copy_assign) {
-            if (m_blocks.get_allocator() != other.m_blocks.get_allocator()) {
+        if constexpr (propagates_on_copy_assign)
+        {
+            if (m_blocks.get_allocator() != other.m_blocks.get_allocator())
+            {
                 // Everything still held has to go back through the old allocator before the new
                 // one is adopted. Copy assignment and not move: which of the two propagates is
                 // the inner vector's own pocca/pocma, and only pocca is known true here, so
                 // assigning a temporary would consult pocma and silently keep the old allocator.
                 dealloc();
-                auto const empty_with_other_allocator = std::vector<pointer, vec_alloc>(other.m_blocks.get_allocator());
+                auto const empty_with_other_allocator =
+                  std::vector<pointer, vec_alloc>(other.m_blocks.get_allocator());
                 m_blocks = empty_with_other_allocator;
             }
         }
@@ -1337,20 +1428,25 @@ public:
     // std::pmr::polymorphic_allocator, for one -- the elements are moved one at a time into memory
     // this container allocates, so running out of it here has to be allowed to throw rather than
     // terminate. std::vector spells the condition the same way.
-    auto operator=(segmented_vector&& other) noexcept(propagates_on_move_assign || allocators_always_equal)
-        -> segmented_vector& {
-        if (this == &other) {
+    auto operator=(segmented_vector&& other) noexcept(propagates_on_move_assign
+                                                      || allocators_always_equal)
+      -> segmented_vector& {
+        if (this == &other)
+        {
             return *this;
         }
         clear();
         // Either the allocator comes along with the blocks or it is already the same one, and
         // either way the blocks can be taken over; std::vector's own move assignment does the
         // propagating in the first case.
-        if (propagates_on_move_assign || m_blocks.get_allocator() == other.m_blocks.get_allocator()) {
+        if (propagates_on_move_assign || m_blocks.get_allocator() == other.m_blocks.get_allocator())
+        {
             dealloc();
             m_blocks = std::move(other.m_blocks);
-            m_size = std::exchange(other.m_size, {});
-        } else {
+            m_size   = std::exchange(other.m_size, {});
+        }
+        else
+        {
             // Keeps its own allocator, because nothing said to take other's -- so the blocks it
             // already holds came from that same allocator and are reused rather than handed back
             // and immediately asked for again.
@@ -1364,9 +1460,7 @@ public:
         dealloc();
     }
 
-    [[nodiscard]] constexpr auto size() const -> std::size_t {
-        return m_size;
-    }
+    [[nodiscard]] constexpr auto size() const -> std::size_t { return m_size; }
 
     [[nodiscard]] constexpr auto capacity() const -> std::size_t {
         return m_blocks.size() * num_elements_in_block;
@@ -1381,68 +1475,61 @@ public:
         return m_blocks[i >> num_bits][i & mask];
     }
 
-    [[nodiscard]] constexpr auto begin() -> iterator {
-        return {m_blocks.data(), 0U};
-    }
-    [[nodiscard]] constexpr auto begin() const -> const_iterator {
-        return {m_blocks.data(), 0U};
-    }
-    [[nodiscard]] constexpr auto cbegin() const -> const_iterator {
-        return {m_blocks.data(), 0U};
-    }
+    [[nodiscard]] constexpr auto begin() -> iterator { return {m_blocks.data(), 0U}; }
+    [[nodiscard]] constexpr auto begin() const -> const_iterator { return {m_blocks.data(), 0U}; }
+    [[nodiscard]] constexpr auto cbegin() const -> const_iterator { return {m_blocks.data(), 0U}; }
 
-    [[nodiscard]] constexpr auto end() -> iterator {
-        return {m_blocks.data(), m_size};
-    }
-    [[nodiscard]] constexpr auto end() const -> const_iterator {
-        return {m_blocks.data(), m_size};
-    }
+    [[nodiscard]] constexpr auto end() -> iterator { return {m_blocks.data(), m_size}; }
+    [[nodiscard]] constexpr auto end() const -> const_iterator { return {m_blocks.data(), m_size}; }
     [[nodiscard]] constexpr auto cend() const -> const_iterator {
         return {m_blocks.data(), m_size};
     }
 
-    [[nodiscard]] constexpr auto back() -> reference {
-        return operator[](m_size - 1);
-    }
-    [[nodiscard]] constexpr auto back() const -> const_reference {
-        return operator[](m_size - 1);
-    }
+    [[nodiscard]] constexpr auto back() -> reference { return operator[](m_size - 1); }
+    [[nodiscard]] constexpr auto back() const -> const_reference { return operator[](m_size - 1); }
 
     void pop_back() {
         back().~T();
         --m_size;
     }
 
-    [[nodiscard]] auto empty() const {
-        return 0 == m_size;
-    }
+    [[nodiscard]] auto empty() const { return 0 == m_size; }
 
     void reserve(std::size_t new_capacity) {
         m_blocks.reserve(calc_num_blocks_for_capacity(new_capacity));
-        while (new_capacity > capacity()) {
+        while (new_capacity > capacity())
+        {
             increase_capacity();
         }
     }
 
     void resize(std::size_t const count) {
-        if (count < m_size) {
+        if (count < m_size)
+        {
             destroy_tail(count);
-        } else if (count > m_size) {
+        }
+        else if (count > m_size)
+        {
             std::size_t const new_elems = count - m_size;
             reserve(count);
-            for (std::size_t ix = 0; ix < new_elems; ++ix) {
+            for (std::size_t ix = 0; ix < new_elems; ++ix)
+            {
                 emplace_back();
             }
         }
     }
 
     void resize(std::size_t const count, value_type const& value) {
-        if (count < m_size) {
+        if (count < m_size)
+        {
             destroy_tail(count);
-        } else if (count > m_size) {
+        }
+        else if (count > m_size)
+        {
             std::size_t const new_elems = count - m_size;
             reserve(count);
-            for (std::size_t ix = 0; ix < new_elems; ++ix) {
+            for (std::size_t ix = 0; ix < new_elems; ++ix)
+            {
                 emplace_back(value);
             }
         }
@@ -1468,9 +1555,10 @@ public:
         a.swap(b);
     }
 
-    template <class... Args>
+    template<class... Args>
     auto emplace_back(Args&&... args) -> reference {
-        if (m_size == capacity()) {
+        if (m_size == capacity())
+        {
             increase_capacity();
         }
         auto* ptr = static_cast<void*>(&operator[](m_size));
@@ -1479,15 +1567,15 @@ public:
         return ref;
     }
 
-    void clear() {
-        destroy_tail(0);
-    }
+    void clear() { destroy_tail(0); }
 
     void shrink_to_fit() {
-        auto ba = Allocator(m_blocks.get_allocator());
+        auto ba                  = Allocator(m_blocks.get_allocator());
         auto num_blocks_required = calc_num_blocks_for_capacity(m_size);
-        while (m_blocks.size() > num_blocks_required) {
-            std::allocator_traits<Allocator>::deallocate(ba, m_blocks.back(), num_elements_in_block);
+        while (m_blocks.size() > num_blocks_required)
+        {
+            std::allocator_traits<Allocator>::deallocate(ba, m_blocks.back(),
+                                                         num_elements_in_block);
             m_blocks.pop_back();
         }
         m_blocks.shrink_to_fit();
@@ -1499,19 +1587,20 @@ namespace detail {
 // A group's metadata followed by its sixteen value indices. It inherits so that every use of a
 // group's fingerprints and counters reads unchanged, and so a block converts to the Group const& that
 // match_fingerprint takes.
-template <typename Group>
-struct group_block : Group {
-    std::array<typename Group::value_idx_type, std::tuple_size_v<decltype(Group::m_fingerprints)>> m_index;
+template<typename Group>
+struct group_block: Group {
+    std::array<typename Group::value_idx_type, std::tuple_size_v<decltype(Group::m_fingerprints)>>
+      m_index;
 };
 
 // The bytes table::index() hands out (#299): no padding, so the bytes are the whole state, and the
 // sizes every number about the index in notes/index-design.md is in. group_big's index is four bytes
 // on a 32 bit target, which makes its block 88 there; index_format_id keeps the two apart.
-static_assert(sizeof(group_block<bucket_type::group>) == 88 &&
-                  std::has_unique_object_representations_v<group_block<bucket_type::group>>,
+static_assert(sizeof(group_block<bucket_type::group>) == 88
+                && std::has_unique_object_representations_v<group_block<bucket_type::group>>,
               "group_block<group> must stay 88 bytes without padding");
-static_assert((sizeof(std::size_t) != 8 || sizeof(group_block<bucket_type::group_big>) == 152) &&
-                  std::has_unique_object_representations_v<group_block<bucket_type::group_big>>,
+static_assert((sizeof(std::size_t) != 8 || sizeof(group_block<bucket_type::group_big>) == 152)
+                && std::has_unique_object_representations_v<group_block<bucket_type::group_big>>,
               "group_block<group_big> must stay 152 bytes without padding on a 64 bit target");
 
 // An empty table's index (#329): as many groups as the smallest array has, every slot empty and every
@@ -1521,7 +1610,7 @@ static_assert((sizeof(std::size_t) != 8 || sizeof(group_block<bucket_type::group
 // this covers its smallest array.
 inline constexpr std::size_t sentinel_groups = 4;
 
-template <typename Group>
+template<typename Group>
 [[nodiscard]] auto sentinel_blocks() -> group_block<Group>* {
     static std::array<group_block<Group>, sentinel_groups> static_blocks{};
     return static_blocks.data();
@@ -1544,32 +1633,24 @@ template <typename Group>
 //
 // An allocator stored as a base when it is empty, so that it takes no bytes, and as a member when it
 // is not or cannot be derived from.
-template <typename A, bool = std::is_empty_v<A> && !std::is_final_v<A>>
-class allocator_holder : private A {
-public:
-    explicit allocator_holder(A const& a)
-        : A(a) {}
-    [[nodiscard]] auto alloc() -> A& {
-        return *this;
-    }
-    [[nodiscard]] auto alloc() const -> A const& {
-        return *this;
-    }
+template<typename A, bool = std::is_empty_v<A> && !std::is_final_v<A>>
+class allocator_holder: private A {
+   public:
+    explicit allocator_holder(A const& a) :
+        A(a) {}
+    [[nodiscard]] auto alloc() -> A& { return *this; }
+    [[nodiscard]] auto alloc() const -> A const& { return *this; }
 };
 
-template <typename A>
+template<typename A>
 class allocator_holder<A, false> {
     A m_alloc;
 
-public:
-    explicit allocator_holder(A const& a)
-        : m_alloc(a) {}
-    [[nodiscard]] auto alloc() -> A& {
-        return m_alloc;
-    }
-    [[nodiscard]] auto alloc() const -> A const& {
-        return m_alloc;
-    }
+   public:
+    explicit allocator_holder(A const& a) :
+        m_alloc(a) {}
+    [[nodiscard]] auto alloc() -> A& { return m_alloc; }
+    [[nodiscard]] auto alloc() const -> A const& { return m_alloc; }
 };
 
 // The index check (#299), for an index that comes from outside: every full slot must point at a
@@ -1587,13 +1668,17 @@ public:
 //
 // Counts this block's full slots into `used`; false if one points past the values. Branchless,
 // because the fingerprints are random: 0.85 ns per entry at 1M against 1.16 with a branch.
-template <typename Group>
-[[nodiscard]] auto check_index_block(group_block<Group> const& block, std::size_t num_values, std::size_t& used) -> bool {
+template<typename Group>
+[[nodiscard]] auto check_index_block(group_block<Group> const& block,
+                                     std::size_t               num_values,
+                                     std::size_t&              used) -> bool {
     auto bad = 0U;
-    for (std::size_t slot = 0; slot < block.m_fingerprints.size(); ++slot) {
+    for (std::size_t slot = 0; slot < block.m_fingerprints.size(); ++slot)
+    {
         auto const full = static_cast<unsigned>(block.m_fingerprints[slot] != 0);
         used += full;
-        bad |= full & static_cast<unsigned>(static_cast<std::size_t>(block.m_index[slot]) >= num_values);
+        bad |=
+          full & static_cast<unsigned>(static_cast<std::size_t>(block.m_index[slot]) >= num_values);
     }
     return bad == 0;
 }
@@ -1602,20 +1687,27 @@ template <typename Group>
 // has a bit per value. The branch stays here: a branchless bitmap has to write a word for every
 // empty slot too, and read the block through a copy, and both measured slower (3.1-4.2 ns per
 // entry at 1M against 2.3).
-template <typename Group>
-[[nodiscard]] auto
-check_index_block_unique(group_block<Group> const& block, std::size_t num_values, std::size_t& used, std::uint64_t* seen)
-    -> bool {
+template<typename Group>
+[[nodiscard]] auto check_index_block_unique(group_block<Group> const& block,
+                                            std::size_t               num_values,
+                                            std::size_t&              used,
+                                            std::uint64_t*            seen) -> bool {
     auto ok = true;
-    for (std::size_t slot = 0; slot < block.m_fingerprints.size(); ++slot) {
-        if (block.m_fingerprints[slot] != 0) {
+    for (std::size_t slot = 0; slot < block.m_fingerprints.size(); ++slot)
+    {
+        if (block.m_fingerprints[slot] != 0)
+        {
             ++used;
             auto const idx = static_cast<std::size_t>(block.m_index[slot]);
-            if (idx >= num_values) {
+            if (idx >= num_values)
+            {
                 ok = false;
-            } else {
+            }
+            else
+            {
                 auto const bit = std::uint64_t{1} << (idx & 63U);
-                if ((seen[idx >> 6U] & bit) != 0) {
+                if ((seen[idx >> 6U] & bit) != 0)
+                {
                     ok = false;
                 }
                 seen[idx >> 6U] |= bit;
@@ -1625,11 +1717,14 @@ check_index_block_unique(group_block<Group> const& block, std::size_t num_values
     return ok;
 }
 
-template <typename Group>
-[[nodiscard]] auto check_index(group_block<Group> const* blocks, std::size_t num_blocks, std::size_t num_values) -> bool {
+template<typename Group>
+[[nodiscard]] auto check_index(group_block<Group> const* blocks,
+                               std::size_t               num_blocks,
+                               std::size_t               num_values) -> bool {
     auto used = std::size_t{0};
-    auto ok = true;
-    for (std::size_t i = 0; i < num_blocks; ++i) {
+    auto ok   = true;
+    for (std::size_t i = 0; i < num_blocks; ++i)
+    {
         ok = check_index_block(blocks[i], num_values, used) && ok;
     }
     return ok && used == num_values;
@@ -1638,15 +1733,18 @@ template <typename Group>
 // check_index() for an owning table: no value pointed at twice either. The bitmap comes from `alloc`,
 // rebound. For an index container without group_storage's fused copy (#303); group_storage itself
 // runs check_index_block_unique() inside its copy loop.
-template <typename Group, typename Alloc>
-[[nodiscard]] auto
-check_index_unique(group_block<Group> const* blocks, std::size_t num_blocks, std::size_t num_values, Alloc const& alloc)
-    -> bool {
+template<typename Group, typename Alloc>
+[[nodiscard]] auto check_index_unique(group_block<Group> const* blocks,
+                                      std::size_t               num_blocks,
+                                      std::size_t               num_values,
+                                      Alloc const&              alloc) -> bool {
     using word_alloc = typename std::allocator_traits<Alloc>::template rebind_alloc<std::uint64_t>;
-    auto seen = std::vector<std::uint64_t, word_alloc>((num_values / 64U) + 1U, 0, word_alloc(alloc));
+    auto seen =
+      std::vector<std::uint64_t, word_alloc>((num_values / 64U) + 1U, 0, word_alloc(alloc));
     auto used = std::size_t{0};
-    auto ok = true;
-    for (std::size_t i = 0; i < num_blocks; ++i) {
+    auto ok   = true;
+    for (std::size_t i = 0; i < num_blocks; ++i)
+    {
         ok = check_index_block_unique(blocks[i], num_values, used, seen.data()) && ok;
     }
     return ok && used == num_values;
@@ -1658,34 +1756,38 @@ check_index_unique(group_block<Group> const* blocks, std::size_t num_blocks, std
 // vector's capacity is a word nobody reads, and with the sentinel (#329) data() would need a second
 // pointer beside the vector's own to avoid a test. The allocator's propagation traits are honoured the
 // way std::vector honours them, because the table's assignments rely on that.
-template <typename Group, typename Alloc>
+template<typename Group, typename Alloc>
 class group_storage
-    : private allocator_holder<typename std::allocator_traits<Alloc>::template rebind_alloc<group_block<Group>>> {
-public:
+    : private allocator_holder<
+        typename std::allocator_traits<Alloc>::template rebind_alloc<group_block<Group>>> {
+   public:
     using value_idx_type = typename Group::value_idx_type;
-    using block = group_block<Group>;
+    using block          = group_block<Group>;
     using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<block>;
 
     // How many arrays a populated index allocates, and how many std::vectors it holds (MSVC's debug
     // iterator support allocates a proxy for each, even empty); for tests that count allocations.
-    static constexpr std::size_t array_count = 1;
+    static constexpr std::size_t array_count  = 1;
     static constexpr std::size_t vector_count = 0;
 
-private:
-    using traits = std::allocator_traits<allocator_type>;
+   private:
+    using traits  = std::allocator_traits<allocator_type>;
     using pointer = typename traits::pointer;
     // A plain pointer holds the sentinel while there is no array, so data() returns it without a
     // test. A fancy pointer (an offset_ptr in shared memory) holds null instead, and data() tests:
     // the sentinel's address means nothing to another process.
     static constexpr bool plain_pointer = std::is_pointer_v<pointer>;
 
-    pointer m_ptr = empty_pointer();
-    std::size_t m_size = 0; // in groups
+    pointer     m_ptr  = empty_pointer();
+    std::size_t m_size = 0;  // in groups
 
     [[nodiscard]] static auto empty_pointer() -> pointer {
-        if constexpr (plain_pointer) {
+        if constexpr (plain_pointer)
+        {
             return sentinel_blocks<Group>();
-        } else {
+        }
+        else
+        {
             return nullptr;
         }
     }
@@ -1696,53 +1798,60 @@ private:
         return this->allocator_holder<allocator_type>::alloc();
     }
     void steal(group_storage& other) noexcept {
-        m_ptr = std::exchange(other.m_ptr, empty_pointer());
+        m_ptr  = std::exchange(other.m_ptr, empty_pointer());
         m_size = std::exchange(other.m_size, 0);
     }
     // n groups, value initialized (an empty index), or a copy of `from` if it is given.
     [[nodiscard]] auto make(std::size_t n, block const* from) -> pointer {
-        auto p = traits::allocate(alloc(), n);
+        auto  p   = traits::allocate(alloc(), n);
         auto* raw = std::addressof(*p);
-        if (from != nullptr) {
+        if (from != nullptr)
+        {
             std::uninitialized_copy_n(from, n, raw);
-        } else {
+        }
+        else
+        {
             std::uninitialized_value_construct_n(raw, n);
         }
         return p;
     }
     void adopt(pointer p, std::size_t n) noexcept {
         clear();
-        m_ptr = p;
+        m_ptr  = p;
         m_size = n;
     }
 
-public:
-    explicit group_storage(allocator_type const& alloc)
-        : allocator_holder<allocator_type>(alloc) {}
+   public:
+    explicit group_storage(allocator_type const& alloc) :
+        allocator_holder<allocator_type>(alloc) {}
     // std::vector's allocator-extended move: takes the array if the allocators are equal, copies it
     // otherwise and leaves other as it was.
     // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved) -- moved from member by member
-    group_storage(group_storage&& other, allocator_type const& alloc)
-        : allocator_holder<allocator_type>(alloc) {
-        if (this->alloc() == other.alloc()) {
+    group_storage(group_storage&& other, allocator_type const& alloc) :
+        allocator_holder<allocator_type>(alloc) {
+        if (this->alloc() == other.alloc())
+        {
             steal(other);
-        } else {
+        }
+        else
+        {
             assign(other);
         }
     }
-    group_storage(group_storage const& other) = delete;
-    group_storage(group_storage&& other) = delete;
+    group_storage(group_storage const& other)                    = delete;
+    group_storage(group_storage&& other)                         = delete;
     auto operator=(group_storage const& other) -> group_storage& = delete;
-    auto operator=(group_storage&& other) -> group_storage& = delete;
+    auto operator=(group_storage&& other) -> group_storage&      = delete;
     // What std::vector's move assignment promises, which the table's own noexcept repeats.
     static constexpr bool nothrow_move_assignable =
-        traits::propagate_on_container_move_assignment::value || traits::is_always_equal::value;
+      traits::propagate_on_container_move_assignment::value || traits::is_always_equal::value;
 
     // Takes other's array. Only for two storages with equal allocators, which is the only way the
     // table moves one into another: a fresh array built from this one's allocator, or a move
     // assignment it has already checked.
     void take(group_storage& other) noexcept {
-        if (this != &other) {
+        if (this != &other)
+        {
             clear();
             steal(other);
         }
@@ -1752,29 +1861,25 @@ public:
         clear();
         alloc() = a;
     }
-    ~group_storage() {
-        clear();
-    }
+    ~group_storage() { clear(); }
 
-    [[nodiscard]] auto get_allocator() const -> allocator_type {
-        return alloc();
-    }
-    [[nodiscard]] auto empty() const -> bool {
-        return m_size == 0;
-    }
-    [[nodiscard]] auto size() const -> std::size_t { // in groups
+    [[nodiscard]] auto get_allocator() const -> allocator_type { return alloc(); }
+    [[nodiscard]] auto empty() const -> bool { return m_size == 0; }
+    [[nodiscard]] auto size() const -> std::size_t {  // in groups
         return m_size;
     }
     // Gives the array back; unlike std::vector's, this frees it.
     void clear() noexcept {
-        if (m_size != 0) {
+        if (m_size != 0)
+        {
             traits::deallocate(alloc(), m_ptr, m_size);
-            m_ptr = empty_pointer();
+            m_ptr  = empty_pointer();
             m_size = 0;
         }
     }
     void swap(group_storage& other) noexcept {
-        if constexpr (traits::propagate_on_container_swap::value) {
+        if constexpr (traits::propagate_on_container_swap::value)
+        {
             using std::swap;
             swap(alloc(), other.alloc());
         }
@@ -1782,36 +1887,39 @@ public:
         std::swap(m_size, other.m_size);
     }
     // Replaces the array with num_groups empty groups.
-    void resize(std::size_t num_groups) {
-        adopt(make(num_groups, nullptr), num_groups);
-    }
+    void resize(std::size_t num_groups) { adopt(make(num_groups, nullptr), num_groups); }
     void assign(group_storage const& other) {
-        if (other.m_size == 0) {
+        if (other.m_size == 0)
+        {
             clear();
-        } else {
+        }
+        else
+        {
             adopt(make(other.m_size, other.data()), other.m_size);
         }
     }
     // Replaces the array with a copy of n blocks from outside, for trust::unchecked.
-    void assign_unchecked(block const* from, std::size_t n) {
-        adopt(make(n, from), n);
-    }
+    void assign_unchecked(block const* from, std::size_t n) { adopt(make(n, from), n); }
     // Replaces the array with a copy of n blocks from outside, running check_index_block() in the
     // same loop as the copy, with a bit per value so that no value is pointed at twice (#299).
     // False, and the array as it was, if the copy fails the check.
-    [[nodiscard]] auto assign_checked(block const* from, std::size_t n, std::size_t num_values) -> bool {
+    [[nodiscard]] auto assign_checked(block const* from, std::size_t n, std::size_t num_values)
+      -> bool {
         // One bit per value, allocated before the blocks and given back however this returns.
         using word_alloc = typename traits::template rebind_alloc<std::uint64_t>;
-        auto seen = std::vector<std::uint64_t, word_alloc>((num_values / 64U) + 1U, 0, word_alloc(alloc()));
-        auto p = traits::allocate(alloc(), n);
-        auto* raw = std::addressof(*p);
-        auto used = std::size_t{0};
-        auto ok = true;
-        for (std::size_t i = 0; i < n; ++i) {
+        auto seen =
+          std::vector<std::uint64_t, word_alloc>((num_values / 64U) + 1U, 0, word_alloc(alloc()));
+        auto  p    = traits::allocate(alloc(), n);
+        auto* raw  = std::addressof(*p);
+        auto  used = std::size_t{0};
+        auto  ok   = true;
+        for (std::size_t i = 0; i < n; ++i)
+        {
             ::new (static_cast<void*>(raw + i)) block(from[i]);
             ok = check_index_block_unique(raw[i], num_values, used, seen.data()) && ok;
         }
-        if (!ok || used != num_values) {
+        if (!ok || used != num_values)
+        {
             traits::deallocate(alloc(), p, n);
             return false;
         }
@@ -1819,20 +1927,25 @@ public:
         return true;
     }
     [[nodiscard]] auto data() -> block* {
-        if constexpr (plain_pointer) {
+        if constexpr (plain_pointer)
+        {
             return m_ptr;
-        } else {
+        }
+        else
+        {
             return m_size == 0 ? sentinel_blocks<Group>() : std::addressof(*m_ptr);
         }
     }
     [[nodiscard]] auto data() const -> block const* {
-        return const_cast<group_storage*>(this)->data(); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<group_storage*>(this)
+          ->data();  // NOLINT(cppcoreguidelines-pro-type-const-cast)
     }
     // Zeroes the metadata of every block and leaves the indices alone, which is what the split
     // version's single memset did: an empty slot's index is never read.
     void clear_metadata() {
         auto* blocks = data();
-        for (std::size_t i = 0; i < m_size; ++i) {
+        for (std::size_t i = 0; i < m_size; ++i)
+        {
             static_cast<Group&>(blocks[i]) = Group{};
         }
     }
@@ -1845,25 +1958,27 @@ public:
 // no bump; test/unit/index_view.cpp's golden index fails until one that does not is bumped.
 inline constexpr std::uint64_t index_layout_version = 1;
 
-#    if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+    #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
+      && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 inline constexpr std::uint64_t native_endian_id = 2;
-#    else
+    #else
 inline constexpr std::uint64_t native_endian_id = 1;
-#    endif
+    #endif
 
 // table::index_format_id. Not sizeof(value_type) or anything else about the values: the index does
 // not depend on them, and folding them in would reject a valid index for map<std::string, X> between
 // libstdc++ (sizeof(std::string) == 32) and libc++ (24).
-template <typename Hash, typename Key, typename Group>
+template<typename Hash, typename Key, typename Group>
 [[nodiscard]] constexpr auto make_index_format_id() -> std::uint64_t {
     using hash_result = decltype(std::declval<Hash const&>()(std::declval<Key const&>()));
-    auto h = fold_format_id(index_layout_version, hash_version);
-    h = fold_format_id(h, sizeof(group_block<Group>));
-    h = fold_format_id(h, alignof(group_block<Group>));
-    h = fold_format_id(h, std::tuple_size_v<decltype(Group::m_fingerprints)>);
-    h = fold_format_id(h, sizeof(typename Group::value_idx_type));
-    h = fold_format_id(h, native_endian_id);
-    h = fold_format_id(h, hash_is_avalanching_v<Hash> ? 1 : 2); // the two things mixed_hash() branches on
+    auto h            = fold_format_id(index_layout_version, hash_version);
+    h                 = fold_format_id(h, sizeof(group_block<Group>));
+    h                 = fold_format_id(h, alignof(group_block<Group>));
+    h                 = fold_format_id(h, std::tuple_size_v<decltype(Group::m_fingerprints)>);
+    h                 = fold_format_id(h, sizeof(typename Group::value_idx_type));
+    h                 = fold_format_id(h, native_endian_id);
+    h                 = fold_format_id(
+      h, hash_is_avalanching_v<Hash> ? 1 : 2);  // the two things mixed_hash() branches on
     h = fold_format_id(h, sizeof(hash_result));
     return fold_format_id(h, hash_format_id<Hash>());
 }
@@ -1872,172 +1987,154 @@ template <typename Hash, typename Key, typename Group>
 // constructors that load an index take, and the index container of a map_view. It does not own the
 // blocks. The members below the first three are what the table's constructors, its destructor and
 // its read paths call on an index container; a write never reaches them on a view (see is_view_v).
-template <typename Group>
+template<typename Group>
 class group_view {
-public:
-    using block = group_block<Group>;
-    using allocator_type = std::allocator<block>;
+   public:
+    using block                                   = group_block<Group>;
+    using allocator_type                          = std::allocator<block>;
     static constexpr bool nothrow_move_assignable = true;
 
-private:
+   private:
     // Never null: an empty view points at the shared sentinel, as an empty group_storage does
     // (#329), so that data() needs no test on a lookup.
     block const* m_data = sentinel_blocks<Group>();
-    std::size_t m_size = 0; // in blocks: 0, or a power of two of at least four
+    std::size_t  m_size = 0;  // in blocks: 0, or a power of two of at least four
 
-public:
+   public:
     group_view() noexcept = default;
-    group_view(block const* data, std::size_t size) noexcept
-        : m_data(size == 0 ? sentinel_blocks<Group>() : data)
-        , m_size(size) {}
+    group_view(block const* data, std::size_t size) noexcept :
+        m_data(size == 0 ? sentinel_blocks<Group>() : data),
+        m_size(size) {}
 
     // What the table's constructors pass an index container; a view has no allocator to take.
-    template <typename A, typename = std::enable_if_t<!std::is_same_v<A, group_view>>>
+    template<typename A, typename = std::enable_if_t<!std::is_same_v<A, group_view>>>
     explicit group_view(A const& /*alloc*/) noexcept {}
-    template <typename A>
-    group_view(group_view const& other, A const& /*alloc*/) noexcept
-        : group_view(other) {}
+    template<typename A>
+    group_view(group_view const& other, A const& /*alloc*/) noexcept :
+        group_view(other) {}
 
-    [[nodiscard]] auto data() const noexcept -> block const* {
-        return m_data;
-    }
-    [[nodiscard]] auto size() const noexcept -> std::size_t {
-        return m_size;
-    }
-    [[nodiscard]] auto empty() const noexcept -> bool {
-        return m_size == 0;
-    }
+    [[nodiscard]] auto data() const noexcept -> block const* { return m_data; }
+    [[nodiscard]] auto size() const noexcept -> std::size_t { return m_size; }
+    [[nodiscard]] auto empty() const noexcept -> bool { return m_size == 0; }
     // The table copies a view's index container this way, and a moved-from view is left empty this
     // way. Neither touches the blocks.
-    void assign(group_view const& other) noexcept {
-        *this = other;
-    }
+    void assign(group_view const& other) noexcept { *this = other; }
     // What the view constructor hands it: the caller's blocks.
-    void assign(block const* data, std::size_t size) noexcept {
-        *this = group_view(data, size);
-    }
-    void clear() noexcept {
-        *this = group_view();
-    }
+    void assign(block const* data, std::size_t size) noexcept { *this = group_view(data, size); }
+    void clear() noexcept { *this = group_view(); }
 };
 
 // The values as a view: a pointer and a count, read only. The value container of a map_view. Has an
 // `iterator`, so the table's container dispatch takes it as a container; `is_view` is what makes the
 // table pick group_view for the index.
-template <typename T>
+template<typename T>
 class view_container {
-public:
-    using is_view = void;
-    using value_type = T;
-    using iterator = T const*;
-    using const_iterator = T const*;
-    using reference = T const&;
+   public:
+    using is_view         = void;
+    using value_type      = T;
+    using iterator        = T const*;
+    using const_iterator  = T const*;
+    using reference       = T const&;
     using const_reference = T const&;
-    using pointer = T const*;
-    using const_pointer = T const*;
-    using size_type = std::size_t;
+    using pointer         = T const*;
+    using const_pointer   = T const*;
+    using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
-    using allocator_type = std::allocator<T>; // the table's typedefs need one; it never allocates
+    using allocator_type  = std::allocator<T>;  // the table's typedefs need one; it never allocates
 
-private:
-    T const* m_data = nullptr;
+   private:
+    T const*    m_data = nullptr;
     std::size_t m_size = 0;
 
-public:
+   public:
     view_container() noexcept = default;
-    view_container(T const* data, std::size_t size) noexcept
-        : m_data(data)
-        , m_size(size) {}
+    view_container(T const* data, std::size_t size) noexcept :
+        m_data(data),
+        m_size(size) {}
     explicit view_container(allocator_type const& /*alloc*/) noexcept {}
-    view_container(view_container const& other, allocator_type const& /*alloc*/) noexcept
-        : view_container(other) {}
+    view_container(view_container const& other, allocator_type const& /*alloc*/) noexcept :
+        view_container(other) {}
 
-    [[nodiscard]] auto get_allocator() const noexcept -> allocator_type {
-        return {};
-    }
-    [[nodiscard]] auto data() const noexcept -> T const* {
-        return m_data;
-    }
-    [[nodiscard]] auto size() const noexcept -> std::size_t {
-        return m_size;
-    }
-    [[nodiscard]] auto empty() const noexcept -> bool {
-        return m_size == 0;
-    }
-    [[nodiscard]] auto begin() const noexcept -> const_iterator {
-        return m_data;
-    }
-    [[nodiscard]] auto end() const noexcept -> const_iterator {
-        return m_data + m_size;
-    }
-    [[nodiscard]] auto operator[](std::size_t i) const noexcept -> T const& {
-        return m_data[i];
-    }
+    [[nodiscard]] auto get_allocator() const noexcept -> allocator_type { return {}; }
+    [[nodiscard]] auto data() const noexcept -> T const* { return m_data; }
+    [[nodiscard]] auto size() const noexcept -> std::size_t { return m_size; }
+    [[nodiscard]] auto empty() const noexcept -> bool { return m_size == 0; }
+    [[nodiscard]] auto begin() const noexcept -> const_iterator { return m_data; }
+    [[nodiscard]] auto end() const noexcept -> const_iterator { return m_data + m_size; }
+    [[nodiscard]] auto operator[](std::size_t i) const noexcept -> T const& { return m_data[i]; }
     // What the table's move constructor does to the table it moved from; the values stay where they are.
-    void clear() noexcept {
-        *this = view_container();
-    }
+    void clear() noexcept { *this = view_container(); }
 };
 
-template <typename T>
+template<typename T>
 using detect_is_view = typename T::is_view;
 
-template <typename Container, typename It>
-using detect_range_assign = decltype(std::declval<Container&>().assign(std::declval<It>(), std::declval<It>()));
+template<typename Container, typename It>
+using detect_range_assign =
+  decltype(std::declval<Container&>().assign(std::declval<It>(), std::declval<It>()));
 
 // A container or allocator that brings its own index container (#303): a member alias template
 // `index_container<Bucket>`. See "A custom index container" in doc/usage.md for the contract.
-template <typename AllocatorOrContainer, typename Bucket>
+template<typename AllocatorOrContainer, typename Bucket>
 using detect_index_container = typename AllocatorOrContainer::template index_container<Bucket>;
 
 // The index container, in order: the one AllocatorOrContainer names, else a view over a view's
 // values, else an owning array on the values' allocator.
-template <typename Bucket, typename AllocatorOrContainer, typename Values>
-using index_container_for = typename detector<std::conditional_t<is_detected_v<detect_is_view, Values>,
-                                                                 group_view<Bucket>,
-                                                                 group_storage<Bucket, typename Values::allocator_type>>,
-                                              void,
-                                              detect_index_container,
-                                              AllocatorOrContainer,
-                                              Bucket>::type;
+template<typename Bucket, typename AllocatorOrContainer, typename Values>
+using index_container_for =
+  typename detector<std::conditional_t<is_detected_v<detect_is_view, Values>,
+                                       group_view<Bucket>,
+                                       group_storage<Bucket, typename Values::allocator_type>>,
+                    void,
+                    detect_index_container,
+                    AllocatorOrContainer,
+                    Bucket>::type;
 
-template <typename Container>
+template<typename Container>
 using detect_assign_checked = decltype(std::declval<Container&>().assign_checked(nullptr, 0, 0));
 
 // This is it, the table. Doubles as map and set, and uses `void` for T when its used as a set.
-template <class Key,
-          class T, // when void, treat it as a set.
-          class Hash,
-          class KeyEqual,
-          class AllocatorOrContainer,
-          class Bucket,
-          bool IsSegmented>
-class table : public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base_table_type_set> {
+template<class Key,
+         class T,  // when void, treat it as a set.
+         class Hash,
+         class KeyEqual,
+         class AllocatorOrContainer,
+         class Bucket,
+         bool IsSegmented>
+class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base_table_type_set> {
     using underlying_value_type = std::conditional_t<is_map_v<T>, std::pair<Key, T>, Key>;
-    using underlying_container_type = std::conditional_t<IsSegmented,
-                                                         segmented_vector<underlying_value_type, AllocatorOrContainer>,
-                                                         std::vector<underlying_value_type, AllocatorOrContainer>>;
+    using underlying_container_type =
+      std::conditional_t<IsSegmented,
+                         segmented_vector<underlying_value_type, AllocatorOrContainer>,
+                         std::vector<underlying_value_type, AllocatorOrContainer>>;
 
-public:
-    using value_container_type = std::
-        conditional_t<is_detected_v<detect_iterator, AllocatorOrContainer>, AllocatorOrContainer, underlying_container_type>;
+   public:
+    using value_container_type =
+      std::conditional_t<is_detected_v<detect_iterator, AllocatorOrContainer>,
+                         AllocatorOrContainer,
+                         underlying_container_type>;
 
-private:
+   private:
     // IsSegmented is about the values -- stable references, no reallocation of the payload. The
     // index is two plain arrays either way: it is 5.5 bytes per slot, and a probe reads it by
     // pointer.
-    using bucket_container_type = detail::index_container_for<Bucket, AllocatorOrContainer, value_container_type>;
-    static_assert(std::is_same_v<typename bucket_container_type::block, detail::group_block<Bucket>>,
-                  "an index container holds detail::group_block<Bucket>, see \"A custom index container\" in doc/usage.md");
-    static_assert(std::is_convertible_v<decltype(std::declval<bucket_container_type const&>().data()),
-                                        detail::group_block<Bucket> const*>,
-                  "an index container's data() returns a pointer to its blocks");
+    using bucket_container_type =
+      detail::index_container_for<Bucket, AllocatorOrContainer, value_container_type>;
+    static_assert(
+      std::is_same_v<typename bucket_container_type::block, detail::group_block<Bucket>>,
+      "an index container holds detail::group_block<Bucket>, see \"A custom index container\" in doc/usage.md");
+    static_assert(
+      std::is_convertible_v<decltype(std::declval<bucket_container_type const&>().data()),
+                            detail::group_block<Bucket> const*>,
+      "an index container's data() returns a pointer to its blocks");
 
     // Slots per group, from the group. bucket_count() counts slots, m_group_mask counts groups.
-    static constexpr std::size_t slots_per_group = std::tuple_size_v<decltype(Bucket::m_fingerprints)>;
-    static_assert(slots_per_group == 16 && std::tuple_size_v<decltype(Bucket::m_overflows)> == 8,
-                  "a group is sixteen fingerprints, matched as one vector or two words, and eight counters, picked by "
-                  "the low three bits of the fingerprint");
+    static constexpr std::size_t slots_per_group =
+      std::tuple_size_v<decltype(Bucket::m_fingerprints)>;
+    static_assert(
+      slots_per_group == 16 && std::tuple_size_v<decltype(Bucket::m_overflows)> == 8,
+      "a group is sixteen fingerprints, matched as one vector or two words, and eight counters, picked by "
+      "the low three bits of the fingerprint");
 
     // How far ahead the five loops that pipeline look: the rehash, the range insert, the bulk
     // visit, replace()'s dedup and merge()'s walk. The visit uses it as a chunk size rather than a ring depth. It is a count
@@ -2075,7 +2172,7 @@ private:
     // that just moved into it, which is read by the very next iteration and has no distance to
     // prefetch over. At 352 KiB the same gate is worth 1.5x to a `std::uint64_t` with no duplicates
     // and costs 16% to one with a quarter of them, and the map cannot tell which it has until it has
-    // walked. So the constant is a compromise and is chosen as one: over all 28 cells the realised
+    // walked. So the constant is a compromise and is chosen as one: over all 28 cells the realized
     // geometric mean is 0.9081 here, 0.9137 at 128 KiB, 0.9143 at 512 KiB and 0.9286 at a mebibyte.
     // A threshold that never loses exists -- a mebibyte, worst cell 1.000 -- and costs two points of
     // that mean. This one keeps the 1.5x and accepts a worst cell of 1.163.
@@ -2097,7 +2194,7 @@ private:
     // mebibyte sits in the middle of that window with a doubling of margin either side. Issue #242.
     static constexpr std::size_t merge_min_index_bytes = std::size_t{1} << 20U;
 
-    static constexpr std::uint8_t initial_shifts = 64 - 2; // 2^(64-m_shifts) groups
+    static constexpr std::uint8_t initial_shifts = 64 - 2;  // 2^(64-m_shifts) groups
     // A table without an array of its own reads the sentinel with hash >> m_shifts, and every path
     // that leaves a table without one sets m_shifts back to initial_shifts; so the sentinel has to
     // hold that many groups (#329).
@@ -2111,23 +2208,25 @@ private:
     // twice over: it would leave m_buckets free to throw out of a noexcept function, and it would
     // compile a rethrow into one, which gcc rejects outright.
     static constexpr bool move_assign_is_nothrow =
-        std::is_nothrow_move_assignable_v<value_container_type> && bucket_container_type::nothrow_move_assignable &&
-        std::is_nothrow_move_assignable_v<Hash> && std::is_nothrow_move_assignable_v<KeyEqual>;
+      std::is_nothrow_move_assignable_v<value_container_type>
+      && bucket_container_type::nothrow_move_assignable
+      && std::is_nothrow_move_assignable_v<Hash> && std::is_nothrow_move_assignable_v<KeyEqual>;
 
-public:
-    using key_type = Key;
-    using value_type = typename value_container_type::value_type;
-    using size_type = typename value_container_type::size_type;
+   public:
+    using key_type        = Key;
+    using value_type      = typename value_container_type::value_type;
+    using size_type       = typename value_container_type::size_type;
     using difference_type = typename value_container_type::difference_type;
-    using hasher = Hash;
-    using key_equal = KeyEqual;
-    using allocator_type = typename value_container_type::allocator_type;
-    using reference = typename value_container_type::reference;
+    using hasher          = Hash;
+    using key_equal       = KeyEqual;
+    using allocator_type  = typename value_container_type::allocator_type;
+    using reference       = typename value_container_type::reference;
     using const_reference = typename value_container_type::const_reference;
-    using pointer = typename value_container_type::pointer;
-    using const_pointer = typename value_container_type::const_pointer;
-    using const_iterator = typename value_container_type::const_iterator;
-    using iterator = std::conditional_t<is_map_v<T>, typename value_container_type::iterator, const_iterator>;
+    using pointer         = typename value_container_type::pointer;
+    using const_pointer   = typename value_container_type::const_pointer;
+    using const_iterator  = typename value_container_type::const_iterator;
+    using iterator =
+      std::conditional_t<is_map_v<T>, typename value_container_type::iterator, const_iterator>;
     using bucket_type = Bucket;
 
     // The index as bytes (#299). index() hands it out as an index_view, and the constructors below
@@ -2139,11 +2238,13 @@ public:
     // that far or that reach none of them: operator[], rehash(), max_load_factor(float), swap().
     // scripts/test_view_readonly.py compiles every writer and expects the message.
     using index_block = detail::group_block<Bucket>;
-    using index_view = detail::group_view<Bucket>;
-    static constexpr bool is_view_v = detail::is_detected_v<detail::detect_is_view, value_container_type>;
-    using view_type = table<Key, T, Hash, KeyEqual, detail::view_container<value_type>, Bucket, false>;
+    using index_view  = detail::group_view<Bucket>;
+    static constexpr bool is_view_v =
+      detail::is_detected_v<detail::detect_is_view, value_container_type>;
+    using view_type =
+      table<Key, T, Hash, KeyEqual, detail::view_container<value_type>, Bucket, false>;
     // What at() returns on a non-const table: the mapped value, const on a view, whose values are.
-    template <typename Q>
+    template<typename Q>
     using mapped_ref = std::conditional_t<is_view_v, Q const&, Q&>;
 
     // Compile-time identity of what the index bytes mean. Write it next to the bytes and compare it
@@ -2153,14 +2254,15 @@ public:
     // library's hashes for integers, enums, strings, string views, and pairs and tuples of those
     // declare one; a hash built on std::hash does not, and neither does a seed or any other state of
     // a hasher. verify() is what covers those.
-    static constexpr std::uint64_t index_format_id = detail::make_index_format_id<Hash, Key, Bucket>();
+    static constexpr std::uint64_t index_format_id =
+      detail::make_index_format_id<Hash, Key, Bucket>();
 
     // What hash_for() returns; see the lookup section below. Shared by every table with this
     // hasher, whatever else it is made of, because that is exactly the set of tables the hash is
     // good for.
     using precomputed_hash = detail::precomputed_hash<Hash>;
 
-private:
+   private:
     using value_idx_type = typename Bucket::value_idx_type;
 
     // merge(source) takes the source apart and puts it back together: it compacts the elements that
@@ -2170,40 +2272,49 @@ private:
     // Wider than the need -- every table is a friend of every other, where merge wants only the ones
     // holding the same value type in the same container -- and C++17 has no way to say less: a friend
     // template cannot constrain its own argument list.
-    template <class, class, class, class, class, class, bool>
+    template<class, class, class, class, class, class, bool>
     friend class table;
 
     // What merge() accepts: this table with another hash or another key_equal, which is the pair the
     // standard allows to differ. Everything else has to match, because the elements move out of one
     // container and into the other.
-    template <class H2, class KE2>
+    template<class H2, class KE2>
     using sibling_table = table<Key, T, H2, KE2, AllocatorOrContainer, Bucket, IsSegmented>;
 
-    static_assert(std::is_trivially_destructible_v<Bucket>, "assert there's no need to call destructor / std::destroy");
+    static_assert(std::is_trivially_destructible_v<Bucket>,
+                  "assert there's no need to call destructor / std::destroy");
     static_assert(std::is_trivially_copyable_v<Bucket>, "assert we can just memset / memcpy");
 
-    value_container_type m_values{}; // Contains all the key-value pairs in one densely stored container. No holes.
+    value_container_type
+      m_values{};  // Contains all the key-value pairs in one densely stored container. No holes.
     bucket_container_type m_buckets;
-    std::size_t m_max_bucket_capacity = 0;
-    value_idx_type m_group_mask = 0; // groups - 1; works because the number of groups is a power of two
-    float m_max_load_factor = default_max_load_factor;
-    Hash m_hash{};
-    KeyEqual m_equal{};
+    std::size_t           m_max_bucket_capacity = 0;
+    value_idx_type        m_group_mask =
+      0;  // groups - 1; works because the number of groups is a power of two
+    float        m_max_load_factor = default_max_load_factor;
+    Hash         m_hash{};
+    KeyEqual     m_equal{};
     std::uint8_t m_shifts = initial_shifts;
 
     // The goal of mixed_hash is to always produce a high quality 64bit hash.
-    template <typename K>
+    template<typename K>
     [[nodiscard]] constexpr auto mixed_hash(K const& key) const -> std::uint64_t {
-        if constexpr (hash_is_avalanching_v<Hash>) {
+        if constexpr (hash_is_avalanching_v<Hash>)
+        {
             // we know that the hash is good because is_avalanching.
-            if constexpr (sizeof(decltype(m_hash(key))) < sizeof(std::uint64_t)) {
+            if constexpr (sizeof(decltype(m_hash(key))) < sizeof(std::uint64_t))
+            {
                 // 32bit hash and is_avalanching => multiply with a constant to avalanche bits upwards
                 return m_hash(key) * UINT64_C(0x9ddfea08eb382d69);
-            } else {
+            }
+            else
+            {
                 // 64bit and is_avalanching => only use the hash itself.
                 return m_hash(key);
             }
-        } else {
+        }
+        else
+        {
             // not is_avalanching => run it through this library's own hash
             return detail::hash_int(m_hash(key));
         }
@@ -2221,7 +2332,7 @@ private:
     // move_home -- address the group with it directly.
     struct group_slot {
         value_idx_type group_idx;
-        std::uint8_t lane;
+        std::uint8_t   lane;
     };
 
     // Where the probe stopped, as the group and the lane inside it. Not as one flat slot number:
@@ -2236,8 +2347,8 @@ private:
     struct probe_result {
         value_idx_type group_idx;
         value_idx_type value_idx;
-        std::uint8_t lane;
-        bool found;
+        std::uint8_t   lane;
+        bool           found;
     };
 
     // the index ///////////////////////////////////////////////////////////////
@@ -2280,11 +2391,12 @@ private:
     }
 
     // quadratic: the triangular numbers reach every group of a power-of-two array
-    [[nodiscard]] auto next_group(value_idx_type group_idx, value_idx_type& delta) const -> value_idx_type {
+    [[nodiscard]] auto next_group(value_idx_type group_idx, value_idx_type& delta) const
+      -> value_idx_type {
         return static_cast<value_idx_type>((group_idx + (++delta)) & m_group_mask);
     }
 
-#    if !ANKERL_UNORDERED_DENSE_HAS_SSE2
+    #if !ANKERL_UNORDERED_DENSE_HAS_SSE2
     // Eight fingerprints per machine word, without SIMD.
     //
     // The bytes wanted are the zero ones of `slots ^ fingerprint`, and this is what marks them
@@ -2300,9 +2412,9 @@ private:
     // reach bit 56 + i, so the constant carries a bit at 56 - 7i, and no other pair of bits lands
     // in the top byte.
     [[nodiscard]] static auto match_zero_bytes(std::uint64_t x) -> unsigned {
-        static constexpr auto lows = UINT64_C(0x7F7F7F7F7F7F7F7F);
+        static constexpr auto lows  = UINT64_C(0x7F7F7F7F7F7F7F7F);
         static constexpr auto highs = UINT64_C(0x8080808080808080);
-        auto const zeros = ~(((x & lows) + lows) | x) & highs;
+        auto const            zeros = ~(((x & lows) + lows) | x) & highs;
         return static_cast<unsigned>(((zeros >> 7U) * UINT64_C(0x0102040810204080)) >> 56U);
     }
 
@@ -2311,53 +2423,60 @@ private:
     [[nodiscard]] static auto load_fingerprints(std::uint8_t const* p) -> std::uint64_t {
         auto word = std::uint64_t{};
         std::memcpy(&word, p, sizeof(word));
-#        if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+        #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) \
+          && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
         word = __builtin_bswap64(word);
-#        endif
+        #endif
         return word;
     }
-#    endif
+    #endif
 
-    // What a compare of sixteen fingerprints answers with: one bit per matching lane. SSE2 and the
-    // word-at-a-time fallback put those bits next to each other; NEON has no movemask, and the
-    // cheapest stand-in leaves them four apart, so the stride is a constant rather than 1 and
-    // first_lane() divides by it. Everything else -- testing for any match, taking the lowest,
-    // clearing it with `m & (m - 1)` -- is then written once for all three.
-#    if ANKERL_UNORDERED_DENSE_HAS_NEON
-    using lane_mask = std::uint64_t;
+        // What a compare of sixteen fingerprints answers with: one bit per matching lane. SSE2 and the
+        // word-at-a-time fallback put those bits next to each other; NEON has no movemask, and the
+        // cheapest stand-in leaves them four apart, so the stride is a constant rather than 1 and
+        // first_lane() divides by it. Everything else -- testing for any match, taking the lowest,
+        // clearing it with `m & (m - 1)` -- is then written once for all three.
+    #if ANKERL_UNORDERED_DENSE_HAS_NEON
+    using lane_mask                       = std::uint64_t;
     static constexpr unsigned lane_stride = 4;
-#    else
-    using lane_mask = unsigned;
+    #else
+    using lane_mask                       = unsigned;
     static constexpr unsigned lane_stride = 1;
-#    endif
+    #endif
 
     [[nodiscard]] static auto first_lane(lane_mask lanes) -> unsigned {
         return detail::countr_zero(lanes) / lane_stride;
     }
 
     // lanes whose fingerprint is the word's; every byte of the word is the same
-    [[nodiscard]] static auto match_fingerprint(Bucket const& group, std::uint32_t word) -> lane_mask {
-#    if ANKERL_UNORDERED_DENSE_HAS_SSE2
+    [[nodiscard]] static auto match_fingerprint(Bucket const& group, std::uint32_t word)
+      -> lane_mask {
+    #if ANKERL_UNORDERED_DENSE_HAS_SSE2
         // NOLINTBEGIN(portability-simd-intrinsics)
-        auto const fingerprints = _mm_loadu_si128(reinterpret_cast<__m128i const*>(group.m_fingerprints.data())); // NOLINT
-        return static_cast<unsigned>(_mm_movemask_epi8(_mm_cmpeq_epi8(fingerprints, _mm_set1_epi32(static_cast<int>(word)))));
-        // NOLINTEND(portability-simd-intrinsics)
-#    elif ANKERL_UNORDERED_DENSE_HAS_NEON
+        auto const fingerprints =
+          _mm_loadu_si128(reinterpret_cast<__m128i const*>(group.m_fingerprints.data()));  // NOLINT
+        return static_cast<unsigned>(
+          _mm_movemask_epi8(_mm_cmpeq_epi8(fingerprints, _mm_set1_epi32(static_cast<int>(word)))));
+                // NOLINTEND(portability-simd-intrinsics)
+    #elif ANKERL_UNORDERED_DENSE_HAS_NEON
         // NOLINTBEGIN(portability-simd-intrinsics)
         // vceqq_u8 gives 0xFF per matching byte. Reading that as eight 16 bit lanes, shifting each
         // right by four and narrowing back to bytes packs the two comparisons of a 16 bit lane into
         // one byte -- lane 2j as its low nibble, lane 2j+1 as its high one -- so the whole answer
         // fits in a 64 bit word with lane i at nibble i. Keeping only the low bit of each nibble
         // leaves exactly one bit per matching lane, four apart, which is what lane_stride is.
-        auto const cmp = vceqq_u8(vld1q_u8(group.m_fingerprints.data()), vdupq_n_u8(static_cast<std::uint8_t>(word)));
+        auto const cmp     = vceqq_u8(vld1q_u8(group.m_fingerprints.data()),
+                                      vdupq_n_u8(static_cast<std::uint8_t>(word)));
         auto const nibbles = vshrn_n_u16(vreinterpretq_u16_u8(cmp), 4);
         return vget_lane_u64(vreinterpret_u64_u8(nibbles), 0) & UINT64_C(0x1111111111111111);
-        // NOLINTEND(portability-simd-intrinsics)
-#    else
-        auto const wanted = static_cast<std::uint64_t>(static_cast<std::uint8_t>(word)) * UINT64_C(0x0101010101010101);
-        auto const* p = group.m_fingerprints.data();
-        return match_zero_bytes(load_fingerprints(p) ^ wanted) | (match_zero_bytes(load_fingerprints(p + 8) ^ wanted) << 8U);
-#    endif
+                // NOLINTEND(portability-simd-intrinsics)
+    #else
+        auto const  wanted = static_cast<std::uint64_t>(static_cast<std::uint8_t>(word))
+                           * UINT64_C(0x0101010101010101);
+        auto const* p      = group.m_fingerprints.data();
+        return match_zero_bytes(load_fingerprints(p) ^ wanted)
+             | (match_zero_bytes(load_fingerprints(p + 8) ^ wanted) << 8U);
+    #endif
     }
 
     [[nodiscard]] static auto match_empty(Bucket const& group) -> lane_mask {
@@ -2391,15 +2510,16 @@ private:
     // for `group_big` it is 128. 152 bytes spans four lines whenever `p % 64 > 40`, a quarter of
     // blocks, and asking for the first and the *last* of them left out the middle -- where eight of
     // the sixteen value indices live. The clamp also keeps a block that does not reach the second
-    // line, such as the 64 byte layout measured in #250's neighbourhood, from asking past itself.
-    template <typename Block>
+    // line, such as the 64 byte layout measured in #250's neighborhood, from asking past itself.
+    template<typename Block>
     static void prefetch_index(Block const* blocks, value_idx_type group_idx) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast) -- byte arithmetic on the block
-        auto const* p = reinterpret_cast<char const*>(blocks + std::size_t{group_idx});
-        constexpr auto first = (std::min)(std::size_t{64}, sizeof(Block) - 1);
-        constexpr auto second = (std::min)(std::size_t{128}, sizeof(Block) - 1);
+        auto const*    p      = reinterpret_cast<char const*>(blocks + std::size_t{group_idx});
+        constexpr auto first  = (std::min) (std::size_t{64}, sizeof(Block) - 1);
+        constexpr auto second = (std::min) (std::size_t{128}, sizeof(Block) - 1);
         ANKERL_UNORDERED_DENSE_PREFETCH(p + first);
-        if constexpr (second != first) {
+        if constexpr (second != first)
+        {
             ANKERL_UNORDERED_DENSE_PREFETCH(p + second);
         }
     }
@@ -2415,11 +2535,12 @@ private:
     // sixteen-deep lookahead and a probe-shaped read (#250). The `off < 128` is the clamp, and it is
     // the half of the rule this function was missing: without it a 152 byte block gets a third
     // prefetch, which is the one #252 measured as a loss.
-    template <typename Block>
+    template<typename Block>
     static void prefetch_block(Block const* block) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast) -- byte arithmetic on the block
         auto const* p = reinterpret_cast<char const*>(block);
-        for (std::size_t off = 0; off < sizeof(Block) && off < 128; off += 64) {
+        for (std::size_t off = 0; off < sizeof(Block) && off < 128; off += 64)
+        {
             ANKERL_UNORDERED_DENSE_PREFETCH(p + off);
         }
     }
@@ -2427,7 +2548,7 @@ private:
     // The same for a caller holding a group number rather than a pointer. A block is 88 bytes, so
     // the difference is a multiply, and a caller that already formed the address should not pay it
     // twice.
-    template <typename Block>
+    template<typename Block>
     static void prefetch_block(Block const* blocks, std::size_t group_idx) {
         prefetch_block(blocks + group_idx);
     }
@@ -2443,26 +2564,32 @@ private:
     // from a per-group helper: returning a probe_result from an inner function costs gcc 26% of an
     // integer hit even fully inlined, and this path must stay exactly what it was for a key whose
     // compare is cheap.
-    template <typename K>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
-    probe_from(K const& key, std::uint32_t word, unsigned counter, value_idx_type group_idx, value_idx_type delta) const
-        -> probe_result {
+    template<typename K>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto probe_from(K const&       key,
+                                                       std::uint32_t  word,
+                                                       unsigned       counter,
+                                                       value_idx_type group_idx,
+                                                       value_idx_type delta) const -> probe_result {
         auto const* groups = m_buckets.data();
-        while (true) {
+        while (true)
+        {
             prefetch_index(groups, group_idx);
             auto const& group = groups[group_idx];
-            auto lanes = match_fingerprint(group, word);
-            while (lanes != 0) {
-                auto const lane = first_lane(lanes);
+            auto        lanes = match_fingerprint(group, word);
+            while (lanes != 0)
+            {
+                auto const lane      = first_lane(lanes);
                 auto const value_idx = group.m_index[lane];
-                if (m_equal(key, get_key(m_values[value_idx]))) {
+                if (m_equal(key, get_key(m_values[value_idx])))
+                {
                     return {group_idx, value_idx, static_cast<std::uint8_t>(lane), true};
                 }
                 lanes &= lanes - 1;
             }
             // Not here if nothing of this class ever overflowed past this group, and not anywhere
             // once every group has been looked at: see the note on termination above.
-            if (group.m_overflows[counter] == 0 || delta == m_group_mask) {
+            if (group.m_overflows[counter] == 0 || delta == m_group_mask)
+            {
                 return {0, 0, 0, false};
             }
             group_idx = next_group(group_idx, delta);
@@ -2472,10 +2599,13 @@ private:
     // Everything past the home group, out of line, for a key whose compare is a call. See
     // detail::key_compare_is_call for what that buys and what it would cost the other kind of key.
     // Entered by a tail call, so the caller keeps nothing live across it.
-    template <typename K>
-    ANKERL_UNORDERED_DENSE_NOINLINE auto
-    probe_past_home(K const& key, std::uint32_t word, unsigned counter, value_idx_type group_idx, value_idx_type delta) const
-        -> probe_result {
+    template<typename K>
+    ANKERL_UNORDERED_DENSE_NOINLINE auto probe_past_home(K const&       key,
+                                                         std::uint32_t  word,
+                                                         unsigned       counter,
+                                                         value_idx_type group_idx,
+                                                         value_idx_type delta) const
+      -> probe_result {
         return probe_from(key, word, counter, group_idx, delta);
     }
 
@@ -2488,19 +2618,26 @@ private:
     // `m_group_mask == 0` cannot fire while the smallest array is four groups; it is here because it
     // is what the loop tests at delta zero, so a mutation survivor on it is expected. The counter
     // beside it is not: turning that `== 0` into `== 1` makes a key that overflowed its home group
-    // with exactly one same-class neighbour unfindable, and a steered test covers it.
-    template <typename K>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
-    probe_after_home(K const& key, std::uint32_t word, unsigned counter, Bucket const& home, value_idx_type home_idx) const
-        -> probe_result {
-        if (home.m_overflows[counter] == 0 || m_group_mask == 0) {
+    // with exactly one same-class neighbor unfindable, and a steered test covers it.
+    template<typename K>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto probe_after_home(K const&       key,
+                                                             std::uint32_t  word,
+                                                             unsigned       counter,
+                                                             Bucket const&  home,
+                                                             value_idx_type home_idx) const
+      -> probe_result {
+        if (home.m_overflows[counter] == 0 || m_group_mask == 0)
+        {
             return {0, 0, 0, false};
         }
         value_idx_type delta = 0;
-        auto const next = next_group(home_idx, delta);
-        if constexpr (detail::key_compare_is_call_v<Key>) {
+        auto const     next  = next_group(home_idx, delta);
+        if constexpr (detail::key_compare_is_call_v<Key>)
+        {
             return probe_past_home(key, word, counter, next, delta);
-        } else {
+        }
+        else
+        {
             // A compare that needs no frame needs no call either: the same choice probe() makes for
             // such a key, and the reason the bulk path must not simply always take the out-of-line
             // one.
@@ -2516,17 +2653,20 @@ private:
     // is wrong twice over -- it suppressed the walk's prefetches too, for groups nobody had asked
     // for, and it kept suppressing them on the sixteen elements after a growth, which are the ones
     // whose earlier prefetch went to the array that growth replaced.
-    template <typename K>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto probe_at_home(K const& key,
-                                                          std::uint32_t word,
-                                                          unsigned counter,
-                                                          typename bucket_container_type::block const& home,
-                                                          value_idx_type home_idx) const -> probe_result {
+    template<typename K>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
+    probe_at_home(K const&                                     key,
+                  std::uint32_t                                word,
+                  unsigned                                     counter,
+                  typename bucket_container_type::block const& home,
+                  value_idx_type                               home_idx) const -> probe_result {
         auto lanes = match_fingerprint(home, word);
-        while (lanes != 0) {
-            auto const lane = first_lane(lanes);
+        while (lanes != 0)
+        {
+            auto const lane      = first_lane(lanes);
             auto const value_idx = home.m_index[lane];
-            if (m_equal(key, get_key(m_values[value_idx]))) {
+            if (m_equal(key, get_key(m_values[value_idx])))
+            {
                 return {home_idx, value_idx, static_cast<std::uint8_t>(lane), true};
             }
             lanes &= lanes - 1;
@@ -2534,23 +2674,29 @@ private:
         return probe_after_home(key, word, counter, home, home_idx);
     }
 
-    template <typename K>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto probe(K const& key, std::uint64_t mh) const -> probe_result {
-        auto const word = fingerprint_word(mh);
-        auto const counter = word & 7U;
+    template<typename K>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto probe(K const& key, std::uint64_t mh) const
+      -> probe_result {
+        auto const word     = fingerprint_word(mh);
+        auto const counter  = word & 7U;
         auto const home_idx = group_idx_from_hash(mh);
-        if constexpr (!detail::key_compare_is_call_v<Key>) {
+        if constexpr (!detail::key_compare_is_call_v<Key>)
+        {
             return probe_from(key, word, counter, home_idx, 0);
-        } else {
+        }
+        else
+        {
             // The home group inline and the rest behind a call, which is where the frame goes.
             auto const* groups = m_buckets.data();
             prefetch_index(groups, home_idx);
-            auto const& home = groups[home_idx];
-            auto lanes = match_fingerprint(home, word);
-            while (lanes != 0) {
-                auto const lane = first_lane(lanes);
+            auto const& home  = groups[home_idx];
+            auto        lanes = match_fingerprint(home, word);
+            while (lanes != 0)
+            {
+                auto const lane      = first_lane(lanes);
                 auto const value_idx = home.m_index[lane];
-                if (m_equal(key, get_key(m_values[value_idx]))) {
+                if (m_equal(key, get_key(m_values[value_idx])))
+                {
                     return {home_idx, value_idx, static_cast<std::uint8_t>(lane), true};
                 }
                 lanes &= lanes - 1;
@@ -2566,7 +2712,8 @@ private:
 
     // The first free slot on the key's probe sequence takes it; every full group on the way
     // counts it.
-    ANKERL_UNORDERED_DENSE_FORCEINLINE void place_group(std::uint64_t mh, value_idx_type value_idx) {
+    ANKERL_UNORDERED_DENSE_FORCEINLINE void place_group(std::uint64_t  mh,
+                                                        value_idx_type value_idx) {
         auto const word = fingerprint_word(mh);
         place_group(word, word & 7U, group_idx_from_hash(mh), value_idx);
     }
@@ -2574,21 +2721,26 @@ private:
     // The placement for a caller that has already taken the hash apart, and has just probed with
     // exactly these three -- so this is the second of the two walks an insert does, not a third
     // derivation of where to start it.
-    ANKERL_UNORDERED_DENSE_FORCEINLINE void
-    place_group(std::uint32_t word, unsigned counter, value_idx_type group_idx, value_idx_type value_idx) {
+    ANKERL_UNORDERED_DENSE_FORCEINLINE void place_group(std::uint32_t  word,
+                                                        unsigned       counter,
+                                                        value_idx_type group_idx,
+                                                        value_idx_type value_idx) {
         static_assert(!is_view_v, "map_view and set_view are read only");
-        auto* groups = m_buckets.data();
-        value_idx_type delta = 0;
-        while (true) {
-            auto& group = groups[group_idx];
+        auto*          groups = m_buckets.data();
+        value_idx_type delta  = 0;
+        while (true)
+        {
+            auto&      group   = groups[group_idx];
             auto const empties = match_empty(group);
-            if (empties != 0) {
-                auto const lane = first_lane(empties);
+            if (empties != 0)
+            {
+                auto const lane            = first_lane(empties);
                 group.m_fingerprints[lane] = static_cast<std::uint8_t>(word);
-                group.m_index[lane] = value_idx;
+                group.m_index[lane]        = value_idx;
                 return;
             }
-            if (group.m_overflows[counter] != 255) {
+            if (group.m_overflows[counter] != 255)
+            {
                 ++group.m_overflows[counter];
             }
             group_idx = next_group(group_idx, delta);
@@ -2601,13 +2753,18 @@ private:
     // pointer and the mask, so reading them afterwards puts a reload on the address chain of every
     // step of the walk. Measured as a 2% loss on a churn sweep when this was refactored the other
     // way round.
-    template <typename Group>
-    static void
-    uncount(Group* groups, value_idx_type mask, value_idx_type home_idx, unsigned counter, value_idx_type found_in) {
-        auto group_idx = home_idx;
-        value_idx_type delta = 0;
-        while (group_idx != found_in) {
-            if (groups[group_idx].m_overflows[counter] != 255) {
+    template<typename Group>
+    static void uncount(Group*         groups,
+                        value_idx_type mask,
+                        value_idx_type home_idx,
+                        unsigned       counter,
+                        value_idx_type found_in) {
+        auto           group_idx = home_idx;
+        value_idx_type delta     = 0;
+        while (group_idx != found_in)
+        {
+            if (groups[group_idx].m_overflows[counter] != 255)
+            {
                 --groups[group_idx].m_overflows[counter];
             }
             group_idx = static_cast<value_idx_type>((group_idx + (++delta)) & mask);
@@ -2617,10 +2774,10 @@ private:
     // Frees the slot and takes the entry out of the counters. The slot arrives as the group it is
     // in and the lane inside it, which is how the probe had it.
     void erase_group_slot(value_idx_type found_in, std::uint8_t lane, std::uint64_t mh) {
-        auto* groups = m_buckets.data();
-        auto const mask = m_group_mask;
-        auto const home_idx = group_idx_from_hash(mh);
-        auto const counter = fingerprint_word(mh) & 7U;
+        auto*      groups                     = m_buckets.data();
+        auto const mask                       = m_group_mask;
+        auto const home_idx                   = group_idx_from_hash(mh);
+        auto const counter                    = fingerprint_word(mh) & 7U;
         groups[found_in].m_fingerprints[lane] = 0;
         uncount(groups, mask, home_idx, counter, found_in);
     }
@@ -2649,21 +2806,23 @@ private:
     // is treated as read-only by callers who share a map between threads, so it does not either.
     void move_home(value_idx_type found_in, std::uint8_t from_lane, std::uint64_t mh) {
         auto const home_idx = group_idx_from_hash(mh);
-        if (ANKERL_UNORDERED_DENSE_LIKELY(found_in == home_idx)) {
+        if (ANKERL_UNORDERED_DENSE_LIKELY(found_in == home_idx))
+        {
             return;
         }
-        auto* groups = m_buckets.data();
-        auto& home = groups[home_idx];
+        auto*      groups  = m_buckets.data();
+        auto&      home    = groups[home_idx];
         auto const empties = match_empty(home);
-        if (empties == 0) {
+        if (empties == 0)
+        {
             return;
         }
-        auto const lane = first_lane(empties);
-        auto const mask = m_group_mask;
-        auto const counter = fingerprint_word(mh) & 7U;
-        auto& from = groups[found_in];
-        home.m_fingerprints[lane] = from.m_fingerprints[from_lane];
-        home.m_index[lane] = from.m_index[from_lane];
+        auto const lane                = first_lane(empties);
+        auto const mask                = m_group_mask;
+        auto const counter             = fingerprint_word(mh) & 7U;
+        auto&      from                = groups[found_in];
+        home.m_fingerprints[lane]      = from.m_fingerprints[from_lane];
+        home.m_index[lane]             = from.m_index[from_lane];
         from.m_fingerprints[from_lane] = 0;
         uncount(groups, mask, home_idx, counter, found_in);
     }
@@ -2704,25 +2863,27 @@ private:
     // any other one; the time moves less than the noise floor, baseline/candidate 1.0039 under gcc
     // and 0.9991 under clang, one header per binary with scripts/ab/solo.sh. It ships on the
     // instruction count. #263.
-    [[nodiscard]] auto slot_of_value(std::uint64_t mh, value_idx_type value_idx) const -> group_slot {
-        auto const word = fingerprint_word(mh);
-        auto group_idx = group_idx_from_hash(mh);
-        auto const* groups = m_buckets.data();
-        value_idx_type delta = 0;
-        while (true) {
+    [[nodiscard]] auto slot_of_value(std::uint64_t mh, value_idx_type value_idx) const
+      -> group_slot {
+        auto const     word      = fingerprint_word(mh);
+        auto           group_idx = group_idx_from_hash(mh);
+        auto const*    groups    = m_buckets.data();
+        value_idx_type delta     = 0;
+        while (true)
+        {
             auto const& group = groups[group_idx];
-            auto lanes = match_fingerprint(group, word);
-            while (lanes != 0) {
+            auto        lanes = match_fingerprint(group, word);
+            while (lanes != 0)
+            {
                 auto const lane = first_lane(lanes);
-                if (group.m_index[lane] == value_idx) {
+                if (group.m_index[lane] == value_idx)
+                {
                     return {group_idx, static_cast<std::uint8_t>(lane)};
                 }
                 lanes &= lanes - 1;
             }
             if (ANKERL_UNORDERED_DENSE_UNLIKELY(delta == m_group_mask))
-                ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR {
-                    on_error_key_changed();
-                }
+                ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR { on_error_key_changed(); }
             group_idx = next_group(group_idx, delta);
         }
     }
@@ -2738,39 +2899,43 @@ private:
     // Precondition, bound and exhaustion are slot_of_value's; its comment is the one to read, and
     // the half of it about the throw not being recoverable is about this function.
     void repoint_value(std::uint64_t mh, value_idx_type value_idx, value_idx_type new_value_idx) {
-        auto const word = fingerprint_word(mh);
-        auto group_idx = group_idx_from_hash(mh);
-        auto* groups = m_buckets.data();
-        value_idx_type delta = 0;
-        while (true) {
+        auto const     word      = fingerprint_word(mh);
+        auto           group_idx = group_idx_from_hash(mh);
+        auto*          groups    = m_buckets.data();
+        value_idx_type delta     = 0;
+        while (true)
+        {
             auto& group = groups[group_idx];
-            auto lanes = match_fingerprint(group, word);
-            while (lanes != 0) {
+            auto  lanes = match_fingerprint(group, word);
+            while (lanes != 0)
+            {
                 auto const lane = first_lane(lanes);
-                if (group.m_index[lane] == value_idx) {
+                if (group.m_index[lane] == value_idx)
+                {
                     group.m_index[lane] = new_value_idx;
                     return;
                 }
                 lanes &= lanes - 1;
             }
             if (ANKERL_UNORDERED_DENSE_UNLIKELY(delta == m_group_mask))
-                ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR {
-                    on_error_key_changed();
-                }
+                ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR { on_error_key_changed(); }
             group_idx = next_group(group_idx, delta);
         }
     }
 
     [[nodiscard]] static constexpr auto get_key(value_type const& vt) -> key_type const& {
-        if constexpr (is_map_v<T>) {
+        if constexpr (is_map_v<T>)
+        {
             return vt.first;
-        } else {
+        }
+        else
+        {
             return vt;
         }
     }
 
     [[nodiscard]] static constexpr auto calc_num_groups(std::uint8_t shifts) -> std::size_t {
-        return (std::min)(max_bucket_count() / slots_per_group, std::size_t{1} << (64U - shifts));
+        return (std::min) (max_bucket_count() / slots_per_group, std::size_t{1} << (64U - shifts));
     }
 
     // in slots, which is what the bucket interface counts in
@@ -2795,8 +2960,11 @@ private:
         // a table sized for billions of elements would come back with a single bucket and a mask of
         // zero, and the next probe reads past the end of it. Reachable from rehash(), which does not
         // allocate the values and so has nothing to fail first.
-        while (shifts > 0 && calc_num_buckets(shifts) < max_bucket_count() &&
-               static_cast<std::size_t>(static_cast<float>(calc_num_buckets(shifts)) * max_load_factor()) < s) {
+        while (shifts > 0 && calc_num_buckets(shifts) < max_bucket_count()
+               && static_cast<std::size_t>(static_cast<float>(calc_num_buckets(shifts))
+                                           * max_load_factor())
+                    < s)
+        {
             --shifts;
         }
         return shifts;
@@ -2805,13 +2973,16 @@ private:
     // assumes m_values has data, m_buckets=m_buckets_end=nullptr, m_shifts is INITIAL_SHIFTS
     void copy_buckets(table const& other) {
         // assumes m_values has already the correct data copied over.
-        if (empty()) {
+        if (empty())
+        {
             // Nothing to index, so stay in the state a default constructed table is in and let the
             // first insert allocate. Copying an empty table therefore allocates nothing either.
             m_shifts = initial_shifts;
-        } else {
+        }
+        else
+        {
             // One pass, not two. This used to grow the array with resize(), which value
-            // initialises every bucket it adds, and then memcpy over all of it -- so every byte
+            // initializes every bucket it adds, and then memcpy over all of it -- so every byte
             // of the bucket array was written twice, and for a large map the wasted half is a
             // memset of megabytes. assign() copies straight into the new storage.
             //
@@ -2836,20 +3007,24 @@ private:
         // Done before the copy rather than after: it is the same allocator either way, both
         // containers are empty here so it cannot throw, and doing it first means a copy that fails
         // part way through cannot leave the two halves disagreeing.
-        if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value) {
+        if constexpr (std::allocator_traits<
+                        allocator_type>::propagate_on_container_copy_assignment::value)
+        {
             // Rebound explicitly: m_values' allocator and m_buckets' are different types, and
             // comparing them directly is ambiguous rather than merely unusual.
-            auto const wanted = typename bucket_container_type::allocator_type(other.m_values.get_allocator());
-            if (m_buckets.get_allocator() != wanted) {
+            auto const wanted =
+              typename bucket_container_type::allocator_type(other.m_values.get_allocator());
+            if (m_buckets.get_allocator() != wanted)
+            {
                 m_buckets.set_allocator(wanted);
             }
         }
 
-        m_values = other.m_values;
+        m_values          = other.m_values;
         m_max_load_factor = other.m_max_load_factor;
-        m_hash = other.m_hash;
-        m_equal = other.m_equal;
-        copy_buckets(other); // sets m_shifts on both of its branches
+        m_hash            = other.m_hash;
+        m_equal           = other.m_equal;
+        copy_buckets(other);  // sets m_shifts on both of its branches
     }
 
     // The half of move assignment that can throw, so the caller can put the table back together if
@@ -2860,20 +3035,23 @@ private:
         other.m_values.clear();
 
         // we can only reuse m_buckets when both maps have the same allocator!
-        if (get_allocator() == other.get_allocator()) {
+        if (get_allocator() == other.get_allocator())
+        {
             m_buckets.take(other.m_buckets);
             other.m_buckets.clear();
             m_max_bucket_capacity = std::exchange(other.m_max_bucket_capacity, 0);
-            m_group_mask = std::exchange(other.m_group_mask, 0);
-            m_shifts = std::exchange(other.m_shifts, initial_shifts);
-            m_max_load_factor = std::exchange(other.m_max_load_factor, default_max_load_factor);
-            m_hash = std::exchange(other.m_hash, {});
-            m_equal = std::exchange(other.m_equal, {});
+            m_group_mask          = std::exchange(other.m_group_mask, 0);
+            m_shifts              = std::exchange(other.m_shifts, initial_shifts);
+            m_max_load_factor     = std::exchange(other.m_max_load_factor, default_max_load_factor);
+            m_hash                = std::exchange(other.m_hash, {});
+            m_equal               = std::exchange(other.m_equal, {});
             // The exchanges above leave "other" exactly as a default constructed table looks, so it
             // is already usable and does not need buckets handed back to it. It used to get a
             // freshly allocated set here, which is an allocation -- and a way to throw -- inside an
             // operation that is otherwise noexcept and needs neither.
-        } else {
+        }
+        else
+        {
             // set max_load_factor *before* copying the other's buckets, so we have the same behavior
             m_max_load_factor = other.m_max_load_factor;
 
@@ -2881,7 +3059,7 @@ private:
             copy_buckets(other);
             // clear's the other's buckets so other is now already usable.
             other.clear_buckets();
-            m_hash = other.m_hash;
+            m_hash  = other.m_hash;
             m_equal = other.m_equal;
         }
         // map "other" is now already usable, it's empty.
@@ -2902,15 +3080,13 @@ private:
     /**
      * True when no element can be added any more without increasing the size
      */
-    [[nodiscard]] auto is_full() const -> bool {
-        return size() > m_max_bucket_capacity;
-    }
+    [[nodiscard]] auto is_full() const -> bool { return size() > m_max_bucket_capacity; }
 
     void deallocate_buckets() noexcept {
         static_assert(!is_view_v, "map_view and set_view are read only");
         m_buckets.clear();
         m_max_bucket_capacity = 0;
-        m_group_mask = 0;
+        m_group_mask          = 0;
     }
 
     // Takes the shift rather than reading m_shifts, so that nothing describing the bucket array is
@@ -2945,13 +3121,17 @@ private:
     // The two values derived from the bucket array's size. Only ever called once the array of that
     // size exists; see the note above.
     void describe_buckets(std::size_t num_groups) {
-        m_group_mask = static_cast<value_idx_type>(num_groups - 1);
+        m_group_mask           = static_cast<value_idx_type>(num_groups - 1);
         auto const num_buckets = num_groups * slots_per_group;
-        if (num_buckets == max_bucket_count()) {
+        if (num_buckets == max_bucket_count())
+        {
             // reached the maximum, make sure we can use each bucket
             m_max_bucket_capacity = max_bucket_count();
-        } else {
-            m_max_bucket_capacity = static_cast<value_idx_type>(static_cast<float>(num_buckets) * max_load_factor());
+        }
+        else
+        {
+            m_max_bucket_capacity =
+              static_cast<value_idx_type>(static_cast<float>(num_buckets) * max_load_factor());
         }
     }
 
@@ -2960,8 +3140,10 @@ private:
     // address aligned for a block. O(1); the slots are check_index()'s.
     static void check_index_shape(index_view index, std::size_t num_values) {
         auto const n = index.size();
-        if (n == 0) {
-            if (num_values != 0) {
+        if (n == 0)
+        {
+            if (num_values != 0)
+            {
                 on_error_bad_index();
             }
             return;
@@ -2969,8 +3151,9 @@ private:
         auto const smallest = std::size_t{1} << (64U - initial_shifts);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto const address = reinterpret_cast<std::uintptr_t>(index.data());
-        if ((n & (n - 1)) != 0 || n < smallest || n > max_bucket_count() / slots_per_group ||
-            address % alignof(index_block) != 0) {
+        if ((n & (n - 1)) != 0 || n < smallest || n > max_bucket_count() / slots_per_group
+            || address % alignof(index_block) != 0)
+        {
             on_error_bad_index();
         }
     }
@@ -2979,7 +3162,8 @@ private:
     // the shift it is indexed with (hash >> shifts < n), the mask and the capacity.
     void describe_loaded_index(std::size_t n) {
         auto shifts = std::uint8_t{64};
-        while ((std::size_t{1} << (64U - shifts)) < n) {
+        while ((std::size_t{1} << (64U - shifts)) < n)
+        {
             --shifts;
         }
         m_shifts = shifts;
@@ -2990,23 +3174,33 @@ private:
     // moved in yet, so a rejection leaves the caller's values alone.
     void load_index(index_view index, std::size_t num_values, trust t) {
         check_index_shape(index, num_values);
-        if (index.empty()) {
+        if (index.empty())
+        {
             return;
         }
-        if constexpr (detail::is_detected_v<detail::detect_assign_checked, bucket_container_type>) {
-            if (t == trust::unchecked) {
+        if constexpr (detail::is_detected_v<detail::detect_assign_checked, bucket_container_type>)
+        {
+            if (t == trust::unchecked)
+            {
                 m_buckets.assign_unchecked(index.data(), index.size());
-            } else if (!m_buckets.assign_checked(index.data(), index.size(), num_values)) {
+            }
+            else if (!m_buckets.assign_checked(index.data(), index.size(), num_values))
+            {
                 on_error_bad_index();
             }
-        } else {
+        }
+        else
+        {
             // A custom index container (#303) has no fused copy: resize, copy, then the same check
             // over the copy, and give the array back if it fails.
             auto fresh = bucket_container_type(m_buckets.get_allocator());
             fresh.resize(index.size());
-            std::memcpy(static_cast<void*>(fresh.data()), index.data(), index.size() * sizeof(index_block));
-            if (t == trust::checked &&
-                !detail::check_index_unique(fresh.data(), index.size(), num_values, m_buckets.get_allocator())) {
+            std::memcpy(static_cast<void*>(fresh.data()), index.data(),
+                        index.size() * sizeof(index_block));
+            if (t == trust::checked
+                && !detail::check_index_unique(fresh.data(), index.size(), num_values,
+                                               m_buckets.get_allocator()))
+            {
                 on_error_bad_index();
             }
             m_buckets.take(fresh);
@@ -3019,9 +3213,7 @@ private:
     // (#329), which must never be written: every path that writes the index calls this first.
     void allocate_buckets_if_none() {
         if (ANKERL_UNORDERED_DENSE_UNLIKELY(m_buckets.empty()))
-            ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR {
-                allocate_buckets_from_shift(m_shifts);
-            }
+            ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR { allocate_buckets_from_shift(m_shifts); }
     }
 
     void clear_buckets() {
@@ -3074,43 +3266,49 @@ private:
         // The index is counted in value_idx_type and never in the container's size, for the reason
         // spelled out in replace(): max_size() is exactly what value_idx_type can hold, so a
         // container of precisely that many has a size that is not representable in it.
-        constexpr auto ahead = pipeline_depth;
-        auto* const groups = m_buckets.data();
-        auto const mask = m_group_mask;
-        auto const shifts = m_shifts;
-        auto ring = std::array<std::uint64_t, ahead>{};
-        auto it = m_values.begin();
-        auto const end = m_values.end();
-        auto const fetch = [&](std::size_t i) -> void {
+        constexpr auto ahead  = pipeline_depth;
+        auto* const    groups = m_buckets.data();
+        auto const     mask   = m_group_mask;
+        auto const     shifts = m_shifts;
+        auto           ring   = std::array<std::uint64_t, ahead>{};
+        auto           it     = m_values.begin();
+        auto const     end    = m_values.end();
+        auto const     fetch  = [&](std::size_t i) -> void {
             auto const mh = mixed_hash(get_key(*it));
             ++it;
             ring[i] = mh;
             prefetch_block(groups, static_cast<std::size_t>(mh >> shifts));
         };
-        for (auto i = std::size_t{}; i < ahead && it != end; ++i) {
+        for (auto i = std::size_t{}; i < ahead && it != end; ++i)
+        {
             fetch(i);
         }
         auto const n = m_values.size();
-        for (auto value_idx = std::size_t{}; value_idx < n; ++value_idx) {
+        for (auto value_idx = std::size_t{}; value_idx < n; ++value_idx)
+        {
             auto const mh = ring[value_idx % ahead];
-            if (it != end) {
+            if (it != end)
+            {
                 fetch(value_idx % ahead);
             }
             // we know for certain that key has not yet been inserted, so no need to check it.
-            auto const word = fingerprint_word(mh);
-            auto const counter = word & 7U;
-            auto group_idx = static_cast<value_idx_type>(mh >> shifts);
-            value_idx_type delta = 0;
-            while (true) {
-                auto& group = groups[group_idx];
+            auto const     word      = fingerprint_word(mh);
+            auto const     counter   = word & 7U;
+            auto           group_idx = static_cast<value_idx_type>(mh >> shifts);
+            value_idx_type delta     = 0;
+            while (true)
+            {
+                auto&      group   = groups[group_idx];
                 auto const empties = match_empty(group);
-                if (empties != 0) {
-                    auto const lane = first_lane(empties);
+                if (empties != 0)
+                {
+                    auto const lane            = first_lane(empties);
                     group.m_fingerprints[lane] = static_cast<std::uint8_t>(word);
-                    group.m_index[lane] = static_cast<value_idx_type>(value_idx);
+                    group.m_index[lane]        = static_cast<value_idx_type>(value_idx);
                     break;
                 }
-                if (group.m_overflows[counter] != 255) {
+                if (group.m_overflows[counter] != 255)
+                {
                     ++group.m_overflows[counter];
                 }
                 group_idx = static_cast<value_idx_type>((group_idx + (++delta)) & mask);
@@ -3119,7 +3317,8 @@ private:
     }
 
     ANKERL_UNORDERED_DENSE_NOINLINE void increase_size() {
-        if (m_max_bucket_capacity == max_bucket_count()) {
+        if (m_max_bucket_capacity == max_bucket_count())
+        {
             // remove the value again, we can't add it!
             m_values.pop_back();
             on_error_bucket_overflow();
@@ -3130,14 +3329,17 @@ private:
         // and never will have one, so size() would count an element that find() cannot reach.
         // Taking it back out is what makes a failed insert have no effect, which is what the
         // unordered containers promise for inserting a single element.
-        if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()) {
+        if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS())
+        {
             //try {
-                allocate_buckets_from_shift(static_cast<std::uint8_t>(m_shifts - 1));
+            allocate_buckets_from_shift(static_cast<std::uint8_t>(m_shifts - 1));
             //} catch (...) {
             //    m_values.pop_back();
             //    throw;
             //}
-        } else {
+        }
+        else
+        {
             allocate_buckets_from_shift(static_cast<std::uint8_t>(m_shifts - 1));
         }
         fill_buckets_from_values();
@@ -3149,14 +3351,15 @@ private:
     // nothing can find.
     void finish_erase(value_idx_type value_idx_to_remove) {
         static_assert(!is_view_v, "map_view and set_view are read only");
-        if (value_idx_to_remove != m_values.size() - 1) {
+        if (value_idx_to_remove != m_values.size() - 1)
+        {
             // no luck, we'll have to replace the value with the last one and update the index accordingly
             auto& val = m_values[value_idx_to_remove];
-            val = std::move(m_values.back());
+            val       = std::move(m_values.back());
 
             // update the value index of the moved entry
             auto const values_idx_back = static_cast<value_idx_type>(m_values.size() - 1);
-            auto const mh = mixed_hash(get_key(val));
+            auto const mh              = mixed_hash(get_key(val));
             repoint_value(mh, values_idx_back, value_idx_to_remove);
         }
         m_values.pop_back();
@@ -3164,8 +3367,11 @@ private:
 
     // `at` is the slot that points at the value; mh is the value's mixed hash, which the counters
     // on the way to it are undone with.
-    template <typename Op>
-    void do_erase(group_slot at, value_idx_type value_idx_to_remove, std::uint64_t mh, Op handle_erased_value) {
+    template<typename Op>
+    void do_erase(group_slot     at,
+                  value_idx_type value_idx_to_remove,
+                  std::uint64_t  mh,
+                  Op             handle_erased_value) {
         static_assert(!is_view_v, "map_view and set_view are read only");
         // both values are needed once the slot is freed; start fetching them now to overlap the latencies
         ANKERL_UNORDERED_DENSE_PREFETCH(&m_values[value_idx_to_remove]);
@@ -3176,46 +3382,54 @@ private:
 
         // erase() hands the value to a callback that cannot throw, so the branch below is not even instantiated for it.
         // extract() moves the value out into the caller's storage, and that move is the one that can throw.
-        if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() && !noexcept(handle_erased_value(std::move(erased_value)))) {
+        if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()
+                      && !noexcept(handle_erased_value(std::move(erased_value))))
+        {
             //try {
-                handle_erased_value(std::move(erased_value));
+            handle_erased_value(std::move(erased_value));
             //} catch (...) {
             //    finish_erase(value_idx_to_remove);
             //    throw;
             //}
-        } else {
+        }
+        else
+        {
             handle_erased_value(std::move(erased_value));
         }
 
         finish_erase(value_idx_to_remove);
     }
 
-    template <typename K, typename Op>
-    auto do_erase_key(K&& key, Op handle_erased_value) -> std::size_t { // NOLINT(cppcoreguidelines-missing-std-forward)
+    template<typename K, typename Op>
+    auto do_erase_key(K&& key, Op handle_erased_value)
+      -> std::size_t {  // NOLINT(cppcoreguidelines-missing-std-forward)
         auto const mh = mixed_hash(key);
-        auto r = probe(key, mh);
-        if (!r.found) {
+        auto       r  = probe(key, mh);
+        if (!r.found)
+        {
             return 0;
         }
         do_erase({r.group_idx, r.lane}, r.value_idx, mh, handle_erased_value);
         return 1;
     }
 
-    template <class K, class M>
+    template<class K, class M>
     auto do_insert_or_assign(K&& key, M&& mapped) -> std::pair<iterator, bool> {
         static_assert(!is_view_v, "map_view and set_view are read only");
-        auto it_isinserted = try_emplace(std::forward<K>(key), std::forward<M>(mapped));
-        if (!it_isinserted.second) {
-            it_isinserted.first->second = std::forward<M>(mapped);
+        auto itrInserted = try_emplace(std::forward<K>(key), std::forward<M>(mapped));
+        if (!itrInserted.second)
+        {
+            itrInserted.first->second = std::forward<M>(mapped);
         }
-        return it_isinserted;
+        return itrInserted;
     }
 
     // The value container's emplace_back, inlined whatever the caller's inlining budget: gcc runs
     // out of it in a large insert loop and calls emplace_back out of line, and a map that is a local
     // of the caller is then written to the stack and read back around every call (#321).
-    template <typename... Args>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE ANKERL_UNORDERED_DENSE_FLATTEN void append_value(Args&&... args) {
+    template<typename... Args>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE ANKERL_UNORDERED_DENSE_FLATTEN void
+    append_value(Args&&... args) {
         m_values.emplace_back(std::forward<Args>(args)...);
     }
 
@@ -3256,10 +3470,10 @@ private:
     // on this function on 2026-10-02 (scripts/ab/place_inline.sh, one map per translation unit): a
     // clang integer build 1.19-1.22x faster with the attribute, a string build 1.02-1.04x, and gcc,
     // which inlines it anyway, unchanged for integers.
-    template <typename... Args>
+    template<typename... Args>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto
     place_element_at(std::uint32_t word, unsigned counter, value_idx_type home_idx, Args&&... args)
-        -> std::pair<iterator, bool> {
+      -> std::pair<iterator, bool> {
         static_assert(!is_view_v, "map_view and set_view are read only");
         // emplace the new value. If that throws an exception, no harm done; index is still in a valid state
         append_value(std::forward<Args>(args)...);
@@ -3267,9 +3481,10 @@ private:
         auto value_idx = static_cast<value_idx_type>(m_values.size() - 1);
         if (ANKERL_UNORDERED_DENSE_UNLIKELY(is_full()))
             ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR {
-                increase_size(); // places every value, the new one included
+                increase_size();  // places every value, the new one included
             }
-        else {
+        else
+        {
             place_group(word, counter, home_idx, value_idx);
         }
         return {begin() + static_cast<difference_type>(value_idx), true};
@@ -3282,24 +3497,27 @@ private:
     // because a hash does not depend on the table. That is also why the array and the shift are read
     // fresh for every element rather than hoisted the way the rehash hoists them -- the rehash never
     // grows, and this may.
-    template <typename FwdIt>
+    template<typename FwdIt>
     void do_insert_range(FwdIt first, FwdIt last) {
-        if (first == last) {
+        if (first == last)
+        {
             return;
         }
         allocate_buckets_if_none();
-        auto ring = std::array<std::uint64_t, pipeline_depth>{};
-        auto lookahead = first;
+        auto ring              = std::array<std::uint64_t, pipeline_depth>{};
+        auto lookahead         = first;
         auto hash_and_prefetch = [this](auto const& value) -> std::uint64_t {
             auto const mh = mixed_hash(get_key(value));
             prefetch_block(m_buckets.data(), std::size_t{group_idx_from_hash(mh)});
             return mh;
         };
-        for (auto i = std::size_t{}; i < pipeline_depth && lookahead != last; ++i) {
+        for (auto i = std::size_t{}; i < pipeline_depth && lookahead != last; ++i)
+        {
             ring[i] = hash_and_prefetch(*lookahead);
             ++lookahead;
         }
-        for (auto i = std::size_t{}; first != last; ++first, ++i) {
+        for (auto i = std::size_t{}; first != last; ++first, ++i)
+        {
             // This element's hash out of the ring before the slot it frees is refilled: the slot
             // holding element i is the one element i + pipeline_depth goes into. Getting that
             // backwards returns a wrong answer rather than crashing, and it has been got backwards
@@ -3307,15 +3525,16 @@ private:
             //
             // The three rings in this file -- here, fill_buckets_from_values and
             // do_replace_pipelined -- are deliberately not one shared loop. Extracting the ring into
-            // a helper taking both halves as callables was built and measured on 2026-09-11: it
+            // a helper taking both halves as callable was built and measured on 2026-09-11: it
             // costs the rehash **1.9 instructions per element**, 45.7 to 47.6, and 1.3% of its time
             // on six of six interleaved pairs, because that loop wants its group pointer, mask and
             // shift in locals and this one cannot have them -- growth moves them. Passing the
             // element index through the callable did not recover it either. The duplication is real
             // and measured to be cheaper than the fix.
             auto const slot = i % pipeline_depth;
-            auto const mh = ring[slot];
-            if (lookahead != last) {
+            auto const mh   = ring[slot];
+            if (lookahead != last)
+            {
                 ring[slot] = hash_and_prefetch(*lookahead);
                 ++lookahead;
             }
@@ -3331,10 +3550,11 @@ private:
     // block pointer stays valid, and holding it is the difference between forming an 88 byte block's
     // address once per element and forming it again in the probe and a third time in the placement.
     void do_replace_pipelined(std::size_t& value_idx) {
-        auto const* const groups = m_buckets.data();
-        auto ring_word = std::array<std::uint32_t, pipeline_depth>{};
-        auto ring_home = std::array<value_idx_type, pipeline_depth>{};
-        auto ring_block = std::array<typename bucket_container_type::block const*, pipeline_depth>{};
+        auto const* const groups    = m_buckets.data();
+        auto              ring_word = std::array<std::uint32_t, pipeline_depth>{};
+        auto              ring_home = std::array<value_idx_type, pipeline_depth>{};
+        auto              ring_block =
+          std::array<typename bucket_container_type::block const*, pipeline_depth>{};
 
         // Cursors for the elements, a counter for the index, and both are needed: place_group wants
         // the index, and reading m_values[value_idx] to get the element wants the container's data
@@ -3352,32 +3572,35 @@ private:
         // container this map supports, so it would need an m_values.end() after every duplicate. The
         // container's own size() answers the same question for nothing.
         auto const first = m_values.begin();
-        auto read = first;                  // element value_idx
-        auto look = first + pipeline_depth; // element value_idx + pipeline_depth
+        auto       read  = first;                   // element value_idx
+        auto       look  = first + pipeline_depth;  // element value_idx + pipeline_depth
 
         // Hashes and decomposes, but does not ask for the block: the caller decides that, because
         // the one refill that happens on a duplicate is read by the very next iteration and has no
         // distance to run.
         auto fetch = [&](std::size_t slot, value_type const& value) {
-            auto const mh = mixed_hash(get_key(value));
-            ring_word[slot] = fingerprint_word(mh);
-            ring_home[slot] = group_idx_from_hash(mh);
+            auto const mh    = mixed_hash(get_key(value));
+            ring_word[slot]  = fingerprint_word(mh);
+            ring_home[slot]  = group_idx_from_hash(mh);
             ring_block[slot] = groups + std::size_t{ring_home[slot]};
         };
 
         auto prime = first;
-        for (auto i = std::size_t{}; i < pipeline_depth; ++i, ++prime) {
+        for (auto i = std::size_t{}; i < pipeline_depth; ++i, ++prime)
+        {
             fetch(i, *prime);
             prefetch_block(ring_block[i]);
         }
-        while (m_values.size() > value_idx + pipeline_depth + 1) {
-            auto const slot = value_idx % pipeline_depth;
-            auto const word = ring_word[slot];
-            auto const counter = word & 7U;
+        while (m_values.size() > value_idx + pipeline_depth + 1)
+        {
+            auto const slot     = value_idx % pipeline_depth;
+            auto const word     = ring_word[slot];
+            auto const counter  = word & 7U;
             auto const home_idx = ring_home[slot];
             // The group is handed over rather than looked up: this loop asked for it
             // pipeline_depth elements ago, so the probe must not ask again.
-            if (probe_at_home(get_key(*read), word, counter, *ring_block[slot], home_idx).found) {
+            if (probe_at_home(get_key(*read), word, counter, *ring_block[slot], home_idx).found)
+            {
                 // The slot the duplicate vacated is refilled from the element that just moved into
                 // it -- read by the very next iteration, so there is no distance to prefetch over.
                 // `read` is below the last element here, by the loop's own condition, so the plain
@@ -3385,7 +3608,9 @@ private:
                 *read = std::move(m_values.back());
                 m_values.pop_back();
                 fetch(slot, *read);
-            } else {
+            }
+            else
+            {
                 place_group(word, counter, home_idx, static_cast<value_idx_type>(value_idx));
                 // The slot holding this element is the one `look` goes into, and the loop's own
                 // condition says that element exists. `look` moves only here, so it stays exactly
@@ -3414,20 +3639,21 @@ private:
     //
     // Returns nothing on purpose: the only caller is the range insert, which has nothing to do with
     // an iterator to each element, and a returned pair nobody reads is surface no test can defend.
-    template <typename V>
+    template<typename V>
     void do_insert_hashed(std::uint64_t mh, V&& value) {
         // Taken apart once and handed to both halves. A probe that misses is followed by a placement
         // that starts from the same group with the same fingerprint, and deriving those twice is
         // work this loop is otherwise not doing.
         //
-        auto const word = fingerprint_word(mh);
-        auto const counter = word & 7U;
+        auto const word     = fingerprint_word(mh);
+        auto const counter  = word & 7U;
         auto const home_idx = group_idx_from_hash(mh);
         // The group is formed here and handed to the probe, which therefore does not ask for it a
         // second time -- the pipelined caller asked for this block sixteen elements ago. Read from
         // the current array, so a growth since then is simply a prefetch that did nothing.
         auto r = probe_at_home(get_key(value), word, counter, m_buckets.data()[home_idx], home_idx);
-        if (r.found) {
+        if (r.found)
+        {
             move_home(r.group_idx, r.lane, mh);
             return;
         }
@@ -3445,7 +3671,8 @@ private:
     // place. Over a source that mostly does not overlap, that is most of the work.
     void drop_tail_and_reindex(std::size_t keep) {
         auto const n = m_values.size();
-        if (keep == n) {
+        if (keep == n)
+        {
             // nothing was taken, so the index still describes the values exactly
             return;
         }
@@ -3453,7 +3680,8 @@ private:
         // so the count is known, and the container is only required to have pop_back -- vector's
         // resize(n) would need the value type to be default constructible, which nothing else here
         // asks of it, and segmented_vector has no erase(first, last) to take a range out with.
-        for (auto k = n; k > keep; --k) {
+        for (auto k = n; k > keep; --k)
+        {
             m_values.pop_back();
         }
         clear_buckets();
@@ -3465,8 +3693,10 @@ private:
     // can never run into the merge's hot path.
     void compact_and_reindex(std::size_t keep, std::size_t from) {
         auto const n = m_values.size();
-        for (auto i = from; i < n; ++i, ++keep) {
-            if (keep != i) {
+        for (auto i = from; i < n; ++i, ++keep)
+        {
+            if (keep != i)
+            {
                 m_values[keep] = std::move(m_values[i]);
             }
         }
@@ -3487,24 +3717,27 @@ private:
     // not keep, because a moved-from key can collide with a key that is still there and the source
     // would then hold two elements that compare equal. Inside do_insert_hashed that boundary is not
     // visible from outside.
-    template <typename Source>
+    template<typename Source>
     void do_merge(Source& source) {
-        if constexpr (std::is_same_v<Source, table>) {
+        if constexpr (std::is_same_v<Source, table>)
+        {
             // "if (this == &source) there are no effects", which is worth honouring for its own sake
             // and not only because the walk below would be reading a container it is emptying
-            if (this == &source) {
+            if (this == &source)
+            {
                 return;
             }
         }
-        if (source.empty()) {
+        if (source.empty())
+        {
             // Ahead of allocate_buckets_if_none() and load-bearing there: without it, merging an
             // empty source into a default constructed map allocates that map an index it never asked
             // for. do_erase_key owns its own emptiness check for the same reason.
             return;
         }
         allocate_buckets_if_none();
-        auto& src_values = source.m_values;
-        auto const n = src_values.size();
+        auto&      src_values = source.m_values;
+        auto const n          = src_values.size();
         // Three cursors rather than three indices, and it is the same reason fill_buckets_from_values
         // gives at length: placing an element stores a fingerprint, a std::uint8_t store may alias any
         // object at all including the container's own data pointer, so every indexed read after a
@@ -3516,10 +3749,10 @@ private:
         // The source never changes size while the walk runs -- the repair at the end is what shrinks
         // it -- so all three stay valid, and the destination's growth cannot reach them.
         auto const first = src_values.begin();
-        auto const last = src_values.end();
-        auto read = first;  // the element being handled; also what the repair calls `from`
-        auto write = first; // where the next survivor goes; also what the repair calls `keep`
-        auto look = first;  // the element being hashed ahead
+        auto const last  = src_values.end();
+        auto       read  = first;  // the element being handled; also what the repair calls `from`
+        auto write = first;  // where the next survivor goes; also what the repair calls `keep`
+        auto look  = first;  // the element being hashed ahead
         // `read` is the first element the source still owns, which is the one thing the repair below
         // needs to know and the one thing an exception cannot tell it: a throw out of the probe leaves
         // this element untouched and the source keeps it, a throw out of the placement leaves a husk
@@ -3543,20 +3776,23 @@ private:
         // every source element is new until the probe says otherwise, so this bounds it from above,
         // and reading today's index instead gets the case the ring is most for -- a large source into
         // a small map, where nothing is in cache and everything moves -- exactly wrong.
-        auto const pipelined = index_bytes_for(calc_shifts_for_size(size() + n)) > merge_min_index_bytes;
+        auto const pipelined =
+          index_bytes_for(calc_shifts_for_size(size() + n)) > merge_min_index_bytes;
         auto ring = std::array<std::uint64_t, pipeline_depth>{};
         // The group array is handed in rather than read here: it has to be read fresh once per
         // element, because placing one may grow the index and move it, but the prefetch and the probe
         // that follows it are separated by nothing that can grow it -- so once, not twice.
-        auto const fetch =
-            [&](typename bucket_container_type::block const* groups, std::size_t slot, value_type const& value) -> void {
+        auto const fetch = [&](typename bucket_container_type::block const* groups,
+                               std::size_t slot, value_type const& value) -> void {
             auto const mh = mixed_hash(get_key(value));
-            ring[slot] = mh;
+            ring[slot]    = mh;
             prefetch_block(groups, std::size_t{group_idx_from_hash(mh)});
         };
-        if (pipelined) {
+        if (pipelined)
+        {
             auto const* const groups = m_buckets.data();
-            for (auto s = std::size_t{0}; s < pipeline_depth && look != last; ++s, ++look) {
+            for (auto s = std::size_t{0}; s < pipeline_depth && look != last; ++s, ++look)
+            {
                 // Outside the repair below on purpose: nothing has been moved yet, so a hash that
                 // throws here leaves the source exactly as it was.
                 fetch(groups, s, *look);
@@ -3571,52 +3807,64 @@ private:
         // them live.
         auto const walk = [&](auto is_pipelined) -> void {
             auto slot = std::size_t{0};
-            while (read != last) {
-                auto& value = *read;
+            while (read != last)
+            {
+                auto&             value  = *read;
                 auto const* const groups = m_buckets.data();
-                auto mh = std::uint64_t{};
-                if constexpr (decltype(is_pipelined)::value) {
+                auto              mh     = std::uint64_t{};
+                if constexpr (decltype(is_pipelined)::value)
+                {
                     // this element's hash out of the ring before the slot it frees is refilled
                     mh = ring[slot];
-                    if (look != last) {
+                    if (look != last)
+                    {
                         fetch(groups, slot, *look);
                         ++look;
                     }
                     slot = (slot + 1) % pipeline_depth;
-                } else {
+                }
+                else
+                {
                     mh = mixed_hash(get_key(value));
                 }
                 // taken apart once for both halves, exactly as do_insert_hashed does it
-                auto const word = fingerprint_word(mh);
-                auto const counter = word & 7U;
+                auto const word     = fingerprint_word(mh);
+                auto const counter  = word & 7U;
                 auto const home_idx = group_idx_from_hash(mh);
-                auto const r = probe_at_home(get_key(value), word, counter, groups[home_idx], home_idx);
-                if (r.found) {
+                auto const r =
+                  probe_at_home(get_key(value), word, counter, groups[home_idx], home_idx);
+                if (r.found)
+                {
                     // Stays behind. merge() is a writing operation, so a hit here pays for its own
                     // drift the same way one inside try_emplace does.
                     move_home(r.group_idx, r.lane, mh);
-                    if (write != read) {
+                    if (write != read)
+                    {
                         *write = std::move(value);
                     }
                     ++write;
                     ++read;
                     continue;
                 }
-                ++read; // this one is leaving, however the placement below ends
+                ++read;  // this one is leaving, however the placement below ends
                 place_element_at(word, counter, home_idx, std::move(value));
             }
         };
 
         auto const walk_either = [&]() -> void {
-            if (pipelined) {
+            if (pipelined)
+            {
                 walk(std::true_type{});
-            } else {
+            }
+            else
+            {
                 walk(std::false_type{});
             }
         };
-        if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()) {
+        if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS())
+        {
             //try {
-                walk_either();
+            walk_either();
             //} catch (...) {
             //    // The source's index stopped describing its values at the first element taken, and
             //    // the source is a container the caller still owns and did not hand over. Putting it
@@ -3625,14 +3873,17 @@ private:
             //    source.compact_and_reindex(static_cast<std::size_t>(write - first), static_cast<std::size_t>(read - first));
             //    throw;
             //}
-        } else {
+        }
+        else
+        {
             walk_either();
         }
         source.drop_tail_and_reindex(static_cast<std::size_t>(write - first));
     }
 
-    template <typename K, typename... Args>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto do_try_emplace(K&& key, Args&&... args) -> std::pair<iterator, bool> {
+    template<typename K, typename... Args>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto do_try_emplace(K&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         return do_find_or_place<true>(std::forward<K>(key), std::forward<Args>(args)...);
     }
 
@@ -3646,28 +3897,32 @@ private:
     // fingerprint class never overflowed home, placed there. Everything else is find_or_place_far's.
     // Without the attribute clang called the whole of it, and a hit paid the placement's six
     // register prologue (#305, #321).
-    template <bool Piecewise, typename K, typename... Args>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto do_find_or_place(K&& key, Args&&... args) -> std::pair<iterator, bool> {
+    template<bool Piecewise, typename K, typename... Args>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto do_find_or_place(K&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         static_assert(!is_view_v, "map_view and set_view are read only");
         auto const mh = mixed_hash(key);
         // Taken apart once for both halves: a probe that misses is followed by a placement starting
         // from the same group with the same fingerprint.
-        auto const word = fingerprint_word(mh);
+        auto const word     = fingerprint_word(mh);
         auto const home_idx = group_idx_from_hash(mh);
         // probe()'s home group, without the probe_result: returning one cost gcc a quarter of an
         // integer hit (see probe_from). No test for an empty table: it reads the sentinel (#329).
         auto const* groups = m_buckets.data();
         prefetch_index(groups, home_idx);
-        auto const& home = groups[home_idx];
-        auto lanes = match_fingerprint(home, word);
-        while (lanes != 0) {
+        auto const& home  = groups[home_idx];
+        auto        lanes = match_fingerprint(home, word);
+        while (lanes != 0)
+        {
             auto const value_idx = home.m_index[first_lane(lanes)];
-            if (m_equal(key, get_key(m_values[value_idx]))) {
+            if (m_equal(key, get_key(m_values[value_idx])))
+            {
                 return {begin() + static_cast<difference_type>(value_idx), false};
             }
             lanes &= lanes - 1;
         }
-        return find_or_place_miss<Piecewise>(mh, word, home_idx, std::forward<K>(key), std::forward<Args>(args)...);
+        return find_or_place_miss<Piecewise>(mh, word, home_idx, std::forward<K>(key),
+                                             std::forward<Args>(args)...);
     }
 
     // Everything an insert does after a miss in the home group -- the empty table's allocation, the
@@ -3686,51 +3941,56 @@ private:
     // is in here and not in the caller: left there as a cold branch, it alone was enough to push the
     // caller's variables to the stack again. notes/index-design.md, "stored and reloaded", "caller
     // corpus" and "shape search".
-    template <bool Piecewise, typename K, typename... Args>
-    ANKERL_UNORDERED_DENSE_NOINLINE auto
-    find_or_place_miss(std::uint64_t mh, std::uint32_t word, value_idx_type home_idx, K&& key, Args&&... args)
-        -> std::pair<iterator, bool> {
+    template<bool Piecewise, typename K, typename... Args>
+    ANKERL_UNORDERED_DENSE_NOINLINE auto find_or_place_miss(
+      std::uint64_t mh, std::uint32_t word, value_idx_type home_idx, K&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         // Allocates before anything is written, which keeps the sentinel (#329) unwritten, and places
         // the first element directly rather than growing into it, which would hash it a second time.
         // The home group of an empty table holds nothing, and m_shifts does not change when the
         // first bucket array is allocated, so home_idx stays right across this.
         allocate_buckets_if_none();
         auto const counter = word & 7U;
-        if (ANKERL_UNORDERED_DENSE_LIKELY(m_buckets.data()[home_idx].m_overflows[counter] == 0)) {
-            return place_new<Piecewise>(word, counter, home_idx, std::forward<K>(key), std::forward<Args>(args)...);
+        if (ANKERL_UNORDERED_DENSE_LIKELY(m_buckets.data()[home_idx].m_overflows[counter] == 0))
+        {
+            return place_new<Piecewise>(word, counter, home_idx, std::forward<K>(key),
+                                        std::forward<Args>(args)...);
         }
-        return find_or_place_far<Piecewise>(mh, word, home_idx, std::forward<K>(key), std::forward<Args>(args)...);
+        return find_or_place_far<Piecewise>(mh, word, home_idx, std::forward<K>(key),
+                                            std::forward<Args>(args)...);
     }
 
     // The key may have been placed past its home group: walk on, and place it if it is not there.
     // The walk past home, which only a key whose fingerprint class overflowed its home group takes.
     // Its own call inside the miss path: inlined there it made no measurable difference under either
     // compiler (shape search), and called it keeps the miss path's common case small.
-    template <bool Piecewise, typename K, typename... Args>
-    ANKERL_UNORDERED_DENSE_NOINLINE auto
-    find_or_place_far(std::uint64_t mh, std::uint32_t word, value_idx_type home_idx, K&& key, Args&&... args)
-        -> std::pair<iterator, bool> {
+    template<bool Piecewise, typename K, typename... Args>
+    ANKERL_UNORDERED_DENSE_NOINLINE auto find_or_place_far(
+      std::uint64_t mh, std::uint32_t word, value_idx_type home_idx, K&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         auto const counter = word & 7U;
-        auto r = probe_after_home(key, word, counter, m_buckets.data()[home_idx], home_idx);
-        if (r.found) {
+        auto       r = probe_after_home(key, word, counter, m_buckets.data()[home_idx], home_idx);
+        if (r.found)
+        {
             move_home(r.group_idx, r.lane, mh);
             return {begin() + static_cast<difference_type>(r.value_idx), false};
         }
-        return place_new<Piecewise>(word, counter, home_idx, std::forward<K>(key), std::forward<Args>(args)...);
+        return place_new<Piecewise>(word, counter, home_idx, std::forward<K>(key),
+                                    std::forward<Args>(args)...);
     }
 
-    template <bool Piecewise, typename K, typename... Args>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
-    place_new(std::uint32_t word, unsigned counter, value_idx_type home_idx, K&& key, Args&&... args)
-        -> std::pair<iterator, bool> {
-        if constexpr (Piecewise) {
-            return place_element_at(word,
-                                    counter,
-                                    home_idx,
-                                    std::piecewise_construct,
+    template<bool Piecewise, typename K, typename... Args>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto place_new(
+      std::uint32_t word, unsigned counter, value_idx_type home_idx, K&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
+        if constexpr (Piecewise)
+        {
+            return place_element_at(word, counter, home_idx, std::piecewise_construct,
                                     std::forward_as_tuple(std::forward<K>(key)),
                                     std::forward_as_tuple(std::forward<Args>(args)...));
-        } else {
+        }
+        else
+        {
             // key is one of args, which the value is built from
             return place_element_at(word, counter, home_idx, std::forward<Args>(args)...);
         }
@@ -3740,59 +4000,69 @@ private:
     // f by value, the way the standard algorithms take a callable: it is invoked once per key that
     // is found, so it cannot be forwarded -- forwarding it would move from the same object on every
     // hit. The public overloads move into this parameter.
-    template <typename FwdIt, typename F>
+    template<typename FwdIt, typename F>
     auto do_visit(FwdIt first, FwdIt last, F f) -> std::size_t {
         // Not needed for the sentinel (#329), but one test per batch saves hashing the whole range.
-        if (ANKERL_UNORDERED_DENSE_UNLIKELY(empty())) {
+        if (ANKERL_UNORDERED_DENSE_UNLIKELY(empty()))
+        {
             return 0;
         }
-        constexpr auto bulk = pipeline_depth;
-        auto const* groups = m_buckets.data();
+        constexpr auto bulk   = pipeline_depth;
+        auto const*    groups = m_buckets.data();
         // The block pointer rather than the group number: a block is 88 bytes, so forming its
         // address is a multiply, and passes two and three would each redo it.
         auto block = std::array<decltype(groups), bulk>{};
-        auto word = std::array<std::uint32_t, bulk>{};
-        auto home = std::array<value_idx_type, bulk>{};
+        auto word  = std::array<std::uint32_t, bulk>{};
+        auto home  = std::array<value_idx_type, bulk>{};
         auto lanes = std::array<lane_mask, bulk>{};
         auto found = std::size_t{0};
 
-        while (first != last) {
-            auto n = std::size_t{0};
+        while (first != last)
+        {
+            auto n  = std::size_t{0};
             auto it = first;
-            for (; n < bulk && it != last; ++n, ++it) {
+            for (; n < bulk && it != last; ++n, ++it)
+            {
                 auto const mh = mixed_hash(*it);
-                word[n] = fingerprint_word(mh);
-                home[n] = group_idx_from_hash(mh);
-                block[n] = groups + std::size_t{home[n]};
+                word[n]       = fingerprint_word(mh);
+                home[n]       = group_idx_from_hash(mh);
+                block[n]      = groups + std::size_t{home[n]};
                 prefetch_block(block[n]);
             }
-            for (auto i = std::size_t{}; i < n; ++i) {
+            for (auto i = std::size_t{}; i < n; ++i)
+            {
                 lanes[i] = match_fingerprint(*block[i], word[i]);
             }
-            for (auto i = std::size_t{}; i < n; ++i, ++first) {
+            for (auto i = std::size_t{}; i < n; ++i, ++first)
+            {
                 auto const& group = *block[i];
                 // The element, once it is known: converging on a pointer rather than a found-flag
                 // keeps the call to f in one place instead of one per way of arriving at it.
-                std::conditional_t<is_view_v, value_type const, value_type>* element = nullptr;
-                auto remaining = lanes[i];
-                while (remaining != 0) {
-                    auto const lane = first_lane(remaining);
+                std::conditional_t<is_view_v, value_type const, value_type>* element   = nullptr;
+                auto                                                         remaining = lanes[i];
+                while (remaining != 0)
+                {
+                    auto const lane      = first_lane(remaining);
                     auto const value_idx = group.m_index[lane];
-                    if (m_equal(*first, get_key(m_values[value_idx]))) {
+                    if (m_equal(*first, get_key(m_values[value_idx])))
+                    {
                         element = &m_values[value_idx];
                         break;
                     }
                     remaining &= remaining - 1;
                 }
-                if (element == nullptr) {
+                if (element == nullptr)
+                {
                     // Not at home. About 5% of keys get here and none of their work was pipelined,
                     // which is what keeps the common path straight.
                     auto const r = probe_after_home(*first, word[i], word[i] & 7U, group, home[i]);
-                    if (r.found) {
+                    if (r.found)
+                    {
                         element = &m_values[r.value_idx];
                     }
                 }
-                if (element != nullptr) {
+                if (element != nullptr)
+                {
                     f(*element);
                     ++found;
                 }
@@ -3803,137 +4073,141 @@ private:
 
     // No test for an empty table: it reads the sentinel (#329). An empty table therefore hashes the
     // key it finds nothing for, and every other lookup saves the test.
-    template <typename K>
+    template<typename K>
     auto do_find(K const& key) -> iterator {
         return do_find_hashed(key, mixed_hash(key));
     }
 
     // Same lookup with the hashing already done.
-    template <typename K>
+    template<typename K>
     auto do_find_hashed(K const& key, std::uint64_t mh) -> iterator {
         auto r = probe(key, mh);
         return r.found ? begin() + static_cast<difference_type>(r.value_idx) : end();
     }
 
-    template <typename K>
+    template<typename K>
     auto do_find(K const& key) const -> const_iterator {
-        return const_cast<table*>(this)->do_find(key); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<table*>(this)->do_find(
+          key);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
     }
 
-    template <typename K>
+    template<typename K>
     auto do_find(K const& key, precomputed_hash ph) -> iterator {
         return do_find_hashed(key, ph.m_mixed_hash);
     }
 
-    template <typename K>
+    template<typename K>
     auto do_find(K const& key, precomputed_hash ph) const -> const_iterator {
-        return const_cast<table*>(this)->do_find(key, ph); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<table*>(this)->do_find(
+          key, ph);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
     }
 
-    template <typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto do_at(K const& key) -> mapped_ref<Q> {
         if (auto it = find(key); ANKERL_UNORDERED_DENSE_LIKELY(end() != it))
-            ANKERL_UNORDERED_DENSE_LIKELY_ATTR {
-                return it->second;
-            }
+            ANKERL_UNORDERED_DENSE_LIKELY_ATTR { return it->second; }
         on_error_key_not_found();
     }
 
-    template <typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto do_at(K const& key) const -> Q const& {
-        return const_cast<table*>(this)->at(key); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<table*>(this)->at(key);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
     }
 
-    template <typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto do_at(K const& key, precomputed_hash ph) -> mapped_ref<Q> {
         if (auto it = find(key, ph); ANKERL_UNORDERED_DENSE_LIKELY(end() != it))
-            ANKERL_UNORDERED_DENSE_LIKELY_ATTR {
-                return it->second;
-            }
+            ANKERL_UNORDERED_DENSE_LIKELY_ATTR { return it->second; }
         on_error_key_not_found();
     }
 
-    template <typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto do_at(K const& key, precomputed_hash ph) const -> Q const& {
-        return const_cast<table*>(this)->do_at(key, ph); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<table*>(this)->do_at(
+          key, ph);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
     }
 
-public:
-    explicit table(std::size_t bucket_count,
-                   Hash const& hash = Hash(),
-                   KeyEqual const& equal = KeyEqual(),
-                   allocator_type const& alloc_or_container = allocator_type())
-        : m_values(alloc_or_container)
-        , m_buckets(alloc_or_container)
-        , m_hash(hash)
-        , m_equal(equal) {
+   public:
+    explicit table(std::size_t           bucket_count,
+                   Hash const&           hash               = Hash(),
+                   KeyEqual const&       equal              = KeyEqual(),
+                   allocator_type const& alloc_or_container = allocator_type()) :
+        m_values(alloc_or_container),
+        m_buckets(alloc_or_container),
+        m_hash(hash),
+        m_equal(equal) {
         // No bucket_count asked for means no buckets yet: the first insert allocates them. See
         // allocate_buckets_if_none(). A default constructed table therefore costs no allocation at
         // all, so one can sit in a scope that may never use it without paying for it.
-        if (0 != bucket_count) {
+        if (0 != bucket_count)
+        {
             reserve(bucket_count);
         }
     }
 
     // Not table(0): that instantiates reserve(), which a map_view must not reach.
-    table()
-        : m_values(allocator_type())
-        , m_buckets(allocator_type()) {}
+    table() :
+        m_values(allocator_type()),
+        m_buckets(allocator_type()) {}
 
-    table(std::size_t bucket_count, allocator_type const& alloc)
-        : table(bucket_count, Hash(), KeyEqual(), alloc) {}
+    table(std::size_t bucket_count, allocator_type const& alloc) :
+        table(bucket_count, Hash(), KeyEqual(), alloc) {}
 
-    table(std::size_t bucket_count, Hash const& hash, allocator_type const& alloc)
-        : table(bucket_count, hash, KeyEqual(), alloc) {}
+    table(std::size_t bucket_count, Hash const& hash, allocator_type const& alloc) :
+        table(bucket_count, hash, KeyEqual(), alloc) {}
 
-    explicit table(allocator_type const& alloc)
-        : table(0, Hash(), KeyEqual(), alloc) {}
+    explicit table(allocator_type const& alloc) :
+        table(0, Hash(), KeyEqual(), alloc) {}
 
-    template <class InputIt>
-    table(InputIt first,
-          InputIt last,
-          size_type bucket_count = 0,
-          Hash const& hash = Hash(),
-          KeyEqual const& equal = KeyEqual(),
-          allocator_type const& alloc = allocator_type())
-        : table(bucket_count, hash, equal, alloc) {
+    template<class InputIt>
+    table(InputIt               first,
+          InputIt               last,
+          size_type             bucket_count = 0,
+          Hash const&           hash         = Hash(),
+          KeyEqual const&       equal        = KeyEqual(),
+          allocator_type const& alloc        = allocator_type()) :
+        table(bucket_count, hash, equal, alloc) {
         insert(first, last);
     }
 
-    template <class InputIt>
-    table(InputIt first, InputIt last, size_type bucket_count, allocator_type const& alloc)
-        : table(first, last, bucket_count, Hash(), KeyEqual(), alloc) {}
+    template<class InputIt>
+    table(InputIt first, InputIt last, size_type bucket_count, allocator_type const& alloc) :
+        table(first, last, bucket_count, Hash(), KeyEqual(), alloc) {}
 
-    template <class InputIt>
-    table(InputIt first, InputIt last, size_type bucket_count, Hash const& hash, allocator_type const& alloc)
-        : table(first, last, bucket_count, hash, KeyEqual(), alloc) {}
+    template<class InputIt>
+    table(InputIt               first,
+          InputIt               last,
+          size_type             bucket_count,
+          Hash const&           hash,
+          allocator_type const& alloc) :
+        table(first, last, bucket_count, hash, KeyEqual(), alloc) {}
 
     // Asks the allocator whether it wants to come along, which is what allocator_traits' default
     // does and what an allocator like std::pmr::polymorphic_allocator declines: a copy of a map
     // living in an arena should not silently keep that arena alive and keep allocating into it.
-    table(table const& other)
-        : table(other,
-                std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.m_values.get_allocator())) {
-    }
+    table(table const& other) :
+        table(other,
+              std::allocator_traits<allocator_type>::select_on_container_copy_construction(
+                other.m_values.get_allocator())) {}
 
-    // m_buckets takes the allocator too. Leaving it to its default member initialiser put the
+    // m_buckets takes the allocator too. Leaving it to its default member initializer put the
     // bucket array in the default resource while the values went where the caller asked, so half
     // the container escaped the arena it was given -- and get_allocator(), which reports m_values'
     // allocator, could not be used to reason about the buckets any more.
-    table(table const& other, allocator_type const& alloc)
-        : m_values(other.m_values, alloc)
-        , m_buckets(alloc)
-        , m_max_load_factor(other.m_max_load_factor)
-        , m_hash(other.m_hash)
-        , m_equal(other.m_equal) {
+    table(table const& other, allocator_type const& alloc) :
+        m_values(other.m_values, alloc),
+        m_buckets(alloc),
+        m_max_load_factor(other.m_max_load_factor),
+        m_hash(other.m_hash),
+        m_equal(other.m_equal) {
         copy_buckets(other);
     }
 
     // Unconditionally noexcept, and honestly so: it hands over other's own allocator, so the
     // assignment below always takes the branch that takes the buffers over rather than the one
     // that moves elements into freshly allocated memory.
-    table(table&& other) noexcept
-        : table(std::move(other), other.m_values.get_allocator()) {}
+    table(table&& other) noexcept :
+        table(std::move(other), other.m_values.get_allocator()) {}
 
     // Uses alloc, unconditionally. It used to construct empty and then move-assign, which cannot
     // express that: assignment has to consult propagate_on_container_move_assignment, so with a
@@ -3945,17 +4219,22 @@ public:
     // elements one at a time, and that allocates. The specification is theirs.
     // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved) -- moved from member by member
     table(table&& other, allocator_type const& alloc) noexcept(
-        std::is_nothrow_constructible_v<value_container_type, value_container_type&&, allocator_type const&> &&
-        std::is_nothrow_constructible_v<bucket_container_type, bucket_container_type&&, allocator_type const&> &&
-        std::is_nothrow_move_constructible_v<Hash> && std::is_nothrow_move_constructible_v<KeyEqual>)
-        : m_values(std::move(other.m_values), alloc)
-        , m_buckets(std::move(other.m_buckets), alloc)
-        , m_max_bucket_capacity(std::exchange(other.m_max_bucket_capacity, 0))
-        , m_group_mask(std::exchange(other.m_group_mask, 0))
-        , m_max_load_factor(std::exchange(other.m_max_load_factor, default_max_load_factor))
-        , m_hash(std::move(other.m_hash))
-        , m_equal(std::move(other.m_equal))
-        , m_shifts(std::exchange(other.m_shifts, initial_shifts)) {
+      std::is_nothrow_constructible_v<value_container_type,
+                                      value_container_type&&,
+                                      allocator_type const&>
+      && std::is_nothrow_constructible_v<bucket_container_type,
+                                         bucket_container_type&&,
+                                         allocator_type const&>
+      && std::is_nothrow_move_constructible_v<Hash>
+      && std::is_nothrow_move_constructible_v<KeyEqual>) :
+        m_values(std::move(other.m_values), alloc),
+        m_buckets(std::move(other.m_buckets), alloc),
+        m_max_bucket_capacity(std::exchange(other.m_max_bucket_capacity, 0)),
+        m_group_mask(std::exchange(other.m_group_mask, 0)),
+        m_max_load_factor(std::exchange(other.m_max_load_factor, default_max_load_factor)),
+        m_hash(std::move(other.m_hash)),
+        m_equal(std::move(other.m_equal)),
+        m_shifts(std::exchange(other.m_shifts, initial_shifts)) {
         // When the allocators differ the two containers above moved element by element, so other
         // still holds them. Either way it has to come out of this as an empty, usable table, which
         // the exchanges above have already made the rest of it -- and an empty table needs no
@@ -3965,19 +4244,24 @@ public:
     }
 
     table(std::initializer_list<value_type> ilist,
-          std::size_t bucket_count = 0,
-          Hash const& hash = Hash(),
-          KeyEqual const& equal = KeyEqual(),
-          allocator_type const& alloc = allocator_type())
-        : table(bucket_count, hash, equal, alloc) {
+          std::size_t                       bucket_count = 0,
+          Hash const&                       hash         = Hash(),
+          KeyEqual const&                   equal        = KeyEqual(),
+          allocator_type const&             alloc        = allocator_type()) :
+        table(bucket_count, hash, equal, alloc) {
         insert(ilist);
     }
 
-    table(std::initializer_list<value_type> ilist, size_type bucket_count, allocator_type const& alloc)
-        : table(ilist, bucket_count, Hash(), KeyEqual(), alloc) {}
+    table(std::initializer_list<value_type> ilist,
+          size_type                         bucket_count,
+          allocator_type const&             alloc) :
+        table(ilist, bucket_count, Hash(), KeyEqual(), alloc) {}
 
-    table(std::initializer_list<value_type> init, size_type bucket_count, Hash const& hash, allocator_type const& alloc)
-        : table(init, bucket_count, hash, KeyEqual(), alloc) {}
+    table(std::initializer_list<value_type> init,
+          size_type                         bucket_count,
+          Hash const&                       hash,
+          allocator_type const&             alloc) :
+        table(init, bucket_count, hash, KeyEqual(), alloc) {}
 
     // An owning table from its values and an index (#299), with no hashing: moves the values in and
     // copies the index. With trust::checked it checks every slot in the same loop as the copy
@@ -3989,19 +4273,19 @@ public:
     // leaves `values` as it was. The check makes the bytes safe to read, insert into and erase
     // from; only verify(verify_level::full) makes them correct, and an index that passes one and
     // not the other can make an erase reach on_error_key_changed(). Takes the values' allocator.
-    template <bool V = is_view_v, std::enable_if_t<!V, bool> = true>
+    template<bool V = is_view_v, std::enable_if_t<!V, bool> = true>
     table(value_container_type&& values,
-          index_view index,
-          trust t,
-          Hash const& hash = Hash(),
-          KeyEqual const& equal = KeyEqual())
-        : m_values(values.get_allocator())
-        , m_buckets(values.get_allocator())
-        , m_hash(hash)
-        , m_equal(equal) {
+          index_view             index,
+          trust                  t,
+          Hash const&            hash  = Hash(),
+          KeyEqual const&        equal = KeyEqual()) :
+        m_values(values.get_allocator()),
+        m_buckets(values.get_allocator()),
+        m_hash(hash),
+        m_equal(equal) {
         load_index(index, values.size(), t);
         // Assigned rather than initialized, so that a rejected index leaves the caller's values alone.
-        m_values = std::move(values); // NOLINT(cppcoreguidelines-prefer-member-initializer)
+        m_values = std::move(values);  // NOLINT(cppcoreguidelines-prefer-member-initializer)
     }
 
     // A read only table over a caller's values and index (#299): holds both as views, copies
@@ -4009,21 +4293,28 @@ public:
     // fail check_index() can make a lookup read out of bounds. With trust::checked it scans the
     // index once. Either way it rejects an index of the wrong shape or alignment, or values that
     // are not aligned for value_type.
-    template <bool V = is_view_v, std::enable_if_t<V, bool> = true>
-    table(
-        value_container_type values, index_view index, trust t, Hash const& hash = Hash(), KeyEqual const& equal = KeyEqual())
-        : m_values(values)
-        , m_hash(hash)
-        , m_equal(equal) {
+    template<bool V = is_view_v, std::enable_if_t<V, bool> = true>
+    table(value_container_type values,
+          index_view           index,
+          trust                t,
+          Hash const&          hash  = Hash(),
+          KeyEqual const&      equal = KeyEqual()) :
+        m_values(values),
+        m_hash(hash),
+        m_equal(equal) {
         check_index_shape(index, values.size());
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        if (values.size() != 0 && reinterpret_cast<std::uintptr_t>(values.data()) % alignof(value_type) != 0) {
+        if (values.size() != 0
+            && reinterpret_cast<std::uintptr_t>(values.data()) % alignof(value_type) != 0)
+        {
             on_error_bad_index();
         }
-        if (t == trust::checked && !detail::check_index(index.data(), index.size(), values.size())) {
+        if (t == trust::checked && !detail::check_index(index.data(), index.size(), values.size()))
+        {
             on_error_bad_index();
         }
-        if (!index.empty()) {
+        if (!index.empty())
+        {
             m_buckets.assign(index.data(), index.size());
             describe_loaded_index(index.size());
         }
@@ -4032,17 +4323,24 @@ public:
     // The other direction: an owning table from a view, copying both arrays, no hashing. Checks the
     // index like the owning constructor above, whatever trust the view was built with, so that an
     // unchecked view cannot turn into an owning table whose placement walks were never made safe.
-    template <bool V = is_view_v, std::enable_if_t<!V, bool> = true>
-    explicit table(view_type const& view)
-        : table(0, view.hash_function(), view.key_eq()) {
+    template<bool V = is_view_v, std::enable_if_t<!V, bool> = true>
+    explicit table(view_type const& view) :
+        table(0, view.hash_function(), view.key_eq()) {
         load_index(view.index(), view.size(), trust::checked);
-        if constexpr (detail::is_detected_v<detail::detect_range_assign, value_container_type, value_type const*>) {
-            m_values.assign(view.begin(), view.end()); // one copy of the range, a memcpy where it can be
-        } else {
-            if constexpr (has_reserve<value_container_type>) {
+        if constexpr (detail::is_detected_v<detail::detect_range_assign, value_container_type,
+                                            value_type const*>)
+        {
+            m_values.assign(view.begin(),
+                            view.end());  // one copy of the range, a memcpy where it can be
+        }
+        else
+        {
+            if constexpr (has_reserve<value_container_type>)
+            {
                 m_values.reserve(view.size());
             }
-            for (auto const& v : view) { // segmented_vector has no assign
+            for (auto const& v : view)
+            {  // segmented_vector has no assign
                 m_values.emplace_back(v);
             }
         }
@@ -4051,21 +4349,25 @@ public:
     ~table() = default;
 
     auto operator=(table const& other) -> table& {
-        if (&other != this) {
-            deallocate_buckets(); // deallocate before m_values is set (might have another allocator)
+        if (&other != this)
+        {
+            deallocate_buckets();  // deallocate before m_values is set (might have another allocator)
 
             // Copying the values, and building the buckets for them, both allocate. Until both have
             // happened the table holds values with no buckets to find them by; a throw in there
             // used to leave it that way, so size() counted elements that find() could not reach and
             // the next lookup probed a bucket array that was not there. See reset_to_empty().
-            if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS()) {
+            if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS())
+            {
                 //try {
-                    copy_everything_from(other);
+                copy_everything_from(other);
                 //} catch (...) {
                 //    reset_to_empty();
                 //    throw;
                 //}
-            } else {
+            }
+            else
+            {
                 copy_everything_from(other);
             }
         }
@@ -4076,22 +4378,26 @@ public:
     // throw. It cannot, so the specification was noexcept(true) whatever the traits said, and a type with a throwing
     // move assignment terminated instead of propagating.
     auto operator=(table&& other) noexcept(move_assign_is_nothrow) -> table& {
-        if (&other != this) {
-            deallocate_buckets(); // deallocate before m_values is set (might have another allocator)
+        if (&other != this)
+        {
+            deallocate_buckets();  // deallocate before m_values is set (might have another allocator)
 
             // Same window as the copy assignment above, and reachable for the same reason: with an
             // allocator that neither propagates nor compares equal the move below moves the
             // elements one at a time into memory it has to allocate. See reset_to_empty().
             // Exactly when this operator does not promise noexcept, which is what makes the
             // recovery reachable rather than a rethrow inside a noexcept function.
-            if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() && !move_assign_is_nothrow) {
+            if constexpr (ANKERL_UNORDERED_DENSE_HAS_EXCEPTIONS() && !move_assign_is_nothrow)
+            {
                 //try {
-                    move_everything_from(std::move(other));
+                move_everything_from(std::move(other));
                 //} catch (...) {
                 //    reset_to_empty();
                 //    throw;
                 //}
-            } else {
+            }
+            else
+            {
                 move_everything_from(std::move(other));
             }
         }
@@ -4104,50 +4410,38 @@ public:
         return *this;
     }
 
-    auto get_allocator() const noexcept -> allocator_type {
-        return m_values.get_allocator();
-    }
+    auto get_allocator() const noexcept -> allocator_type { return m_values.get_allocator(); }
 
     // iterators //////////////////////////////////////////////////////////////
 
-    auto begin() noexcept -> iterator {
-        return m_values.begin();
-    }
+    auto begin() noexcept -> iterator { return m_values.begin(); }
 
-    auto begin() const noexcept -> const_iterator {
-        return m_values.begin();
-    }
+    auto begin() const noexcept -> const_iterator { return m_values.begin(); }
 
     auto cbegin() const noexcept -> const_iterator {
-        return begin(); // the const one: a value container need not have cbegin()
+        return begin();  // the const one: a value container need not have cbegin()
     }
 
-    auto end() noexcept -> iterator {
-        return m_values.end();
-    }
+    auto end() noexcept -> iterator { return m_values.end(); }
 
-    auto cend() const noexcept -> const_iterator {
-        return end();
-    }
+    auto cend() const noexcept -> const_iterator { return end(); }
 
-    auto end() const noexcept -> const_iterator {
-        return m_values.end();
-    }
+    auto end() const noexcept -> const_iterator { return m_values.end(); }
 
     // capacity ///////////////////////////////////////////////////////////////
 
-    [[nodiscard]] auto empty() const noexcept -> bool {
-        return m_values.empty();
-    }
+    [[nodiscard]] auto empty() const noexcept -> bool { return m_values.empty(); }
 
-    [[nodiscard]] auto size() const noexcept -> std::size_t {
-        return m_values.size();
-    }
+    [[nodiscard]] auto size() const noexcept -> std::size_t { return m_values.size(); }
 
     [[nodiscard]] static constexpr auto max_size() noexcept -> std::size_t {
-        if constexpr ((std::numeric_limits<value_idx_type>::max)() == (std::numeric_limits<std::size_t>::max)()) {
+        if constexpr ((std::numeric_limits<value_idx_type>::max)()
+                      == (std::numeric_limits<std::size_t>::max)())
+        {
             return std::size_t{1} << (sizeof(value_idx_type) * 8 - 1);
-        } else {
+        }
+        else
+        {
             return std::size_t{1} << (sizeof(value_idx_type) * 8);
         }
     }
@@ -4155,34 +4449,39 @@ public:
     // modifiers //////////////////////////////////////////////////////////////
 
     void clear() {
-        if (!empty()) {
+        if (!empty())
+        {
             m_values.clear();
             clear_buckets();
         }
     }
 
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(value_type const& value) -> std::pair<iterator, bool> {
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(value_type const& value)
+      -> std::pair<iterator, bool> {
         return emplace(value);
     }
 
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(value_type&& value) -> std::pair<iterator, bool> {
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(value_type&& value)
+      -> std::pair<iterator, bool> {
         return emplace(std::move(value));
     }
 
-    template <class P, std::enable_if_t<std::is_constructible_v<value_type, P&&>, bool> = true>
+    template<class P, std::enable_if_t<std::is_constructible_v<value_type, P&&>, bool> = true>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(P&& value) -> std::pair<iterator, bool> {
         return emplace(std::forward<P>(value));
     }
 
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(const_iterator /*hint*/, value_type const& value) -> iterator {
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(const_iterator /*hint*/, value_type const& value)
+      -> iterator {
         return insert(value).first;
     }
 
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(const_iterator /*hint*/, value_type&& value) -> iterator {
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(const_iterator /*hint*/, value_type&& value)
+      -> iterator {
         return insert(std::move(value)).first;
     }
 
-    template <class P, std::enable_if_t<std::is_constructible_v<value_type, P&&>, bool> = true>
+    template<class P, std::enable_if_t<std::is_constructible_v<value_type, P&&>, bool> = true>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto insert(const_iterator /*hint*/, P&& value) -> iterator {
         return insert(std::forward<P>(value)).first;
     }
@@ -4198,20 +4497,22 @@ public:
     // Only for an iterator that can be walked twice. An input iterator is single-pass, so reading
     // ahead would mean buffering the elements, and those copies would cost more than the prefetch
     // saves; such a range takes the plain loop.
-    template <class InputIt>
+    template<class InputIt>
     void insert(InputIt first, InputIt last) {
-        if constexpr (detail::is_forward_iterator_v<InputIt>) {
+        if constexpr (detail::is_forward_iterator_v<InputIt>)
+        {
             do_insert_range(first, last);
-        } else {
-            for (; first != last; ++first) {
+        }
+        else
+        {
+            for (; first != last; ++first)
+            {
                 insert(*first);
             }
         }
     }
 
-    void insert(std::initializer_list<value_type> ilist) {
-        insert(ilist.begin(), ilist.end());
-    }
+    void insert(std::initializer_list<value_type> ilist) { insert(ilist.begin(), ilist.end()); }
 
     // nonstandard API: *this is emptied.
     // Also see "A Standard flat_map" https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p0429r9.pdf
@@ -4230,11 +4531,11 @@ public:
     // Discards the internally held container and replaces it with the one passed. Erases non-unique elements.
     auto replace(value_container_type&& container) {
         if (ANKERL_UNORDERED_DENSE_UNLIKELY(container.size() > max_size()))
-            ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR {
-                on_error_too_many_elements();
-            }
+            ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR { on_error_too_many_elements(); }
         auto shifts = calc_shifts_for_size(container.size());
-        if (0 == bucket_count() || shifts < m_shifts || container.get_allocator() != m_values.get_allocator()) {
+        if (0 == bucket_count() || shifts < m_shifts
+            || container.get_allocator() != m_values.get_allocator())
+        {
             allocate_buckets_from_shift(shifts);
         }
         clear_buckets();
@@ -4292,7 +4593,9 @@ public:
         // a quarter million.
         // m_shifts describes the array that was just allocated or kept above, so this is the index
         // the dedup will actually run against.
-        if (m_values.size() > pipeline_depth + 1 && index_bytes_for(m_shifts) > pipeline_min_index_bytes) {
+        if (m_values.size() > pipeline_depth + 1
+            && index_bytes_for(m_shifts) > pipeline_min_index_bytes)
+        {
             do_replace_pipelined(value_idx);
         }
 
@@ -4301,16 +4604,21 @@ public:
         // placement below stores a fingerprint, and an indexed read after it has to load the
         // container's data pointer back before it can form the next element's address.
         auto read = m_values.begin() + static_cast<difference_type>(value_idx);
-        while (value_idx != m_values.size()) {
+        while (value_idx != m_values.size())
+        {
             auto const& key = get_key(*read);
-            auto const mh = mixed_hash(key);
-            auto r = probe(key, mh);
-            if (r.found) {
-                if (value_idx != m_values.size() - 1) {
+            auto const  mh  = mixed_hash(key);
+            auto        r   = probe(key, mh);
+            if (r.found)
+            {
+                if (value_idx != m_values.size() - 1)
+                {
                     *read = std::move(m_values.back());
                 }
                 m_values.pop_back();
-            } else {
+            }
+            else
+            {
                 place_group(mh, static_cast<value_idx_type>(value_idx));
                 ++read;
                 ++value_idx;
@@ -4318,94 +4626,102 @@ public:
         }
     }
 
-    template <class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto insert_or_assign(Key const& key, M&& mapped) -> std::pair<iterator, bool> {
         return do_insert_or_assign(key, std::forward<M>(mapped));
     }
 
-    template <class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto insert_or_assign(Key&& key, M&& mapped) -> std::pair<iterator, bool> {
         return do_insert_or_assign(std::move(key), std::forward<M>(mapped));
     }
 
-    template <typename K,
-              typename M,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename M,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto insert_or_assign(K&& key, M&& mapped) -> std::pair<iterator, bool> {
         return do_insert_or_assign(std::forward<K>(key), std::forward<M>(mapped));
     }
 
-    template <class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto insert_or_assign(const_iterator /*hint*/, Key const& key, M&& mapped) -> iterator {
         return do_insert_or_assign(key, std::forward<M>(mapped)).first;
     }
 
-    template <class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<class M, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto insert_or_assign(const_iterator /*hint*/, Key&& key, M&& mapped) -> iterator {
         return do_insert_or_assign(std::move(key), std::forward<M>(mapped)).first;
     }
 
-    template <typename K,
-              typename M,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename M,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto insert_or_assign(const_iterator /*hint*/, K&& key, M&& mapped) -> iterator {
         return do_insert_or_assign(std::forward<K>(key), std::forward<M>(mapped)).first;
     }
 
     // Single arguments for unordered_set can be used without having to construct the value_type
-    template <class K,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<!is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             typename Q                                                      = T,
+             typename H                                                      = Hash,
+             typename KE                                                     = KeyEqual,
+             std::enable_if_t<!is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto emplace(K&& key) -> std::pair<iterator, bool> {
         return do_find_or_place<false>(static_cast<K const&>(key), std::forward<K>(key));
     }
 
-    template <class... Args>
+    template<class... Args>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto emplace(Args&&... args) -> std::pair<iterator, bool> {
         // Where the arguments already are the value -- a value_type, or a map's Key and mapped
         // type -- the key is looked up before anything is constructed, and a present key costs no
         // copy and leaves the arguments as they were. Anything the value would be converted from
         // is still constructed first and destroyed on a present key: emplace(k, new int) hands its
         // pointer to the unique_ptr it builds either way, and must not leak it (unique_ptr_fill).
-        if constexpr (emplace_key_first_v<Args...>) {
+        if constexpr (emplace_key_first_v<Args...>)
+        {
             return do_find_or_place<false>(emplace_key(args...), std::forward<Args>(args)...);
-        } else {
+        }
+        else
+        {
             return do_emplace_value_first(std::forward<Args>(args)...);
         }
     }
 
-    template <typename... Args>
+    template<typename... Args>
     static constexpr bool emplace_key_first_v =
-        detail::is_one<value_type, Args...>::value || (is_map_v<T> && detail::is_key_and_mapped<Key, T, Args...>::value);
+      detail::is_one<value_type, Args...>::value
+      || (is_map_v<T> && detail::is_key_and_mapped<Key, T, Args...>::value);
 
-    template <typename A, typename... Rest>
+    template<typename A, typename... Rest>
     static constexpr auto emplace_key(A const& a, Rest const&... /*rest*/) -> Key const& {
-        if constexpr (sizeof...(Rest) == 0) {
+        if constexpr (sizeof...(Rest) == 0)
+        {
             return get_key(a);
-        } else {
+        }
+        else
+        {
             return a;
         }
     }
 
-    template <class... Args>
+    template<class... Args>
     auto do_emplace_value_first(Args&&... args) -> std::pair<iterator, bool> {
         allocate_buckets_if_none();
 
         // we have to instantiate the value_type to be able to access the key.
         // 1. emplace_back the object so it is constructed. 2. If the key is already there, pop it later in the loop.
-        auto& key = get_key(m_values.emplace_back(std::forward<Args>(args)...));
-        auto const mh = mixed_hash(key);
-        auto r = probe(key, mh);
-        if (r.found) {
-            m_values.pop_back(); // value was already there, so get rid of it
+        auto&      key = get_key(m_values.emplace_back(std::forward<Args>(args)...));
+        auto const mh  = mixed_hash(key);
+        auto       r   = probe(key, mh);
+        if (r.found)
+        {
+            m_values.pop_back();  // value was already there, so get rid of it
             move_home(r.group_idx, r.lane, mh);
             return {begin() + static_cast<difference_type>(r.value_idx), false};
         }
@@ -4417,58 +4733,65 @@ public:
                 // increase_size just rehashes all the data we have in m_values
                 increase_size();
             }
-        else {
+        else
+        {
             place_group(mh, value_idx);
         }
         return {begin() + static_cast<difference_type>(value_idx), true};
     }
 
-    template <class... Args>
+    template<class... Args>
     auto emplace_hint(const_iterator /*hint*/, Args&&... args) -> iterator {
         return emplace(std::forward<Args>(args)...).first;
     }
 
-    template <class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(Key const& key, Args&&... args) -> std::pair<iterator, bool> {
+    template<class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(Key const& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         return do_try_emplace(key, std::forward<Args>(args)...);
     }
 
-    template <class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(Key&& key, Args&&... args) -> std::pair<iterator, bool> {
+    template<class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(Key&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         return do_try_emplace(std::move(key), std::forward<Args>(args)...);
     }
 
-    template <class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(const_iterator /*hint*/, Key const& key, Args&&... args) -> iterator {
+    template<class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
+    try_emplace(const_iterator /*hint*/, Key const& key, Args&&... args) -> iterator {
         return do_try_emplace(key, std::forward<Args>(args)...).first;
     }
 
-    template <class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(const_iterator /*hint*/, Key&& key, Args&&... args) -> iterator {
+    template<class... Args, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
+    try_emplace(const_iterator /*hint*/, Key&& key, Args&&... args) -> iterator {
         return do_try_emplace(std::move(key), std::forward<Args>(args)...).first;
     }
 
-    template <
-        typename K,
-        typename... Args,
-        typename Q = T,
-        typename H = Hash,
-        typename KE = KeyEqual,
-        std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE> && is_neither_convertible_v<K&&, iterator, const_iterator>,
-                         bool> = true>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(K&& key, Args&&... args) -> std::pair<iterator, bool> {
+    template<typename K,
+             typename... Args,
+             typename Q             = T,
+             typename H             = Hash,
+             typename KE            = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>
+                                && is_neither_convertible_v<K&&, iterator, const_iterator>,
+                              bool> = true>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(K&& key, Args&&... args)
+      -> std::pair<iterator, bool> {
         return do_try_emplace(std::forward<K>(key), std::forward<Args>(args)...);
     }
 
-    template <
-        typename K,
-        typename... Args,
-        typename Q = T,
-        typename H = Hash,
-        typename KE = KeyEqual,
-        std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE> && is_neither_convertible_v<K&&, iterator, const_iterator>,
-                         bool> = true>
-    ANKERL_UNORDERED_DENSE_FORCEINLINE auto try_emplace(const_iterator /*hint*/, K&& key, Args&&... args) -> iterator {
+    template<typename K,
+             typename... Args,
+             typename Q             = T,
+             typename H             = Hash,
+             typename KE            = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>
+                                && is_neither_convertible_v<K&&, iterator, const_iterator>,
+                              bool> = true>
+    ANKERL_UNORDERED_DENSE_FORCEINLINE auto
+    try_emplace(const_iterator /*hint*/, K&& key, Args&&... args) -> iterator {
         return do_try_emplace(std::forward<K>(key), std::forward<Args>(args)...).first;
     }
 
@@ -4478,19 +4801,20 @@ public:
     //
     // In the case of a set, this effectively removes the old key and inserts the new key at the same spot, which is more
     // efficient than removing the old key and inserting the new key because it avoids repositioning the last element.
-    template <typename K>
+    template<typename K>
     auto replace_key(iterator it, K&& new_key) -> std::pair<iterator, bool> {
         auto const new_key_hash = mixed_hash(new_key);
 
         // first, check if new_key already exists and return if so
         auto const r = probe(new_key, new_key_hash);
-        if (r.found) {
+        if (r.found)
+        {
             return {begin() + static_cast<difference_type>(r.value_idx), false};
         }
 
         // const_cast is needed because iterator for the set is always const, so adding another get_key overload is not
         // feasible.
-        auto& target_key = const_cast<key_type&>(get_key(*it));
+        auto&      target_key   = const_cast<key_type&>(get_key(*it));
         auto const old_key_hash = mixed_hash(target_key);
 
         // Replace the key before doing any index changes. If it throws, no harm done, we are still in a valid state as
@@ -4498,7 +4822,7 @@ public:
         target_key = std::forward<K>(new_key);
 
         auto const value_idx = static_cast<value_idx_type>(it - begin());
-        auto const at = slot_of_value(old_key_hash, value_idx);
+        auto const at        = slot_of_value(old_key_hash, value_idx);
         erase_group_slot(at.group_idx, at.lane, old_key_hash);
         place_group(new_key_hash, value_idx);
         return {it, true};
@@ -4508,13 +4832,13 @@ public:
     // key, and the slot pointing at it, which is searched from the hash.
     struct located {
         value_idx_type value_idx;
-        std::uint64_t mh;
-        group_slot at;
+        std::uint64_t  mh;
+        group_slot     at;
     };
 
     [[nodiscard]] auto locate(iterator it) const -> located {
         auto const value_idx = static_cast<value_idx_type>(it - cbegin());
-        auto const mh = mixed_hash(get_key(*it));
+        auto const mh        = mixed_hash(get_key(*it));
         return {value_idx, mh, slot_of_value(mh, value_idx)};
     }
 
@@ -4522,47 +4846,47 @@ public:
         auto const e = locate(it);
         // The noexcept here and on the other two erase callbacks is what keeps erase() out of do_erase()'s exception
         // guard: a call expression is noexcept only if the callee says so, an empty body is not enough.
-        do_erase(e.at, e.value_idx, e.mh, [](value_type const& /*unused*/) noexcept -> void {
-        });
+        do_erase(e.at, e.value_idx, e.mh, [](value_type const& /*unused*/) noexcept -> void {});
         return begin() + static_cast<difference_type>(e.value_idx);
     }
 
     auto extract(iterator it) -> value_type {
-        auto const e = locate(it);
-        auto tmp = std::optional<value_type>{};
-        do_erase(e.at, e.value_idx, e.mh, [&tmp](value_type&& val) -> void {
-            tmp = std::move(val);
-        });
+        auto const e   = locate(it);
+        auto       tmp = std::optional<value_type>{};
+        do_erase(e.at, e.value_idx, e.mh,
+                 [&tmp](value_type&& val) -> void { tmp = std::move(val); });
         return std::move(tmp).value();
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto erase(const_iterator it) -> iterator {
         return erase(begin() + (it - cbegin()));
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto extract(const_iterator it) -> value_type {
         return extract(begin() + (it - cbegin()));
     }
 
     auto erase(const_iterator first, const_iterator last) -> iterator {
-        auto const idx_first = first - cbegin();
-        auto const idx_last = last - cbegin();
+        auto const idx_first     = first - cbegin();
+        auto const idx_last      = last - cbegin();
         auto const first_to_last = std::distance(first, last);
-        auto const last_to_end = std::distance(last, cend());
+        auto const last_to_end   = std::distance(last, cend());
 
         // remove elements from left to right which moves elements from the end back
-        auto const mid = idx_first + (std::min)(first_to_last, last_to_end);
-        auto idx = idx_first;
-        while (idx != mid) {
+        auto const mid = idx_first + (std::min) (first_to_last, last_to_end);
+        auto       idx = idx_first;
+        while (idx != mid)
+        {
             erase(begin() + idx);
             ++idx;
         }
 
         // all elements from the right are moved, now remove the last element until all done
         idx = idx_last;
-        while (idx != mid) {
+        while (idx != mid)
+        {
             --idx;
             erase(begin() + idx);
         }
@@ -4571,35 +4895,38 @@ public:
     }
 
     auto erase(Key const& key) -> std::size_t {
-        return do_erase_key(key, [](value_type const& /*unused*/) noexcept -> void {
-        });
+        return do_erase_key(key, [](value_type const& /*unused*/) noexcept -> void {});
     }
 
     auto extract(Key const& key) -> std::optional<value_type> {
         auto tmp = std::optional<value_type>{};
-        do_erase_key(key, [&tmp](value_type&& val) -> void {
-            tmp = std::move(val);
-        });
+        do_erase_key(key, [&tmp](value_type&& val) -> void { tmp = std::move(val); });
         return tmp;
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto erase(K&& key) -> std::size_t {
-        return do_erase_key(std::forward<K>(key), [](value_type const& /*unused*/) noexcept -> void {
-        });
+        return do_erase_key(std::forward<K>(key),
+                            [](value_type const& /*unused*/) noexcept -> void {});
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto extract(K&& key) -> std::optional<value_type> {
         auto tmp = std::optional<value_type>{};
-        do_erase_key(std::forward<K>(key), [&tmp](value_type&& val) -> void {
-            tmp = std::move(val);
-        });
+        do_erase_key(std::forward<K>(key),
+                     [&tmp](value_type&& val) -> void { tmp = std::move(val); });
         return tmp;
     }
 
-    void swap(table& other) noexcept(std::is_nothrow_swappable_v<value_container_type> && std::is_nothrow_swappable_v<Hash> &&
-                                     std::is_nothrow_swappable_v<KeyEqual>) {
+    void swap(table& other) noexcept(std::is_nothrow_swappable_v<value_container_type>
+                                     && std::is_nothrow_swappable_v<Hash>
+                                     && std::is_nothrow_swappable_v<KeyEqual>) {
         static_assert(!is_view_v, "map_view and set_view are read only");
         // There is no free swap() for table, so "swap(other, *this)" used to resolve to the generic std::swap: three
         // move assignments, each of which hands the moved-from table a freshly allocated set of buckets. That is three
@@ -4632,12 +4959,12 @@ public:
     // invalidated, where a node splice preserves the ones into the elements it moves; and the
     // source's order changes, because every element taken out of the middle of it leaves a gap that
     // the elements behind it close. erase() already carries both, and this is the same mechanism.
-    template <class H2, class KE2>
+    template<class H2, class KE2>
     void merge(sibling_table<H2, KE2>& source) {
         do_merge(source);
     }
 
-    template <class H2, class KE2>
+    template<class H2, class KE2>
     // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     void merge(sibling_table<H2, KE2>&& source) {
         merge(source);
@@ -4645,88 +4972,92 @@ public:
 
     // lookup /////////////////////////////////////////////////////////////////
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto at(key_type const& key) -> mapped_ref<Q> {
         return do_at(key);
     }
 
-    template <typename K,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto at(K const& key) -> mapped_ref<Q> {
         return do_at(key);
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto at(key_type const& key) const -> Q const& {
         return do_at(key);
     }
 
-    template <typename K,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto at(K const& key) const -> Q const& {
         return do_at(key);
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto operator[](Key const& key) -> Q& {
         static_assert(!is_view_v, "map_view and set_view are read only");
         return try_emplace(key).first->second;
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto operator[](Key&& key) -> Q& {
         static_assert(!is_view_v, "map_view and set_view are read only");
         return try_emplace(std::move(key)).first->second;
     }
 
-    template <typename K,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     ANKERL_UNORDERED_DENSE_FORCEINLINE auto operator[](K&& key) -> Q& {
         static_assert(!is_view_v, "map_view and set_view are read only");
         return try_emplace(std::forward<K>(key)).first->second;
     }
 
-    auto count(Key const& key) const -> std::size_t {
-        return find(key) == end() ? 0 : 1;
-    }
+    auto count(Key const& key) const -> std::size_t { return find(key) == end() ? 0 : 1; }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto count(K const& key) const -> std::size_t {
         return find(key) == end() ? 0 : 1;
     }
 
-    auto find(Key const& key) -> iterator {
-        return do_find(key);
-    }
+    auto find(Key const& key) -> iterator { return do_find(key); }
 
-    auto find(Key const& key) const -> const_iterator {
-        return do_find(key);
-    }
+    auto find(Key const& key) const -> const_iterator { return do_find(key); }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto find(K const& key) -> iterator {
         return do_find(key);
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto find(K const& key) const -> const_iterator {
         return do_find(key);
     }
 
-    auto contains(Key const& key) const -> bool {
-        return find(key) != end();
-    }
+    auto contains(Key const& key) const -> bool { return find(key) != end(); }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto contains(K const& key) const -> bool {
         return find(key) != end();
     }
@@ -4741,13 +5072,19 @@ public:
         return {it, it == end() ? end() : it + 1};
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key) -> std::pair<iterator, iterator> {
         auto it = do_find(key);
         return {it, it == end() ? end() : it + 1};
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key) const -> std::pair<const_iterator, const_iterator> {
         auto it = do_find(key);
         return {it, it == end() ? end() : it + 1};
@@ -4783,7 +5120,10 @@ public:
         return {mixed_hash(key)};
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     [[nodiscard]] auto hash_for(K const& key) const -> precomputed_hash {
         return {mixed_hash(key)};
     }
@@ -4826,35 +5166,35 @@ public:
     // f is taken by value, as the standard algorithms take a callable, and is called with
     // value_type& -- or value_type const& on a const map and on any map_view or set_view. Keys that
     // are absent are not reported; the return value counts the ones that were found.
-    template <typename FwdIt, typename F>
+    template<typename FwdIt, typename F>
     auto visit(FwdIt first, FwdIt last, F f) -> std::size_t {
         return do_visit(first, last, std::move(f));
     }
 
-    template <typename FwdIt, typename F>
+    template<typename FwdIt, typename F>
     auto visit(FwdIt first, FwdIt last, F f) const -> std::size_t {
-        return const_cast<table*>(this)->do_visit( // NOLINT(cppcoreguidelines-pro-type-const-cast)
-            first,
-            last,
-            [&f](value_type const& v) -> void {
-                f(v);
-            });
+        return const_cast<table*>(this)->do_visit(  // NOLINT(cppcoreguidelines-pro-type-const-cast)
+          first, last, [&f](value_type const& v) -> void { f(v); });
     }
 
-    auto find(Key const& key, precomputed_hash ph) -> iterator {
-        return do_find(key, ph);
-    }
+    auto find(Key const& key, precomputed_hash ph) -> iterator { return do_find(key, ph); }
 
     auto find(Key const& key, precomputed_hash ph) const -> const_iterator {
         return do_find(key, ph);
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto find(K const& key, precomputed_hash ph) -> iterator {
         return do_find(key, ph);
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto find(K const& key, precomputed_hash ph) const -> const_iterator {
         return do_find(key, ph);
     }
@@ -4863,7 +5203,10 @@ public:
         return find(key, ph) != end();
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto contains(K const& key, precomputed_hash ph) const -> bool {
         return find(key, ph) != end();
     }
@@ -4872,7 +5215,10 @@ public:
         return find(key, ph) == end() ? 0 : 1;
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto count(K const& key, precomputed_hash ph) const -> std::size_t {
         return find(key, ph) == end() ? 0 : 1;
     }
@@ -4882,59 +5228,68 @@ public:
         return {it, it == end() ? end() : it + 1};
     }
 
-    auto equal_range(Key const& key, precomputed_hash ph) const -> std::pair<const_iterator, const_iterator> {
+    auto equal_range(Key const& key, precomputed_hash ph) const
+      -> std::pair<const_iterator, const_iterator> {
         auto it = do_find(key, ph);
         return {it, it == end() ? end() : it + 1};
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key, precomputed_hash ph) -> std::pair<iterator, iterator> {
         auto it = do_find(key, ph);
         return {it, it == end() ? end() : it + 1};
     }
 
-    template <class K, class H = Hash, class KE = KeyEqual, std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
-    auto equal_range(K const& key, precomputed_hash ph) const -> std::pair<const_iterator, const_iterator> {
+    template<class K,
+             class H                                         = Hash,
+             class KE                                        = KeyEqual,
+             std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
+    auto equal_range(K const& key, precomputed_hash ph) const
+      -> std::pair<const_iterator, const_iterator> {
         auto it = do_find(key, ph);
         return {it, it == end() ? end() : it + 1};
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto at(key_type const& key, precomputed_hash ph) -> mapped_ref<Q> {
         return do_at(key, ph);
     }
 
-    template <typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
+    template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto at(key_type const& key, precomputed_hash ph) const -> Q const& {
         return do_at(key, ph);
     }
 
-    template <typename K,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto at(K const& key, precomputed_hash ph) -> mapped_ref<Q> {
         return do_at(key, ph);
     }
 
-    template <typename K,
-              typename Q = T,
-              typename H = Hash,
-              typename KE = KeyEqual,
-              std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
+    template<typename K,
+             typename Q                                                     = T,
+             typename H                                                     = Hash,
+             typename KE                                                    = KeyEqual,
+             std::enable_if_t<is_map_v<Q> && is_transparent_v<H, KE>, bool> = true>
     auto at(K const& key, precomputed_hash ph) const -> Q const& {
         return do_at(key, ph);
     }
 
     // bucket interface ///////////////////////////////////////////////////////
 
-    auto bucket_count() const noexcept -> std::size_t { // NOLINT(modernize-use-nodiscard)
+    auto bucket_count() const noexcept -> std::size_t {  // NOLINT(modernize-use-nodiscard)
         // from the mask rather than the array, and in slots, of which a group has sixteen
         return m_buckets.empty() ? 0 : (std::size_t{m_group_mask} + 1) * slots_per_group;
     }
 
-    static constexpr auto max_bucket_count() noexcept -> std::size_t { // NOLINT(modernize-use-nodiscard)
+    static constexpr auto max_bucket_count() noexcept
+      -> std::size_t {  // NOLINT(modernize-use-nodiscard)
         return max_size();
     }
 
@@ -4971,10 +5326,10 @@ public:
 
     // nonstandard API (#299): a read only view of this table, sharing its bytes; invalidated like
     // index() and values(). For values in one array; a segmented table has none.
-    template <bool V = is_view_v, std::enable_if_t<!V && !IsSegmented, bool> = true>
+    template<bool V = is_view_v, std::enable_if_t<!V && !IsSegmented, bool> = true>
     [[nodiscard]] auto view() const noexcept -> view_type {
-        return view_type(
-            detail::view_container<value_type>(m_values.data(), m_values.size()), index(), trust::unchecked, m_hash, m_equal);
+        return view_type(detail::view_container<value_type>(m_values.data(), m_values.size()),
+                         index(), trust::unchecked, m_hash, m_equal);
     }
 
     // nonstandard API (#299): whether the index agrees with the hasher, through the map's own
@@ -4985,23 +5340,28 @@ public:
     // enough to catch a wrong hasher or seed, touching 16 groups of a lazily paged index. Neither
     // finds a counter that is too high: that lengthens a miss and changes no answer.
     [[nodiscard]] auto verify(verify_level level = verify_level::spot) const -> bool {
-        auto const n = m_values.size();
-        auto consistent = [&](std::size_t i) -> bool {
+        auto const n          = m_values.size();
+        auto       consistent = [&](std::size_t i) -> bool {
             auto it = find(get_key(m_values[i]));
             return it != end() && static_cast<std::size_t>(it - begin()) == i;
         };
-        if (level == verify_level::full) {
-            for (std::size_t i = 0; i < n; ++i) {
-                if (!consistent(i)) {
+        if (level == verify_level::full)
+        {
+            for (std::size_t i = 0; i < n; ++i)
+            {
+                if (!consistent(i))
+                {
                     return false;
                 }
             }
             return true;
         }
         constexpr std::size_t spots = 16;
-        for (std::size_t j = 0; j < spots && n != 0; ++j) {
+        for (std::size_t j = 0; j < spots && n != 0; ++j)
+        {
             // floor(j * n / spots) without the product, which can overflow
-            if (!consistent((j * (n / spots)) + ((j * (n % spots)) / spots))) {
+            if (!consistent((j * (n / spots)) + ((j * (n % spots)) / spots)))
+            {
                 return false;
             }
         }
@@ -5011,12 +5371,11 @@ public:
     // hash policy ////////////////////////////////////////////////////////////
 
     [[nodiscard]] auto load_factor() const -> float {
-        return bucket_count() ? static_cast<float>(size()) / static_cast<float>(bucket_count()) : 0.0F;
+        return bucket_count() ? static_cast<float>(size()) / static_cast<float>(bucket_count())
+                              : 0.0F;
     }
 
-    [[nodiscard]] auto max_load_factor() const -> float {
-        return m_max_load_factor;
-    }
+    [[nodiscard]] auto max_load_factor() const -> float { return m_max_load_factor; }
 
     void max_load_factor(float ml) {
         static_assert(!is_view_v, "map_view and set_view are read only");
@@ -5024,23 +5383,30 @@ public:
         // addressing cannot use it: m_max_bucket_capacity would exceed bucket_count(), is_full() would never fire, the
         // table would fill completely, and place_group() would then probe forever for an empty slot that does not
         // exist. Exactly 1 is fine, because is_full() is checked after the value is appended.
-        m_max_load_factor = (std::min)(ml, 1.0F);
-        if (bucket_count() != max_bucket_count()) {
-            m_max_bucket_capacity = static_cast<value_idx_type>(static_cast<float>(bucket_count()) * max_load_factor());
+        m_max_load_factor = (std::min) (ml, 1.0F);
+        if (bucket_count() != max_bucket_count())
+        {
+            m_max_bucket_capacity =
+              static_cast<value_idx_type>(static_cast<float>(bucket_count()) * max_load_factor());
         }
     }
 
     void rehash(std::size_t count) {
         static_assert(!is_view_v, "map_view and set_view are read only");
-        count = (std::min)(count, max_size());
-        auto const shifts = calc_shifts_for_size((std::max)(count, size()));
-        if (shifts != m_shifts) {
+        count             = (std::min) (count, max_size());
+        auto const shifts = calc_shifts_for_size((std::max) (count, size()));
+        if (shifts != m_shifts)
+        {
             allocate_buckets_from_shift(shifts);
-        } else if (m_buckets.empty()) {
+        }
+        else if (m_buckets.empty())
+        {
             // Nothing allocated and nothing to index: stay in the state a default constructed
             // table is in, so that rehash() on an empty map still allocates nothing.
             return;
-        } else {
+        }
+        else
+        {
             // The array is already the right size, and rehash() still has to rehash. It used to
             // return here, which made it a no-op in exactly the case a caller reaches for it: a
             // table whose probe sequences have drifted under churn is the same size as a fresh
@@ -5053,13 +5419,15 @@ public:
     }
 
     void reserve(std::size_t capa) {
-        capa = (std::min)(capa, max_size());
-        if constexpr (has_reserve<value_container_type>) {
+        capa = (std::min) (capa, max_size());
+        if constexpr (has_reserve<value_container_type>)
+        {
             // std::deque doesn't have reserve(). Make sure we only call when available
             m_values.reserve(capa);
         }
-        auto shifts = calc_shifts_for_size((std::max)(capa, size()));
-        if (0 == bucket_count() || shifts < m_shifts) {
+        auto shifts = calc_shifts_for_size((std::max) (capa, size()));
+        if (0 == bucket_count() || shifts < m_shifts)
+        {
             allocate_buckets_from_shift(shifts);
             fill_buckets_from_values();
         }
@@ -5067,38 +5435,40 @@ public:
 
     // observers //////////////////////////////////////////////////////////////
 
-    auto hash_function() const -> hasher {
-        return m_hash;
-    }
+    auto hash_function() const -> hasher { return m_hash; }
 
-    auto key_eq() const -> key_equal {
-        return m_equal;
-    }
+    auto key_eq() const -> key_equal { return m_equal; }
 
     // nonstandard API: expose the underlying values container
-    [[nodiscard]] auto values() const noexcept -> value_container_type const& {
-        return m_values;
-    }
+    [[nodiscard]] auto values() const noexcept -> value_container_type const& { return m_values; }
 
     // non-member functions ///////////////////////////////////////////////////
 
     friend auto operator==(table const& a, table const& b) -> bool {
-        if (&a == &b) {
+        if (&a == &b)
+        {
             return true;
         }
-        if (a.size() != b.size()) {
+        if (a.size() != b.size())
+        {
             return false;
         }
-        for (auto const& b_entry : b) {
+        for (auto const& b_entry : b)
+        {
             auto it = a.find(get_key(b_entry));
-            if constexpr (is_map_v<T>) {
+            if constexpr (is_map_v<T>)
+            {
                 // map: check that key is here, then also check that value is the same
-                if (a.end() == it || !(b_entry.second == it->second)) {
+                if (a.end() == it || !(b_entry.second == it->second))
+                {
                     return false;
                 }
-            } else {
+            }
+            else
+            {
                 // set: only check that the key is here
-                if (a.end() == it) {
+                if (a.end() == it)
+                {
                     return false;
                 }
             }
@@ -5106,15 +5476,11 @@ public:
         return true;
     }
 
-    friend auto operator!=(table const& a, table const& b) -> bool {
-        return !(a == b);
-    }
+    friend auto operator!=(table const& a, table const& b) -> bool { return !(a == b); }
 
     // Standard containers provide this, and generic code written as "using std::swap; swap(a, b);" needs it to find
     // the member. Without it that call lands on the generic std::swap and moves three times.
-    friend void swap(table& a, table& b) noexcept(noexcept(a.swap(b))) {
-        a.swap(b);
-    }
+    friend void swap(table& a, table& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
 };
 
 // What a segmented alias puts in the container slot, so that the segment size can be chosen there.
@@ -5124,154 +5490,193 @@ public:
 // `table` parameter, which would change `erase_if`'s deduction and every mangled name. The default
 // size passes the allocator through instead of wrapping it, because `table` then builds exactly this
 // type anyway and `segmented_map<K, V>` stays the type it has always been.
-template <class Value, class AllocatorOrContainer, std::size_t MaxSegmentSizeBytes>
+template<class Value, class AllocatorOrContainer, std::size_t MaxSegmentSizeBytes>
 struct segmented_container {
-    static_assert(!is_detected_v<detect_iterator, AllocatorOrContainer> || MaxSegmentSizeBytes == default_segment_size_bytes,
-                  "a container in the allocator slot carries its own segment size; drop the size argument");
+    static_assert(
+      !is_detected_v<detect_iterator, AllocatorOrContainer>
+        || MaxSegmentSizeBytes == default_segment_size_bytes,
+      "a container in the allocator slot carries its own segment size; drop the size argument");
 
-    using type = std::conditional_t<is_detected_v<detect_iterator, AllocatorOrContainer> ||
-                                        MaxSegmentSizeBytes == default_segment_size_bytes,
-                                    AllocatorOrContainer,
-                                    segmented_vector<Value, AllocatorOrContainer, MaxSegmentSizeBytes>>;
+    using type =
+      std::conditional_t<is_detected_v<detect_iterator, AllocatorOrContainer>
+                           || MaxSegmentSizeBytes == default_segment_size_bytes,
+                         AllocatorOrContainer,
+                         segmented_vector<Value, AllocatorOrContainer, MaxSegmentSizeBytes>>;
 };
 
-template <class Value, class AllocatorOrContainer, std::size_t MaxSegmentSizeBytes>
-using segmented_container_for = typename segmented_container<Value, AllocatorOrContainer, MaxSegmentSizeBytes>::type;
+template<class Value, class AllocatorOrContainer, std::size_t MaxSegmentSizeBytes>
+using segmented_container_for =
+  typename segmented_container<Value, AllocatorOrContainer, MaxSegmentSizeBytes>::type;
 
-} // namespace detail
+}  // namespace detail
 
-template <class Key,
-          class T,
-          class Hash = hash<Key>,
-          class KeyEqual = std::equal_to<Key>,
-          class AllocatorOrContainer = std::allocator<std::pair<Key, T>>,
-          class Bucket = bucket_type::group>
+template<class Key,
+         class T,
+         class Hash                 = hash<Key>,
+         class KeyEqual             = std::equal_to<Key>,
+         class AllocatorOrContainer = std::allocator<std::pair<Key, T>>,
+         class Bucket               = bucket_type::group>
 using map = detail::table<Key, T, Hash, KeyEqual, AllocatorOrContainer, Bucket, false>;
 
-template <class Key,
-          class T,
-          class Hash = hash<Key>,
-          class KeyEqual = std::equal_to<Key>,
-          class AllocatorOrContainer = std::allocator<std::pair<Key, T>>,
-          class Bucket = bucket_type::group,
-          std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
-using segmented_map =
-    detail::table<Key,
-                  T,
-                  Hash,
-                  KeyEqual,
-                  detail::segmented_container_for<std::pair<Key, T>, AllocatorOrContainer, MaxSegmentSizeBytes>,
-                  Bucket,
-                  true>;
+template<class Key,
+         class T,
+         class Hash                      = hash<Key>,
+         class KeyEqual                  = std::equal_to<Key>,
+         class AllocatorOrContainer      = std::allocator<std::pair<Key, T>>,
+         class Bucket                    = bucket_type::group,
+         std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
+using segmented_map = detail::table<
+  Key,
+  T,
+  Hash,
+  KeyEqual,
+  detail::segmented_container_for<std::pair<Key, T>, AllocatorOrContainer, MaxSegmentSizeBytes>,
+  Bucket,
+  true>;
 
-template <class Key,
-          class Hash = hash<Key>,
-          class KeyEqual = std::equal_to<Key>,
-          class AllocatorOrContainer = std::allocator<Key>,
-          class Bucket = bucket_type::group>
+template<class Key,
+         class Hash                 = hash<Key>,
+         class KeyEqual             = std::equal_to<Key>,
+         class AllocatorOrContainer = std::allocator<Key>,
+         class Bucket               = bucket_type::group>
 using set = detail::table<Key, void, Hash, KeyEqual, AllocatorOrContainer, Bucket, false>;
 
-template <class Key,
-          class Hash = hash<Key>,
-          class KeyEqual = std::equal_to<Key>,
-          class AllocatorOrContainer = std::allocator<Key>,
-          class Bucket = bucket_type::group,
-          std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
-using segmented_set = detail::table<Key,
-                                    void,
-                                    Hash,
-                                    KeyEqual,
-                                    detail::segmented_container_for<Key, AllocatorOrContainer, MaxSegmentSizeBytes>,
-                                    Bucket,
-                                    true>;
+template<class Key,
+         class Hash                      = hash<Key>,
+         class KeyEqual                  = std::equal_to<Key>,
+         class AllocatorOrContainer      = std::allocator<Key>,
+         class Bucket                    = bucket_type::group,
+         std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
+using segmented_set =
+  detail::table<Key,
+                void,
+                Hash,
+                KeyEqual,
+                detail::segmented_container_for<Key, AllocatorOrContainer, MaxSegmentSizeBytes>,
+                Bucket,
+                true>;
 
 // A read only map or set over memory the caller owns (#299): the values as one array and the index
 // as table::index() gave it out, constructed from both with no hashing and nothing copied. See
 // "Loading a map from its values and its index" in doc/usage.md for what the caller must provide.
-template <class Key, class T, class Hash = hash<Key>, class KeyEqual = std::equal_to<Key>, class Bucket = bucket_type::group>
-using map_view = detail::table<Key, T, Hash, KeyEqual, detail::view_container<std::pair<Key, T>>, Bucket, false>;
+template<class Key,
+         class T,
+         class Hash     = hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Bucket   = bucket_type::group>
+using map_view =
+  detail::table<Key, T, Hash, KeyEqual, detail::view_container<std::pair<Key, T>>, Bucket, false>;
 
-template <class Key, class Hash = hash<Key>, class KeyEqual = std::equal_to<Key>, class Bucket = bucket_type::group>
-using set_view = detail::table<Key, void, Hash, KeyEqual, detail::view_container<Key>, Bucket, false>;
+template<class Key,
+         class Hash     = hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Bucket   = bucket_type::group>
+using set_view =
+  detail::table<Key, void, Hash, KeyEqual, detail::view_container<Key>, Bucket, false>;
 
-#    if defined(ANKERL_UNORDERED_DENSE_PMR)
+    #if defined(ANKERL_UNORDERED_DENSE_PMR)
 
 namespace pmr {
 
-template <class Key, class T, class Hash = hash<Key>, class KeyEqual = std::equal_to<Key>, class Bucket = bucket_type::group>
-using map =
-    detail::table<Key, T, Hash, KeyEqual, ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<std::pair<Key, T>>, Bucket, false>;
+template<class Key,
+         class T,
+         class Hash     = hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Bucket   = bucket_type::group>
+using map = detail::table<Key,
+                          T,
+                          Hash,
+                          KeyEqual,
+                          ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<std::pair<Key, T>>,
+                          Bucket,
+                          false>;
 
-template <class Key,
-          class T,
-          class Hash = hash<Key>,
-          class KeyEqual = std::equal_to<Key>,
-          class Bucket = bucket_type::group,
-          std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
+template<class Key,
+         class T,
+         class Hash                      = hash<Key>,
+         class KeyEqual                  = std::equal_to<Key>,
+         class Bucket                    = bucket_type::group,
+         std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
 using segmented_map =
-    detail::table<Key,
-                  T,
-                  Hash,
-                  KeyEqual,
-                  detail::segmented_container_for<std::pair<Key, T>,
-                                                  ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<std::pair<Key, T>>,
-                                                  MaxSegmentSizeBytes>,
-                  Bucket,
-                  true>;
+  detail::table<Key,
+                T,
+                Hash,
+                KeyEqual,
+                detail::segmented_container_for<
+                  std::pair<Key, T>,
+                  ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<std::pair<Key, T>>,
+                  MaxSegmentSizeBytes>,
+                Bucket,
+                true>;
 
-template <class Key, class Hash = hash<Key>, class KeyEqual = std::equal_to<Key>, class Bucket = bucket_type::group>
-using set = detail::table<Key, void, Hash, KeyEqual, ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<Key>, Bucket, false>;
+template<class Key,
+         class Hash     = hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Bucket   = bucket_type::group>
+using set = detail::table<Key,
+                          void,
+                          Hash,
+                          KeyEqual,
+                          ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<Key>,
+                          Bucket,
+                          false>;
 
-template <class Key,
-          class Hash = hash<Key>,
-          class KeyEqual = std::equal_to<Key>,
-          class Bucket = bucket_type::group,
-          std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
+template<class Key,
+         class Hash                      = hash<Key>,
+         class KeyEqual                  = std::equal_to<Key>,
+         class Bucket                    = bucket_type::group,
+         std::size_t MaxSegmentSizeBytes = default_segment_size_bytes>
 using segmented_set = detail::table<
-    Key,
-    void,
-    Hash,
-    KeyEqual,
-    detail::segmented_container_for<Key, ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<Key>, MaxSegmentSizeBytes>,
-    Bucket,
-    true>;
+  Key,
+  void,
+  Hash,
+  KeyEqual,
+  detail::segmented_container_for<Key,
+                                  ANKERL_UNORDERED_DENSE_PMR::polymorphic_allocator<Key>,
+                                  MaxSegmentSizeBytes>,
+  Bucket,
+  true>;
 
-} // namespace pmr
+}  // namespace pmr
 
-#    endif
+    #endif
 
 // deduction guides ///////////////////////////////////////////////////////////
 
 // deduction guides for alias templates are only possible since C++20
 // see https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
 
-} // namespace ANKERL_UNORDERED_DENSE_NAMESPACE
-} // namespace ankerl::unordered_dense
+}  // namespace ANKERL_UNORDERED_DENSE_NAMESPACE
+}  // namespace ankerl::unordered_dense
 
 // std extensions /////////////////////////////////////////////////////////////
 
-namespace std { // NOLINT(cert-dcl58-cpp)
+namespace std {  // NOLINT(cert-dcl58-cpp)
 
-template <class Key,
-          class T,
-          class Hash,
-          class KeyEqual,
-          class AllocatorOrContainer,
-          class Bucket,
-          class Pred,
-          bool IsSegmented>
+template<class Key,
+         class T,
+         class Hash,
+         class KeyEqual,
+         class AllocatorOrContainer,
+         class Bucket,
+         class Pred,
+         bool IsSegmented>
 // NOLINTNEXTLINE(cert-dcl58-cpp)
-auto erase_if(ankerl::unordered_dense::detail::table<Key, T, Hash, KeyEqual, AllocatorOrContainer, Bucket, IsSegmented>& map,
+auto erase_if(ankerl::unordered_dense::detail::
+                table<Key, T, Hash, KeyEqual, AllocatorOrContainer, Bucket, IsSegmented>& map,
               Pred pred) -> std::size_t {
-    using map_t = ankerl::unordered_dense::detail::table<Key, T, Hash, KeyEqual, AllocatorOrContainer, Bucket, IsSegmented>;
+    using map_t = ankerl::unordered_dense::detail::table<Key, T, Hash, KeyEqual,
+                                                         AllocatorOrContainer, Bucket, IsSegmented>;
 
     // going back to front because erase() invalidates the end iterator
     auto const old_size = map.size();
-    auto idx = old_size;
-    while (idx) {
+    auto       idx      = old_size;
+    while (idx)
+    {
         --idx;
         auto it = map.begin() + static_cast<typename map_t::difference_type>(idx);
-        if (pred(*it)) {
+        if (pred(*it))
+        {
             map.erase(it);
         }
     }
@@ -5279,7 +5684,7 @@ auto erase_if(ankerl::unordered_dense::detail::table<Key, T, Hash, KeyEqual, All
     return old_size - map.size();
 }
 
-} // namespace std
+}  // namespace std
 
 #endif
 #endif

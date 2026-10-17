@@ -229,7 +229,7 @@ void PerftTable::resize(const usize ptSize, const Threads& threads) noexcept {
     const usize ptBytes = clusterCount * PT_CLUSTER_SIZE;
 
     // Request 1GB pages if get at least eight per NUMA node, to avoid memory oversubscription
-    const bool hugePageHint = ptBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
+    const bool hugePageHint = ptBytes >= usize{8} * threads.numa_nodes() * HUGE_PAGE_SIZE;
 
     clusters = static_cast<PTCluster*>(alloc_aligned_large_page_with_hint(ptBytes, hugePageHint));
 

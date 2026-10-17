@@ -71,7 +71,7 @@ struct State final {
     Array<Key, COLOR_NB>    pawnKeys;
     Array<Key, COLOR_NB, 2> nonPawnKeys;
     Array<Key, COLOR_NB>    materialKeys;
-    Array<bool, COLOR_NB>   hasCastleds;
+    Array<bool, COLOR_NB>   hasCastles;
 
     u16            rule50Count;
     u16            nullPly;  // Plies from Null-Move

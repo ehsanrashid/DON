@@ -131,7 +131,8 @@ HEADERS := \
     utility/functions.h utility/list.h utility/lru_cache.h utility/map.h utility/multi_array.h \
     utility/mutex.h utility/platform_win.h utility/pool.h utility/prng.h utility/queue.h \
     utility/sharded_cache.h utility/static_vector.h utility/store.h utility/sync_ostream.h \
-    utility/thread_attributes.h utility/types.h utility/unordered_map.h
+    utility/thread_attributes.h utility/types.h utility/unordered_map.h \
+    utility/ankerl/stl.h utility/ankerl/unordered_dense.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 

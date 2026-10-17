@@ -324,7 +324,7 @@ class Threads final {
 
     /* ---queries--- */
 
-    // Is reaserching
+    // Is researching
     bool is_researching() const noexcept {
         return state.load(std::memory_order_acquire) == Status::Research;
     }

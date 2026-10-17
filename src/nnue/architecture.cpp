@@ -84,7 +84,7 @@ i32 NetworkArchitecture::propagate(
   const Array<TransformedFeature, TransformedFeatureDimensions>& transformedFeatures,
   const NNZ<L1>&                                                 nnz) const noexcept {
 
-    Buffer buffer;
+    Buffer buffer{};
 
     fc0.propagate(transformedFeatures.data(), buffer.fc_0_out.data(), nnz);
 #if defined(USE_PAIR_ACTIVATIONS)

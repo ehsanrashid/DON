@@ -680,9 +680,7 @@ ALWAYS_INLINE u16 Position::null_ply() const noexcept { return st->nullPly; }
 
 ALWAYS_INLINE i16 Position::repetition() const noexcept { return st->repetition; }
 
-ALWAYS_INLINE bool Position::has_castled(const Color c) const noexcept {
-    return st->hasCastleds[c];
-}
+ALWAYS_INLINE bool Position::has_castled(const Color c) const noexcept { return st->hasCastles[c]; }
 
 ALWAYS_INLINE bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 

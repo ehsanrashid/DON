@@ -35,7 +35,7 @@ namespace DON {
 // Best suited for short, low-contention critical sections where the lock is
 // expected to become available quickly. Avoid holding the lock while blocking,
 // performing I/O, or executing lengthy operations. If the lock holder is
-// descheduled or preempted, waiting threads may waste CPU time before yielding or sleeping.
+// rescheduled or preempted, waiting threads may waste CPU time before yielding or sleeping.
 //
 // Most effective when contention is brief and the lock holder can make prompt progress,
 // particularly with pinned workers running on isolated cores.

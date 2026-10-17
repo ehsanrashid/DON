@@ -26,7 +26,6 @@
 #include <type_traits>  // decay_t<>
 #include <utility>      // move(), exchange()
 #include <variant>      // monostate, visit(), variant<>
-#include <vector>
 
 #include "utility/environment.h"
 
@@ -65,7 +64,9 @@
     #include <cstring>  // strncpy()
     #include <memory>   // unique_ptr<>, make_unique<>()
     #include <optional>
+    #include <vector>
 
+    #include "native_thread.h"
     #include "utility/concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
 
     // Linux (non-Android)
@@ -113,7 +114,6 @@
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
-#include "native_thread.h"
 #include "utility/types.h"
 
 namespace DON {

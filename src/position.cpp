@@ -732,7 +732,7 @@ void Position::do_castling(const Color    ac,
             dP->removedPc = dP->addedPc = rookPc;
         }
 
-        st->hasCastleds[ac] = true;
+        st->hasCastles[ac] = true;
     }
     // Remove rook first since squares could overlap in Chess960
     if (rookMoved)
