@@ -31,7 +31,7 @@
 #include "tt.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
-#include "utility/cache.h"
+#include "utility/lru_cache.h"
 #include "utility/error.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
@@ -44,9 +44,16 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-SharedLRUCache<Key, Value, 32, WriterSharedMutex> NonPawnCache{64 * KB, 16 * KB, 0.75f};
-SharedLRUCache<Key, Value, 32, WriterSharedMutex> MaterialCache{32 * KB, 8 * KB, 0.75f};
-SharedLRUCache<Key, Value, 32, WriterSharedMutex> EvaluateCache{32 * KB, 8 * KB, 0.75f};
+
+SharedLRUCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> NonPawnCache{
+  64 * KB, 16 * KB, 0.75f  //
+};
+SharedLRUCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> MaterialCache{
+  32 * KB, 8 * KB, 0.75f  //
+};
+SharedLRUCache<Key, Value, PoolLRUCache, 32, WriterSharedMutex> EvaluateCache{
+  32 * KB, 8 * KB, 0.75f  //
+};
 
 }  // namespace
 

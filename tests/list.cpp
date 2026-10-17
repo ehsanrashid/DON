@@ -16,6 +16,7 @@ g++ -std=c++17 -O2 -I./src `
 
 ./build/list
 */
+
 #include <cassert>
 #include <cstddef>
 #include <iostream>
