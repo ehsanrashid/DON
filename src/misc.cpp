@@ -26,9 +26,7 @@
 #include <limits>        // numeric_limits<>
 #include <system_error>  // errc
 
-#if defined(_WIN32)
-    #include <shellapi.h>  // CommandLineToArgvW()
-#else
+#if !defined(_WIN32)
     #include <unistd.h>    // close()
     #include <sys/mman.h>  // munmap()
 #endif

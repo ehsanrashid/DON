@@ -1,6 +1,8 @@
 
 #define ALWAYS_INLINE
 
+#define DEFINE_ARCH_ENTRY
+
 #define LOCK_RETURNED(x)
 #define CAPABILITY(x)
 #define GUARDED_BY(x)

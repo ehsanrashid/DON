@@ -19,7 +19,6 @@
 #define UTILITY_SYNC_OSTREAM_H_INCLUDED
 
 #include <cassert>
-#include <ios>
 #include <iostream>
 #include <mutex>
 #include <utility>
