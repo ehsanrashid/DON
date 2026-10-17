@@ -82,6 +82,9 @@ class Tune final {
    private:
     using PostUpdate = void();  // Post-update function
 
+    // Singleton
+    static Tune& instance() noexcept;
+
     Tune() noexcept { read_results(); }
     Tune(const Tune&) noexcept            = delete;
     Tune& operator=(const Tune&) noexcept = delete;
@@ -89,9 +92,6 @@ class Tune final {
     Tune& operator=(Tune&&) noexcept      = delete;
 
     void read_results() noexcept;
-
-    // Singleton
-    static Tune& instance() noexcept;
 
     // Use polymorphism to accommodate Entry of different types in the same vector
     struct BaseEntry {
@@ -113,6 +113,11 @@ class Tune final {
             name(n),
             value(v),
             range(r) {}
+        // Because 'value' is a reference
+        Entry(const Entry&) noexcept            = delete;
+        Entry& operator=(const Entry&) noexcept = delete;
+        Entry(Entry&&) noexcept                 = delete;
+        Entry& operator=(Entry&&) noexcept      = delete;
 
         void init() noexcept override;
         void read_option() noexcept override;
@@ -120,13 +125,6 @@ class Tune final {
         std::string name;
         T&          value;
         RangeSetter range;
-
-       private:
-        // Because 'value' is a reference
-        Entry(const Entry&) noexcept            = delete;
-        Entry& operator=(const Entry&) noexcept = delete;
-        Entry(Entry&&) noexcept                 = delete;
-        Entry& operator=(Entry&&) noexcept      = delete;
     };
 
     // Extracts the next name and optionally removes it from the list.

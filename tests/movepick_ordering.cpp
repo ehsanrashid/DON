@@ -50,9 +50,11 @@ g++ -std=c++17 -O2 -I./src `
 #include <iostream>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "misc.h"
+#include "utility/types.h"
 
 using namespace DON;
 

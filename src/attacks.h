@@ -58,7 +58,11 @@ void init() noexcept;
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
 struct alignas(32) DualMagic final {
    public:
-    DualMagic() noexcept = default;
+    DualMagic() noexcept                            = default;
+    DualMagic(const DualMagic&) noexcept            = delete;
+    DualMagic& operator=(const DualMagic&) noexcept = delete;
+    DualMagic(DualMagic&&) noexcept                 = default;
+    DualMagic& operator=(DualMagic&&) noexcept      = delete;
 
     // Always compute [bishop, rook] attacks at once, then rely on
     // compiler's DCE and CSE to eliminate unneeded re-computations or extractions.
@@ -103,13 +107,7 @@ struct alignas(32) DualMagic final {
     // 8 * rank_of(sq)
     int shift;
 
-    DualMagic(DualMagic&&) noexcept = default;
-
    private:
-    DualMagic(const DualMagic&) noexcept            = delete;
-    DualMagic& operator=(const DualMagic&) noexcept = delete;
-    DualMagic& operator=(DualMagic&&) noexcept      = delete;
-
     static constexpr int Shuffle3120 = _MM_SHUFFLE(3, 1, 2, 0);
 
     // Byteswap within 128-bit elements
@@ -151,7 +149,11 @@ inline Bitboard reverse_bb(const Bitboard bb) noexcept {
 // See https://www.chessprogramming.org/Hyperbola_Quintessence
 struct Magic final {
    public:
-    Magic() noexcept = default;
+    Magic() noexcept                        = default;
+    Magic(const Magic&) noexcept            = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic(Magic&&) noexcept                 = default;
+    Magic& operator=(Magic&&) noexcept      = delete;
 
     Bitboard
     hyperbola(const Square s, const Bitboard occupancyBB, const Bitboard maskBB) const noexcept {
@@ -168,13 +170,6 @@ struct Magic final {
     // For rooks: file/rank attacks
     // For bishops: diagonal/anti-diagonal attacks
     Bitboard mask1BB, mask2BB;
-
-    Magic(Magic&&) noexcept = default;
-
-   private:
-    Magic(const Magic&) noexcept            = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
-    Magic& operator=(Magic&&) noexcept      = delete;
 };
 #else
     #if defined(USE_BMI2) && defined(USE_CMP)
@@ -186,7 +181,11 @@ using MagicMask = Bitboard;
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
    public:
-    Magic() noexcept = default;
+    Magic() noexcept                        = default;
+    Magic(const Magic&) noexcept            = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic(Magic&&) noexcept                 = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
 
     #if defined(USE_BMI2)
     void attacks_bb(const Bitboard occupancyBB, const Bitboard referenceBB) noexcept {
@@ -236,11 +235,6 @@ struct Magic final {
     Bitboard magicBB;
     u8       shift;
     #endif
-   private:
-    Magic(const Magic&) noexcept            = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
-    Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(Magic&&) noexcept      = delete;
 };
 #endif
 

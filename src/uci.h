@@ -35,6 +35,11 @@ inline constexpr std::string_view QUIT_CMD{"quit"};
 class UCI final {
    public:
     UCI(const fs::path& path = {}) noexcept;
+    UCI() noexcept                      = delete;
+    UCI(const UCI&) noexcept            = delete;
+    UCI& operator=(const UCI&) noexcept = delete;
+    UCI(UCI&&) noexcept                 = delete;
+    UCI& operator=(UCI&&) noexcept      = delete;
 
     Options&       options() noexcept;
     const Options& options() const noexcept;
@@ -44,12 +49,6 @@ class UCI final {
     void execute(std::string_view command) noexcept;
 
    private:
-    UCI() noexcept                      = delete;
-    UCI(const UCI&) noexcept            = delete;
-    UCI& operator=(const UCI&) noexcept = delete;
-    UCI(UCI&&) noexcept                 = delete;
-    UCI& operator=(UCI&&) noexcept      = delete;
-
     template<typename Mutate>
     void apply_when_idle(Mutate&& mutate) const noexcept;
 

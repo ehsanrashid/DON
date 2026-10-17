@@ -53,7 +53,11 @@ class Cuckoos final {
     static_assert(is_power_of_2(Size), "Size has to be power of 2");
 
    public:
-    Cuckoos() noexcept = default;
+    Cuckoos() noexcept                          = default;
+    Cuckoos(const Cuckoos&) noexcept            = delete;
+    Cuckoos& operator=(const Cuckoos&) noexcept = delete;
+    Cuckoos(Cuckoos&&) noexcept                 = delete;
+    Cuckoos& operator=(Cuckoos&&) noexcept      = delete;
 
     [[nodiscard]] auto begin() noexcept { return cuckoos.begin(); }
     [[nodiscard]] auto end() noexcept { return cuckoos.end(); }
@@ -65,6 +69,32 @@ class Cuckoos final {
 
     [[nodiscard]] decltype(auto) operator[](const usize idx) const noexcept { return cuckoos[idx]; }
     [[nodiscard]] decltype(auto) operator[](const usize idx) noexcept { return cuckoos[idx]; }
+
+    // Prepare the cuckoo tables
+    void init(const Zobrist& zobrist) noexcept {
+        reset();
+
+        for (Color c : {WHITE, BLACK})
+            for (PieceType pt : PIECE_TYPES)
+            {
+                if (pt == PAWN)
+                    continue;
+                for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
+                    for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
+                    {
+                        if ((Attacks::pseudo_attacks_bb(pt, s1) & s2) != 0)
+                        {
+                            const Key  key = zobrist.turn()  //
+                                           ^ zobrist.piece_square(c, pt, s1)
+                                           ^ zobrist.piece_square(c, pt, s2);
+                            const Move move{s1, s2};
+                            insert({key, move});
+                        }
+                    }
+            }
+
+        assert(count == 3668);
+    }
 
     // Hash function for indexing the cuckoo table
     template<usize Part>
@@ -89,38 +119,6 @@ class Cuckoos final {
         ++count;
     }
 
-    void clear() noexcept {
-        std::memset(cuckoos.data(), 0, sizeof(cuckoos));
-
-        count = 0;
-    }
-
-    // Prepare the cuckoo tables
-    void init(const Zobrist& zobrist) noexcept {
-        clear();
-
-        for (Color c : {WHITE, BLACK})
-            for (PieceType pt : PIECE_TYPES)
-            {
-                if (pt == PAWN)
-                    continue;
-                for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
-                    for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                    {
-                        if ((Attacks::pseudo_attacks_bb(pt, s1) & s2) != 0)
-                        {
-                            const Key  key = zobrist.turn()  //
-                                           ^ zobrist.piece_square(c, pt, s1)
-                                           ^ zobrist.piece_square(c, pt, s2);
-                            const Move move{s1, s2};
-                            insert({key, move});
-                        }
-                    }
-            }
-
-        assert(count == 3668);
-    }
-
     [[nodiscard]] usize find_key(Key key) const noexcept {
         if (usize index;  //
             (index = H<0>(key), cuckoos[index].key == key)
@@ -130,12 +128,13 @@ class Cuckoos final {
         return size();
     }
 
-   private:
-    Cuckoos(const Cuckoos&) noexcept            = delete;
-    Cuckoos& operator=(const Cuckoos&) noexcept = delete;
-    Cuckoos(Cuckoos&&) noexcept                 = delete;
-    Cuckoos& operator=(Cuckoos&&) noexcept      = delete;
+    void reset() noexcept {
+        std::memset(cuckoos.data(), 0, sizeof(cuckoos));
 
+        count = 0;
+    }
+
+   private:
     Array<Cuckoo, Size> cuckoos;
     usize               count;
 };

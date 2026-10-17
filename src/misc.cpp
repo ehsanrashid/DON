@@ -22,18 +22,16 @@
 #include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
 #include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
+#include <iostream>      // cout, cin
 #include <limits>        // numeric_limits<>
 #include <system_error>  // errc
 
-#if defined(_WIN32)
-    #include <shellapi.h>  // CommandLineToArgvW()
-#else
+#if !defined(_WIN32)
     #include <unistd.h>    // close()
     #include <sys/mman.h>  // munmap()
 #endif
 
 #include "utility/color.h"
-#include "utility/concurrent.h"  // ConcurrentMap<>
 
 namespace DON {
 
@@ -538,73 +536,6 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
 
     return os;
 }
-
-namespace {
-
-// OsToMutexMap
-//
-// Provides a thread-safe process-wide map that associates a unique mutex
-// with each std::ostream pointer.
-//
-// The map allows multiple threads to synchronize access to the same ostream
-// without unnecessarily locking unrelated ostreams.
-//
-// Key Features:
-//  - Thread-safe: map access is protected by a mutex.
-//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
-//  - Lazy initialization: mutexes are created when first requested.
-//  - Null-safe: nullptr is a valid key and maps to its own mutex.
-//
-// Usage:
-//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
-//    from multiple threads.
-//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
-//
-// Lifetime:
-//  - The map does not own the std::ostream objects.
-//  - Mutexes remain in the map for the lifetime of the process.
-ConcurrentMap<std::ostream*, std::mutex> OsToMutex{usize{16}, 0.75f};
-
-}  // namespace
-
-SyncOS::SyncOS(std::ostream& os) noexcept :
-    osPtr{&os},
-    uniqueLock{OsToMutex.get(osPtr)} {}
-
-SyncOS::SyncOS(SyncOS&& syncOs) noexcept :
-    osPtr{std::exchange(syncOs.osPtr, nullptr)},
-    uniqueLock{std::move(syncOs.uniqueLock)} {}
-
-SyncOS& SyncOS::operator<<(IosManip manip) & {
-    assert(osPtr != nullptr && "Use of moved-from SyncOS");
-
-    manip(*osPtr);
-    return *this;
-}
-
-SyncOS&& SyncOS::operator<<(IosManip manip) && {
-    assert(osPtr != nullptr && "Use of moved-from SyncOS");
-
-    manip(*osPtr);
-    return std::move(*this);
-}
-
-SyncOS& SyncOS::operator<<(OstreamManip manip) & {
-    assert(osPtr != nullptr && "Use of moved-from SyncOS");
-
-    manip(*osPtr);
-    return *this;
-}
-
-SyncOS&& SyncOS::operator<<(OstreamManip manip) && {
-    assert(osPtr != nullptr && "Use of moved-from SyncOS");
-
-    manip(*osPtr);
-    return std::move(*this);
-}
-
-SyncOS sync_os(std::ostream& os) noexcept { return SyncOS(os); }
-
 
 StringReader::StringReader(const std::string_view sv) noexcept :
     beg(sv.data()),
@@ -1199,36 +1130,6 @@ void terminate_on_critical_error(const std::string_view message) noexcept {
     std::cout << std::endl;
     std::exit(EXIT_FAILURE);
 }
-
-// clang-format off
-
-fs::path utf8_to_path(const std::string_view path) noexcept {
-#if defined(_WIN32)
-    const int pathSize = int(path.size());
-
-    if (pathSize > std::numeric_limits<int>::max())
-        return {};
-
-    // First attempt UTF-8, then fall back to ANSI for old GUIs like Arena
-    constexpr Array<UINT, 2> CodePages{CP_UTF8, CP_ACP};
-    for (const UINT codePage : CodePages)
-    {
-        const DWORD flags        = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
-        const int   widePathSize = ::MultiByteToWideChar(codePage, flags, path.data(), pathSize, nullptr, 0);
-
-        if (widePathSize <= 0)
-            continue;
-
-        std::wstring widePath(usize(widePathSize), L'\0');
-        ::MultiByteToWideChar(codePage, 0, path.data(), pathSize, widePath.data(), widePathSize);
-
-        return {widePath};
-    }
-#endif
-    return {path};
-}
-
-// clang-format on
 
 std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     constexpr int Base = 10;

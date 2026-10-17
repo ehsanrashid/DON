@@ -43,7 +43,11 @@ class SingleProducerSingleConsumerQueue final {
                   "SingleProducerSingleConsumerQueue queue requires lock-free u32 atomics");
 
    public:
-    SingleProducerSingleConsumerQueue() noexcept = default;
+    SingleProducerSingleConsumerQueue() noexcept                                = default;
+    SingleProducerSingleConsumerQueue(const SingleProducerSingleConsumerQueue&) = delete;
+    SingleProducerSingleConsumerQueue& operator=(const SingleProducerSingleConsumerQueue&) = delete;
+    SingleProducerSingleConsumerQueue(SingleProducerSingleConsumerQueue&&)                 = delete;
+    SingleProducerSingleConsumerQueue& operator=(SingleProducerSingleConsumerQueue&&)      = delete;
 
     static constexpr u32 capacity() noexcept { return Capacity; }
 
@@ -105,11 +109,6 @@ class SingleProducerSingleConsumerQueue final {
     }
 
    private:
-    SingleProducerSingleConsumerQueue(const SingleProducerSingleConsumerQueue&)            = delete;
-    SingleProducerSingleConsumerQueue& operator=(const SingleProducerSingleConsumerQueue&) = delete;
-    SingleProducerSingleConsumerQueue(SingleProducerSingleConsumerQueue&&)                 = delete;
-    SingleProducerSingleConsumerQueue& operator=(SingleProducerSingleConsumerQueue&&)      = delete;
-
     static constexpr u32 Mask = Capacity - 1;
 
     alignas(CACHE_LINE_SIZE) std::atomic<u32> head_{0};

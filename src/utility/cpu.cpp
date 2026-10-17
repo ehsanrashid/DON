@@ -23,8 +23,7 @@
     #if defined(_MSC_VER)
         #include <emmintrin.h>  // _mm_pause() intrinsic
     #endif
-#elif defined(__aarch64__) || defined(_M_ARM64) \
-  || ((defined(__arm__) || defined(_M_ARM)) && defined(__ARM_ARCH) && __ARM_ARCH >= 7)
+#elif defined(__aarch64__) || defined(_M_ARM64) || defined(ARM32_V7)
     #if defined(_MSC_VER)
         #include <intrin.h>  // __yield()
     #endif
@@ -39,7 +38,7 @@ void cpu_relax() noexcept {
 // Covers: Linux, macOS Intel, Windows x86/x64, clang-cl
 #if defined(X86)
     #if defined(_MSC_VER)
-    _mm_pause();  // MSVC intrinsic
+    ::_mm_pause();  // MSVC intrinsic
     #else
     __builtin_ia32_pause();  // GCC / Clang intrinsic
     #endif
@@ -52,7 +51,7 @@ void cpu_relax() noexcept {
     __asm__ __volatile__("yield");
     #endif
     // ARM32 (ARMv7+)
-#elif (defined(__arm__) || defined(_M_ARM)) && defined(__ARM_ARCH) && __ARM_ARCH >= 7
+#elif defined(ARM32_V7)
     #if defined(_MSC_VER)
     __yield();
     #elif defined(CLANG_OR_GCC)
@@ -62,7 +61,7 @@ void cpu_relax() noexcept {
 #elif defined(__riscv)
     #if defined(__riscv_zihintpause)
     __builtin_riscv_pause();  // Zihintpause extension
-    #elif defined(CLANG_OR_GCC)
+    #else  // Compiler-barrier fallback
     __asm__ __volatile__("" ::: "memory");
     #endif
     // PowerPC / POWER
@@ -71,12 +70,9 @@ void cpu_relax() noexcept {
     // MIPS (ISA revision 2 or later)
 #elif defined(__mips__) && defined(__mips_isa_rev) && (__mips_isa_rev >= 2)
     __asm__ __volatile__("pause");
-    // LoongArch
-#elif defined(__loongarch__)
-    __asm__ __volatile__("dbar 0");  // Data completion barrier / Spin-wait hint
     // SPARC
 #elif defined(__sparc__)
-    __asm__ __volatile__("rd %%ccr, %%g0" ::: "memory");
+    __asm__ __volatile__("rd %%ccr, %%g0");
     // IBM S/390 / z
 #elif defined(__s390__) || defined(__s390x__)
     __asm__ __volatile__("bcr 14, 0");  // Branch-on-condition hint

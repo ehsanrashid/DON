@@ -38,109 +38,6 @@
 
 namespace DON {
 
-// ConcurrentMap: thread-safe key-value map with lazy value creation and pre-reserved storage.
-template<typename Key, typename Value>
-class ConcurrentMap final {
-   public:
-    using Map = std::unordered_map<Key, Value>;
-
-    explicit ConcurrentMap(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
-        reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFac) {
-        std::lock_guard lockGuard{mutex};
-
-        configure(map);
-    }
-
-    // Returns the value associated with the key.
-    //
-    // If the key is not present, a default-constructed value is inserted.
-    // The returned reference remains valid while the associated element
-    // remains in the map and is not invalidated by a modifying operation.
-    Value& get(const Key& key) noexcept {
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock{mutex};
-
-            if (const auto itr = map.find(key); itr != map.end())
-                return itr->second;
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard lockGuard{mutex};
-
-        return map.try_emplace(key).first->second;
-    }
-
-    // Returns the value associated with the key.
-    //
-    // If the key is not present, constructs the value from the supplied
-    // arguments and inserts it into the map.
-    template<typename... Args>
-    Value& get(const Key& key, Args&&... args) noexcept {
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock{mutex};
-
-            if (const auto itr = map.find(key); itr != map.end())
-                return itr->second;
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard lockGuard{mutex};
-
-        return map.try_emplace(key, std::forward<Args>(args)...).first->second;
-    }
-
-    // Returns true if the map contains the key.
-    bool contains(const Key& key) const noexcept {
-        std::shared_lock sharedLock{mutex};
-
-        return map.find(key) != map.end();
-    }
-
-    // Returns the number of entries in the map.
-    usize size() const noexcept {
-        std::shared_lock sharedLock{mutex};
-
-        return map.size();
-    }
-
-    // Returns true if the map contains no entries.
-    bool empty() const noexcept {
-        std::shared_lock sharedLock{mutex};
-
-        return map.empty();
-    }
-
-    // Removes all entries from the map.
-    void clear() noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        map.clear();
-    }
-
-   private:
-    ConcurrentMap(const ConcurrentMap&) noexcept            = delete;
-    ConcurrentMap& operator=(const ConcurrentMap&) noexcept = delete;
-    ConcurrentMap(ConcurrentMap&&) noexcept                 = delete;
-    ConcurrentMap& operator=(ConcurrentMap&&) noexcept      = delete;
-
-    void configure(Map& valueMap) const noexcept {
-        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
-        valueMap.reserve(reserve_count(reserveCount));
-    }
-
-    const usize reserveCount;
-    const float maxLoadFactor;
-
-    // Protects access to the map.
-    mutable WriterSharedMutex mutex;
-
-    // Stores the key-value associations.
-    Map map;
-};
-
 // ConcurrentAllocationTracker: thread-safe allocation and freeing, with allocation size tracking.
 class ConcurrentAllocationTracker final {
    public:
@@ -214,202 +111,6 @@ class ConcurrentAllocationTracker final {
     SizeMap                   sizeMap;
 };
 
-// ConcurrentCache: sharded thread-safe key-value cache with lazy value creation and pre-reserved storage.
-template<typename Key, typename Value>
-class ConcurrentCache final {
-   public:
-    static constexpr usize ThresholdSize = 128;
-
-    static constexpr usize ShardCount = 32;
-    static constexpr usize ShardMask  = ShardCount - 1;
-    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
-
-    using StorageValue =
-      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
-
-    using ValueMap = std::unordered_map<Key, StorageValue>;
-
-    struct alignas(64) Shard final {
-       public:
-        mutable WriterSharedMutex mutex;
-        ValueMap                  valueMap;
-    };
-
-    using Shards = Array<Shard, ShardCount>;
-
-    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
-        reserveCount(reserveCnt),
-        maxLoadFactor(maxLoadFac) {
-        for (auto& shard : shards)
-        {
-            std::lock_guard lockGuard{shard.mutex};
-
-            configure(shard.valueMap);
-        }
-    }
-
-    template<typename... Args>
-    Value access_or_build(const Key& key, Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return get(itr->second);
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard lockGuard{shard.mutex};
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Args>(args)...);
-
-        return get(itr->second);
-    }
-
-    template<typename Builder, typename... Args>
-    Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return get(itr->second);
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard lockGuard{shard.mutex};
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-
-        return get(itr->second);
-    }
-
-    template<typename Transformer, typename... Args>
-    auto
-    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return std::forward<Transformer>(transformer)(get_ref(itr->second));
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard lockGuard{shard.mutex};
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Args>(args)...);
-
-        return std::forward<Transformer>(transformer)(get_ref(itr->second));
-    }
-
-    template<typename Transformer, typename Builder, typename... Args>
-    auto transform_access_or_build_with(const Key&    key,
-                                        Transformer&& transformer,
-                                        Builder&&     builder,
-                                        Args&&... args) noexcept {
-        auto& shard = get_shard(key);
-        // Fast path: check for an existing value under a shared lock.
-        {
-            std::shared_lock sharedLock(shard.mutex);
-
-            if (const auto itr = shard.valueMap.find(key); itr != shard.valueMap.end())
-                return std::forward<Transformer>(transformer)(get_ref(itr->second));
-        }
-
-        // Slow path: acquire exclusive lock, then insert and construct if missing.
-        std::lock_guard lockGuard{shard.mutex};
-
-        // Look up and insert if missing.
-        const auto [itr, inserted] = shard.valueMap.try_emplace(key);
-
-        // Construct the value if it was inserted.
-        if (inserted)
-            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
-
-        return std::forward<Transformer>(transformer)(get_ref(itr->second));
-    }
-
-    void reset() noexcept {
-        for (auto& shard : shards)
-        {
-            std::lock_guard lockGuard{shard.mutex};
-
-            shard.valueMap.clear();
-            shard.valueMap.rehash(0);
-            configure(shard.valueMap);
-        }
-    }
-
-   private:
-    ConcurrentCache(const ConcurrentCache&) noexcept            = delete;
-    ConcurrentCache& operator=(const ConcurrentCache&) noexcept = delete;
-    ConcurrentCache(ConcurrentCache&&) noexcept                 = delete;
-    ConcurrentCache& operator=(ConcurrentCache&&) noexcept      = delete;
-
-    // Helper functions for hashing, sharding, and value storage.
-
-    // General-purpose key hasher
-    static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
-
-    // Select the shard associated with the key.
-    static usize shard_index(const Key& key) noexcept { return hash_key(key) & ShardMask; }
-
-    // Set the stored value, using direct storage or heap allocation based on its size.
-    template<typename... Args>
-    static void set(StorageValue& value, Args&&... args) noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            value = Value(std::forward<Args>(args)...);
-        else
-            value = std::make_unique<Value>(std::forward<Args>(args)...);
-    }
-
-    // Return a copy of the stored value, dereferencing heap storage when used.
-    static Value get(const StorageValue& value) noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            return value;
-        else
-            return *value;
-    }
-
-    // Return a reference to the stored value, dereferencing heap storage when used.
-    static const Value& get_ref(const StorageValue& value) noexcept {
-        if constexpr (sizeof(Value) <= ThresholdSize)
-            return value;
-        else
-            return *value;
-    }
-
-    void configure(ValueMap& valueMap) const noexcept {
-        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
-        valueMap.reserve(reserve_count(ceil_div(reserveCount, ShardCount)));
-    }
-
-    Shard& get_shard(const Key& key) noexcept { return shards[shard_index(key)]; }
-
-    const usize reserveCount;
-    const float maxLoadFactor;
-    Shards      shards;
-};
-
 // ConcurrentRegistry: thread-safe registry preserving true insertion order with pre-reserved storage.
 template<typename Value>
 class ConcurrentRegistry final {
@@ -417,7 +118,7 @@ class ConcurrentRegistry final {
     using List = std::list<Value>;
 
    public:
-    explicit ConcurrentRegistry(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75f) noexcept :
+    explicit ConcurrentRegistry(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75F) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
         std::lock_guard lockGuard{mutex};
@@ -658,13 +359,13 @@ class ConcurrentRegistry final {
     }
 
     void configure(IndexMap& indexMap_) const noexcept {
-        indexMap_.max_load_factor(max_load_factor(maxLoadFactor));
-        indexMap_.reserve(reserve_count(reserveCount));
+        indexMap_.max_load_factor(maxLoadFactor);
+        indexMap_.reserve(reserveCount);
     }
 
     void configure(Set& set_) const noexcept {
-        set_.max_load_factor(max_load_factor(maxLoadFactor));
-        set_.reserve(reserve_count(reserveCount));
+        set_.max_load_factor(maxLoadFactor);
+        set_.reserve(reserveCount);
     }
 
     // Stops accepting new values.

@@ -46,6 +46,13 @@ struct Error;
 class Engine final {
    public:
     explicit Engine(const fs::path& path = {}) noexcept;
+
+    // Cannot be movable due to components holding backreferences to fields
+    Engine(const Engine&) noexcept            = delete;
+    Engine& operator=(const Engine&) noexcept = delete;
+    Engine(Engine&&) noexcept                 = delete;
+    Engine& operator=(Engine&&) noexcept      = delete;
+
     ~Engine() noexcept;
 
     Options&       options() noexcept;
@@ -121,13 +128,6 @@ class Engine final {
     void set_on_update_move(Manager::OnUpdateMove&& f) noexcept;
 
    private:
-    // Cannot be movable due to components holding backreferences to fields
-
-    Engine(const Engine&) noexcept            = delete;
-    Engine& operator=(const Engine&) noexcept = delete;
-    Engine(Engine&&) noexcept                 = delete;
-    Engine& operator=(Engine&&) noexcept      = delete;
-
     const fs::path binaryDirectory;
 
     NumaReplicationContext                      numaContext;

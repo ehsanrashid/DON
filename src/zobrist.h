@@ -60,7 +60,11 @@ namespace DON {
 //   key ^= zobrist.turn();
 class Zobrist final {
    public:
-    Zobrist() noexcept = default;
+    Zobrist() noexcept                          = default;
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
     void init(u64 seed) noexcept;
 
@@ -79,11 +83,6 @@ class Zobrist final {
     [[nodiscard]] Key mr50(i16 rule50Count) const noexcept;
 
    private:
-    Zobrist(const Zobrist&) noexcept            = delete;
-    Zobrist& operator=(const Zobrist&) noexcept = delete;
-    Zobrist(Zobrist&&) noexcept                 = delete;
-    Zobrist& operator=(Zobrist&&) noexcept      = delete;
-
     static constexpr u8 PawnOffset = u8{8};
 
     static constexpr u8 R50Offset  = u8{14};

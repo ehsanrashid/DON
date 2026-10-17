@@ -50,41 +50,16 @@ union Zobrist final {
                                 + (COLOR_NB * CASTLING_SIDE_NB)            //
                                 + (FILE_NB) + 1;
 
-    explicit constexpr Zobrist(const Array<Key, Size>& keys) noexcept :
-        Keys{keys} {}
-
-    [[nodiscard]] Key key(const Position& pos) const noexcept {
-        Key key = 0;
-
-        Bitboard bb = pos.pieces_bb();
-        while (bb != 0)
-        {
-            Square s  = pop_lsq(bb);
-            Piece  pc = pos[s];
-
-            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
-        }
-
-        Bitboard castlingRightsBB = +pos.castling_rights();
-        while (castlingRightsBB != 0)
-            key ^= _.Castling[pop_lsq(castlingRightsBB)];
-
-        if (is_ok(pos.en_passant_sq()))
-            key ^= _.Enpassant[file_of(pos.en_passant_sq())];
-
-        if (pos.active_color() == WHITE)
-            key ^= _.Turn;
-
-        return key;
-    }
-
-   private:
+    explicit constexpr Zobrist(const Array<Key, Size>& keys) noexcept;
     Zobrist() noexcept                          = delete;
     Zobrist(const Zobrist&) noexcept            = delete;
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
+    [[nodiscard]] Key key(const Position& pos) const noexcept;
+
+   private:
     Array<Key, Size> Keys;
 
     struct {
@@ -94,6 +69,34 @@ union Zobrist final {
         Key                                             Turn;
     } _;
 };
+
+constexpr Zobrist::Zobrist(const Array<Key, Size>& keys) noexcept :
+    Keys{keys} {}
+
+Key Zobrist::key(const Position& pos) const noexcept {
+    Key key = 0;
+
+    Bitboard bb = pos.pieces_bb();
+    while (bb != 0)
+    {
+        Square s  = pop_lsq(bb);
+        Piece  pc = pos[s];
+
+        key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
+    }
+
+    Bitboard castlingRightsBB = +pos.castling_rights();
+    while (castlingRightsBB != 0)
+        key ^= _.Castling[pop_lsq(castlingRightsBB)];
+
+    if (is_ok(pos.en_passant_sq()))
+        key ^= _.Enpassant[file_of(pos.en_passant_sq())];
+
+    if (pos.active_color() == WHITE)
+        key ^= _.Turn;
+
+    return key;
+}
 
 // Random numbers from PolyGlot, used to compute book hash keys
 // startpos-key == u64{0x463B96181691FC9C}

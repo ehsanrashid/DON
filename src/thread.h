@@ -238,7 +238,12 @@ class Threads final {
         Stopped
     };
 
-    Threads() noexcept = default;
+    Threads() noexcept                          = default;
+    Threads(const Threads&) noexcept            = delete;
+    Threads& operator=(const Threads&) noexcept = delete;
+    Threads(Threads&&) noexcept                 = delete;
+    Threads& operator=(Threads&&) noexcept      = delete;
+
     ~Threads() noexcept;
 
     [[nodiscard]] auto begin() noexcept { return threads.begin(); }
@@ -319,7 +324,7 @@ class Threads final {
 
     /* ---queries--- */
 
-    // Is reaserching
+    // Is researching
     bool is_researching() const noexcept {
         return state.load(std::memory_order_acquire) == Status::Research;
     }
@@ -412,11 +417,6 @@ class Threads final {
     }
 
    private:
-    Threads(const Threads&) noexcept            = delete;
-    Threads& operator=(const Threads&) noexcept = delete;
-    Threads(Threads&&) noexcept                 = delete;
-    Threads& operator=(Threads&&) noexcept      = delete;
-
     mutable std::atomic<Status> state{Status::Active};
     mutable State::ListPtr      setupStates;
     // Protects concurrent access to the threads vector for short snapshots.

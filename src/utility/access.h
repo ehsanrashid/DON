@@ -18,53 +18,84 @@
 #ifndef UTILITY_ACCESS_H_INCLUDED
 #define UTILITY_ACCESS_H_INCLUDED
 
-#include <mutex>
-#include <shared_mutex>
+#include <mutex>         // unique_lock<>, mutex
+#include <shared_mutex>  // shared_lock<>, shared_mutex<>
+#include <utility>       // move()
 
 namespace DON {
 
-template<typename Container, typename Mutex>
+template<typename Value, typename Mutex>
 class ReadAccess final {
    public:
-    using const_iterator = typename Container::const_iterator;
+    ReadAccess(const Value& valueRef, Mutex& mutex) :
+        value(valueRef),
+        sharedLock(mutex) {}
 
-    explicit ReadAccess(Mutex& mutex, const Container& container) :
-        sharedLock(mutex),
-        container(container) {}
+    ReadAccess(const Value& valueRef, std::shared_lock<Mutex>&& sharedLockRef) :
+        value(valueRef),
+        sharedLock(std::move(sharedLockRef)) {}
 
-    [[nodiscard]] const_iterator begin() const { return container.begin(); }
+    ReadAccess(const ReadAccess&) noexcept            = delete;
+    ReadAccess& operator=(const ReadAccess&) noexcept = delete;
+    ReadAccess(ReadAccess&&) noexcept                 = delete;
+    ReadAccess& operator=(ReadAccess&&) noexcept      = delete;
 
-    [[nodiscard]] const_iterator end() const { return container.end(); }
+    template<typename T = Value, typename = typename T::const_iterator>
+    [[nodiscard]] auto begin() const -> typename T::const_iterator {
+        return value.begin();
+    }
 
-    [[nodiscard]] const Container* operator->() const noexcept { return &container; }
+    template<typename T = Value, typename = typename T::const_iterator>
+    [[nodiscard]] auto end() const -> typename T::const_iterator {
+        return value.end();
+    }
 
-    [[nodiscard]] const Container& operator*() const noexcept { return container; }
+    [[nodiscard]] const Value& get() const noexcept { return value; }
+
+    [[nodiscard]] const Value* operator->() const noexcept { return &value; }
+
+    [[nodiscard]] const Value& operator*() const noexcept { return value; }
 
    private:
+    const Value&            value;
     std::shared_lock<Mutex> sharedLock;
-    const Container&        container;
 };
 
-template<typename Container, typename Mutex>
+template<typename Value, typename Mutex>
 class WriteAccess final {
    public:
-    using iterator = typename Container::iterator;
+    WriteAccess(Value& valueRef, Mutex& mutex) :
+        value(valueRef),
+        uniqueLock(mutex) {}
 
-    explicit WriteAccess(Mutex& mutex, Container& container) :
-        uniqueLock(mutex),
-        container(container) {}
+    WriteAccess(Value& valueRef, std::unique_lock<Mutex>&& uniqueLockRef) :
+        value(valueRef),
+        uniqueLock(std::move(uniqueLockRef)) {}
 
-    [[nodiscard]] iterator begin() { return container.begin(); }
+    WriteAccess(const WriteAccess&) noexcept            = delete;
+    WriteAccess& operator=(const WriteAccess&) noexcept = delete;
+    WriteAccess(WriteAccess&&) noexcept                 = delete;
+    WriteAccess& operator=(WriteAccess&&) noexcept      = delete;
 
-    [[nodiscard]] iterator end() { return container.end(); }
+    template<typename T = Value, typename = typename T::iterator>
+    [[nodiscard]] auto begin() -> typename T::iterator {
+        return value.begin();
+    }
 
-    [[nodiscard]] Container* operator->() noexcept { return &container; }
+    template<typename T = Value, typename = typename T::iterator>
+    [[nodiscard]] auto end() -> typename T::iterator {
+        return value.end();
+    }
 
-    [[nodiscard]] Container& operator*() noexcept { return container; }
+    [[nodiscard]] Value& get() const noexcept { return value; }
+
+    [[nodiscard]] Value* operator->() const noexcept { return &value; }
+
+    [[nodiscard]] Value& operator*() const noexcept { return value; }
 
    private:
+    Value&                  value;
     std::unique_lock<Mutex> uniqueLock;
-    Container&              container;
 };
 
 }  // namespace DON

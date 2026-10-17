@@ -60,6 +60,12 @@ constexpr u8 PV_MASK         = u8{1} << PV_SHIFT;
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
    public:
+    TTEntry() noexcept                          = delete;
+    TTEntry(const TTEntry&) noexcept            = delete;
+    TTEntry& operator=(const TTEntry&) noexcept = delete;
+    TTEntry(TTEntry&&) noexcept                 = delete;
+    TTEntry& operator=(TTEntry&&) noexcept      = delete;
+
     // clang-format off
     [[nodiscard]] u16   key() const noexcept { return key16; }
     [[nodiscard]] bool  occupied() const noexcept { return depth8 != 0; }
@@ -85,12 +91,6 @@ struct TTEntry final {
     void reset() noexcept;
 
    private:
-    TTEntry() noexcept                          = delete;
-    TTEntry(const TTEntry&) noexcept            = delete;
-    TTEntry& operator=(const TTEntry&) noexcept = delete;
-    TTEntry(TTEntry&&) noexcept                 = delete;
-    TTEntry& operator=(TTEntry&&) noexcept      = delete;
-
     RelaxedAtomic<u16>   key16;
     RelaxedAtomic<Move>  move16;
     RelaxedAtomic<Value> value16;
@@ -163,6 +163,10 @@ void TTEntry::penalize(const u8 penalty) noexcept {
 void TTEntry::reset() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
 
+TTData TTData::empty() noexcept {
+    return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
+}
+
 TTData::TTData(const Move  m,
                const Value v,
                const Value ev,
@@ -178,26 +182,21 @@ TTData::TTData(const Move  m,
     hit(hit_),
     pv(pv_) {}
 
-TTData TTData::empty() noexcept {
-    return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
-}
-
 // TTCluster consists of a bunch of TTEntry.
 // TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    static constexpr usize EntryCount = 3;
-
-    Array<TTEntry, EntryCount> entries;
-    Array<char, 2>             padding;  // Pad to 32 bytes
-
-   private:
     TTCluster() noexcept                            = delete;
     TTCluster(const TTCluster&) noexcept            = delete;
     TTCluster& operator=(const TTCluster&) noexcept = delete;
     TTCluster(TTCluster&&) noexcept                 = delete;
     TTCluster& operator=(TTCluster&&) noexcept      = delete;
+
+    static constexpr usize EntryCount = 3;
+
+    Array<TTEntry, EntryCount> entries;
+    Array<char, 2>             padding;  // Pad to 32 bytes
 };
 
 constexpr usize TT_CLUSTER_SIZE = sizeof(TTCluster);
@@ -265,7 +264,7 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
     const usize ttBytes = clusterCount * TT_CLUSTER_SIZE;
 
     // Request 1GB pages if get at least eight per NUMA node, to avoid memory oversubscription
-    const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
+    const bool hugePageHint = ttBytes >= usize{8} * threads.numa_nodes() * HUGE_PAGE_SIZE;
 
     clusters = static_cast<TTCluster*>(alloc_aligned_large_page_with_hint(ttBytes, hugePageHint));
 

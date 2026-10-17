@@ -27,6 +27,7 @@
 #include "../evaluate.h"
 #include "../misc.h"
 #include "../utility/types.h"
+#include "../utility/functions.h"
 
 namespace DON::NNUE {
 

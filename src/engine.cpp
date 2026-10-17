@@ -32,6 +32,7 @@
 #include "tablebase/syzygy.h"
 #include "utility/command_line.h"
 #include "utility/error.h"
+#include "utility/functions.h"
 
 namespace DON {
 
@@ -165,7 +166,7 @@ void Engine::set_history_max_load_factor() noexcept {
     wait_finish();
 
     atomicHistoriesMap.clear();
-    atomicHistoriesMap.max_load_factor(max_load_factor(options()["HistoryLoadFactor"] / 100.0f));
+    atomicHistoriesMap.max_load_factor(options()["HistoryLoadFactor"] / 100.0f);
     atomicHistoriesMap.rehash(0);
 }
 

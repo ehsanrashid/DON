@@ -28,7 +28,6 @@
 #include <fstream>
 #include <functional>
 #include <initializer_list>
-#include <iostream>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -265,7 +264,11 @@ struct CaseInsensitiveLess final {
 // Wrapper around std::call_once that also tracks whether initialization completed.
 struct CallOnce final {
    public:
-    CallOnce() noexcept = default;
+    CallOnce() noexcept                           = default;
+    CallOnce(const CallOnce&) noexcept            = delete;
+    CallOnce& operator=(const CallOnce&) noexcept = delete;
+    CallOnce(CallOnce&&) noexcept                 = delete;
+    CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     // Initialize using the provided function.
     // The function is invoked until one call completes successfully,
@@ -284,11 +287,6 @@ struct CallOnce final {
     }
 
    private:
-    CallOnce(const CallOnce&) noexcept            = delete;
-    CallOnce& operator=(const CallOnce&) noexcept = delete;
-    CallOnce(CallOnce&&) noexcept                 = delete;
-    CallOnce& operator=(CallOnce&&) noexcept      = delete;
-
     std::once_flag    onceFlag;
     std::atomic<bool> onceDone{false};
 };
@@ -388,71 +386,6 @@ struct FixedText final {
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
-
-// SyncOS
-//
-// Provides RAII-based, thread-safe output synchronization for a std::ostream.
-//
-// Each SyncOS acquires the mutex associated with the given ostream through
-// OstreamMutexRegistry and holds the lock for its lifetime.
-//
-// Key Features:
-//  - Thread-safe: synchronizes access to the associated ostream.
-//  - RAII-based: acquires the mutex on construction and releases it on destruction.
-//  - Move-constructible: allows SyncOS objects to be returned by value.
-//  - Non-copyable and non-move-assignable: prevents accidental lock ownership changes.
-//  - Supports standard ostream operators and manipulators.
-//  - Asserts on use of a moved-from SyncOS in debug builds.
-//
-// Usage:
-//   SyncOS(std::cout) << "Thread-safe message " << value << std::endl;
-//
-// Notes:
-//  - The lock is held for the lifetime of the SyncOS object.
-//  - Keep SyncOS objects short-lived to minimize lock contention.
-//  - OstreamMutexRegistry ensures that the same ostream uses the same mutex.
-class [[nodiscard]] SyncOS final {
-   public:
-    explicit SyncOS(std::ostream& os) noexcept;
-
-    SyncOS(const SyncOS&) noexcept            = delete;
-    SyncOS& operator=(const SyncOS&) noexcept = delete;
-    // Move-constructible so SyncOS objects can be returned by value
-    SyncOS(SyncOS&& syncOs) noexcept;
-    // Move-assignment is deleted to prevent changing lock ownership
-    SyncOS& operator=(SyncOS&&) noexcept = delete;
-
-    using IosManip = std::ios& (*) (std::ios&);
-
-    SyncOS&  operator<<(IosManip manip) &;
-    SyncOS&& operator<<(IosManip manip) &&;
-
-    using OstreamManip = std::ostream& (*) (std::ostream&);
-
-    SyncOS&  operator<<(OstreamManip manip) &;
-    SyncOS&& operator<<(OstreamManip manip) &&;
-
-    template<typename T>
-    SyncOS& operator<<(T&& x) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOS");
-
-        *osPtr << std::forward<T>(x);
-        return *this;
-    }
-    template<typename T>
-    SyncOS&& operator<<(T&& x) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOS");
-
-        *osPtr << std::forward<T>(x);
-        return std::move(*this);
-    }
-
-   private:
-    std::ostream*                osPtr;
-    std::unique_lock<std::mutex> uniqueLock;
-};
-
-[[nodiscard]] SyncOS sync_os(std::ostream& os = std::cout) noexcept;
 
 // Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
 // Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
@@ -1218,8 +1151,6 @@ inline bool InfoStopped = false;
 void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
-
-fs::path utf8_to_path(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 

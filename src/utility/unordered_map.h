@@ -18,7 +18,7 @@
 #ifndef UTILITY_UNORDERED_MAP_H_INCLUDED
 #define UTILITY_UNORDERED_MAP_H_INCLUDED
 
-#include <functional>  // std::less<>
+#include <functional>  // std::hash<>
 #include <map>
 #include <mutex>
 #include <shared_mutex>
@@ -159,14 +159,13 @@ class UnorderedMap final {
         map.reserve(count);
     }
 
-    [[nodiscard]] read_access_type read() const noexcept { return read_access_type{mutex, map}; }
+    [[nodiscard]] read_access_type read() const noexcept { return read_access_type{map, mutex}; }
 
-    [[nodiscard]] write_access_type write() noexcept { return write_access_type{mutex, map}; }
+    [[nodiscard]] write_access_type write() noexcept { return write_access_type{map, mutex}; }
 
    private:
     mutable Mutex mutex;
-
-    map_type map;
+    map_type      map;
 };
 
 }  // namespace DON

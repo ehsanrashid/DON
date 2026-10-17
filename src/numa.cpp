@@ -56,7 +56,7 @@ Set intersect_set(const Set& set1, const Set& set2) noexcept {
     const Set& smalerSet = set1.size() <= set2.size() ? set1 : set2;
     const Set& largerSet = set1.size() <= set2.size() ? set2 : set1;
 
-    Set intersectSet;
+    Set intersectSet{};
     intersectSet.reserve(smalerSet.size());
 
     for (const auto& value : smalerSet)
@@ -71,7 +71,7 @@ template<typename Set>
     const Set& smalerSet = set1.size() <= set2.size() ? set1 : set2;
     const Set& largerSet = set1.size() <= set2.size() ? set2 : set1;
 
-    Set unionSet;
+    Set unionSet{};
     unionSet.reserve(largerSet.size() + smalerSet.size());
 
     unionSet.insert(largerSet.begin(), largerSet.end());

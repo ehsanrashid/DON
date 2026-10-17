@@ -63,6 +63,11 @@ struct MoveList final {
         generate<GT, Any>(pos, moveEnd);
         assert(moves.data() <= moveEnd && moveEnd <= moves.data() + moves.size());
     }
+    MoveList() noexcept                           = delete;
+    MoveList(const MoveList&) noexcept            = delete;
+    MoveList& operator=(const MoveList&) noexcept = delete;
+    MoveList(MoveList&&) noexcept                 = delete;
+    MoveList& operator=(MoveList&&) noexcept      = delete;
 
     [[nodiscard]] const_iterator begin() const noexcept { return moves.data(); }
     [[nodiscard]] const_iterator end() const noexcept { return moveEnd; }
@@ -76,12 +81,6 @@ struct MoveList final {
     [[nodiscard]] bool contains(const Move m) const noexcept { return find(m) != end(); }
 
    private:
-    MoveList() noexcept                           = delete;
-    MoveList(const MoveList&) noexcept            = delete;
-    MoveList& operator=(const MoveList&) noexcept = delete;
-    MoveList(MoveList&&) noexcept                 = delete;
-    MoveList& operator=(MoveList&&) noexcept      = delete;
-
     Array<value_type, MOVE_MAX> moves;
     value_type*                 moveEnd;
 };

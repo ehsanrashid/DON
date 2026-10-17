@@ -504,6 +504,13 @@ ALWAYS_INLINE int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
 template<Index TransformedFeatureWidth, Index HalfDimensions>
 struct Tiling final {
    private:
+    Tiling() noexcept                         = delete;
+    ~Tiling() noexcept                        = delete;
+    Tiling(const Tiling&) noexcept            = delete;
+    Tiling& operator=(const Tiling&) noexcept = delete;
+    Tiling(Tiling&&) noexcept                 = delete;
+    Tiling& operator=(Tiling&&) noexcept      = delete;
+
     // Use __m* types as template arguments, which causes GCC to emit warnings about losing some attribute information.
     // This is irrelevant as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
@@ -546,14 +553,6 @@ struct Tiling final {
     static constexpr Index TileHeight = RegCount * sizeof(vec_t) / 2;
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
-
-   private:
-    Tiling() noexcept                         = delete;
-    ~Tiling() noexcept                        = delete;
-    Tiling(const Tiling&) noexcept            = delete;
-    Tiling& operator=(const Tiling&) noexcept = delete;
-    Tiling(Tiling&&) noexcept                 = delete;
-    Tiling& operator=(Tiling&&) noexcept      = delete;
 };
 #else
 // Treat scalar impl as degenerate size-1 vector

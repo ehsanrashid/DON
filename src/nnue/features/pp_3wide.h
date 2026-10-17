@@ -32,6 +32,13 @@ namespace NNUE::Features {
 
 class PP3Wide final {
    public:
+    PP3Wide() noexcept                          = delete;
+    ~PP3Wide() noexcept                         = delete;
+    PP3Wide(const PP3Wide&) noexcept            = delete;
+    PP3Wide& operator=(const PP3Wide&) noexcept = delete;
+    PP3Wide(PP3Wide&&) noexcept                 = delete;
+    PP3Wide& operator=(PP3Wide&&) noexcept      = delete;
+
     static constexpr u32 Hash = u32{0x86F2B1DD};
 
     static constexpr Index PawnIds    = 48 * COLOR_NB;
@@ -69,14 +76,6 @@ class PP3Wide final {
                                             Array<IndexList, COLOR_NB>& added,
                                             const ThreatWeight*         pfBase   = nullptr,
                                             usize                       pfStride = 0) noexcept;
-
-   private:
-    PP3Wide() noexcept                          = delete;
-    ~PP3Wide() noexcept                         = delete;
-    PP3Wide(const PP3Wide&) noexcept            = delete;
-    PP3Wide& operator=(const PP3Wide&) noexcept = delete;
-    PP3Wide(PP3Wide&&) noexcept                 = delete;
-    PP3Wide& operator=(PP3Wide&&) noexcept      = delete;
 };
 
 }  // namespace NNUE::Features

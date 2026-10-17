@@ -36,8 +36,6 @@ void SpinMutex::lock() noexcept {
     {
         while (locked.load(std::memory_order_relaxed))
         {
-            cpu_relax();
-
             // Yield occasionally to reduce CPU usage under contention.
             if (++spins == SpinsMax)
             {
@@ -52,7 +50,10 @@ void SpinMutex::lock() noexcept {
                 }
 
                 std::this_thread::yield();
+                continue;
             }
+
+            cpu_relax();
         }
 
         expected = false;
@@ -263,7 +264,9 @@ usize WriterSharedMutex::waiting_writer_count() const noexcept {
 // ------------------
 
 FairSharedMutex::Waiter::Waiter(bool writer_) noexcept :
-    writer(writer_) {}
+    writer(writer_) {
+    node.data = this;
+}
 
 bool FairSharedMutex::Waiter::is_writer() const noexcept { return writer; }
 
@@ -273,11 +276,11 @@ void FairSharedMutex::lock() noexcept {
     std::unique_lock uniqueLock{mutex};
 
     ++waitingWriterCount;
-    (void) waitList.push_back(writer.node, writer);
+    waitList.push_back(writer.node);
 
     commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool { return can_lock(writer); });
 
-    (void) waitList.erase(writer.node);
+    waitList.erase(writer.node);
     --waitingWriterCount;
 
     writerActive = true;
@@ -309,12 +312,12 @@ void FairSharedMutex::lock_shared() noexcept {
 
     std::unique_lock uniqueLock{mutex};
 
-    (void) waitList.push_back(reader.node, reader);
+    waitList.push_back(reader.node);
 
     commonCondVar.wait(uniqueLock,
                        [this, &reader]() noexcept -> bool { return can_lock_shared(reader); });
 
-    (void) waitList.erase(reader.node);
+    waitList.erase(reader.node);
 
     ++activeReaderCount;
 }

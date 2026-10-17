@@ -171,6 +171,13 @@ class StaticVector final {
 
     void clear() noexcept { size_ = 0; }
 
+    void clear_and_release() noexcept {
+        for (SizeType i = 0; i < size(); ++i)
+            buffer[i] = T{};
+
+        clear();
+    }
+
    private:
     Array<T, Capacity> buffer;
     SizeType           size_ = 0;
