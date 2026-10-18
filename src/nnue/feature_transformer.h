@@ -22,7 +22,7 @@
 #include <array>
 #include <cstring>
 #include <functional>
-#include <iosfwd>
+#include <iostream>
 #include <memory>
 
 #if defined(USE_RVV)
@@ -40,6 +40,7 @@
 #include "../nnue/features/full_threats.h"
 #include "../nnue/features/k32q2.h"
 #include "../nnue/features/pp_3wide.h"
+#include "../utility/types.h"
 
 #if defined(VECTOR) || defined(USE_RVV)
     #include "../nnue/nnz.h"
@@ -72,11 +73,11 @@ constexpr void permute(std::array<T, DataSize>&            data,
     constexpr usize ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    auto* byts = reinterpret_cast<u8*>(data.data());
+    auto* bytes = reinterpret_cast<u8*>(data.data());
 
     for (usize i = 0; i < TotalSize; i += ChunkSize)
     {
-        auto* values = &byts[i];
+        auto* values = &bytes[i];
 
         Array<u8, ChunkSize> buffer;
 
