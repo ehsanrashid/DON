@@ -715,7 +715,14 @@ ALWAYS_INLINE bool Position::dtz_is_dtm() const noexcept {
     return pieceCount == 3 || (pieceCount == 4 && pieces_bb(QUEEN, ROOK) == 0);
 }
 
-ALWAYS_INLINE usize Position::bucket() const noexcept { return (count() - 1) / 4; }
+ALWAYS_INLINE usize Position::bucket() const noexcept {
+    const Color ac = active_color();
+
+    const usize pcBucket    = (count() - 1) / 4;
+    const usize queenBucket = ((pieces_bb(ac, QUEEN) != 0) << 1) | ((pieces_bb(~ac, QUEEN) != 0));
+
+    return (pcBucket << 2) + queenBucket;
+}
 
 ALWAYS_INLINE int Position::material_std() const noexcept {
     return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);

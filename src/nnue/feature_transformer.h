@@ -38,7 +38,7 @@
 #include "../nnue/simd.h"
 #include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
-#include "../nnue/features/half_ka_hm.h"
+#include "../nnue/features/k32q2.h"
 #include "../nnue/features/pp_3wide.h"
 
 #if defined(VECTOR) || defined(USE_RVV)
@@ -105,7 +105,7 @@ class FeatureTransformer final {
     // Number of input/output dimensions
     static constexpr usize ThreatInputDimensions = Features::FullThreats::Dimensions;
     static constexpr usize PairInputDimensions   = Features::PP3Wide::Dimensions;
-    static constexpr usize PsqDimensions         = Features::HalfKAHm::Dimensions;
+    static constexpr usize PsqDimensions         = Features::K32Q2::Dimensions;
 
     static constexpr usize ThreatAndPpDimensions = ThreatInputDimensions + PairInputDimensions;
     static constexpr usize InputDimensions       = PsqDimensions + ThreatAndPpDimensions;
@@ -129,7 +129,7 @@ class FeatureTransformer final {
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
         return combine_hashes(
-                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::HalfKAHm::Hash})
+                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::K32Q2::Hash})
              ^ (2 * OutputDimensions);
     }
 
@@ -176,7 +176,7 @@ class FeatureTransformer final {
 
         permute<16>(biases, Order);
 
-        permute<16>(weights, Order);
+        permute<8>(weights, Order);
 
         permute<8>(threatAndPpWeights, Order);
     }
@@ -187,12 +187,12 @@ class FeatureTransformer final {
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {
 
-        read_leb_128(is, biases);
+        read_little_endian(is, biases);
 
         read_little_endian(is, threatWeightData(), ThreatWeightSize);
         read_little_endian(is, pawnPairWeightData(), PairWeightSize);
 
-        read_leb_128(is, weights);
+        read_little_endian(is, weights);
 
         permute_weights<true>();
 
@@ -205,12 +205,12 @@ class FeatureTransformer final {
 
         copy->template permute_weights<false>();
 
-        write_leb_128(os, copy->biases);
+        write_little_endian(os, copy->biases);
 
         write_little_endian(os, copy->threatWeightData(), ThreatWeightSize);
         write_little_endian(os, copy->pawnPairWeightData(), PairWeightSize);
 
-        write_leb_128(os, copy->weights);
+        write_little_endian(os, copy->weights);
 
         return !os.fail();
     }

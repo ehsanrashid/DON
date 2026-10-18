@@ -56,7 +56,7 @@ constexpr float MaxLoadFactor = 0.75F;
 constexpr int   Capacity            = 128;
 constexpr int   RandomOperations    = 80'000;
 constexpr usize BenchmarkCapacity   = 32 * KB;
-constexpr usize BenchmarkOperations = 1600'000;
+constexpr usize BenchmarkOperations = 3200'000;
 
 // Exercise the shared_ptr storage path (> 128 bytes).
 struct LargeValue {

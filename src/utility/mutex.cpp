@@ -22,7 +22,6 @@
 
 #include "../utility/cpu.h"
 #include "../utility/list.h"
-#include "../utility/types.h"
 
 namespace DON {
 
@@ -45,7 +44,7 @@ void SpinMutex::lock() noexcept {
                 {
                     yields = 0;
 
-                    std::this_thread::sleep_for(std::chrono::microseconds(SleepTimeUs));
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(SleepTimeNs));
                     continue;
                 }
 
