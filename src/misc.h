@@ -33,7 +33,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 #include "utility/environment.h"
@@ -43,6 +42,8 @@
 #endif
 
 #if defined(_WIN32)
+    #include <utility>
+
     #include "utility/platform_win.h"  // PreFetchCacheLine()
 #endif
 
