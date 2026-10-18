@@ -144,7 +144,7 @@ class Pool final {
     static constexpr usize StorageOffset = offsetof(Slot, storage);
 
 #if defined(USE_STATIC_VECTOR)
-    static constexpr usize BlockMax = 256;
+    static constexpr usize BlockMax = 512;
 
     StaticVector<Block, BlockMax>
 #else

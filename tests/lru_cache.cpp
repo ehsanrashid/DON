@@ -4,8 +4,7 @@ Steps:
 
 mkdir -p build
 
-g++ -std=c++17 -O2 -I./src \
-    -I./third_party/unordered_dense \
+g++ -std=c++17 -O2 -DNDEBUG -I./src \
     src/utility/cpu.cpp \
     src/utility/mutex.cpp \
     tests/lru_cache.cpp \
@@ -35,6 +34,7 @@ g++ -std=c++17 -O2 -I./src `
 
 #include "utility/lru_cache.h"
 #include "utility/mutex.h"
+#include "utility/types.h"
 
 using namespace DON;
 
@@ -202,7 +202,7 @@ int pool_growth_tests() {
 
 int flat_growth_tests() {
     constexpr int EntryCount = 270'000;
-    FlatLRUCache<int, int> cache{EntryCount, 16, MaxLoadFactor};
+    PoolFlatLRUCache<int, int> cache{EntryCount, 16, MaxLoadFactor};
 
     for (int key = 0; key < EntryCount; ++key)
         (void) cache.read_or_write(key, key);
@@ -345,12 +345,12 @@ int main() {
     using ListCache      = ListLRUCache<int, int, SpinMutex>;
     //using NewDeleteCache = NewDeleteLRUCache<int, int, SpinMutex>;
     using PoolCache      = PoolLRUCache<int, int, SpinMutex>;
-    using FlatCache      = FlatLRUCache<int, int, SpinMutex>;
+    using FlatCache      = PoolFlatLRUCache<int, int, SpinMutex>;
 
     //using LargeListCache      = ListLRUCache<int, LargeValue, SpinMutex>;
     //using LargeNewDeleteCache = NewDeleteLRUCache<int, LargeValue, SpinMutex>;
     using LargePoolCache      = PoolLRUCache<int, LargeValue, SpinMutex>;
-    using LargeFlatCache      = FlatLRUCache<int, LargeValue, SpinMutex>;
+    using LargeFlatCache      = PoolFlatLRUCache<int, LargeValue, SpinMutex>;
 
     // ------------------------------------------------
     /*
@@ -429,7 +429,7 @@ int main() {
 
     std::cout << '\n';
 
-    benchmark_cache<FlatCache>("FlatLRUCache", hitKeys, missKeys, mixedKeys);
+    benchmark_cache<FlatCache>("PoolFlatLRUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << "\nDone!!!\n";
 

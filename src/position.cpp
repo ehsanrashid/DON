@@ -45,9 +45,9 @@ Zobrist Zobrist_;
 
 Cuckoos<0x2000> Cuckoos_;
 
-ShardedCache<Key, Value, FlatLRUCache, 32, SpinMutex> NonPawnCache{64 * KB, 16 * KB, 0.75F};
-ShardedCache<Key, Value, FlatLRUCache, 32, SpinMutex> MaterialCache{32 * KB, 8 * KB, 0.75F};
-ShardedCache<Key, Value, FlatLRUCache, 32, SpinMutex> EvaluateCache{32 * KB, 8 * KB, 0.75F};
+ShardedCache<Key, Value, PoolFlatLRUCache, 32, SpinMutex> NonPawnCache{64 * KB, 16 * KB, 0.75F};
+ShardedCache<Key, Value, PoolFlatLRUCache, 32, SpinMutex> MaterialCache{32 * KB, 8 * KB, 0.75F};
+ShardedCache<Key, Value, PoolFlatLRUCache, 32, SpinMutex> EvaluateCache{32 * KB, 8 * KB, 0.75F};
 
 }  // namespace
 

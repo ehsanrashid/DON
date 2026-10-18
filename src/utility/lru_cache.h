@@ -368,7 +368,7 @@ class NewDeleteLRUCache final {
     };
 
     using list_value_type = Entry;
-    using list_type       = LRUIntrusiveList<list_value_type>;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
 
@@ -538,12 +538,10 @@ class NewDeleteLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        //const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
         Entry* const entry = new Entry(key,  //
                                        std::forward<Args>(args)...);
-        /*                   pool.create(requiredSize, key,  //
-                                                std::forward<Args>(args)...);*/
-        mapItr->second                           = entry;
+        mapItr->second     = entry;
+
         [[maybe_unused]] const bool listInserted = list.push_front(*entry);
         assert(listInserted);
 
@@ -566,14 +564,11 @@ class NewDeleteLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        //const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
         Entry* const entry = new Entry(key,                    //
                                        std::forward<Builder>(  //
                                          builder)(std::forward<Args>(args)...));
-        /*                          pool.create(requiredSize, key,      //
-                                                std::forward<Builder>(  //
-                                                  builder)(std::forward<Args>(args)...));*/
-        mapItr->second                           = entry;
+        mapItr->second     = entry;
+
         [[maybe_unused]] const bool listInserted = list.push_front(*entry);
         assert(listInserted);
 
@@ -606,7 +601,7 @@ class NewDeleteLRUCache final {
 
         list.erase(*entry);
 
-        delete entry;  //pool.destroy(entry);
+        delete entry;
     }
 
     void nolock_evict_excess(const usize size) noexcept {
@@ -640,7 +635,7 @@ class NewDeleteLRUCache final {
         {
             list.erase(*entry);  // T&: requires an existing object
 
-            delete entry;  //pool.destroy(entry);  // T*: pointer identifies the object to destroy
+            delete entry;  // T*: pointer identifies the object to destroy
         }
     }
 
@@ -659,7 +654,6 @@ class NewDeleteLRUCache final {
     usize         capacity = 0;
     map_type      map;
     list_type     list;
-    //Pool<Entry>   pool;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -691,7 +685,7 @@ class PoolLRUCache final {
     };
 
     using list_value_type = Entry;
-    using list_type       = LRUIntrusiveList<list_value_type>;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
 
@@ -852,6 +846,10 @@ class PoolLRUCache final {
 
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
+    [[nodiscard]] usize nolock_required_size() const noexcept {
+        return usize{1} + (capacity > map.size() ? capacity - map.size() : usize{0});
+    }
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
         if (capacity == 0)
@@ -864,10 +862,10 @@ class PoolLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
-        Entry* const entry        = pool.create(requiredSize, key,  //
-                                                std::forward<Args>(args)...);
-        mapItr->second            = entry;
+        const usize  requiredSize                = nolock_required_size();
+        Entry* const entry                       = pool.create(requiredSize, key,  //
+                                                               std::forward<Args>(args)...);
+        mapItr->second                           = entry;
         [[maybe_unused]] const bool listInserted = list.push_front(*entry);
         assert(listInserted);
 
@@ -890,7 +888,7 @@ class PoolLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        const usize  requiredSize = nolock_required_size();
         Entry* const entry        = pool.create(requiredSize, key,      //
                                                 std::forward<Builder>(  //
                                                   builder)(std::forward<Args>(args)...));
@@ -984,7 +982,7 @@ class PoolLRUCache final {
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
-class FlatLRUCache final {
+class PoolFlatLRUCache final {
     static constexpr usize InlineValueThreshold = 128;
 
     using storage_value_type =
@@ -1012,7 +1010,7 @@ class FlatLRUCache final {
     };
 
     using list_value_type = Entry;
-    using list_type       = LRUIntrusiveList<list_value_type>;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
 
@@ -1036,21 +1034,21 @@ class FlatLRUCache final {
     };
 
    public:
-    explicit FlatLRUCache(const usize cap        = 2 * KB,
-                          const usize reserveCnt = 1 * KB,
-                          const float maxLoadFac = 0.75F) noexcept :
+    explicit PoolFlatLRUCache(const usize cap        = 2 * KB,
+                              const usize reserveCnt = 1 * KB,
+                              const float maxLoadFac = 0.75F) noexcept :
         defaultCapacity(cap),
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac),
         capacity(cap) {
         configure();
     }
-    FlatLRUCache(const FlatLRUCache&) noexcept            = delete;
-    FlatLRUCache& operator=(const FlatLRUCache&) noexcept = delete;
-    FlatLRUCache(FlatLRUCache&&) noexcept                 = delete;
-    FlatLRUCache& operator=(FlatLRUCache&&) noexcept      = delete;
+    PoolFlatLRUCache(const PoolFlatLRUCache&) noexcept            = delete;
+    PoolFlatLRUCache& operator=(const PoolFlatLRUCache&) noexcept = delete;
+    PoolFlatLRUCache(PoolFlatLRUCache&&) noexcept                 = delete;
+    PoolFlatLRUCache& operator=(PoolFlatLRUCache&&) noexcept      = delete;
 
-    ~FlatLRUCache() noexcept {
+    ~PoolFlatLRUCache() noexcept {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
@@ -1173,6 +1171,10 @@ class FlatLRUCache final {
 
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
+    [[nodiscard]] usize nolock_required_size() const noexcept {
+        return usize{1} + (capacity > map.size() ? capacity - map.size() : usize{0});
+    }
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
         if (capacity == 0)
@@ -1185,10 +1187,11 @@ class FlatLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
+        const usize  requiredSize = nolock_required_size();
         Entry* const entry        = pool.create(requiredSize, key,  //
                                                 std::forward<Args>(args)...);
         mapItr->second            = entry;
+
         [[maybe_unused]] const bool listInserted = list.push_front(*entry);
         assert(listInserted);
 
@@ -1211,11 +1214,13 @@ class FlatLRUCache final {
 
         MapGuard mapGuard{map, mapItr};
 
-        const usize  requiredSize = capacity > list.size() ? capacity - list.size() : usize{1};
-        Entry* const entry        = pool.create(requiredSize, key,      //
-                                                std::forward<Builder>(  //
-                                                  builder)(std::forward<Args>(args)...));
-        mapItr->second            = entry;
+        const usize requiredSize = nolock_required_size();
+
+        Entry* const entry = pool.create(requiredSize, key,      //
+                                         std::forward<Builder>(  //
+                                           builder)(std::forward<Args>(args)...));
+        mapItr->second     = entry;
+
         [[maybe_unused]] const bool listInserted = list.push_front(*entry);
         assert(listInserted);
 
