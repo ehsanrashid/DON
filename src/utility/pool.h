@@ -18,6 +18,14 @@
 #ifndef UTILITY_POOL_H_INCLUDED
 #define UTILITY_POOL_H_INCLUDED
 
+#include <cassert>
+#include <cstddef>      // std::byte, offsetof()
+#include <memory>       // unique_ptr, make_unique
+#include <new>          // placement new
+#include <type_traits>  // is_nothrow_destructible_v, if used
+#include <utility>      // forward, move()
+#include <exception>    // terminate()
+
 #define USE_STATIC_VECTOR
 
 #if defined(USE_STATIC_VECTOR)
@@ -57,7 +65,6 @@ class Pool final {
       = default;
 #else
     {
-
         constexpr usize reserveCapacity = 32;
         // Reserve blocks
         blocks.reserve(reserveCapacity);
@@ -76,11 +83,15 @@ class Pool final {
         Slot* const slot = freeSlotList.pop_front();
         assert(slot != nullptr);
 
-        return ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
+        T* const object = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
+        ++activeCount;
+
+        return object;
     }
 
     void destroy(T* const object) noexcept {
         assert(object != nullptr);
+        assert(activeCount != 0);
 
         Slot* const slot = reinterpret_cast<Slot*>(  //
           reinterpret_cast<std::byte*>(object) - StorageOffset);
@@ -88,9 +99,12 @@ class Pool final {
         object->~T();
 
         freeSlotList.push_front(*slot);
+        --activeCount;
     }
 
     void release() noexcept {
+        assert(activeCount == 0);
+
         freeSlotList.clear();
 #if defined(USE_STATIC_VECTOR)
         blocks.clear_and_release();
@@ -138,6 +152,7 @@ class Pool final {
 #endif
       blocks;
 
+    usize                     activeCount = 0;
     SinglyIntrusiveList<Slot> freeSlotList;
 };
 
