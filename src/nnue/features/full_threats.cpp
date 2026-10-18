@@ -164,19 +164,29 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
     Array<u8, PIECE_TYPE_CNT + 1, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    {
+        const Bitboard whitePawnAttacks = Attacks::pseudo_attacks_bb(WHITE, s1);
+        const Bitboard blackPawnAttacks = Attacks::pseudo_attacks_bb(BLACK, s1);
+        const Bitboard knightAttacks    = Attacks::pseudo_attacks_bb(KNIGHT, s1);
+        const Bitboard bishopAttacks    = Attacks::pseudo_attacks_bb(BISHOP, s1);
+        const Bitboard rookAttacks      = Attacks::pseudo_attacks_bb(ROOK, s1);
+        const Bitboard queenAttacks     = Attacks::pseudo_attacks_bb(QUEEN, s1);
+        const Bitboard kingAttacks      = Attacks::pseudo_attacks_bb(KING, s1);
+
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             const Bitboard s2MaskBB = square_bb(s2) - 1;
             // clang-format off
-            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(WHITE, s1));
-            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(BLACK, s1));
-            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(KNIGHT, s1));
-            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(BISHOP, s1));
-            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(ROOK, s1));
-            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(QUEEN, s1));
-            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(KING, s1));
+            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & whitePawnAttacks);
+            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & blackPawnAttacks);
+            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & knightAttacks);
+            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & bishopAttacks);
+            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & rookAttacks);
+            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & queenAttacks);
+            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & kingAttacks);
             // clang-format on
         }
+    }
 
     return lutIndices;
 }();
