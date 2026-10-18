@@ -261,36 +261,6 @@ struct CaseInsensitiveLess final {
     bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
 };
 
-// Wrapper around std::call_once that also tracks whether initialization completed.
-struct CallOnce final {
-   public:
-    CallOnce() noexcept                           = default;
-    CallOnce(const CallOnce&) noexcept            = delete;
-    CallOnce& operator=(const CallOnce&) noexcept = delete;
-    CallOnce(CallOnce&&) noexcept                 = delete;
-    CallOnce& operator=(CallOnce&&) noexcept      = delete;
-
-    // Initialize using the provided function.
-    // The function is invoked until one call completes successfully,
-    // even if multiple threads call this function.
-    template<typename Func>
-    void operator()(Func&& callFn) {
-        std::call_once(onceFlag, [this, callFunc = std::forward<Func>(callFn)]() mutable {
-            std::move(callFunc)();  // Move into the call
-            onceDone.store(true, std::memory_order_release);
-        });
-    }
-
-    // Check if initialization has been completed.
-    [[nodiscard]] bool once_done() const noexcept {
-        return onceDone.load(std::memory_order_acquire);
-    }
-
-   private:
-    std::once_flag    onceFlag;
-    std::atomic<bool> onceDone{false};
-};
-
 struct IndexRange final {
    public:
     usize beg;

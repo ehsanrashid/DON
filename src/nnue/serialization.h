@@ -88,11 +88,12 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
         {
             for (; i + 1 < IntSize; ++i)
             {
-                arr[i] = v;
+                arr[i] = u8(v);
                 v >>= BYTE_BITS;
             }
         }
-        arr[i] = v;
+
+        arr[i] = u8(v);
 
         os.write(reinterpret_cast<const char*>(arr.data()), IntSize);
     }

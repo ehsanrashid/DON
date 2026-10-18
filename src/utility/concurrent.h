@@ -32,8 +32,7 @@
 #include <unordered_set>  // unordered_set<>
 #include <utility>        // forward<>, pair<>
 
-#include "../misc.h"
-#include "../utility/mutex.h"
+#include "../utility/call_once.h"
 #include "../utility/types.h"
 
 namespace DON {
@@ -434,7 +433,7 @@ class RegistryCleanupHook final {
         registryCleanup(regCleanup) {}
 
     void ensure_initialized() noexcept {
-        while (!hookCallOnce.once_done())
+        while (!hookCallOnce.once_called())
         {
             registryCleanupPtr = &registryCleanup;
 

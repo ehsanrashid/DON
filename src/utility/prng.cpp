@@ -20,6 +20,7 @@
 #include <algorithm>  // generate<>(), all_of<>()
 
 #include "../utility/attributes.h"
+#include "../utility/types.h"
 
 namespace DON {
 

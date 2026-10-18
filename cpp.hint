@@ -3,6 +3,8 @@
 
 #define DEFINE_ARCH_ENTRY
 
+#define INCBIN(...)
+
 #define LOCK_RETURNED(x)
 #define CAPABILITY(x)
 #define GUARDED_BY(x)

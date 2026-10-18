@@ -22,6 +22,7 @@
 
 #include "../utility/cpu.h"
 #include "../utility/list.h"
+#include "../utility/types.h"
 
 namespace DON {
 

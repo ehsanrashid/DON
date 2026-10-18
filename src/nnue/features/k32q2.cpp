@@ -78,7 +78,7 @@ constexpr Array<Index, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
 alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
     Array<u32, 2 * COLOR_NB * SQUARE_NB, PIECE_NB> offsets{};
 
-    for (bool q : {false, true})
+    for (const bool q : {false, true})
     {
         const u16 queenOffset = q ? PS_NB : 0;
         for (const Color c : {WHITE, BLACK})
