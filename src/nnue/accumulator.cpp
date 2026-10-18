@@ -438,7 +438,7 @@ class WeightRows final {
         assert(count + in.size() <= RowMax);
 
         for (Index i = 0; i < in.size(); ++i)
-            rows[count++] = reinterpret_cast<const i8*>(&ft.threatAndPpWeights[in[i] * Dimensions]);
+            rows[count++] = &ft.threatAndPpWeights[in[i] * Dimensions];
     }
 
     template<Op op>
@@ -456,7 +456,7 @@ class WeightRows final {
 
    private:
     const i8* rows[RowMax];
-    int       count = 0;
+    Index     count = 0;
 };
 
 using PsqWeightRows = WeightRows<Features::K32Q2::MaxActiveDimensions>;
