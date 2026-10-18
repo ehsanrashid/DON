@@ -105,7 +105,7 @@ SRCS := \
     movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp search.cpp \
     shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
     nnue/features/full_threats.cpp nnue/features/k32q2.cpp nnue/features/pp_3wide.cpp \
-    nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
+    nnue/accumulator.cpp nnue/architecture.cpp nnue/feature_transformer.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
     utility/command_line.cpp utility/cpu.cpp utility/debug.cpp utility/functions.cpp \
     utility/mutex.cpp utility/prng.cpp utility/sync_ostream.cpp
