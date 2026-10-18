@@ -52,27 +52,27 @@ alignas(CACHE_LINE_SIZE) constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MA
 
 struct PieceThreat final {
    public:
-    u32 baseOffset;   // Base index in the global threat table for this piece
-    u32 threatCount;  // Total number of threats this piece can generate
+    Index baseOffset;   // Base index in the global threat table for this piece
+    Index threatCount;  // Total number of threats this piece can generate
 };
 
 struct ThreatTable final {
    public:
-    Array<PieceThreat, PIECE_NB>    pieceThreats;
-    Array<u32, PIECE_NB, SQUARE_NB> squareOffsets;
+    Array<PieceThreat, PIECE_NB>      pieceThreats;
+    Array<Index, PIECE_NB, SQUARE_NB> squareOffsets;
 };
 
 alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
     ThreatTable threatTable{};
 
-    u32 baseOffset = 0;
+    Index baseOffset = 0;
 
     for (const Color c : {WHITE, BLACK})
         for (const auto pt : PIECE_TYPES)
         {
             const Piece pc = make_piece(c, pt);
 
-            u32 threatCount = 0;
+            Index threatCount = 0;
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
@@ -105,62 +105,62 @@ constexpr Index dimensions() noexcept {
     return dims;
 }
 
+static_assert(Dimensions < (Index{1} << 16));
 static_assert(dimensions() == Dimensions);
 
-constexpr u8  SEMI_EXCLUDED_SHIFT = 31;
-constexpr u32 SEMI_EXCLUDED_MASK  = u32{1} << SEMI_EXCLUDED_SHIFT;
-constexpr u32 FEATURE_INDEX_MASK  = SEMI_EXCLUDED_MASK - 1;
+struct LutData final {
+    Array<Index, PIECE_NB, PIECE_NB> featureIndices{};
+    Array<bool, PIECE_NB, PIECE_NB>  semiExcluded{};
+};
 
 // LUT for getting feature base index and exclusion info
 // [attackerPc][attackedPc]
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
-    Array<u32, PIECE_NB, PIECE_NB> lutDatas{};
+    LutData lutDatas{};
 
-    for (Color attackerC : {WHITE, BLACK})
-        for (PieceType attackerPt : PIECE_TYPES)
+    for (const Color attackerC : {WHITE, BLACK})
+        for (const auto attackerPt : PIECE_TYPES)
         {
-            Piece attackerPc = make_piece(attackerC, attackerPt);
+            const Piece attackerPc = make_piece(attackerC, attackerPt);
 
-            for (Color attackedC : {WHITE, BLACK})
-                for (PieceType attackedPt : PIECE_TYPES)
+            const auto& attackerMap = MAP[attackerPt - 1];
+            const auto& pieceThreat = PIECE_THREATS[+attackerPc];
+
+            for (const Color attackedC : {WHITE, BLACK})
+                for (const auto attackedPt : PIECE_TYPES)
                 {
-                    Piece attackedPc = make_piece(attackedC, attackedPt);
+                    const Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    auto map = MAP[attackerPt - 1][attackedPt - 1];
+                    const auto map = attackerMap[attackedPt - 1];
 
                     // Excluded
                     if (map < 0)
                     {
-                        lutDatas[+attackerPc][+attackedPc] = Dimensions;
+                        lutDatas.featureIndices[+attackerPc][+attackedPc] = Dimensions;
                         continue;
                     }
 
-                    bool enemy = attackerC != attackedC;
+                    const bool enemy = attackerC != attackedC;
 
-                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+                    lutDatas.semiExcluded[+attackerPc][+attackedPc] =
+                      attackerPt == attackedPt && (enemy || attackerPt != PAWN);
 
-                    u32 featureIndex = PIECE_THREATS[+attackerPc].baseOffset
-                                     + (attackedC * TARGET_MAX[attackerPt - 1] + map)
-                                         * PIECE_THREATS[+attackerPc].threatCount;
-
-                    lutDatas[+attackerPc][+attackedPc] =
-                      (u32{semiExcluded} << SEMI_EXCLUDED_SHIFT) | featureIndex;
+                    lutDatas.featureIndices[+attackerPc][+attackedPc] =
+                      pieceThreat.baseOffset
+                      + (attackedC * TARGET_MAX[attackerPt - 1] + map)  //
+                          * pieceThreat.threatCount;
                 }
         }
 
     return lutDatas;
 }();
 
-// Get if semi-excluded from LUT data
-constexpr bool semi_excluded(const u32 lutData) noexcept {
-    return (lutData & SEMI_EXCLUDED_MASK) != 0;
-}
-// Get feature base index from LUT data
-constexpr Index feature_index(const u32 lutData) noexcept { return lutData & FEATURE_INDEX_MASK; }
+constexpr auto& LUT_FEATURE_INDICES = LUT_DATAS.featureIndices;
+constexpr auto& LUT_SEMI_EXCLUDED   = LUT_DATAS.semiExcluded;
 
 // LUT for getting index within piece threats
 // [attackerPt][orgSq][dstSq]
-alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept -> auto {
+alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
     Array<u8, PIECE_TYPE_CNT + 1, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -207,11 +207,12 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     const u8 relAttackedPc = +relative_piece(perspective, attackedPc);
 
     // Lookup LUT
-    const u32 lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
+    const Index featureIndex = LUT_FEATURE_INDICES[relAttackerPc][relAttackedPc];
 
-    return lutData == Dimensions || (semi_excluded(lutData) && org < dst)
+    return featureIndex == Dimensions
+            || (LUT_SEMI_EXCLUDED[relAttackerPc][relAttackedPc] && org < dst)
            ? Dimensions
-           : feature_index(lutData)                                         //
+           : featureIndex                                                   //
                + lut_index(Piece{relAttackerPc}, Square{org}, Square{dst})  //
                + SQUARE_OFFSETS[relAttackerPc][org];
 }

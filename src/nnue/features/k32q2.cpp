@@ -75,21 +75,22 @@ constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
 #undef B
 
 alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
-    Array<u32, 2 * COLOR_NB * SQUARE_NB, PIECE_NB> offsets{};
+    Array<u32, SQUARE_NB, COLOR_NB, 2, PIECE_NB> offsets{};
 
-    for (const bool q : {false, true})
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        const u16 queenOffset = q ? PS_NB : 0;
         for (const Color c : {WHITE, BLACK})
         {
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            const u16 flip   = 56 * c;
+            const u16 orient = relative_sq(c, orientation(s));
+
+            for (const bool q : {false, true})
             {
-                const u16 flip   = 56 * c;
-                const u16 orient = relative_sq(c, orientation(s));
-                for (usize pieceIndex = 0; pieceIndex < PIECE_NB; ++pieceIndex)
-                    offsets[(int(q) * COLOR_NB + c) * SQUARE_NB + s][pieceIndex] =
-                      PIECE_SQUARE_INDICES[c][pieceIndex] + KING_BUCKETS[u8(s) ^ flip] + queenOffset
-                      + orient;
+                const u16 queenOffset = q ? PS_NB : 0;
+
+                for (usize piece = 0; piece < PIECE_NB; ++piece)
+                    offsets[s][c][q][piece] = PIECE_SQUARE_INDICES[c][piece]
+                                            + KING_BUCKETS[u8(s) ^ flip] + queenOffset + orient;
             }
         }
     }
@@ -100,11 +101,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Square kingSq,
-                                         bool         opponentHasQueen,
+                                         const bool   opponentHasQueen,
                                          const Square s,
                                          const Piece  pc) noexcept {
-    return Index(s)
-         ^ OFFSETS[(int(opponentHasQueen) * COLOR_NB + perspective) * SQUARE_NB + kingSq][+pc];
+    return Index(s) ^ OFFSETS[kingSq][perspective][int(opponentHasQueen)][+pc];
 }
 }  // namespace
 
