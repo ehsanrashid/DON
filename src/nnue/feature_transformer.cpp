@@ -17,14 +17,49 @@
 
 #include "../nnue/feature_transformer.h"
 
+#include <algorithm>
+#include <istream>
+#include <memory>
+
 #if defined(USE_RVV)
     #include <type_traits>
 #endif
 
 #include "../nnue/nnz.h"
+#include "../nnue/serialization.h"
+#include "../nnue/types.h"
 #include "../utility/types.h"
 
 namespace DON::NNUE {
+
+bool FeatureTransformer::read_parameters(std::istream& is) noexcept {
+
+    read_little_endian(is, biases);
+
+    read_little_endian(is, threatWeightData(), ThreatWeightSize);
+    read_little_endian(is, pawnPairWeightData(), PairWeightSize);
+
+    read_little_endian(is, weights);
+
+    permute_weights<true>();
+
+    return !is.fail();
+}
+
+bool FeatureTransformer::write_parameters(std::ostream& os) const noexcept {
+    auto copy = std::make_unique<FeatureTransformer>(*this);
+
+    copy->template permute_weights<false>();
+
+    write_little_endian(os, copy->biases);
+
+    write_little_endian(os, copy->threatWeightData(), ThreatWeightSize);
+    write_little_endian(os, copy->pawnPairWeightData(), PairWeightSize);
+
+    write_little_endian(os, copy->weights);
+
+    return !os.fail();
+}
 
 void FeatureTransformer::transform_perspective(
   const Color                             perspective,

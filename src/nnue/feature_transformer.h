@@ -18,35 +18,24 @@
 #ifndef NNUE_FEATURE_TRANSFORMER_H_INCLUDED
 #define NNUE_FEATURE_TRANSFORMER_H_INCLUDED
 
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <functional>
 #include <iosfwd>
-#include <memory>
-
-#if defined(USE_RVV)
-    #include <type_traits>
-#endif
 
 #include "../position.h"
 #include "../misc.h"
 #include "../types.h"
 #include "../nnue/accumulator.h"
-#include "../nnue/architecture.h"
-#include "../nnue/serialization.h"
-#include "../nnue/simd.h"
 #include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
 #include "../nnue/features/k32q2.h"
 #include "../nnue/features/pp_3wide.h"
 
 namespace DON::NNUE {
+
 template<Index Dimensions>
 struct NNZ;
-}
-
-namespace DON::NNUE {
 
 // A class that converts the input features of the NNUE evaluation function
 
@@ -90,7 +79,7 @@ constexpr void permute(std::array<T, DataSize>&            data,
 
 // Input feature converter
 class FeatureTransformer final {
-
+   private:
     // Number of output dimensions for one side
     static constexpr Index HalfDimensions = L1;
 
@@ -216,35 +205,10 @@ class FeatureTransformer final {
     auto* pawnPairWeightData() noexcept { return threatWeightData() + ThreatWeightSize; }
 
     // Read network parameters
-    bool read_parameters(std::istream& is) noexcept {
-
-        read_little_endian(is, biases);
-
-        read_little_endian(is, threatWeightData(), ThreatWeightSize);
-        read_little_endian(is, pawnPairWeightData(), PairWeightSize);
-
-        read_little_endian(is, weights);
-
-        permute_weights<true>();
-
-        return !is.fail();
-    }
+    bool read_parameters(std::istream& is) noexcept;
 
     // Write network parameters
-    bool write_parameters(std::ostream& os) const noexcept {
-        auto copy = std::make_unique<FeatureTransformer>(*this);
-
-        copy->template permute_weights<false>();
-
-        write_little_endian(os, copy->biases);
-
-        write_little_endian(os, copy->threatWeightData(), ThreatWeightSize);
-        write_little_endian(os, copy->pawnPairWeightData(), PairWeightSize);
-
-        write_little_endian(os, copy->weights);
-
-        return !os.fail();
-    }
+    bool write_parameters(std::ostream& os) const noexcept;
 
     // Convert input features
     void transform(const Position&            pos,
