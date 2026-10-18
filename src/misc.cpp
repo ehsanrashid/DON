@@ -25,6 +25,7 @@
 #include <iostream>      // cout, cin
 #include <limits>        // numeric_limits<>
 #include <system_error>  // errc
+#include <utility>
 
 #if !defined(_WIN32)
     #include <unistd.h>    // close()
