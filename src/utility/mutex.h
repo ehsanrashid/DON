@@ -56,8 +56,8 @@ class LOCKABLE SpinMutex final {
 
    private:
     static constexpr usize SpinsMax    = 512;
-    static constexpr usize YieldsMax   = 8;
-    static constexpr usize SleepTimeUs = 5;
+    static constexpr usize YieldsMax   = 4 * MB;
+    static constexpr usize SleepTimeNs = 10;
 
     std::atomic<bool> locked{false};
 };

@@ -31,9 +31,8 @@
 #include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
-
+namespace PP3Wide {
 namespace {
-
 ALWAYS_INLINE constexpr Index make_pawn_id(const Color c, const Square s) noexcept {
     assert(SQ_A2 <= s && s <= SQ_H7);
 
@@ -62,7 +61,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     const auto idH = std::max(id1, id2);
     const auto idL = std::min(id1, id2);
 
-    return PP3Wide::IndexBase + idH * (idH - 1) / 2 + idL;
+    return IndexBase + idH * (idH - 1) / 2 + idL;
 }
 
 #if defined(USE_AVX512ICL)
@@ -71,15 +70,14 @@ ALWAYS_INLINE __m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
     const __m256i lo   = _mm256_min_epu16(a, b);
     const __m256i prod = _mm256_mullo_epi16(hi, _mm256_sub_epi16(hi, _mm256_set1_epi16(1)));
     return _mm256_add_epi16(_mm256_add_epi16(_mm256_srli_epi16(prod, 1), lo),
-                            _mm256_set1_epi16(i16(PP3Wide::IndexBase)));
+                            _mm256_set1_epi16(i16(IndexBase)));
 }
 #endif
-
 }  // namespace
 
-void PP3Wide::append_active_indices(const Color     perspective,
-                                    const Position& pos,
-                                    IndexList&      active) noexcept {
+void append_active_indices(const Color     perspective,
+                           const Position& pos,
+                           IndexList&      active) noexcept {
     const Square   kingSq   = pos.square(perspective, KING);
     const Bitboard wPawnsBB = pos.pieces_bb(WHITE, PAWN);
     const Bitboard bPawnsBB = pos.pieces_bb(BLACK, PAWN);
@@ -107,13 +105,13 @@ void PP3Wide::append_active_indices(const Color     perspective,
     }
 }
 
-void PP3Wide::append_changed_indices(const Color               perspective,
-                                     const Square              kingSq,
-                                     const DirtyType&          dPps,
-                                     IndexList&                removed,
-                                     IndexList&                added,
-                                     const ThreatWeight* const pfBase,
-                                     const usize               pfStride) noexcept {
+void append_changed_indices(const Color               perspective,
+                            const Square              kingSq,
+                            const DirtyType&          dPps,
+                            IndexList&                removed,
+                            IndexList&                added,
+                            const ThreatWeight* const pfBase,
+                            const usize               pfStride) noexcept {
     const auto& before = dPps.before;
     const auto& after  = dPps.after;
 
@@ -189,13 +187,13 @@ void PP3Wide::append_changed_indices(const Color               perspective,
              after[BLACK], added);
 }
 
-void PP3Wide::append_changed_indices_both(const Square                wKingSq,
-                                          const Square                bKingSq,
-                                          const DirtyType&            dPps,
-                                          Array<IndexList, COLOR_NB>& removed,
-                                          Array<IndexList, COLOR_NB>& added,
-                                          const ThreatWeight* const   pfBase,
-                                          const usize                 pfStride) noexcept {
+void append_changed_indices_both(const Square                wKingSq,
+                                 const Square                bKingSq,
+                                 const DirtyType&            dPps,
+                                 Array<IndexList, COLOR_NB>& removed,
+                                 Array<IndexList, COLOR_NB>& added,
+                                 const ThreatWeight* const   pfBase,
+                                 const usize                 pfStride) noexcept {
 #if defined(USE_AVX512ICL)
     append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
     append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
@@ -245,5 +243,5 @@ void PP3Wide::append_changed_indices_both(const Square                wKingSq,
              after[WHITE], after[BLACK], added[WHITE], added[BLACK]);
 #endif
 }
-
+}  // namespace PP3Wide
 }  // namespace DON::NNUE::Features

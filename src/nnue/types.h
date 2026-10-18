@@ -32,7 +32,7 @@
 namespace DON::NNUE {
 
 using Bias         = i16;
-using Weight       = i16;
+using Weight       = i8;
 using ThreatWeight = i8;
 using Index        = u16;
 
@@ -47,7 +47,7 @@ inline constexpr Index L3 = 32;
 // Version of the evaluation file
 inline constexpr u32 FILE_VERSION = 0x6A448AFAu;
 
-inline constexpr Index LAYER_STACKS = 8;
+inline constexpr Index LAYER_STACKS = 32;
 
 // Constant used in evaluation value calculation
 inline constexpr i32 OUTPUT_SCALE      = 16;

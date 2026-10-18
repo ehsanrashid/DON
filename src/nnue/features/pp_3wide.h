@@ -29,55 +29,46 @@ namespace DON {
 class Position;
 
 namespace NNUE::Features {
+// Feature PP3Wide:
+namespace PP3Wide {
+inline constexpr u32 Hash = u32{0x86F2B1DD};
 
-class PP3Wide final {
-   public:
-    PP3Wide() noexcept                          = delete;
-    ~PP3Wide() noexcept                         = delete;
-    PP3Wide(const PP3Wide&) noexcept            = delete;
-    PP3Wide& operator=(const PP3Wide&) noexcept = delete;
-    PP3Wide(PP3Wide&&) noexcept                 = delete;
-    PP3Wide& operator=(PP3Wide&&) noexcept      = delete;
+inline constexpr Index PawnIds    = 48 * COLOR_NB;
+inline constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
 
-    static constexpr u32 Hash = u32{0x86F2B1DD};
+// Pawn pair feature indices are concatenated to threats so this must equal Features::FullThreats::Dimensions;
+// see nnue/feature_transformer.h
+inline constexpr Index IndexBase = FullThreats::Dimensions;
+// Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
+// The first pawn-pair feature is at index FullThreats::Dimensions.
+static_assert(IndexBase == FullThreats::Dimensions);
 
-    static constexpr Index PawnIds    = 48 * COLOR_NB;
-    static constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
+// Maximum number of simultaneously active features
+inline constexpr Index MaxActiveDimensions = 256;
 
-    // Pawn pair feature indices are concatenated to threats so this must equal Features::FullThreats::Dimensions;
-    // see nnue/feature_transformer.h
-    static constexpr Index IndexBase = FullThreats::Dimensions;
-    // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
-    // The first pawn-pair feature is at index FullThreats::Dimensions.
-    static_assert(IndexBase == FullThreats::Dimensions);
+using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
+using DirtyType = DirtyPawnPairs;
 
-    // Maximum number of simultaneously active features
-    static constexpr Index MaxActiveDimensions = 256;
+void append_active_indices(Color           perspective,  //
+                           const Position& pos,
+                           IndexList&      active) noexcept;
 
-    using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
-    using DirtyType = DirtyPawnPairs;
+void append_changed_indices(Color               perspective,
+                            Square              ksq,
+                            const DirtyType&    dPps,
+                            IndexList&          removed,
+                            IndexList&          added,
+                            const ThreatWeight* pfBase   = nullptr,
+                            usize               pfStride = 0) noexcept;
 
-    static void append_active_indices(Color           perspective,  //
-                                      const Position& pos,
-                                      IndexList&      active) noexcept;
-
-    static void append_changed_indices(Color               perspective,
-                                       Square              ksq,
-                                       const DirtyType&    dPps,
-                                       IndexList&          removed,
-                                       IndexList&          added,
-                                       const ThreatWeight* pfBase   = nullptr,
-                                       usize               pfStride = 0) noexcept;
-
-    static void append_changed_indices_both(Square                      wKingSq,
-                                            Square                      bKingSq,
-                                            const DirtyType&            dPps,
-                                            Array<IndexList, COLOR_NB>& removed,
-                                            Array<IndexList, COLOR_NB>& added,
-                                            const ThreatWeight*         pfBase   = nullptr,
-                                            usize                       pfStride = 0) noexcept;
-};
-
+void append_changed_indices_both(Square                      wKingSq,
+                                 Square                      bKingSq,
+                                 const DirtyType&            dPps,
+                                 Array<IndexList, COLOR_NB>& removed,
+                                 Array<IndexList, COLOR_NB>& added,
+                                 const ThreatWeight*         pfBase   = nullptr,
+                                 usize                       pfStride = 0) noexcept;
+}  // namespace PP3Wide
 }  // namespace NNUE::Features
 }  // namespace DON
 

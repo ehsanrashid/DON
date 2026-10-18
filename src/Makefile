@@ -104,7 +104,7 @@ SRCS := \
     attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp misc.cpp \
     movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp position.cpp search.cpp \
     shm.cpp state.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp zobrist.cpp \
-    nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
+    nnue/features/full_threats.cpp nnue/features/k32q2.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
     utility/command_line.cpp utility/cpu.cpp utility/debug.cpp utility/functions.cpp \
@@ -120,15 +120,15 @@ HEADERS := \
     attacks.h benchmark.h bitboard.h cuckoo.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
     movepick.h native_thread.h notation.h numa.h option.h perft.h position.h search.h shm.h state.h \
     thread.h thread_context.h timeman.h tt.h tune.h types.h uci.h zobrist.h \
-    nnue/features/full_threats.h nnue/features/half_ka_hm.h nnue/features/pp_3wide.h \
+    nnue/features/full_threats.h nnue/features/k32q2.h nnue/features/pp_3wide.h \
     nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h \
     nnue/layers/sparse_affine_transform.h nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
     nnue/accumulator.h nnue/architecture.h nnue/feature_transformer.h nnue/network.h nnue/nnz.h \
     nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
-    utility/access.h utility/attributes.h utility/channel.h utility/color.h utility/command_line.h \
-    utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h utility/error.h \
-    utility/functions.h utility/list.h utility/lru_cache.h utility/map.h utility/multi_array.h \
+    utility/access.h utility/attributes.h utility/call_once.h utility/channel.h utility/color.h \
+    utility/command_line.h utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h \
+    utility/error.h utility/functions.h utility/list.h utility/lru_cache.h utility/map.h utility/multi_array.h \
     utility/mutex.h utility/platform_win.h utility/pool.h utility/prng.h utility/queue.h \
     utility/sharded_cache.h utility/static_vector.h utility/store.h utility/sync_ostream.h \
     utility/thread_attributes.h utility/types.h utility/unordered_map.h \
@@ -1678,21 +1678,21 @@ icx-profile-use:
 	@echo Generating dependencies...
 	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > '$@.tmp' || { rm -f '$@.tmp'; exit 1; }
 	@sed -E \
-		-e 's@(.*/)?DON/src/nnue/features/\.\./\.\./@@g' \
+		-e 's@([^[:space:]]*/)?DON/src/nnue/features/\.\./\.\./@ @g' \
 		-e 's@nnue/features/\.\./\.\./@@g' \
 		-e 's@nnue/features/\.\./@nnue/@g' \
-		-e 's@(.*/)?DON/src/nnue/layers/\.\./\.\./@@g' \
+		-e 's@([^[:space:]]*/)?DON/src/nnue/layers/\.\./\.\./@ @g' \
 		-e 's@nnue/layers/\.\./\.\./@@g' \
 		-e 's@nnue/layers/\.\./@nnue/@g' \
-		-e 's@(.*/)?DON/src/nnue/@nnue/@g' \
+		-e 's@([^[:space:]]*/)?DON/src/nnue/@nnue/@g' \
 		-e 's@nnue/\.\./@@g' \
-		-e 's@(.*/)?DON/src/book/@book/@g' \
+		-e 's@([^[:space:]]*/)?DON/src/book/@book/@g' \
 		-e 's@book/\.\./@@g' \
-		-e 's@(.*/)?DON/src/tablebase/@tablebase/@g' \
+		-e 's@([^[:space:]]*/)?DON/src/tablebase/@tablebase/@g' \
 		-e 's@tablebase/\.\./@@g' \
-		-e 's@(.*/)?DON/src/utility/@utility/@g' \
+		-e 's@([^[:space:]]*/)?DON/src/utility/@utility/@g' \
 		-e 's@utility/\.\./@@g' \
-		-e 's@(.*/)?DON/src/@@g' \
+		-e 's@([^[:space:]]*/)?DON/src/@@g' \
 		'$@.tmp' > '$@'
 	@rm -f '$@.tmp'
 

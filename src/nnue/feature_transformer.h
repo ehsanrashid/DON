@@ -22,7 +22,7 @@
 #include <array>
 #include <cstring>
 #include <functional>
-#include <iosfwd>
+#include <iostream>
 #include <memory>
 
 #if defined(USE_RVV)
@@ -38,8 +38,9 @@
 #include "../nnue/simd.h"
 #include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
-#include "../nnue/features/half_ka_hm.h"
+#include "../nnue/features/k32q2.h"
 #include "../nnue/features/pp_3wide.h"
+#include "../utility/types.h"
 
 #if defined(VECTOR) || defined(USE_RVV)
     #include "../nnue/nnz.h"
@@ -72,11 +73,11 @@ constexpr void permute(std::array<T, DataSize>&            data,
     constexpr usize ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    auto* byts = reinterpret_cast<u8*>(data.data());
+    auto* bytes = reinterpret_cast<u8*>(data.data());
 
     for (usize i = 0; i < TotalSize; i += ChunkSize)
     {
-        auto* values = &byts[i];
+        auto* values = &bytes[i];
 
         Array<u8, ChunkSize> buffer;
 
@@ -105,7 +106,7 @@ class FeatureTransformer final {
     // Number of input/output dimensions
     static constexpr usize ThreatInputDimensions = Features::FullThreats::Dimensions;
     static constexpr usize PairInputDimensions   = Features::PP3Wide::Dimensions;
-    static constexpr usize PsqDimensions         = Features::HalfKAHm::Dimensions;
+    static constexpr usize PsqDimensions         = Features::K32Q2::Dimensions;
 
     static constexpr usize ThreatAndPpDimensions = ThreatInputDimensions + PairInputDimensions;
     static constexpr usize InputDimensions       = PsqDimensions + ThreatAndPpDimensions;
@@ -129,7 +130,7 @@ class FeatureTransformer final {
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
         return combine_hashes(
-                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::HalfKAHm::Hash})
+                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::K32Q2::Hash})
              ^ (2 * OutputDimensions);
     }
 
@@ -157,6 +158,29 @@ class FeatureTransformer final {
 
     static constexpr auto InversePackusEpi16Order = invert_permutation(PackusEpi16Order);
 
+#if defined(USE_PAIRED_WIDENING_ADD)
+    // The int8 weight rows are consumed one full vector register (sizeof(vec_t)
+    // bytes) at a time: unpack{lo,hi}_epi8 interleave the bytes of two rows and
+    // maddubs against a vector of ones sums each pair into an int16 lane. Both
+    // unpacks work within 128-bit lanes, so the int16 results of a chunk come out
+    // with its 8-byte blocks in the order {0, 2, 4, 6, ...} (lo) and {1, 3, 5, 7,
+    // ...} (hi). Storing the 8-byte blocks of every chunk in this order at load
+    // time makes the two output registers hold consecutive accumulator lanes, so
+    // the accumulator layout is unchanged.
+    static constexpr auto WideningPairOrder = []() constexpr noexcept {
+        constexpr usize BlockCount = sizeof(SIMD::vec_t) / 8;
+
+        Array<usize, BlockCount> order{};
+
+        for (usize i = 0; i < BlockCount; ++i)
+            order[i] = i % 2 == 0 ? i / 2 : BlockCount / 2 + i / 2;
+
+        return order;
+    }();
+
+    static constexpr auto InverseWideningPairOrder = invert_permutation(WideningPairOrder);
+#endif
+
     usize content_hash() const noexcept {
         usize h = 0;
 
@@ -176,9 +200,21 @@ class FeatureTransformer final {
 
         permute<16>(biases, Order);
 
-        permute<16>(weights, Order);
+        permute<8>(weights, Order);
 
         permute<8>(threatAndPpWeights, Order);
+
+#if defined(USE_PAIRED_WIDENING_ADD)
+        // With 128-bit vectors the order is the identity
+        if constexpr (sizeof(SIMD::vec_t) > 16)
+        {
+            constexpr auto& PairOrder = Read ? WideningPairOrder : InverseWideningPairOrder;
+
+            permute<8>(weights, PairOrder);
+
+            permute<8>(threatAndPpWeights, PairOrder);
+        }
+#endif
     }
 
     auto* threatWeightData() noexcept { return threatAndPpWeights.data(); }
@@ -187,12 +223,12 @@ class FeatureTransformer final {
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {
 
-        read_leb_128(is, biases);
+        read_little_endian(is, biases);
 
         read_little_endian(is, threatWeightData(), ThreatWeightSize);
         read_little_endian(is, pawnPairWeightData(), PairWeightSize);
 
-        read_leb_128(is, weights);
+        read_little_endian(is, weights);
 
         permute_weights<true>();
 
@@ -205,12 +241,12 @@ class FeatureTransformer final {
 
         copy->template permute_weights<false>();
 
-        write_leb_128(os, copy->biases);
+        write_little_endian(os, copy->biases);
 
         write_little_endian(os, copy->threatWeightData(), ThreatWeightSize);
         write_little_endian(os, copy->pawnPairWeightData(), PairWeightSize);
 
-        write_leb_128(os, copy->weights);
+        write_little_endian(os, copy->weights);
 
         return !os.fail();
     }

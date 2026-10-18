@@ -81,16 +81,21 @@ struct AccumulatorCache final {
 
     template<typename Network>
     void init(const Network& network) noexcept {
-        for (auto& sqEntries : entries)
-            for (auto& entry : sqEntries)
-                entry.init(network.featureTransformer.biases);
+        for (auto& qEntries : entries)
+            for (auto& sqEntry : qEntries)
+                for (auto& entry : sqEntry)
+                    entry.init(network.featureTransformer.biases);
     }
 
-    Array<Entry, COLOR_NB>&       operator[](Square s) noexcept;
-    const Array<Entry, COLOR_NB>& operator[](Square s) const noexcept;
+    auto& operator[](const bool opponentHasQueen) noexcept {  //
+        return entries[int(opponentHasQueen)];
+    }
+    const auto& operator[](const bool opponentHasQueen) const noexcept {
+        return entries[int(opponentHasQueen)];
+    }
 
    private:
-    Array<Entry, SQUARE_NB, COLOR_NB> entries;
+    Array<Entry, 2, SQUARE_NB, COLOR_NB> entries;
 };
 
 struct AccumulatorStack final {

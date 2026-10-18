@@ -201,7 +201,7 @@ std::string nnue_trace(Position&               pos,
 
     for (usize bucket = 0; bucket < NNUE::LAYER_STACKS; ++bucket)
     {
-        oss << "|   " << bucket << "    |  ";
+        oss << "|   " << std::setw(2) << bucket << "    |  ";
         format_cp_aligned_dot(oss, netTrace.nnue[bucket], pos);
         oss << "   |";
         if (bucket == netTrace.correctBucket)

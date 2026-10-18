@@ -50,6 +50,7 @@
 #include "../search.h"
 #include "../state.h"
 #include "../types.h"
+#include "../utility/call_once.h"
 #include "../utility/error.h"
 #include "../utility/functions.h"
 #include "../utility/types.h"
@@ -643,7 +644,7 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos) noexcept {
     // Wait until initialization has completed.
-    while (!initCallOnce.once_done())
+    while (!initCallOnce.once_called())
         initCallOnce([this, &pos]() noexcept -> void {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").
             Array<std::string, COLOR_NB> pieces{};
@@ -674,7 +675,7 @@ void* TBTable<T>::init(const Position& pos) noexcept {
     return mappedPtr;
 }
 
-// Memory maps/unmaps the single ".rtbw" and ".rtbz" files.
+// Memory map/unmap the single ".rtbw" and ".rtbz" files.
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
 template<TBType T>
