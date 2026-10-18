@@ -34,9 +34,8 @@
 #include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
-
+namespace FullThreats {
 namespace {
-
 // Pawn diagonal threats only target knights and rooks,
 // (pawn-pawn relationships are handled by the PP_3Wide feature set),
 // so pawns have 2 valid targets.
@@ -106,7 +105,7 @@ constexpr Index dimensions() noexcept {
     return dims;
 }
 
-static_assert(dimensions() == FullThreats::Dimensions);
+static_assert(dimensions() == Dimensions);
 
 constexpr u8  SEMI_EXCLUDED_SHIFT = 31;
 constexpr u32 SEMI_EXCLUDED_MASK  = u32{1} << SEMI_EXCLUDED_SHIFT;
@@ -132,7 +131,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     // Excluded
                     if (map < 0)
                     {
-                        lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
+                        lutDatas[+attackerPc][+attackedPc] = Dimensions;
                         continue;
                     }
 
@@ -198,7 +197,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Piece  attackerPc,
                                          const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
-    const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+    const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
 
     const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
     const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
@@ -210,20 +209,20 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     // Lookup LUT
     const u32 lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
 
-    return lutData == FullThreats::Dimensions || (semi_excluded(lutData) && org < dst)
-           ? FullThreats::Dimensions
+    return lutData == Dimensions || (semi_excluded(lutData) && org < dst)
+           ? Dimensions
            : feature_index(lutData)                                         //
                + lut_index(Piece{relAttackerPc}, Square{org}, Square{dst})  //
                + SQUARE_OFFSETS[relAttackerPc][org];
 }
 
-ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
-                                              const Direction         attackDir,
-                                              const Color             perspective,
-                                              const Position&         pos,
-                                              const Square            kingSq,
-                                              const Piece             attackerPc,
-                                              FullThreats::IndexList& active) noexcept {
+ALWAYS_INLINE void append_pawn_active_indices(Bitboard        attacksBB,
+                                              const Direction attackDir,
+                                              const Color     perspective,
+                                              const Position& pos,
+                                              const Square    kingSq,
+                                              const Piece     attackerPc,
+                                              IndexList&      active) noexcept {
     while (attacksBB != 0)
     {
         const Square dstSq      = pop_lsq(attacksBB);
@@ -232,15 +231,15 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
-        active.push_back_if_lt(index, FullThreats::Dimensions);
+        active.push_back_if_lt(index, Dimensions);
     }
 }
 
 }  // namespace
 
-void FullThreats::append_active_indices(const Color     perspective,
-                                        const Position& pos,
-                                        IndexList&      active) noexcept {
+void append_active_indices(const Color     perspective,
+                           const Position& pos,
+                           IndexList&      active) noexcept {
     const Square kingSq = pos.square(perspective, KING);
 
     const Bitboard occupancyBB = pos.pieces_bb();
@@ -292,13 +291,13 @@ void FullThreats::append_active_indices(const Color     perspective,
     }
 }
 
-void FullThreats::append_changed_indices(const Color               perspective,
-                                         const Square              kingSq,
-                                         const DirtyType&          dTs,
-                                         IndexList&                removed,
-                                         IndexList&                added,
-                                         const ThreatWeight* const pfBase,
-                                         const usize               pfStride) noexcept {
+void append_changed_indices(const Color               perspective,
+                            const Square              kingSq,
+                            const DirtyType&          dTs,
+                            IndexList&                removed,
+                            IndexList&                added,
+                            const ThreatWeight* const pfBase,
+                            const usize               pfStride) noexcept {
     for (const auto& dT : dTs)
     {
         const auto orgSq      = dT.sq();
@@ -319,13 +318,13 @@ void FullThreats::append_changed_indices(const Color               perspective,
     }
 }
 
-void FullThreats::append_changed_indices_both(const Square                wKingSq,
-                                              const Square                bKingSq,
-                                              const DirtyType&            dTs,
-                                              Array<IndexList, COLOR_NB>& removed,
-                                              Array<IndexList, COLOR_NB>& added,
-                                              const ThreatWeight* const   pfBase,
-                                              const usize                 pfStride) noexcept {
+void append_changed_indices_both(const Square                wKingSq,
+                                 const Square                bKingSq,
+                                 const DirtyType&            dTs,
+                                 Array<IndexList, COLOR_NB>& removed,
+                                 Array<IndexList, COLOR_NB>& added,
+                                 const ThreatWeight* const   pfBase,
+                                 const usize                 pfStride) noexcept {
     for (const auto& dT : dTs)
     {
         const auto orgSq      = dT.sq();
@@ -352,5 +351,5 @@ void FullThreats::append_changed_indices_both(const Square                wKingS
         bInsert.push_back_if_lt(bIndex, Dimensions);
     }
 }
-
+}  // namespace FullThreats
 }  // namespace DON::NNUE::Features

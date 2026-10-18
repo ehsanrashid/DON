@@ -30,64 +30,55 @@ namespace DON {
 class Position;
 
 namespace NNUE::Features {
-
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
-class FullThreats final {
-   public:
-    FullThreats() noexcept                              = delete;
-    ~FullThreats() noexcept                             = delete;
-    FullThreats(const FullThreats&) noexcept            = delete;
-    FullThreats& operator=(const FullThreats&) noexcept = delete;
-    FullThreats(FullThreats&&) noexcept                 = delete;
-    FullThreats& operator=(FullThreats&&) noexcept      = delete;
+namespace FullThreats {
 
-    // Hash value embedded in the evaluation file
-    static constexpr u32 Hash = u32{0x2E6B9D04};
+// Hash value embedded in the evaluation file
+inline constexpr u32 Hash = u32{0x2E6B9D04};
 
-    // Number of feature dimensions
-    static constexpr Index Dimensions = 59808;
+// Number of feature dimensions
+inline constexpr Index Dimensions = 59808;
 
-    // Maximum number of simultaneously active features
-    static constexpr Index MaxActiveDimensions = 256;
+// Maximum number of simultaneously active features
+inline constexpr Index MaxActiveDimensions = 256;
 
-    using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
-    using DirtyType = DirtyThreats;
+using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
+using DirtyType = DirtyThreats;
 
-    // Mirror square to have king always on e..h files
-    // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-    static constexpr Square orientation(const Square s) noexcept {
-        return Square(((file_of(s) >> 2) ^ 0) * FILE_H);
-    }
+// Mirror square to have king always on e..h files
+// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
+constexpr Square orientation(const Square s) noexcept {
+    return Square(((file_of(s) >> 2) ^ 0) * FILE_H);
+}
 
-    // Append list of indices for active features in ascending order
-    static void append_active_indices(Color           perspective,  //
-                                      const Position& pos,
-                                      IndexList&      active) noexcept;
-    // Append lists of indices for recently changed features
-    static void append_changed_indices(Color               perspective,
-                                       Square              kingSq,
-                                       const DirtyType&    dTs,
-                                       IndexList&          removed,
-                                       IndexList&          added,
-                                       const ThreatWeight* pfBase   = nullptr,
-                                       usize               pfStride = 0) noexcept;
+static_assert(orientation(SQ_A1) == SQ_A1);
+static_assert(orientation(SQ_D1) == SQ_A1);
+static_assert(orientation(SQ_E1) == SQ_H1);
+static_assert(orientation(SQ_H1) == SQ_H1);
+static_assert(orientation(SQ_A8) == SQ_A1);
+static_assert(orientation(SQ_H8) == SQ_H1);
 
-    static void append_changed_indices_both(Square                      wKingSq,
-                                            Square                      bKingSq,
-                                            const DirtyType&            dTs,
-                                            Array<IndexList, COLOR_NB>& removed,
-                                            Array<IndexList, COLOR_NB>& added,
-                                            const ThreatWeight*         pfBase   = nullptr,
-                                            usize                       pfStride = 0) noexcept;
-};
+// Append list of indices for active features in ascending order
+void append_active_indices(Color           perspective,  //
+                           const Position& pos,
+                           IndexList&      active) noexcept;
+// Append lists of indices for recently changed features
+void append_changed_indices(Color               perspective,
+                            Square              kingSq,
+                            const DirtyType&    dTs,
+                            IndexList&          removed,
+                            IndexList&          added,
+                            const ThreatWeight* pfBase   = nullptr,
+                            usize               pfStride = 0) noexcept;
 
-static_assert(FullThreats::orientation(SQ_A1) == SQ_A1);
-static_assert(FullThreats::orientation(SQ_D1) == SQ_A1);
-static_assert(FullThreats::orientation(SQ_E1) == SQ_H1);
-static_assert(FullThreats::orientation(SQ_H1) == SQ_H1);
-static_assert(FullThreats::orientation(SQ_A8) == SQ_A1);
-static_assert(FullThreats::orientation(SQ_H8) == SQ_H1);
-
+void append_changed_indices_both(Square                      wKingSq,
+                                 Square                      bKingSq,
+                                 const DirtyType&            dTs,
+                                 Array<IndexList, COLOR_NB>& removed,
+                                 Array<IndexList, COLOR_NB>& added,
+                                 const ThreatWeight*         pfBase   = nullptr,
+                                 usize                       pfStride = 0) noexcept;
+}  // namespace FullThreats
 }  // namespace NNUE::Features
 }  // namespace DON
 
