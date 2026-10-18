@@ -211,6 +211,10 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     else
         return FENError{"invalid color to move: " + std::string(1, token) + "."};
 
+    if (const Square kingSq = square(~active_color(), KING);
+        attackers_exists(kingSq, pieces_bb(active_color()), pieces_bb() ^ kingSq))
+        return FENError{"king can be captured."};
+
     reader.skip_spaces();
 
     // 3. Castling availability. Compatible with 3 standards:
@@ -328,6 +332,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square(ac, KING));
 
     set_pinner_blocker();
+
     set_ext_state();
 
     if (is_ok(enPassantSq))
@@ -349,9 +354,6 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     ply_ = std::max(rule50_count(), ply());
 
     set_state();
-
-    if ((acc_attacks_bb() & square(~active_color(), KING)) != 0)
-        return FENError{"king can be captured."};
 
     assert(is_ok_());
     return std::nullopt;
@@ -544,12 +546,12 @@ void Position::set_state() noexcept {
         st->key ^= Zobrist_.turn();
 }
 
-void Position::reset_pinner_blocker(const Color c) noexcept {
+void Position::reset_pinner_blocker(const Color c) const noexcept {
     st->pinnersBB[c]  = 0;
     st->blockersBB[c] = 0;
 }
 
-void Position::compute_pinner_blocker(const Color c) noexcept {
+void Position::set_pinner_blocker(const Color c) const noexcept {
     const Square kingSq = square(c, KING);
 
     const Bitboard attackersBB = pieces_bb(~c);
@@ -575,15 +577,15 @@ void Position::compute_pinner_blocker(const Color c) noexcept {
     }
 }
 
-void Position::set_pinner_blocker() noexcept {
+void Position::set_pinner_blocker() const noexcept {
     reset_pinner_blocker(WHITE);
     reset_pinner_blocker(BLACK);
 
-    compute_pinner_blocker(WHITE);
-    compute_pinner_blocker(BLACK);
+    set_pinner_blocker(WHITE);
+    set_pinner_blocker(BLACK);
 }
 
-void Position::set_ext_state() noexcept {
+void Position::set_ext_state() const noexcept {
 
     const Color ac = active_color();
 
@@ -601,18 +603,33 @@ void Position::set_ext_state() noexcept {
     st->checksBB[QUEEN ] = st->checksBB[BISHOP] | st->checksBB[ROOK];
     st->checksBB[KING  ] = 0;
 
-    const Bitboard ownOccupancyBB = occupancyBB ^ square(ac, KING);
+    st->accAttacksBB[NO_PIECE_TYPE] = FULL_BB;
+    st->accAttacksBB[ALL          ] = 0;
+    // clang-format on
+}
 
+void Position::set_acc_attacks_bb() const noexcept {
+    const Color ac = active_color();
+
+    const Bitboard ownOccupancyBB = pieces_bb() ^ square(ac, KING);
+
+    // clang-format off
     st->accAttacksBB[NO_PIECE_TYPE] = 0;
-    st->accAttacksBB[PAWN  ] = attacks_by_bb(~ac, PAWN  , ownOccupancyBB);
-    st->accAttacksBB[KNIGHT] = attacks_by_bb(~ac, KNIGHT, ownOccupancyBB) | acc_attacks_bb(PAWN  );
-    st->accAttacksBB[BISHOP] = attacks_by_bb(~ac, BISHOP, ownOccupancyBB) | acc_attacks_bb(KNIGHT);
-    st->accAttacksBB[ROOK  ] = attacks_by_bb(~ac, ROOK  , ownOccupancyBB) | acc_attacks_bb(BISHOP);
-    st->accAttacksBB[QUEEN ] = attacks_by_bb(~ac, QUEEN , ownOccupancyBB) | acc_attacks_bb(ROOK  );
-    st->accAttacksBB[KING  ] = attacks_by_bb(~ac, KING  , ownOccupancyBB) | acc_attacks_bb(QUEEN );
+    st->accAttacksBB[KNIGHT] = st->accAttacksBB[PAWN  ]  = attacks_by_bb(~ac, PAWN  , ownOccupancyBB);
+    st->accAttacksBB[BISHOP] = st->accAttacksBB[KNIGHT] |= attacks_by_bb(~ac, KNIGHT, ownOccupancyBB);
+    st->accAttacksBB[ROOK  ] = st->accAttacksBB[BISHOP] |= attacks_by_bb(~ac, BISHOP, ownOccupancyBB);
+    st->accAttacksBB[QUEEN ] = st->accAttacksBB[ROOK  ] |= attacks_by_bb(~ac, ROOK  , ownOccupancyBB);
+    st->accAttacksBB[KING  ] = st->accAttacksBB[QUEEN ] |= attacks_by_bb(~ac, QUEEN , ownOccupancyBB);
+                               st->accAttacksBB[KING  ] |= attacks_by_bb(~ac, KING  , ownOccupancyBB);
+    // clang-format on
+}
 
-    const Bitboard oppOccupancyBB = occupancyBB ^ square(~ac, KING);
+void Position::set_all_attacks_bb() const noexcept {
+    const Color ac = active_color();
 
+    const Bitboard oppOccupancyBB = pieces_bb() ^ square(~ac, KING);
+
+    // clang-format off
     st->accAttacksBB[ALL   ] = attacks_by_bb(ac, PAWN  , oppOccupancyBB)
                              | attacks_by_bb(ac, KNIGHT, oppOccupancyBB)
                              | attacks_by_bb(ac, BISHOP, oppOccupancyBB)
@@ -999,11 +1016,12 @@ void Position::do_move(const Move          m,
     // Compute checkers (if move may check)
     if (mayCheck)
     {
-        st->checkersBB =
-          castling ? pieces_bb(ac, ROOK) & Attacks::attacks_bb(ROOK, square(~ac, KING), pieces_bb())
-                   : pieces_bb(ac)
-                       & ((state()->preSt->checksBB[movedPt] & dstSq)
-                          | slide_attackers_bb(square(~ac, KING)));
+        st->checkersBB = castling               //
+                         ? pieces_bb(ac, ROOK)  //
+                             & Attacks::attacks_bb(ROOK, square(~ac, KING), pieces_bb())
+                         : pieces_bb(ac)
+                             & ((state()->preSt->checksBB[movedPt] & dstSq)
+                                | slide_attackers_bb(square(~ac, KING)));
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square(ac, KING)) == 0);
     }
@@ -1013,6 +1031,7 @@ void Position::do_move(const Move          m,
     activeColor = ~ac;
 
     set_pinner_blocker();
+
     set_ext_state();
 
     if (is_ok(enPassantSq))
@@ -1249,7 +1268,7 @@ bool Position::legal(const Move m) const noexcept {
 
             // For king moves, check whether the destination square is attacked by the enemies.
             if (type_of(movedPc) == KING)
-                return (acc_attacks_bb(KING) & dstSq) == 0;
+                return !attackers_exists(dstSq, pieces_bb(~ac), pieces_bb() ^ orgSq);
         }
         break;
     case Move::Type::PROMOTION :
@@ -2168,7 +2187,8 @@ bool Position::is_ok_() const noexcept {
                 assert(false && "Position::is_ok_(): Castling");
         }
 
-    if ((acc_attacks_bb() & square(~active_color(), KING)) != 0)
+    if (const Square kingSq = square(~active_color(), KING);
+        attackers_exists(kingSq, pieces_bb(active_color()), pieces_bb() ^ kingSq))
         assert(false && "Position::is_ok_(): King Checker");
 
     return true;

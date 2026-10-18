@@ -182,8 +182,9 @@ class Position final {
     [[nodiscard]] Bitboard blockers_bb(Color c) const noexcept;
     [[nodiscard]] Bitboard blockers_bb() const noexcept;
 
-    [[nodiscard]] Bitboard acc_attacks_bb(PieceType pt = ALL) const noexcept;
-    [[nodiscard]] Bitboard acc_less_attacks_bb(PieceType pt) const noexcept;
+    [[nodiscard]] Bitboard acc_attacks_bb(PieceType pt) const noexcept;
+    [[nodiscard]] Bitboard all_attacks_bb() const noexcept;
+    [[nodiscard]] Bitboard less_attacks_bb(PieceType pt) const noexcept;
     [[nodiscard]] Bitboard threats_bb() const noexcept;
 
     // Hash keys
@@ -325,16 +326,20 @@ class Position final {
     // The function is only used when a new position is set up.
     void set_state() noexcept;
 
-    void reset_pinner_blocker(Color c) noexcept;
+    void reset_pinner_blocker(Color c) const noexcept;
     // Computes the blockers that are pinned pieces to 's' from a set of attackers.
     // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
     // Pinners are also returned via the ownPinners and oppPinners reference.
-    void compute_pinner_blocker(Color c) noexcept;
+    void set_pinner_blocker(Color c) const noexcept;
 
-    void set_pinner_blocker() noexcept;
+    void set_pinner_blocker() const noexcept;
 
     // Set extra state, used for fast check detection
-    void set_ext_state() noexcept;
+    void set_ext_state() const noexcept;
+
+    void set_acc_attacks_bb() const noexcept;
+
+    void set_all_attacks_bb() const noexcept;
 
     // Tests if the SEE (Static Exchange Evaluation)
     // value of the move is greater or equal to the given threshold.
@@ -546,10 +551,10 @@ ALWAYS_INLINE Bitboard Position::slide_attackers_bb(const Square s) const noexce
 // Computes bitboard of all pieces which attack a given square on occupancy
 ALWAYS_INLINE Bitboard Position::attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
-         | (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
-         | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s))
+         | (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK , s))
+         | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE , s))
          | (pieces_bb(KNIGHT     ) & Attacks::pseudo_attacks_bb(KNIGHT, s))
-         | (pieces_bb(KING       ) & Attacks::pseudo_attacks_bb(KING, s));
+         | (pieces_bb(KING       ) & Attacks::pseudo_attacks_bb(KING  , s));
 }
 ALWAYS_INLINE Bitboard Position::attackers_bb(const Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
@@ -558,8 +563,8 @@ ALWAYS_INLINE Bitboard Position::attackers_bb(const Square s) const noexcept {
 // Checks if there are any slide attackers to 's'
 ALWAYS_INLINE bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
-    return ((attackersBB & pieces_bb(QUEEN, BISHOP) & bAttacksBB)
-          | (attackersBB & pieces_bb(QUEEN, ROOK)   & rAttacksBB)) != 0;
+    return (attackersBB & pieces_bb(QUEEN, BISHOP) & bAttacksBB) != 0
+        || (attackersBB & pieces_bb(QUEEN, ROOK)   & rAttacksBB) != 0;
 }
 ALWAYS_INLINE bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, pieces_bb());
@@ -567,10 +572,10 @@ ALWAYS_INLINE bool Position::slide_attackers_exists(const Square s, const Bitboa
 // Checks if there are any attackers to 's'
 ALWAYS_INLINE bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, occupancyBB)
-        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK, s))
-                          | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE, s))))
-          | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::pseudo_attacks_bb(KNIGHT, s))
-          | (attackersBB & pieces_bb(KING         ) & Attacks::pseudo_attacks_bb(KING, s))) != 0;
+        || (attackersBB & pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(BLACK , s)) != 0
+        || (attackersBB & pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(WHITE , s)) != 0
+        || (attackersBB & pieces_bb(KNIGHT     ) & Attacks::pseudo_attacks_bb(KNIGHT, s)) != 0
+        || (attackersBB & pieces_bb(KING       ) & Attacks::pseudo_attacks_bb(KING  , s)) != 0;
 }
 ALWAYS_INLINE bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return attackers_exists(s, attackersBB, pieces_bb());
@@ -618,14 +623,28 @@ ALWAYS_INLINE Bitboard Position::blockers_bb() const noexcept {
     return blockers_bb(WHITE) | blockers_bb(BLACK);
 }
 
-ALWAYS_INLINE Bitboard Position::acc_attacks_bb(PieceType pt) const noexcept {  //
+ALWAYS_INLINE Bitboard Position::acc_attacks_bb(PieceType pt) const noexcept {
+    assert(pt != ALL);
+
+    if (st->accAttacksBB[NO_PIECE_TYPE] == FULL_BB)
+        set_acc_attacks_bb();
+
     return st->accAttacksBB[pt];
 }
-ALWAYS_INLINE Bitboard Position::acc_less_attacks_bb(const PieceType pt) const noexcept {
+ALWAYS_INLINE Bitboard Position::all_attacks_bb() const noexcept {
+    if (st->accAttacksBB[ALL] == 0)
+        set_all_attacks_bb();
+
+    return st->accAttacksBB[ALL];
+}
+ALWAYS_INLINE Bitboard Position::less_attacks_bb(const PieceType pt) const noexcept {
+    if (st->accAttacksBB[NO_PIECE_TYPE] == FULL_BB)
+        set_acc_attacks_bb();
+
     return st->accAttacksBB[pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 ALWAYS_INLINE Bitboard Position::threats_bb() const noexcept {
-    return acc_attacks_bb(KING) & ~acc_attacks_bb();
+    return acc_attacks_bb(KING) & ~all_attacks_bb();
 }
 
 ALWAYS_INLINE Key Position::raw_key() const noexcept { return st->key; }

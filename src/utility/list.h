@@ -591,6 +591,7 @@ class OwnedDoublyIntrusiveList final {
             return true;
 
         unlink(node);
+
         attach_back(node);
 
         return true;
@@ -624,12 +625,15 @@ class OwnedDoublyIntrusiveList final {
 
     void attach(Node& node) noexcept {
         node.owner = this;
+
         ++size_;
     }
 
     void detach(Node& node) noexcept {
         unlink(node);
+
         node.owner = nullptr;
+
         --size_;
     }
 

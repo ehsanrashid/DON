@@ -117,7 +117,7 @@ class Pool final {
             std::terminate();
 #endif
 
-        const usize count = block_size(requiredSize == 0 ? 1 : requiredSize);
+        const usize count = block_size(requiredSize != 0 ? requiredSize : usize{1});
         auto        slots = std::make_unique<Slot[]>(count);
         Slot* const first = slots.get();
 
