@@ -37,38 +37,135 @@ void Mutex::unlock() noexcept { mutex.unlock(); }
 void SpinMutex::lock() noexcept {
     usize spins  = 0;
     usize yields = 0;
-    bool  expected;
 
-    do
+    while (true)
     {
-        while (locked.load(std::memory_order_relaxed))
+        if (!locked.load(std::memory_order_relaxed))
         {
-            // Yield occasionally to reduce CPU usage under contention.
-            if (++spins == SpinsMax)
+            bool expected = false;
+
+            if (locked.compare_exchange_weak(expected, true, std::memory_order_acquire,
+                                             std::memory_order_relaxed))
+                break;
+        }
+
+        // Yield occasionally to reduce CPU usage under contention.
+        if (++spins == SpinsMax)
+        {
+            spins = 0;
+
+            if (++yields == YieldsMax)
             {
-                spins = 0;
+                yields = 0;
 
-                if (++yields == YieldsMax)
-                {
-                    yields = 0;
-
-                    std::this_thread::sleep_for(std::chrono::nanoseconds(SleepTimeNs));
-                    continue;
-                }
-
-                std::this_thread::yield();
+                std::this_thread::sleep_for(std::chrono::nanoseconds(SleepTimeNs));
                 continue;
             }
 
-            cpu_relax();
+            std::this_thread::yield();
+            continue;
         }
 
-        expected = false;
-    } while (!locked.compare_exchange_weak(expected, true, std::memory_order_acquire,
-                                           std::memory_order_relaxed));
+        cpu_relax();
+    }
 }
 
 void SpinMutex::unlock() noexcept { locked.store(false, std::memory_order_release); }
+
+// ------------------
+
+void SharedMutex::lock() noexcept {
+    std::unique_lock uniqueLock{mutex};
+
+    ++waitingWriterCount;
+
+    commonCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock(); });
+
+    --waitingWriterCount;
+
+    writerActive = true;
+}
+
+bool SharedMutex::try_lock() noexcept {
+    std::lock_guard lockGuard{mutex};
+
+    if (!can_try_lock())
+        return false;
+
+    writerActive = true;
+    return true;
+}
+
+void SharedMutex::unlock() noexcept {
+    {
+        std::lock_guard lockGuard{mutex};
+
+        assert(writerActive);
+        writerActive = false;
+    }
+
+    commonCondVar.notify_all();
+}
+
+void SharedMutex::lock_shared() noexcept {
+    std::unique_lock uniqueLock{mutex};
+
+    commonCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock_shared(); });
+
+    ++activeReaderCount;
+}
+
+bool SharedMutex::try_lock_shared() noexcept {
+    std::lock_guard lockGuard{mutex};
+
+    if (!can_try_lock_shared())
+        return false;
+
+    ++activeReaderCount;
+    return true;
+}
+
+void SharedMutex::unlock_shared() noexcept {
+    {
+        std::lock_guard lockGuard{mutex};
+
+        assert(activeReaderCount != 0);
+        --activeReaderCount;
+    }
+
+    // Wake waiters to recheck their eligibility
+    commonCondVar.notify_all();
+}
+
+bool SharedMutex::can_lock() const noexcept {
+    return !writerActive            // No active writer
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool SharedMutex::can_try_lock() const noexcept {
+    return !writerActive            // No active writer
+        && activeReaderCount == 0;  // No active readers
+}
+
+bool SharedMutex::can_lock_shared() const noexcept {
+    return !writerActive;  // No active writer
+}
+
+bool SharedMutex::can_try_lock_shared() const noexcept {
+    return !writerActive;  // No active writer
+}
+
+usize SharedMutex::active_reader_count() const noexcept {
+    std::lock_guard lockGuard{mutex};
+
+    return activeReaderCount;
+}
+
+usize SharedMutex::waiting_writer_count() const noexcept {
+    std::lock_guard lockGuard{mutex};
+
+    return waitingWriterCount;
+}
 
 // ------------------
 
@@ -98,6 +195,7 @@ void ReaderSharedMutex::unlock() noexcept {
     {
         std::lock_guard lockGuard{mutex};
 
+        assert(writerActive);
         writerActive = false;
     }
 
@@ -125,14 +223,15 @@ bool ReaderSharedMutex::try_lock_shared() noexcept {
 }
 
 void ReaderSharedMutex::unlock_shared() noexcept {
-    bool wakeWriter;
+    bool notifyWriter;
     {
         std::lock_guard lockGuard{mutex};
 
-        wakeWriter = --activeReaderCount == 0;
+        assert(activeReaderCount != 0);
+        notifyWriter = --activeReaderCount == 0;
     }
 
-    if (wakeWriter)
+    if (notifyWriter)
         writerCondVar.notify_one();
 }
 
@@ -191,15 +290,16 @@ bool WriterSharedMutex::try_lock() noexcept {
 }
 
 void WriterSharedMutex::unlock() noexcept {
-    bool wakeWriter;
+    bool notifyWriter;
     {
         std::lock_guard lockGuard{mutex};
 
+        assert(writerActive);
         writerActive = false;
-        wakeWriter   = waitingWriterCount != 0;
+        notifyWriter = waitingWriterCount != 0;
     }
 
-    if (wakeWriter)
+    if (notifyWriter)
         writerCondVar.notify_one();
     else
         readerCondVar.notify_all();
@@ -224,14 +324,15 @@ bool WriterSharedMutex::try_lock_shared() noexcept {
 }
 
 void WriterSharedMutex::unlock_shared() noexcept {
-    bool wakeWriter;
+    bool notifyWriter;
     {
         std::lock_guard lockGuard{mutex};
 
-        wakeWriter = --activeReaderCount == 0;
+        assert(activeReaderCount != 0);
+        notifyWriter = --activeReaderCount == 0;
     }
 
-    if (wakeWriter)
+    if (notifyWriter)
         writerCondVar.notify_one();
 }
 
@@ -307,6 +408,7 @@ void FairSharedMutex::unlock() noexcept {
     {
         std::lock_guard lockGuard{mutex};
 
+        assert(writerActive);
         writerActive = false;
     }
 
@@ -343,6 +445,7 @@ void FairSharedMutex::unlock_shared() noexcept {
     {
         std::lock_guard lockGuard{mutex};
 
+        assert(activeReaderCount != 0);
         --activeReaderCount;
     }
 
