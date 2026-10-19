@@ -17,13 +17,13 @@
 
 #include "../utility/mutex.h"
 
+#include <cassert>
 #include <chrono>
 #include <thread>  // sleep_for()
 
 #include "../utility/cpu.h"
 #include "../utility/list.h"
 #include "../utility/types.h"
-#include "mutex.h"
 
 namespace DON {
 

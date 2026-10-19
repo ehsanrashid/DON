@@ -40,11 +40,14 @@ class VectorSet final {
         compare(comp) {}
 
     [[nodiscard]] size_type size() const noexcept { return size_; }
-    [[nodiscard]] bool      empty() const noexcept { return size() == 0; }
-    [[nodiscard]] T&        front() noexcept { return blocks.front().front(); }
-    [[nodiscard]] const T&  front() const noexcept { return blocks.front().front(); }
-    [[nodiscard]] T&        back() noexcept { return blocks.back().back(); }
-    [[nodiscard]] const T&  back() const noexcept { return blocks.back().back(); }
+
+    [[nodiscard]] bool empty() const noexcept { return size() == 0; }
+
+    [[nodiscard]] T&       front() noexcept { return blocks.front().front(); }
+    [[nodiscard]] const T& front() const noexcept { return blocks.front().front(); }
+
+    [[nodiscard]] T&       back() noexcept { return blocks.back().back(); }
+    [[nodiscard]] const T& back() const noexcept { return blocks.back().back(); }
 
     template<typename Function>
     void for_each(Function&& function) const noexcept {
@@ -77,28 +80,34 @@ class VectorSet final {
             blockItr = std::prev(blocks.end());
         }
 
-        block_type& block    = *blockItr;
-        const auto  position = std::lower_bound(block.begin(), block.end(), value, compare);
+        block_type& block = *blockItr;
 
-        if (position != block.end() && !compare(value, *position))
-            return false;
+        if (block.empty() || compare(block.back(), value))
+            block.push_back(value);
+        else
+        {
+            const auto itr = std::lower_bound(block.begin(), block.end(), value, compare);
 
-        block.insert(position, value);
+            if (itr != block.end() && !compare(value, *itr))
+                return false;
+
+            block.insert(itr, value);
+        }
+
         ++size_;
 
-        if (block.size() > BlockCapacity)
-        {
-            // middle
-            auto splitPoint = block.begin() + (block.size() / 2);
+        if (block.size() < BlockCapacity)
+            return true;
 
-            block_type newBlock;
-            newBlock.reserve(BlockCapacity);
-            newBlock.insert(newBlock.end(),  //
-                            std::make_move_iterator(splitPoint),
-                            std::make_move_iterator(block.end()));
-            block.erase(splitPoint, block.end());
-            blocks.insert(std::next(blockItr), std::move(newBlock));
-        }
+        auto splitItr = block.begin() + (BlockCapacity / 2);
+
+        block_type newBlock;
+        newBlock.reserve(BlockCapacity);
+        newBlock.insert(newBlock.end(), std::make_move_iterator(splitItr),
+                        std::make_move_iterator(block.end()));
+
+        block.erase(splitItr, block.end());
+        blocks.insert(std::next(blockItr), std::move(newBlock));
 
         return true;
     }
@@ -109,17 +118,21 @@ class VectorSet final {
         if (blockItr == blocks.end())
             return 0;
 
-        block_type& block    = *blockItr;
-        const auto  position = std::lower_bound(block.begin(), block.end(), value, compare);
+        block_type& block = *blockItr;
 
-        if (position == block.end() || compare(value, *position))
+        const auto itr = std::lower_bound(block.begin(), block.end(), value, compare);
+
+        if (itr == block.end() || compare(value, *itr))
             return 0;
 
-        block.erase(position);
+        block.erase(itr);
+
         --size_;
 
-        if (block.empty())
-            blocks.erase(blockItr);
+        if (!block.empty())
+            return 1;
+
+        blocks.erase(blockItr);
 
         return 1;
     }
