@@ -23,8 +23,15 @@
 #include "../utility/cpu.h"
 #include "../utility/list.h"
 #include "../utility/types.h"
+#include "mutex.h"
 
 namespace DON {
+
+void Mutex::lock() noexcept { mutex.lock(); }
+
+void Mutex::unlock() noexcept { mutex.unlock(); }
+
+// ------------------
 
 // A lightweight spin mutex that periodically yields and backs off under contention.
 void SpinMutex::lock() noexcept {
@@ -389,7 +396,5 @@ usize FairSharedMutex::waiting_writer_count() const noexcept {
 
     return waitingWriterCount;
 }
-
-// ------------------
 
 }  // namespace DON

@@ -28,6 +28,23 @@
 
 namespace DON {
 
+// A std::mutex wrapper for clang thread safety annotation.
+class LOCKABLE Mutex final {
+   public:
+    Mutex() noexcept                        = default;
+    Mutex(const Mutex&) noexcept            = delete;
+    Mutex& operator=(const Mutex&) noexcept = delete;
+    Mutex(Mutex&&) noexcept                 = delete;
+    Mutex& operator=(Mutex&&) noexcept      = delete;
+
+    void lock() noexcept ACQUIRE_CAPABILITY();
+
+    void unlock() noexcept RELEASE_CAPABILITY();
+
+   private:
+    std::mutex mutex;
+};
+
 // A lightweight mutex that actively spins while waiting for the lock to
 // become available. Under sustained contention, periodically yields the
 // thread or briefly sleeps to reduce CPU usage and excessive busy-waiting.

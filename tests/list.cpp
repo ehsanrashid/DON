@@ -4,15 +4,7 @@ Steps:
 
 mkdir -p build
 
-g++ -std=c++17 -O2 -I./src \
-    tests/list.cpp \
-    -o build/list
-g++ -std=c++17 -O2 -I./src \
-    tests/list.cpp \
-    -o build/list
-g++ -std=c++17 -O2 -I./src `
-    tests/list.cpp `
-    -o build/list
+g++ -std=c++17 -O2 -DNDEBUG -I./src tests/list.cpp -o build/list
 
 ./build/list
 */

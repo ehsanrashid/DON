@@ -4,21 +4,7 @@ Steps:
 
 mkdir -p build
 
-g++ -std=c++17 -O2 -DNDEBUG -I./src \
-    src/utility/cpu.cpp \
-    src/utility/mutex.cpp \
-    tests/cache_bechmark.cpp \
-    -o build/cache_bechmark
-g++ -std=c++17 -O2 -I./src \
-    src/utility/cpu.cpp \
-    src/utility/mutex.cpp \
-    tests/cache_bechmark.cpp \
-    -o build/cache_bechmark
-g++ -std=c++17 -O2 -I./src `
-    src/utility/cpu.cpp `
-    src/utility/mutex.cpp `
-    tests/cache_bechmark.cpp `
-    -o build/cache_bechmark
+g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/cache_bechmark.cpp -o build/cache_bechmark
 
 ./build/cache_bechmark
 */
@@ -36,6 +22,7 @@ g++ -std=c++17 -O2 -I./src `
 #include "utility/mutex.h"
 #include "utility/types.h"
 
+
 namespace DON::CacheBenchmark {
 
 using u64   = std::uint64_t;
@@ -43,10 +30,11 @@ using Clock = std::chrono::steady_clock;
 
 constexpr usize Capacity       = 8 * KB;
 constexpr usize OperationCount = 2 * MB;
-constexpr usize Repetitions    = 100;
-constexpr usize HotKeyCount    = 8 * KB;
+constexpr usize Repetitions    = 201;
+constexpr usize HotKeyCount    = 2 * KB;
 
 constexpr u64 ColdKeyBase = u64{1} << 40;
+constexpr u64 RandomSeed  = u64{0xD0A5CACE12345678};
 
 enum class Workload : usize {
     Hits,
@@ -60,9 +48,7 @@ struct Result {
     u64    checksum;
 };
 
-[[nodiscard]] constexpr u64 value_for(u64 key) noexcept {
-    return key ^ 0x9E3779B97F4A7C15ULL;
-}
+[[nodiscard]] constexpr u64 value_for(u64 key) noexcept { return key ^ u64{0x9E3779B97F4A7C15}; }
 
 // Deterministic generator: no random-number generation during timing.
 class Random {
@@ -81,11 +67,11 @@ class Random {
     u64 state;
 };
 
-[[nodiscard]] std::vector<u64> make_workload(Workload workload) {
+[[nodiscard]] std::vector<u64> make_workload(Workload workload, usize hotAccessesPerFive = 0) {
     std::vector<u64> keys;
     keys.reserve(OperationCount);
 
-    Random random{0xD0A5CACE12345678ULL};
+    Random random{RandomSeed};
     u64    coldIndex = 0;
 
     for (usize i = 0; i < OperationCount; ++i)
@@ -93,7 +79,7 @@ class Random {
         switch (workload)
         {
         case Workload::Hits :
-            keys.push_back(random.next() % Capacity);
+            keys.push_back(random.next() % HotKeyCount);
             break;
 
         case Workload::Misses :
@@ -101,8 +87,8 @@ class Random {
             break;
 
         case Workload::Mixed :
-            // 80% hot-key accesses and 20% unique cold-key accesses.
-            if (i % 5 != 0)
+            // hotAccessesPerFive of every five accesses are hot.
+            if (i % 5 < hotAccessesPerFive)
                 keys.push_back(random.next() % HotKeyCount);
             else
                 keys.push_back(ColdKeyBase + coldIndex++);
@@ -114,87 +100,91 @@ class Random {
 }
 
 template<typename Cache>
-[[nodiscard]] Result run_once(const std::vector<u64>& keys, Workload workload) {
+[[nodiscard]] Result run_once(const std::vector<u64>& keys) {
     Cache cache{Capacity};
 
     // Prepare the cache outside the timed region.
     for (usize i = 0; i < Capacity; ++i)
         (void) cache.read_or_write(u64{i}, value_for(u64{i}));
 
-    const auto start = Clock::now();
-
     u64 checksum = 0;
+
+    const auto start = Clock::now();
 
     for (const u64 key : keys)
         checksum += cache.read_or_write(key, value_for(key));
 
     const auto finish = Clock::now();
 
-    const double elapsedNs =
-        std::chrono::duration<double, std::nano>(finish - start).count();
+    const double elapsedNs = std::chrono::duration<double, std::nano>(finish - start).count();
 
     const double nsPerOperation = elapsedNs / static_cast<double>(keys.size());
 
     return {nsPerOperation, 1000.0 / nsPerOperation, checksum};
 }
 
-[[nodiscard]] double median(std::array<double, Repetitions> values) {
+template<typename T, usize N>
+[[nodiscard]] double median(std::array<T, N> values) noexcept {
     std::sort(values.begin(), values.end());
-    return values[Repetitions / 2];
+
+    if constexpr (N % 2 == 0)
+        return (static_cast<double>(values[N / 2 - 1]) + static_cast<double>(values[N / 2])) / 2.0;
+    else
+        return static_cast<double>(values[N / 2]);
 }
 
 template<typename LruCache, typename LfuCache>
-void benchmark_workload(const char* name, Workload workload) {
-    const std::vector<u64> keys = make_workload(workload);
+void benchmark_workload(const char* name, Workload workload, usize hotAccessesPerFive = 0) {
+    const std::vector<u64> keys = make_workload(workload, hotAccessesPerFive);
 
-    std::array<double, Repetitions> lruTimes{};
-    std::array<double, Repetitions> lfuTimes{};
+    Array<double, Repetitions> lruTimes{};
+    Array<double, Repetitions> lfuTimes{};
 
     u64 lruChecksum = 0;
     u64 lfuChecksum = 0;
 
     // Warm-up both implementations.
-    (void) run_once<LruCache>(keys, workload);
-    (void) run_once<LfuCache>(keys, workload);
+    (void) run_once<LruCache>(keys);
+    (void) run_once<LfuCache>(keys);
 
     for (usize i = 0; i < Repetitions; ++i)
     {
-        Result lruResult{};
-        Result lfuResult{};
-
+        // Alternate execution order to reduce order bias.
         if (i % 2 == 0)
         {
-            lruResult = run_once<LruCache>(keys, workload);
-            lfuResult = run_once<LfuCache>(keys, workload);
+            const Result lruResult = run_once<LruCache>(keys);
+            const Result lfuResult = run_once<LfuCache>(keys);
+
+            lruTimes[i] = lruResult.nsPerOperation;
+            lfuTimes[i] = lfuResult.nsPerOperation;
+            lruChecksum = lruResult.checksum;
+            lfuChecksum = lfuResult.checksum;
         }
         else
         {
-            lfuResult = run_once<LfuCache>(keys, workload);
-            lruResult = run_once<LruCache>(keys, workload);
+            const Result lfuResult = run_once<LfuCache>(keys);
+            const Result lruResult = run_once<LruCache>(keys);
+
+            lruTimes[i] = lruResult.nsPerOperation;
+            lfuTimes[i] = lfuResult.nsPerOperation;
+            lruChecksum = lruResult.checksum;
+            lfuChecksum = lfuResult.checksum;
         }
-
-        lruTimes[i] = lruResult.nsPerOperation;
-        lfuTimes[i] = lfuResult.nsPerOperation;
-
-        lruChecksum = lruResult.checksum;
-        lfuChecksum = lfuResult.checksum;
     }
 
     const double lruNs = median(lruTimes);
     const double lfuNs = median(lfuTimes);
 
     std::printf("\n%s (%zu operations)\n", name, keys.size());
-    std::printf("%-12s %12s %12s %16s\n",
-                "Cache", "ns/op", "Mops/s", "Checksum");
-    std::printf("%-12s %12.3f %12.3f %16llu\n",
-                "PoolFlatLRU", lruNs, 1000.0 / lruNs,
+    std::printf("%-12s %12s %12s %16s\n", "Cache", "ns/op", "Mops/s", "Checksum");
+
+    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLRU", lruNs, 1000.0 / lruNs,
                 static_cast<unsigned long long>(lruChecksum));
-    std::printf("%-12s %12.3f %12.3f %16llu\n",
-                "PoolFlatLFU", lfuNs, 1000.0 / lfuNs,
+
+    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLFU", lfuNs, 1000.0 / lfuNs,
                 static_cast<unsigned long long>(lfuChecksum));
 
-    std::printf("LFU vs LRU: %.2f%% %s\n",
-                (lruNs - lfuNs) * 100.0 / lruNs,
+    std::printf("LFU vs LRU: %+.2f%% %s\n", (lruNs - lfuNs) * 100.0 / lruNs,
                 lfuNs < lruNs   ? "faster"
                 : lfuNs > lruNs ? "slower"
                                 : "equal");
@@ -203,51 +193,44 @@ void benchmark_workload(const char* name, Workload workload) {
         std::printf("WARNING: checksums differ!\n");
 }
 
-// Returns the hot-key hit rate after cold-key pollution.
-template<typename Cache>
-[[nodiscard]] double run_small_hot_set_survival() {
-    constexpr usize TestCapacity      = 256;
-    constexpr usize TestHotKeyCount   = 100;
-    constexpr usize ColdKeyCount      = 1000;
-    constexpr usize TrainingRounds    = 20;
-    constexpr usize MeasurementRounds = 10;
+// Small hot-set test.
+constexpr usize TestCapacity       = 256;
+constexpr usize TestHotKeyCount    = 100;
+constexpr usize TestColdKeyCount   = 1000;
+constexpr usize TestTrainingRounds = 20;
 
+[[nodiscard]] constexpr double percentage(usize count, usize total) noexcept {
+    return 100.0 * static_cast<double>(count) / static_cast<double>(total);
+}
+
+// Returns the number of hot keys surviving the cold-key stream.
+template<typename Cache>
+[[nodiscard]] usize run_small_hot_set_survival() {
     Cache cache{TestCapacity};
 
-    // Train the cache on the hot keys.
-    for (usize round = 0; round < TrainingRounds; ++round)
+    for (usize round = 0; round < TestTrainingRounds; ++round)
         for (usize key = 0; key < TestHotKeyCount; ++key)
             (void) cache.read_or_write(u64{key}, value_for(u64{key}));
 
-    // Insert unique cold keys to force eviction.
-    for (usize key = 0; key < ColdKeyCount; ++key)
+    for (usize key = 0; key < TestColdKeyCount; ++key)
     {
         const u64 coldKey = ColdKeyBase + key;
         (void) cache.read_or_write(coldKey, value_for(coldKey));
     }
 
-    // Measure how many hot keys survived the cold-key stream.
-    usize hits = 0;
-    constexpr usize TotalAccesses = TestHotKeyCount * MeasurementRounds;
+    usize survivingHotKeys = 0;
 
-    for (usize round = 0; round < MeasurementRounds; ++round)
-        for (usize key = 0; key < TestHotKeyCount; ++key)
-        {
-            const u64 hotKey = key;
+    for (usize key = 0; key < TestHotKeyCount; ++key)
+        if (cache.contains(u64{key}))
+            ++survivingHotKeys;
 
-            if (cache.contains(hotKey))
-                ++hits;
-
-            (void) cache.read_or_write(hotKey, value_for(hotKey));
-        }
-
-    return 100.0 * static_cast<double>(hits) / static_cast<double>(TotalAccesses);
+    return survivingHotKeys;
 }
 
 template<typename LruCache, typename LfuCache>
 void benchmark_small_hot_set_survival() {
-    std::array<double, Repetitions> lruResults{};
-    std::array<double, Repetitions> lfuResults{};
+    Array<double, Repetitions> lruResults{};
+    Array<double, Repetitions> lfuResults{};
 
     // Warm-up.
     (void) run_small_hot_set_survival<LruCache>();
@@ -257,64 +240,48 @@ void benchmark_small_hot_set_survival() {
     {
         if (i % 2 == 0)
         {
-            lruResults[i] = run_small_hot_set_survival<LruCache>();
-            lfuResults[i] = run_small_hot_set_survival<LfuCache>();
+            lruResults[i] = static_cast<double>(run_small_hot_set_survival<LruCache>());
+            lfuResults[i] = static_cast<double>(run_small_hot_set_survival<LfuCache>());
         }
         else
         {
-            lfuResults[i] = run_small_hot_set_survival<LfuCache>();
-            lruResults[i] = run_small_hot_set_survival<LruCache>();
+            lfuResults[i] = static_cast<double>(run_small_hot_set_survival<LfuCache>());
+            lruResults[i] = static_cast<double>(run_small_hot_set_survival<LruCache>());
         }
     }
 
-    const double lruHitRate = median(lruResults);
-    const double lfuHitRate = median(lfuResults);
+    const double lruSurvivors = median(lruResults);
+    const double lfuSurvivors = median(lfuResults);
 
-    std::printf("\nHot-set survival (capacity=256, 100 hot, 1000 cold)\n");
-    std::printf("%-12s %16s\n", "Cache", "Hot hit rate");
-    std::printf("%-12s %15.2f%%\n", "PoolFlatLRU", lruHitRate);
-    std::printf("%-12s %15.2f%%\n", "PoolFlatLFU", lfuHitRate);
-    std::printf("LFU advantage: %+.2f percentage points\n",
-                lfuHitRate - lruHitRate);
+    const double lruRate = percentage(static_cast<usize>(lruSurvivors + 0.5), TestHotKeyCount);
+    const double lfuRate = percentage(static_cast<usize>(lfuSurvivors + 0.5), TestHotKeyCount);
+
+    std::printf("\nSmall hot-set survival (capacity=%zu, %zu hot, %zu cold)\n", TestCapacity,
+                TestHotKeyCount, TestColdKeyCount);
+
+    std::printf("%-12s %12s %12s\n", "Cache", "Survivors", "Survival");
+    std::printf("%-12s %12.1f %11.2f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
+    std::printf("%-12s %12.1f %11.2f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
+
+    std::printf("LFU advantage: %+.2f percentage points\n", lfuRate - lruRate);
 }
 
+// Main hot-set survival workload.
 constexpr usize SurvivalCapacity       = 8 * KB;
 constexpr usize SurvivalHotKeyCount    = 4 * KB;
 constexpr usize SurvivalColdKeyCount   = 6 * KB;
 constexpr usize SurvivalTrainingRounds = 100;
-constexpr usize SurvivalMeasureRounds  = 1;
-
-// Normal
-//constexpr usize SurvivalCapacity       = 16 * KB;
-//constexpr usize SurvivalHotKeyCount    = 4 * KB;
-//constexpr usize SurvivalColdKeyCount   = 64 * KB;
-//constexpr usize SurvivalTrainingRounds = 100;
-//constexpr usize SurvivalMeasureRounds  = 100;
-
-// Slight Favour LFU
-//constexpr usize SurvivalCapacity       = 20 * KB;
-//constexpr usize SurvivalHotKeyCount    = 16 * KB;
-//constexpr usize SurvivalColdKeyCount   = 14 * KB;
-//constexpr usize SurvivalTrainingRounds = 500;
-//constexpr usize SurvivalMeasureRounds  = 1;
-
-// Favour LFU
-//constexpr usize SurvivalCapacity       = 16 * KB;
-//constexpr usize SurvivalHotKeyCount    = 4 * KB;
-//constexpr usize SurvivalColdKeyCount   = 256 * KB;
-//constexpr usize SurvivalTrainingRounds = 20;
-//constexpr usize SurvivalMeasureRounds  = 1;
 
 template<typename Cache>
-[[nodiscard]] double run_hot_set_survival() {
+[[nodiscard]] usize run_hot_set_survival() {
     Cache cache{SurvivalCapacity};
 
-    // Train the cache on the hot keys.
+    // Train the cache on frequently accessed keys.
     for (usize round = 0; round < SurvivalTrainingRounds; ++round)
         for (usize key = 0; key < SurvivalHotKeyCount; ++key)
             (void) cache.read_or_write(u64{key}, value_for(u64{key}));
 
-    // Stream many unique cold keys through the cache.
+    // Insert unique cold keys to force eviction.
     for (usize key = 0; key < SurvivalColdKeyCount; ++key)
     {
         const u64 coldKey = ColdKeyBase + key;
@@ -324,45 +291,16 @@ template<typename Cache>
     usize survivingHotKeys = 0;
 
     for (usize key = 0; key < SurvivalHotKeyCount; ++key)
-    {
         if (cache.contains(u64{key}))
             ++survivingHotKeys;
-    }
 
-    //std::printf("Hot keys surviving cold stream: %zu / %zu\n", survivingHotKeys, SurvivalHotKeyCount);
-
-    // Count hot-key hits over repeated measurement rounds.
-    usize hits = 0;
-    for (usize key = 0; key < SurvivalHotKeyCount; ++key)
-    {
-        if (cache.contains(u64{key}))
-            ++hits;
-    }
-
-    return 100.0 * static_cast<double>(hits) / static_cast<double>(SurvivalHotKeyCount);
-
-    /*
-    constexpr usize TotalAccesses = SurvivalHotKeyCount * SurvivalMeasureRounds;
-
-    for (usize round = 0; round < SurvivalMeasureRounds; ++round)
-        for (usize key = 0; key < SurvivalHotKeyCount; ++key)
-        {
-            const u64 hotKey = key;
-
-            if (cache.contains(hotKey))
-                ++hits;
-
-            (void) cache.read_or_write(hotKey, value_for(hotKey));
-        }
-
-    return 100.0 * static_cast<double>(hits) / static_cast<double>(TotalAccesses);
-    */
+    return survivingHotKeys;
 }
 
 template<typename LruCache, typename LfuCache>
 void benchmark_hot_set_survival() {
-    std::array<double, Repetitions> lruResults{};
-    std::array<double, Repetitions> lfuResults{};
+    Array<double, Repetitions> lruResults{};
+    Array<double, Repetitions> lfuResults{};
 
     // Warm-up.
     (void) run_hot_set_survival<LruCache>();
@@ -372,58 +310,56 @@ void benchmark_hot_set_survival() {
     {
         if (i % 2 == 0)
         {
-            lruResults[i] = run_hot_set_survival<LruCache>();
-            lfuResults[i] = run_hot_set_survival<LfuCache>();
+            lruResults[i] = static_cast<double>(run_hot_set_survival<LruCache>());
+            lfuResults[i] = static_cast<double>(run_hot_set_survival<LfuCache>());
         }
         else
         {
-            lfuResults[i] = run_hot_set_survival<LfuCache>();
-            lruResults[i] = run_hot_set_survival<LruCache>();
+            lfuResults[i] = static_cast<double>(run_hot_set_survival<LfuCache>());
+            lruResults[i] = static_cast<double>(run_hot_set_survival<LruCache>());
         }
     }
 
-    const double lruHitRate = median(lruResults);
-    const double lfuHitRate = median(lfuResults);
+    const double lruSurvivors = median(lruResults);
+    const double lfuSurvivors = median(lfuResults);
 
-    const usize totalAccesses = SurvivalHotKeyCount * SurvivalMeasureRounds;
-    const auto lruHits = static_cast<usize>(
-        lruHitRate * static_cast<double>(totalAccesses) / 100.0 + 0.5);
-    const auto lfuHits = static_cast<usize>(
-        lfuHitRate * static_cast<double>(totalAccesses) / 100.0 + 0.5);
+    const double lruRate = percentage(static_cast<usize>(lruSurvivors + 0.5), SurvivalHotKeyCount);
+    const double lfuRate = percentage(static_cast<usize>(lfuSurvivors + 0.5), SurvivalHotKeyCount);
 
-    std::printf(
-        "\nHot-set survival (capacity=%zu, %zu hot, %zu cold; %zu operations)\n",
-        SurvivalCapacity, SurvivalHotKeyCount, SurvivalColdKeyCount, totalAccesses);
-    std::printf("%-12s %12s %12s\n",      "Cache", "Hit rate", "Hits");
-    std::printf("%-12s %11.3f%% %12zu\n", "PoolFlatLRU", lruHitRate, lruHits);
-    std::printf("%-12s %11.3f%% %12zu\n", "PoolFlatLFU", lfuHitRate, lfuHits);
+    std::printf("\nHot-set survival (capacity=%zu, %zu hot, %zu cold)\n", SurvivalCapacity,
+                SurvivalHotKeyCount, SurvivalColdKeyCount);
 
-    if (lruHitRate > 0.0)
-        std::printf("LFU vs LRU: %+.2f%% %s\n",
-                    (lfuHitRate - lruHitRate) * 100.0 / lruHitRate,
-                    lfuHitRate > lruHitRate ? "better hit rate"
-                    : lfuHitRate < lruHitRate ? "worse hit rate"
-                                              : "equal hit rate");
+    std::printf("%-12s %12s %12s\n", "Cache", "Survivors", "Survival");
+    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
+    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
+
+    if (lruRate > 0.0)
+        std::printf("LFU vs LRU: %+.2f%% %s\n", (lfuRate - lruRate) * 100.0 / lruRate,
+                    lfuRate > lruRate   ? "better survival"
+                    : lfuRate < lruRate ? "worse survival"
+                                        : "equal survival");
     else
-        std::printf("LFU vs LRU: %+.2f percentage points\n",
-                    lfuHitRate - lruHitRate);
+        std::printf("LFU vs LRU: %+.3f percentage points\n", lfuRate - lruRate);
 }
-
 
 template<typename LruCache, typename LfuCache>
 void run() {
-    std::printf("Cache benchmark: capacity=%zu, repetitions=%zu\n",
-                Capacity, Repetitions);
+    std::printf("Cache benchmark: capacity=%zu, repetitions=%zu\n", Capacity, Repetitions);
 
     benchmark_workload<LruCache, LfuCache>("Hits", Workload::Hits);
 
-    benchmark_workload<LruCache, LfuCache>(
-        "Misses + eviction", Workload::Misses);
+    benchmark_workload<LruCache, LfuCache>("Misses + eviction", Workload::Misses);
 
-    benchmark_workload<LruCache, LfuCache>(
-        "Mixed (80%% hot / 20%% cold)", Workload::Mixed);
+    benchmark_workload<LruCache, LfuCache>("Mixed (80%% hot / 20%% cold)", Workload::Mixed, 4);
 
-    //benchmark_small_hot_set_survival<LruCache, LfuCache>();
+    benchmark_workload<LruCache, LfuCache>("Mixed (60%% hot / 40%% cold)", Workload::Mixed, 3);
+
+    benchmark_workload<LruCache, LfuCache>("Mixed (40%% hot / 60%% cold)", Workload::Mixed, 2);
+
+    benchmark_workload<LruCache, LfuCache>("Mixed (20%% hot / 80%% cold)", Workload::Mixed, 1);
+
+    // Optional small-scale test.
+    // benchmark_small_hot_set_survival<LruCache, LfuCache>();
 
     benchmark_hot_set_survival<LruCache, LfuCache>();
 }

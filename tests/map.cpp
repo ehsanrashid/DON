@@ -4,15 +4,7 @@ Steps:
 
 mkdir -p build
 
-g++ -std=c++17 -O2 -I./src \
-    tests/map.cpp \
-    -o build/map
-g++ -std=c++17 -O2 -I./src \
-    tests/map.cpp \
-    -o build/map
-g++ -std=c++17 -O2 -I./src `
-    tests/map.cpp `
-    -o build/map
+g++ -std=c++17 -O2 -DNDEBUG -I./src tests/map.cpp -o build/map
 
 ./build/map
 */

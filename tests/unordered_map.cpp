@@ -4,15 +4,7 @@ Steps:
 
 mkdir -p build
 
-g++ -std=c++17 -O2 -I./src \
-    tests/unordered_map.cpp \
-    -o build/unordered_map
-g++ -std=c++17 -O2 -I./src \
-    tests/unordered_map.cpp \
-    -o build/unordered_map
-g++ -std=c++17 -O2 -I./src `
-    tests/unordered_map.cpp `
-    -o build/unordered_map
+g++ -std=c++17 -O2 -DNDEBUG -I./src tests/unordered_map.cpp -o build/unordered_map
 
 ./build/unordered_map
 */
