@@ -36,16 +36,15 @@ g++ -std=c++17 -O2 -I./src `
 #include "utility/mutex.h"
 #include "utility/types.h"
 
-
 namespace DON::CacheBenchmark {
 
 using u64   = std::uint64_t;
 using Clock = std::chrono::steady_clock;
 
-constexpr usize Capacity       = 2048;
-constexpr usize OperationCount = 1'600'000;
-constexpr usize Repetitions    = 7;
-constexpr usize HotKeyCount    = 256;
+constexpr usize Capacity       = 8 * KB;
+constexpr usize OperationCount = 2 * MB;
+constexpr usize Repetitions    = 100;
+constexpr usize HotKeyCount    = 8 * KB;
 
 constexpr u64 ColdKeyBase = u64{1} << 40;
 

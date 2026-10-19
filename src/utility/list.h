@@ -39,7 +39,7 @@ class SinglyIntrusiveList final {
 
     [[nodiscard]] const_pointer front() const noexcept { return head; }
 
-    [[nodiscard]] bool size() const noexcept { return size_; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
 
     [[nodiscard]] bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
@@ -52,6 +52,20 @@ class SinglyIntrusiveList final {
         head      = &node;
 
         ++size_;
+    }
+
+    // position must belong to this list; node must be detached.
+    bool insert_after(T& position, T& node) noexcept {
+        assert(&position != &node);
+        assert(node.next == nullptr);
+
+        if (&position == &node || node.next != nullptr)
+            return false;
+
+        node.next     = position.next;
+        position.next = &node;
+        ++size_;
+        return true;
     }
 
     [[nodiscard]] pointer pop_front() noexcept {
@@ -67,6 +81,34 @@ class SinglyIntrusiveList final {
         return node;
     }
 
+    [[nodiscard]] T* next(const T& item) noexcept { return item.next; }
+
+    [[nodiscard]] const T* next(const T& item) const noexcept { return item.next; }
+
+    bool erase(T& node) noexcept {
+        T* previous = nullptr;
+        T* current  = head;
+
+        while (current != nullptr && current != &node)
+        {
+            previous = current;
+            current  = current->next;
+        }
+
+        assert(current == &node);
+        if (current == nullptr)
+            return false;
+
+        if (previous != nullptr)
+            previous->next = node.next;
+        else
+            head = node.next;
+
+        node.next = nullptr;
+        --size_;
+        return true;
+    }
+
     void clear() noexcept {
         head  = nullptr;
         size_ = 0;
@@ -76,7 +118,6 @@ class SinglyIntrusiveList final {
     pointer head  = nullptr;
     usize   size_ = 0;
 };
-
 
 // A lightweight intrusive doubly linked list that does not own its elements or allocate memory.
 // Each element stores pointers to the previous and next elements, allowing existing objects
@@ -103,12 +144,12 @@ class DoublyIntrusiveList final {
     [[nodiscard]] usize size() const noexcept { return size_; }
 
     [[nodiscard]] bool empty() const noexcept {
-        assert((front_ == nullptr) == (size_ == 0));
-        assert((back_ == nullptr) == (size_ == 0));
-        return size_ == 0;
+        assert((front() == nullptr) == (size() == 0));
+        assert((back() == nullptr) == (size() == 0));
+        return size() == 0;
     }
 
-    [[nodiscard]] T* next(T& item) noexcept {
+    [[nodiscard]] T* next(const T& item) noexcept {
         assert(contains(item));
         return item.next;
     }

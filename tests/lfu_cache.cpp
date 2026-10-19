@@ -23,6 +23,7 @@ g++ -std=c++17 -O2 -I./src `
 ./build/lfu_cache
 */
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <chrono>
@@ -61,6 +62,104 @@ constexpr int RandomOperations = 80'000;
 constexpr usize BenchmarkCapacity   = 2 * KB;
 constexpr usize BenchmarkOperations = 1200'000;
 
+int sorted_vector_set_tests() noexcept {
+    VectorSet<int, std::greater<int>> values;
+
+    CHECK(values.insert(3));
+    CHECK(values.insert(1));
+    CHECK(values.insert(2));
+    CHECK(!values.insert(2));
+    CHECK(values.size() == 3);
+    CHECK(values.front() == 3);
+    CHECK(values.back() == 1);
+
+    std::vector<int> orderedValues;
+    values.for_each([&orderedValues](const int value) { orderedValues.push_back(value); });
+    CHECK((orderedValues == std::vector<int>{3, 2, 1}));
+
+    CHECK(values.erase(2) == 1);
+    CHECK(values.erase(2) == 0);
+    CHECK(values.size() == 2);
+    CHECK(values.front() == 3);
+    CHECK(values.back() == 1);
+
+    values.clear();
+    CHECK(values.empty());
+
+    VectorSet<int, std::greater<int>> splitValues;
+    for (int value = 0; value < 600; ++value)
+        CHECK(splitValues.insert(value));
+
+    CHECK(!splitValues.insert(300));
+    CHECK(splitValues.size() == 600);
+    CHECK(splitValues.front() == 599);
+    CHECK(splitValues.back() == 0);
+
+    int  expected = 599;
+    bool sorted   = true;
+    splitValues.for_each([&expected, &sorted](const int value) {
+        sorted = sorted && value == expected;
+        --expected;
+    });
+    CHECK(sorted);
+    CHECK(expected == -1);
+
+    for (int value = 0; value < 600; value += 2)
+        CHECK(splitValues.erase(value) == 1);
+    CHECK(splitValues.size() == 300);
+    CHECK(splitValues.front() == 599);
+    CHECK(splitValues.back() == 1);
+
+    constexpr usize ElementCount = 16'384;
+
+    VectorSet<int, std::greater<int>> randomValues;
+
+    std::vector<int> randomOrder;
+    randomOrder.reserve(ElementCount);
+
+    for (int value = 0; value < ElementCount; ++value)
+        randomOrder.push_back(value);
+
+    std::mt19937 rng{0x12345678};
+    std::shuffle(randomOrder.begin(), randomOrder.end(), rng);
+
+    for (const int value : randomOrder)
+        CHECK(randomValues.insert(value));
+
+    CHECK(randomValues.size() == ElementCount);
+    CHECK(randomValues.front() == ElementCount - 1);
+    CHECK(randomValues.back() == 0);
+
+    int  expectedRandom = ElementCount - 1;
+    bool randomSorted   = true;
+
+    randomValues.for_each([&expectedRandom, &randomSorted](const int value) {
+        randomSorted = randomSorted && value == expectedRandom;
+        --expectedRandom;
+    });
+
+    CHECK(randomSorted);
+    CHECK(expectedRandom == -1);
+
+    CHECK(!randomValues.insert(0));
+    CHECK(!randomValues.insert(ElementCount / 2));
+    CHECK(!randomValues.insert(ElementCount - 1));
+    CHECK(randomValues.size() == ElementCount);
+
+    for (const int value : randomOrder)
+        CHECK(randomValues.erase(value) == 1);
+
+    CHECK(randomValues.empty());
+    CHECK(randomValues.size() == 0);
+
+    CHECK(randomValues.erase(0) == 0);
+    CHECK(randomValues.erase(ElementCount / 2) == 0);
+    CHECK(randomValues.erase(ElementCount - 1) == 0);
+
+    std::cout << "(Sorted) vector set tests passed.\n";
+    return EXIT_SUCCESS;
+}
+
 struct LargeValue {
     std::array<std::uint8_t, 256> data{};
     int id = 0;
@@ -72,7 +171,7 @@ struct LargeValue {
 };
 
 template<typename Cache>
-int correctness_tests() {
+int correctness_tests() noexcept {
     Cache cache{3, 8};
 
     CHECK(cache.empty());
@@ -169,7 +268,7 @@ int correctness_tests() {
 }
 
 template<typename Cache>
-int frequency_tie_tests() {
+int frequency_tie_tests() noexcept {
     Cache cache{2, 8};
 
     CHECK(cache.read_or_write(1, 10) == 10);
@@ -200,7 +299,36 @@ int frequency_tie_tests() {
 }
 
 template<typename Cache>
-int large_value_tests() {
+int frequency_boundary_tests() noexcept {
+    Cache cache{2, 4};
+
+    CHECK(cache.read_or_write(1, 10) == 10);
+    CHECK(cache.read_or_write(1, 11) == 10);
+    CHECK(cache.read_or_write(2, 20) == 20);
+    CHECK(cache.read_or_write(2, 21) == 20);
+    CHECK(cache.read_or_write(3, 30) == 30);
+    CHECK(cache.contains(1));
+    CHECK(cache.contains(2));
+    CHECK(!cache.contains(3));
+
+    CHECK(cache.remove(2));
+    CHECK(cache.remove(1));
+    CHECK(cache.empty());
+
+    CHECK(cache.read_or_write(3, 30) == 30);
+    cache.evict_excess(0);
+    CHECK(cache.empty());
+
+    CHECK(cache.read_or_write(4, 40) == 40);
+    cache.set_capacity(0);
+    CHECK(cache.empty());
+
+    std::cout << "Frequency-boundary tests passed.\n";
+    return EXIT_SUCCESS;
+}
+
+template<typename Cache>
+int large_value_tests() noexcept {
     Cache cache{4, 8, MaxLoadFactor};
 
     CHECK(cache.read_or_write(1, 101).id == 101);
@@ -215,16 +343,15 @@ int large_value_tests() {
 }
 
 template<typename Cache>
-int growth_tests() {
-    constexpr int EntryCount = 270'000;
+int growth_tests() noexcept {
+    constexpr usize EntryCount = 270'000;
 
     Cache cache{EntryCount, 16, MaxLoadFactor};
 
-    //std::cerr << "Before insertion loop\n";
+    //std::cerr << "Starting...\n";
 
     for (int key = 0; key < EntryCount; ++key)
         (void) cache.read_or_write(key, key);
-
     //std::cerr << "After insertion loop\n";
 
     CHECK(cache.size() == EntryCount);
@@ -243,9 +370,141 @@ int growth_tests() {
     return EXIT_SUCCESS;
 }
 
+int randomized_tests() noexcept {
+    constexpr usize EntryCount = 128;
+
+    ListLFUCache<int, int, SpinMutex>       listCache{EntryCount, 8, MaxLoadFactor};
+    SetLFUCache<int, int, SpinMutex>        setCache{EntryCount, 8, MaxLoadFactor};
+    BucketListLFUCache<int, int, SpinMutex> bucketCache{EntryCount, 8, MaxLoadFactor};
+    PoolLFUCache<int, int, SpinMutex>       poolCache{EntryCount, 8, MaxLoadFactor};
+    PoolFlatLFUCache<int, int, SpinMutex>   flatCache{EntryCount, 8, MaxLoadFactor};
+
+    std::mt19937 rng{0xB3A5C};
+
+    int listBuilds   = 0;
+    int setBuilds    = 0;
+    int bucketBuilds = 0;
+    int poolBuilds   = 0;
+    int flatBuilds   = 0;
+
+    for (int i = 0; i < RandomOperations; ++i)
+    {
+        const int      key       = static_cast<int>(rng() % 64);
+        const int      value     = static_cast<int>(rng() % 100000);
+        const unsigned operation = rng() % 8;
+
+        switch (operation)
+        {
+        case 0 :
+        case 1 : {
+            const int result = listCache.read_or_write(key, value);
+            CHECK(result == setCache.read_or_write(key, value));
+            CHECK(result == bucketCache.read_or_write(key, value));
+            CHECK(result == poolCache.read_or_write(key, value));
+            CHECK(result == flatCache.read_or_write(key, value));
+            break;
+        }
+        case 2 : {
+            const auto setBuilder = [&setBuilds](const int v) {
+                ++setBuilds;
+                return v * 3 + 1;
+            };
+            const auto bucketBuilder = [&bucketBuilds](const int v) {
+                ++bucketBuilds;
+                return v * 3 + 1;
+            };
+            const auto poolBuilder = [&poolBuilds](const int v) {
+                ++poolBuilds;
+                return v * 3 + 1;
+            };
+            const auto flatBuilder = [&flatBuilds](const int v) {
+                ++flatBuilds;
+                return v * 3 + 1;
+            };
+
+            const auto listBuilder = [&listBuilds](const int v) {
+                ++listBuilds;
+                return v * 3 + 1;
+            };
+            const int result = listCache.read_or_write_with(key, listBuilder, value);
+            CHECK(result == setCache.read_or_write_with(key, setBuilder, value));
+            CHECK(result == bucketCache.read_or_write_with(key, bucketBuilder, value));
+            CHECK(result == poolCache.read_or_write_with(key, poolBuilder, value));
+            CHECK(result == flatCache.read_or_write_with(key, flatBuilder, value));
+            CHECK(setBuilds == bucketBuilds && setBuilds == poolBuilds && setBuilds == flatBuilds);
+            CHECK(listBuilds == setBuilds);
+            break;
+        }
+        case 3 : {
+            const bool removed = listCache.remove(key);
+            CHECK(removed == setCache.remove(key));
+            CHECK(removed == bucketCache.remove(key));
+            CHECK(removed == poolCache.remove(key));
+            CHECK(removed == flatCache.remove(key));
+            break;
+        }
+        case 4 : {
+            const usize capacity = rng() % 48;
+            listCache.set_capacity(capacity);
+            setCache.set_capacity(capacity);
+            bucketCache.set_capacity(capacity);
+            poolCache.set_capacity(capacity);
+            flatCache.set_capacity(capacity);
+            break;
+        }
+        case 5 : {
+            const usize size = rng() % 48;
+            listCache.evict_excess(size);
+            setCache.evict_excess(size);
+            bucketCache.evict_excess(size);
+            poolCache.evict_excess(size);
+            flatCache.evict_excess(size);
+            break;
+        }
+        case 6 :
+            listCache.clear();
+            setCache.clear();
+            bucketCache.clear();
+            poolCache.clear();
+            flatCache.clear();
+            break;
+        case 7 :
+            listCache.reset();
+            setCache.reset();
+            bucketCache.reset();
+            poolCache.reset();
+            flatCache.reset();
+            break;
+        }
+
+        CHECK(listCache.size() == setCache.size());
+        CHECK(setCache.size() == bucketCache.size());
+        CHECK(setCache.size() == poolCache.size());
+        CHECK(setCache.size() == flatCache.size());
+        CHECK(listCache.get_capacity() == setCache.get_capacity());
+        CHECK(setCache.get_capacity() == bucketCache.get_capacity());
+        CHECK(setCache.get_capacity() == poolCache.get_capacity());
+        CHECK(setCache.get_capacity() == flatCache.get_capacity());
+
+        for (int candidate = 0; candidate < 64; ++candidate)
+        {
+            const bool present = setCache.contains(candidate);
+            CHECK(present == listCache.contains(candidate));
+            CHECK(present == bucketCache.contains(candidate));
+            CHECK(present == poolCache.contains(candidate));
+            CHECK(present == flatCache.contains(candidate));
+        }
+    }
+
+    std::cout << "Randomized LFU differential tests passed (" << RandomOperations
+              << " operations).\n";
+    return EXIT_SUCCESS;
+}
+
 template<typename Cache>
-double benchmark_case(const char* name, const std::vector<int>& keys, const bool prefill) {
+double benchmark_case(const char* name, const std::vector<int>& keys, const bool prefill) noexcept {
     Cache cache{BenchmarkCapacity, BenchmarkCapacity / 4, MaxLoadFactor};
+    //std::cout << "capacity = " << cache.get_capacity() << ", size = " << cache.size() << '\n';
 
     if (prefill)
     {
@@ -281,7 +540,7 @@ template<typename Cache>
 void benchmark_cache(const char* cacheName,
                      const std::vector<int>& hitKeys,
                      const std::vector<int>& missKeys,
-                     const std::vector<int>& mixedKeys) {
+                     const std::vector<int>& mixedKeys) noexcept {
     std::cout << cacheName << '\n';
     benchmark_case<Cache>("hits", hitKeys, true);
     benchmark_case<Cache>("misses + eviction", missKeys, false);
@@ -291,14 +550,14 @@ void benchmark_cache(const char* cacheName,
 }  // namespace
 
 int main() {
-    //using ListCache      = ListLFUCache<int, int, SpinMutex>;
-    //using LargeListCache = ListLFUCache<int, LargeValue, SpinMutex>;
+    using ListCache      = ListLFUCache<int, int, SpinMutex>;
+    using LargeListCache = ListLFUCache<int, LargeValue, SpinMutex>;
 
     using SetCache      = SetLFUCache<int, int, SpinMutex>;
     using LargeSetCache = SetLFUCache<int, LargeValue, SpinMutex>;
 
-    using BucketCache      = BucketLFUCache<int, int, SpinMutex>;
-    using LargeBucketCache = BucketLFUCache<int, LargeValue, SpinMutex>;
+    using BucketCache      = BucketListLFUCache<int, int, SpinMutex>;
+    using LargeBucketCache = BucketListLFUCache<int, LargeValue, SpinMutex>;
 
     using PoolCache      = PoolLFUCache<int, int, SpinMutex>;
     using LargePoolCache = PoolLFUCache<int, LargeValue, SpinMutex>;
@@ -306,8 +565,11 @@ int main() {
     using FlatCache      = PoolFlatLFUCache<int, int, SpinMutex>;
     using LargeFlatCache = PoolFlatLFUCache<int, LargeValue, SpinMutex>;
 
-    //if (correctness_tests<ListCache>() != EXIT_SUCCESS)
-    //    return EXIT_FAILURE;
+    if (sorted_vector_set_tests() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (correctness_tests<ListCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
     if (correctness_tests<SetCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -322,8 +584,8 @@ int main() {
         return EXIT_FAILURE;
 
     // --------------------------------------------------
-    //if (frequency_tie_tests<ListCache>() != EXIT_SUCCESS)
-    //    return EXIT_FAILURE;
+    if (frequency_tie_tests<ListCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
     if (frequency_tie_tests<SetCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -337,9 +599,24 @@ int main() {
     if (frequency_tie_tests<FlatCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
+    if (frequency_boundary_tests<SetCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (frequency_boundary_tests<BucketCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (frequency_boundary_tests<PoolCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (frequency_boundary_tests<FlatCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (frequency_boundary_tests<ListCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
     // --------------------------------------------------
-    //if (large_value_tests<LargeListCache>() != EXIT_SUCCESS)
-    //    return EXIT_FAILURE;
+    if (large_value_tests<LargeListCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
     if (large_value_tests<LargeSetCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -354,8 +631,8 @@ int main() {
         return EXIT_FAILURE;
 
     // --------------------------------------------------
-    //if (growth_tests<ListCache>() != EXIT_SUCCESS)
-    //    return EXIT_FAILURE;
+    if (growth_tests<ListCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
 
     if (growth_tests<SetCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -367,6 +644,9 @@ int main() {
         return EXIT_FAILURE;
 
     if (growth_tests<FlatCache>() != EXIT_SUCCESS)
+        return EXIT_FAILURE;
+
+    if (randomized_tests() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     std::cout << "\nAll correctness tests passed.\n\n";
@@ -401,7 +681,7 @@ int main() {
 
     std::cout << '\n';
 
-    benchmark_cache<BucketCache>("BucketLFUCache", hitKeys, missKeys, mixedKeys);
+    benchmark_cache<BucketCache>("BucketListLFUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << '\n';
 
@@ -409,7 +689,7 @@ int main() {
 
     std::cout << '\n';
 
-    benchmark_cache<FlatCache>("FlatLFUCache", hitKeys, missKeys, mixedKeys);
+    benchmark_cache<FlatCache>("PoolFlatLFUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << "\nDone!\n";
     return EXIT_SUCCESS;

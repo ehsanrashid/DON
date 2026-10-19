@@ -366,7 +366,7 @@ bool FairSharedMutex::can_try_lock_shared() const noexcept {
 }
 
 bool FairSharedMutex::has_writer_before(const Waiter* const until) const noexcept {
-    for (auto* cur = waitList.front(); cur != nullptr; cur = waitList.next(*cur))
+    for (const Waiter* cur = waitList.front(); cur != nullptr; cur = waitList.next(*cur))
     {
         if (cur == until)
             break;

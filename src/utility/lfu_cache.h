@@ -20,8 +20,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <iterator>
 #include <limits>
@@ -38,10 +36,12 @@
 
 #include "../utility/list.h"
 #include "../utility/pool.h"
+#include "../utility/set.h"
 #include "../utility/types.h"
 #include "../utility/ankerl/unordered_dense.h"
 
 namespace DON {
+
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class ListLFUCache final {
@@ -50,17 +50,20 @@ class ListLFUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    // Entries are ordered by descending frequency, with MRU first for equal frequencies.
-    using list_value_type = struct Entry {
-        Key                key;
+    // Entries are ordered by descending frequency, with MRU first for equal frequencies
+    struct Entry final {
+       public:
         storage_value_type value;
         usize              frequency = 1;
+        usize              recency   = 0;
+        const Key*         key       = nullptr;
     };
 
-    using list_type      = std::pmr::list<Entry>;
-    using list_iterator  = typename list_type::iterator;
-    using list_pool_type = std::pmr::unsynchronized_pool_resource;
-    using map_type       = std::unordered_map<Key, list_iterator>;
+    using list_value_type = Entry;
+    using list_type       = std::pmr::list<list_value_type>;
+    using list_iterator   = typename list_type::iterator;
+    using list_pool_type  = std::pmr::unsynchronized_pool_resource;
+    using map_type        = std::unordered_map<Key, list_iterator>;
 
     class MapGuard final {
        public:
@@ -144,8 +147,8 @@ class ListLFUCache final {
         nolock_evict_excess(capacity);
     }
 
-    // The returned iterator does not retain the lock;
-    // callers must prevent concurrent mutation while using it.
+    // The returned iterator does not retain the lock.
+    // Callers must prevent concurrent mutation while using it.
     [[nodiscard]] auto find(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
@@ -205,48 +208,65 @@ class ListLFUCache final {
 
         map.rehash(0);
 
-        capacity = defaultCapacity;
+        capacity       = defaultCapacity;
+        recencyCounter = 0;
         nolock_configure();
     }
 
    private:
     auto nolock_map_end() const noexcept { return map.end(); }
+
+    auto nolock_list_beg() noexcept { return list.begin(); }
     auto nolock_list_end() noexcept { return list.end(); }
-    auto nolock_list_pos() noexcept { return list.begin(); }
 
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
-    list_iterator nolock_touch(list_iterator listItr) noexcept {
-        assert(listItr != list.end());
+    // Called only while mutex is held.
+    usize nolock_next_recency() noexcept {
+        if (recencyCounter == std::numeric_limits<usize>::max())
+        {
+            // Rare overflow recovery: preserve the relative recency order.
+            std::vector<list_iterator> ordered;
+            ordered.reserve(list.size());
+
+            for (auto itr = nolock_list_beg(); itr != nolock_list_end(); ++itr)
+                ordered.push_back(itr);
+
+            std::sort(ordered.begin(), ordered.end(),
+                      [](const list_iterator lhs, const list_iterator rhs) noexcept {
+                          return lhs->recency < rhs->recency;
+                      });
+
+            usize recency = 0;
+
+            for (const auto itr : ordered)
+                itr->recency = ++recency;
+
+            recencyCounter = recency;
+        }
+
+        return ++recencyCounter;
+    }
+
+    void nolock_touch(list_iterator listItr) noexcept {
+        assert(listItr != nolock_list_end());
 
         if (listItr->frequency < std::numeric_limits<usize>::max())
             ++listItr->frequency;
 
-        // Move before entries with an equal frequency (MRU-first),
-        // but after entries with a higher frequency.
-        auto pos = listItr;
-
-        while (pos != list.begin())
-        {
-            const auto prev = std::prev(pos);
-
-            if (prev->frequency > listItr->frequency)
-                break;
-
-            pos = prev;
-        }
-
-        list.splice(pos, list, listItr);
-
-        return listItr;
+        listItr->recency = nolock_next_recency();
     }
 
     Return nolock_read(list_iterator listItr) const noexcept {
+        return nolock_read_value(listItr->value);
+    }
+
+    Return nolock_read_value(const storage_value_type& value) const noexcept {
         if constexpr (sizeof(Value) <= InlineValueThreshold)
-            return listItr->value;
+            return value;
         else
-            return *listItr->value;
+            return *value;
     }
 
     template<typename... Args>
@@ -275,64 +295,83 @@ class ListLFUCache final {
         });
     }
 
-    list_iterator nolock_frequency_pos(const usize frequency = 1) noexcept {
-        auto listItr = list.begin();
+    // Select the least-frequent, least-recently-used entry.
+    list_iterator nolock_lfu_lru_pos() noexcept {
+        assert(!list.empty());
 
-        while (listItr != list.end() && listItr->frequency > frequency)
-            ++listItr;
+        auto victim = nolock_list_beg();
 
-        return listItr;
+        for (auto itr = std::next(victim); itr != nolock_list_end(); ++itr)
+        {
+            if (itr->frequency < victim->frequency
+                || (itr->frequency == victim->frequency && itr->recency < victim->recency))
+                victim = itr;
+        }
+
+        return victim;
     }
 
     template<typename CreateStorage>
     Return nolock_insert(const Key& key, CreateStorage&& createStorage) noexcept {
-        const auto [mapItr, inserted] = map.try_emplace(key, list.end());
+        const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
-            return nolock_read(nolock_touch(mapItr->second));
+        {
+            nolock_touch(mapItr->second);
+            return nolock_read(mapItr->second);
+        }
 
-        MapGuard           mapGuard{map, mapItr};
+        MapGuard mapGuard{map, mapItr};
+
         storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
-        if (!list.empty() && list.size() >= capacity)
+        if (list.size() >= capacity)
         {
-            // Reuse the least-frequent, least-recently-used entry's node.
-            const auto listItr   = std::prev(list.end());
-            const auto oldMapItr = nolock_find(listItr->key);
-            assert(oldMapItr != nolock_map_end());
+            const auto victim = nolock_lfu_lru_pos();
 
+            // Preserve the original cache-admission policy.
+            if (victim->frequency > 1)
+                return nolock_read_value(value);
+
+            const auto oldMapItr = nolock_find(*victim->key);
+            assert(oldMapItr != map.end());
+
+            // Destroy the entry before invalidating its key pointer.
+            std::destroy_at(std::addressof(*victim));
             map.erase(oldMapItr);
 
-            std::destroy_at(std::addressof(*listItr));
-            new (static_cast<void*>(std::addressof(*listItr))) Entry{key, std::move(value), 1};
+            new (static_cast<void*>(std::addressof(*victim)))
+              Entry{std::move(value), 1, nolock_next_recency(), std::addressof(mapItr->first)};
 
-            // Insert the new frequency-1 entry in the correct position.
-            list.splice(nolock_frequency_pos(), list, listItr);
-
-            mapItr->second = listItr;
+            mapItr->second = victim;
         }
         else
         {
-            mapItr->second = list.emplace(nolock_frequency_pos(), Entry{key, std::move(value), 1});
+            mapItr->second =
+              list.emplace(nolock_list_end(), Entry{std::move(value), 1, nolock_next_recency(),
+                                                    std::addressof(mapItr->first)});
         }
 
         mapGuard.commit();
-        nolock_evict_excess(capacity);
 
         return nolock_read(mapItr->second);
     }
 
     void nolock_erase(typename map_type::iterator mapItr) noexcept {
         const auto listItr = mapItr->second;
-        map.erase(mapItr);
+
+        // Entry::key points to the key owned by map.
         list.erase(listItr);
+        map.erase(mapItr);
     }
 
     void nolock_evict_excess(const usize size) noexcept {
         while (list.size() > size)
         {
-            const auto mapItr = nolock_find(list.back().key);
-            assert(mapItr != nolock_map_end());
+            const auto victim = nolock_lfu_lru_pos();
+            const auto mapItr = nolock_find(*victim->key);
+
+            assert(mapItr != map.end());
             nolock_erase(mapItr);
         }
     }
@@ -348,8 +387,9 @@ class ListLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
+        // Destroy entries before clearing the keys they point to.
         list.clear();
+        map.clear();
     }
 
     void nolock_release_pool() noexcept { listPool.release(); }
@@ -363,11 +403,14 @@ class ListLFUCache final {
     const usize reserveCount;
     const float maxLoadFactor;
 
-    mutable Mutex  mutex;
-    usize          capacity;
+    mutable Mutex mutex;
+    usize         capacity;
+
     map_type       map;
     list_pool_type listPool;
     list_type      list;
+
+    usize recencyCounter = 0;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -377,25 +420,26 @@ class SetLFUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
+    struct Entry final {
+       public:
         storage_value_type value;
         usize              frequency = 1;
-        std::uint64_t      recency   = 0;
+        usize              recency   = 0;
         const Key*         key       = nullptr;
     };
 
-    using map_type = std::unordered_map<Key, Entry>;
-
-    struct EntryCompare {
-        bool operator()(const Entry* lhs, const Entry* rhs) const noexcept {
-            if (lhs->frequency != rhs->frequency)
-                return lhs->frequency > rhs->frequency;
-
-            return lhs->recency > rhs->recency;
+    struct EntryCompare final {
+        bool operator()(const Entry* const e1, const Entry* const e2) const noexcept {
+            return e1->frequency != e2->frequency ? e1->frequency > e2->frequency
+                                                  : e1->recency > e2->recency;
         }
     };
 
-    using set_type = std::set<Entry*, EntryCompare>;
+    using set_value_type = Entry*;
+    //using set_type       = std::set<set_value_type, EntryCompare>;
+    using set_type       = VectorSet<set_value_type, EntryCompare>;
+    using map_value_type = Entry;
+    using map_type       = std::unordered_map<Key, map_value_type>;
 
     class MapGuard final {
        public:
@@ -543,45 +587,43 @@ class SetLFUCache final {
     }
 
    private:
+    auto nolock_map_end() const noexcept { return map.end(); }
+
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
-    std::uint64_t nolock_next_recency() noexcept {
-        if (recencyCounter == std::numeric_limits<std::uint64_t>::max())
+    usize nolock_next_recency() noexcept {
+        if (recencyCounter == std::numeric_limits<usize>::max())
             nolock_renumber_recency();
 
         return ++recencyCounter;
     }
 
     void nolock_renumber_recency() noexcept {
-        // Preserve the current order while rebuilding the sequence numbers.
-        std::vector<Entry*> orderedEntries;
-        orderedEntries.reserve(entries.size());
+        usize recency = 0;
 
-        for (Entry* const entry : entries)
-            orderedEntries.push_back(entry);
+        //for (Entry* const entry : entries)
+        //    entry->recency = ++recency;
+        entries.for_each([&](Entry* const entry) noexcept { entry->recency = ++recency; });
 
-        entries.clear();
-
-        for (usize i = 0; i < orderedEntries.size(); ++i)
-        {
-            orderedEntries[i]->recency = orderedEntries.size() - i;
-            entries.insert(orderedEntries[i]);
-        }
-
-        recencyCounter = orderedEntries.size();
+        recencyCounter = recency;
     }
 
     void nolock_touch(Entry& entry) noexcept {
         // Ordering fields must not change while the entry is in the set.
-        entries.erase(&entry);
+        [[maybe_unused]]  //
+        const usize erased = entries.erase(&entry);
+        assert(erased == 1);
 
         if (entry.frequency < std::numeric_limits<usize>::max())
             ++entry.frequency;
 
         entry.recency = nolock_next_recency();
 
-        entries.insert(&entry);
+        [[maybe_unused]]  //
+        //const bool inserted = entries.insert(&entry).second;
+        const bool inserted = entries.insert(&entry);
+        assert(inserted);
     }
 
     Return nolock_read(const Entry& entry) const noexcept {
@@ -627,9 +669,8 @@ class SetLFUCache final {
 
         storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
-        const auto [mapItr, inserted] =
-          map.try_emplace(key, Entry{std::move(value), 1, 0, nullptr});
-
+        const auto [mapItr, inserted] = map.try_emplace(key,  //
+                                                        Entry{std::move(value), 1, 0, nullptr});
         assert(inserted);
 
         MapGuard mapGuard{map, mapItr};
@@ -638,7 +679,10 @@ class SetLFUCache final {
         entry.key     = std::addressof(mapItr->first);
         entry.recency = nolock_next_recency();
 
-        entries.insert(std::addressof(entry));
+        [[maybe_unused]]  //
+        //const bool ordered = entries.insert(std::addressof(entry)).second;
+        const bool ordered = entries.insert(std::addressof(entry));
+        assert(ordered);
 
         mapGuard.commit();
 
@@ -648,7 +692,9 @@ class SetLFUCache final {
     }
 
     void nolock_erase(typename map_type::iterator mapItr) noexcept {
-        entries.erase(std::addressof(mapItr->second));
+        [[maybe_unused]]  //
+        const usize erased = entries.erase(std::addressof(mapItr->second));
+        assert(erased == 1);
         map.erase(mapItr);
     }
 
@@ -659,8 +705,10 @@ class SetLFUCache final {
 
             // Highest frequency / newest entry is at the front.
             // Evict the lowest frequency / oldest entry at the back.
-            const auto setItr = std::prev(entries.end());
-            const auto mapItr = nolock_find(*(*setItr)->key);
+            //const Entry* const entry = *entries.rbegin();
+            const Entry* const entry = entries.back();
+
+            const auto mapItr = nolock_find(*entry->key);
 
             assert(mapItr != map.end());
 
@@ -687,6 +735,7 @@ class SetLFUCache final {
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         map.reserve(reserveCount);
+        entries.reserve(std::min(capacity, reserveCount));
     }
 
     const usize defaultCapacity;
@@ -699,35 +748,42 @@ class SetLFUCache final {
     map_type map;
     set_type entries;
 
-    u64 recencyCounter = 0;
+    usize recencyCounter = 0;
 };
 
-
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
-class BucketLFUCache final {
+class BucketListLFUCache final {
     static constexpr usize InlineValueThreshold = 128;
 
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
+    struct Bucket;
+
+    struct Entry final {
+       public:
         Key                key;
         storage_value_type value;
-        usize              frequency = 1;
-        Entry*             prev      = nullptr;
-        Entry*             next      = nullptr;
+        Bucket*            bucket = nullptr;
+        Entry*             prev   = nullptr;
+        Entry*             next   = nullptr;
     };
 
-    using list_type      = std::pmr::list<Entry>;
-    using list_iterator  = typename list_type::iterator;
-    using list_pool_type = std::pmr::unsynchronized_pool_resource;
-    using map_type       = std::unordered_map<Key, list_iterator>;
+    using list_value_type = Entry;
+    using list_type       = std::pmr::list<list_value_type>;
+    using list_iterator   = typename list_type::iterator;
+    using list_pool_type  = std::pmr::unsynchronized_pool_resource;
+    using map_type        = std::unordered_map<Key, list_iterator>;
 
-    struct Bucket {
+    struct Bucket final {
+       public:
+        explicit Bucket(const usize freq) noexcept :
+            frequency(freq) {}
+
+        usize                      frequency;
         DoublyIntrusiveList<Entry> entries;
+        Bucket*                    next = nullptr;
     };
-
-    using bucket_map_type = std::unordered_map<usize, std::unique_ptr<Bucket>>;
 
     class MapGuard final {
        public:
@@ -749,9 +805,9 @@ class BucketLFUCache final {
     };
 
    public:
-    explicit BucketLFUCache(const usize cap        = 2 * KB,
-                            const usize reserveCnt = 1 * KB,
-                            const float maxLoadFac = 0.75F) :
+    explicit BucketListLFUCache(const usize cap        = 2 * KB,
+                                const usize reserveCnt = 1 * KB,
+                                const float maxLoadFac = 0.75F) :
         defaultCapacity(cap),
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac),
@@ -761,12 +817,12 @@ class BucketLFUCache final {
         configure();
     }
 
-    BucketLFUCache(const BucketLFUCache&) noexcept            = delete;
-    BucketLFUCache& operator=(const BucketLFUCache&) noexcept = delete;
-    BucketLFUCache(BucketLFUCache&&) noexcept                 = delete;
-    BucketLFUCache& operator=(BucketLFUCache&&) noexcept      = delete;
+    BucketListLFUCache(const BucketListLFUCache&) noexcept            = delete;
+    BucketListLFUCache& operator=(const BucketListLFUCache&) noexcept = delete;
+    BucketListLFUCache(BucketListLFUCache&&) noexcept                 = delete;
+    BucketListLFUCache& operator=(BucketListLFUCache&&) noexcept      = delete;
 
-    ~BucketLFUCache() noexcept {
+    ~BucketListLFUCache() noexcept {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
@@ -869,10 +925,10 @@ class BucketLFUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
         nolock_release_pool();
 
         map.rehash(0);
-        buckets.rehash(0);
 
         capacity = defaultCapacity;
 
@@ -880,100 +936,120 @@ class BucketLFUCache final {
     }
 
    private:
-    auto nolock_find(const Key& key) noexcept { return map.find(key); }
+    auto nolock_map_end() const noexcept { return map.end(); }
 
+    auto nolock_list_beg() noexcept { return list.begin(); }
+    auto nolock_list_end() noexcept { return list.end(); }
+
+    auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
-    void nolock_update_frequency_bounds() noexcept {
-        if (buckets.empty())
+    void nolock_destroy_bucket(Bucket& bucket) noexcept {
+        assert(bucket.entries.empty());
+
+        if (buckets.front() == &bucket)
         {
-            minFrequency = 0;
-            maxFrequency = 0;
-            return;
+            [[maybe_unused]]  //
+            Bucket* const removedBucket = buckets.pop_front();
+            assert(removedBucket == &bucket);
+        }
+        else
+        {
+            [[maybe_unused]]  //
+            const bool erased = buckets.erase(bucket);
+            assert(erased);
         }
 
-        minFrequency = std::numeric_limits<usize>::max();
-        maxFrequency = 0;
+        bucketPool.destroy(&bucket);
+    }
 
-        for (const auto& [frequency, bucket] : buckets)
+    void nolock_add_to_bucket(Entry& entry) noexcept {
+        Bucket* bucket = buckets.front();
+
+        if (bucket == nullptr || bucket->frequency != 1)
         {
-            if (bucket->entries.empty())
-                continue;
-
-            if (minFrequency > frequency)
-                minFrequency = frequency;
-            if (maxFrequency < frequency)
-                maxFrequency = frequency;
+            bucket = bucketPool.create(1, 1);
+            buckets.push_front(*bucket);
         }
 
-        assert(minFrequency != std::numeric_limits<usize>::max());
+        entry.bucket = bucket;
+        [[maybe_unused]]  //
+        const bool inserted = bucket->entries.push_back(entry);
+        assert(inserted);
     }
 
-    Bucket& nolock_bucket(const usize frequency) {
-        if (auto itr = buckets.find(frequency); itr != buckets.end())
-            return *itr->second;
+    void nolock_remove_from_bucket(Entry& entry) noexcept {
+        Bucket* const bucket = entry.bucket;
+        assert(bucket != nullptr);
+        [[maybe_unused]]  //
+        const bool erased = bucket->entries.erase(entry);
+        assert(erased);
 
-        auto        bucket    = std::make_unique<Bucket>();
-        auto* const bucketPtr = bucket.get();
-
-        buckets.emplace(frequency, std::move(bucket));
-
-        return *bucketPtr;
-    }
-
-    void nolock_erase_bucket(const usize frequency) noexcept {
-        const auto bucketItr = buckets.find(frequency);
-        assert(bucketItr != buckets.end());
-        assert(bucketItr->second->entries.empty());
-
-        buckets.erase(bucketItr);
-
-        if (minFrequency == frequency || frequency == maxFrequency)
-            nolock_update_frequency_bounds();
+        entry.bucket = nullptr;
+        if (bucket->entries.empty())
+            nolock_destroy_bucket(*bucket);
     }
 
     list_iterator nolock_touch(list_iterator listItr) noexcept {
-        assert(listItr != list.end());
+        assert(listItr != nolock_list_end());
 
-        auto&       entry        = *listItr;
-        const usize oldFrequency = entry.frequency;
-
-        auto bucketItr = buckets.find(oldFrequency);
-        assert(bucketItr != buckets.end());
-
-        auto& oldBucket = *bucketItr->second;
+        auto&         entry     = *listItr;
+        Bucket* const oldBucket = entry.bucket;
+        assert(oldBucket != nullptr);
 
         // At maximum frequency, only update recency.
-        if (oldFrequency == std::numeric_limits<usize>::max())
+        if (oldBucket->frequency == std::numeric_limits<usize>::max())
         {
-            const bool moved = oldBucket.entries.move_back(entry);
+            [[maybe_unused]]  //
+            const bool moved = oldBucket->entries.move_back(entry);
             assert(moved);
-            (void) moved;
 
             return listItr;
         }
 
-        const bool erased = oldBucket.entries.erase(entry);
+        const usize   nextFrequency = oldBucket->frequency + 1;
+        Bucket* const nextBucket    = oldBucket->next;
+        const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
+
+        if (!targetExists && oldBucket->entries.size() == 1)
+        {
+            oldBucket->frequency = nextFrequency;
+            return listItr;
+        }
+
+        [[maybe_unused]]  //
+        const bool erased = oldBucket->entries.erase(entry);
         assert(erased);
-        (void) erased;
 
-        const bool bucketEmptied = oldBucket.entries.empty();
+        if (targetExists)
+        {
+            entry.bucket = nextBucket;
+            [[maybe_unused]]  //
+            const bool inserted = nextBucket->entries.push_back(entry);
+            assert(inserted);
 
-        if (bucketEmptied)
-            nolock_erase_bucket(oldFrequency);
-
-        ++entry.frequency;
-
-        auto&      newBucket = nolock_bucket(entry.frequency);
-        const bool inserted  = newBucket.entries.push_back(entry);
-        assert(inserted);
-        (void) inserted;
-
-        if (bucketEmptied && oldFrequency == minFrequency)
-            minFrequency = entry.frequency;
-
-        if (maxFrequency < entry.frequency)
-            maxFrequency = entry.frequency;
+            if (oldBucket->entries.empty())
+                nolock_destroy_bucket(*oldBucket);
+        }
+        else if (oldBucket->entries.empty())
+        {
+            oldBucket->frequency = nextFrequency;
+            entry.bucket         = oldBucket;
+            [[maybe_unused]]  //
+            const bool inserted = oldBucket->entries.push_back(entry);
+            assert(inserted);
+        }
+        else
+        {
+            Bucket* const newBucket = bucketPool.create(1, nextFrequency);
+            [[maybe_unused]]  //
+            const bool linked = buckets.insert_after(*oldBucket, *newBucket);
+            assert(linked);
+            entry.bucket = newBucket;
+            [[maybe_unused]]  //
+            const bool inserted = newBucket->entries.push_back(entry);
+            assert(inserted);
+        }
 
         return listItr;
     }
@@ -1013,7 +1089,7 @@ class BucketLFUCache final {
 
     template<typename CreateStorage>
     Return nolock_insert(const Key& key, CreateStorage&& createStorage) noexcept {
-        const auto [mapItr, inserted] = map.try_emplace(key, list.end());
+        const auto [mapItr, inserted] = map.try_emplace(key, nolock_list_end());
 
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
@@ -1022,17 +1098,10 @@ class BucketLFUCache final {
 
         storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
-        auto listItr   = list.emplace(list.end(), Entry{key, std::move(value), 1});
+        auto listItr   = list.emplace(nolock_list_end(), Entry{key, std::move(value), nullptr});
         mapItr->second = listItr;
 
-        auto&      bucket = nolock_bucket(1);
-        const bool linked = bucket.entries.push_back(*listItr);
-        assert(linked);
-        (void) linked;
-
-        minFrequency = 1;
-        if (maxFrequency < 1)
-            maxFrequency = 1;
+        nolock_add_to_bucket(*listItr);
 
         mapGuard.commit();
 
@@ -1042,33 +1111,21 @@ class BucketLFUCache final {
     }
 
     void nolock_erase(typename map_type::iterator mapItr) noexcept {
-        const auto listItr   = mapItr->second;
-        const auto frequency = listItr->frequency;
-
-        auto bucketItr = buckets.find(frequency);
-        assert(bucketItr != buckets.end());
-
-        const bool erased = bucketItr->second->entries.erase(*listItr);
-        assert(erased);
-        (void) erased;
+        const auto listItr = mapItr->second;
 
         map.erase(mapItr);
+        nolock_remove_from_bucket(*listItr);
         list.erase(listItr);
-
-        if (bucketItr->second->entries.empty())
-            nolock_erase_bucket(frequency);
     }
 
     void nolock_evict_excess(const usize size) noexcept {
         while (list.size() > size)
         {
-            assert(minFrequency != 0);
-
-            const auto bucketItr = buckets.find(minFrequency);
-            assert(bucketItr != buckets.end());
+            Bucket* const minimumBucket = buckets.front();
+            assert(minimumBucket != nullptr);
 
             // Evict the oldest entry from the minimum-frequency bucket.
-            auto* const victim = bucketItr->second->entries.front();
+            auto* const victim = minimumBucket->entries.front();
             assert(victim != nullptr);
 
             const auto mapItr = nolock_find(victim->key);
@@ -1090,22 +1147,29 @@ class BucketLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
-        buckets.clear();
-        list.clear();
+        while (Bucket* const bucket = buckets.front())
+        {
+            while (Entry* const entry = bucket->entries.back())
+            {
+                bucket->entries.erase(*entry);
+                entry->bucket = nullptr;
+            }
 
-        minFrequency = 0;
-        maxFrequency = 0;
+            nolock_destroy_bucket(*bucket);
+        }
+
+        list.clear();
+        map.clear();
     }
 
-    void nolock_release_pool() noexcept { listPool.release(); }
+    void nolock_release_pool() noexcept {
+        listPool.release();
+        bucketPool.release();
+    }
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         map.reserve(reserveCount);
-
-        buckets.max_load_factor(maxLoadFactor);
-        buckets.reserve(reserveCount);
     }
 
     const usize defaultCapacity;
@@ -1119,9 +1183,8 @@ class BucketLFUCache final {
     list_pool_type listPool;
     list_type      list;
 
-    bucket_map_type buckets;
-    usize           minFrequency = 0;
-    usize           maxFrequency = 0;
+    Pool<Bucket>                bucketPool;
+    SinglyIntrusiveList<Bucket> buckets;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -1131,13 +1194,10 @@ class PoolLFUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
-       public:
-        template<typename... Args>
-        explicit Entry(const Key& k, Args&&... args) noexcept :
-            key(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
+    struct Bucket;
 
+    struct Entry final {
+       public:
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -1146,18 +1206,32 @@ class PoolLFUCache final {
                 return std::make_shared<Value>(std::forward<Args>(args)...);
         }
 
+        template<typename... Args>
+        explicit Entry(const Key& k, Args&&... args) noexcept :
+            key(k),
+            value(make_storage(std::forward<Args>(args)...)) {}
+
         Key                key;
         storage_value_type value;
-        usize              frequency = 1;
-        Entry*             prev      = nullptr;
-        Entry*             next      = nullptr;
+        Bucket*            bucket = nullptr;
+        Entry*             prev   = nullptr;
+        Entry*             next   = nullptr;
     };
 
-    using list_type       = DoublyIntrusiveList<Entry>;
-    using list_iterator   = Entry*;
+    using list_value_type = Entry;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
+    using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
-    using bucket_type     = std::unique_ptr<list_type>;
-    using bucket_map_type = std::unordered_map<usize, bucket_type>;
+
+    struct Bucket final {
+       public:
+        explicit Bucket(const usize freq) noexcept :
+            frequency(freq) {}
+
+        usize     frequency;
+        list_type entries;
+        Bucket*   next = nullptr;
+    };
 
     class MapGuard final {
        public:
@@ -1302,7 +1376,6 @@ class PoolLFUCache final {
         nolock_release_pool();
 
         map.rehash(0);
-        buckets.rehash(0);
 
         capacity = defaultCapacity;
 
@@ -1319,107 +1392,116 @@ class PoolLFUCache final {
     [[nodiscard]] usize nolock_total_size() const noexcept {
         usize count = 0;
 
-        for (const auto& [frequency, bucket] : buckets)
+        for (const Bucket* bucket = buckets.front(); bucket != nullptr;
+             bucket               = buckets.next(*bucket))
         {
-            (void) frequency;
-            count += bucket->size();
+            count += bucket->entries.size();
         }
 
         return count;
     }
 
-    void nolock_update_frequency_bounds() noexcept {
-        if (map.empty())
+    void nolock_destroy_bucket(Bucket& bucket) noexcept {
+        assert(bucket.entries.empty());
+
+        if (buckets.front() == &bucket)
         {
-            minFrequency = 0;
-            maxFrequency = 0;
-            return;
+            [[maybe_unused]]  //
+            Bucket* const removedBucket = buckets.pop_front();
+            assert(removedBucket == &bucket);
+        }
+        else
+        {
+            [[maybe_unused]]  //
+            const bool erased = buckets.erase(bucket);
+            assert(erased);
         }
 
-        minFrequency = std::numeric_limits<usize>::max();
-        maxFrequency = 0;
-
-        for (const auto& [frequency, bucket] : buckets)
-        {
-            if (bucket->empty())
-                continue;
-
-            if (minFrequency > frequency)
-                minFrequency = frequency;
-            if (maxFrequency < frequency)
-                maxFrequency = frequency;
-        }
-
-        assert(minFrequency != std::numeric_limits<usize>::max());
+        bucketPool.destroy(&bucket);
     }
 
-    list_type& nolock_bucket(const usize frequency) {
-        auto itr = buckets.find(frequency);
+    void nolock_add_to_bucket(Entry& entry) noexcept {
+        Bucket* bucket = buckets.front();
 
-        if (itr == buckets.end())
+        if (bucket == nullptr || bucket->frequency != 1)
         {
-            auto bucket = std::make_unique<list_type>();
-            itr         = buckets.emplace(frequency, std::move(bucket)).first;
+            bucket = bucketPool.create(1, 1);
+            buckets.push_front(*bucket);
         }
 
-        return *itr->second;
-    }
-
-    void nolock_add_to_bucket(Entry& entry) {
-        const bool inserted = nolock_bucket(entry.frequency).push_front(entry);
+        entry.bucket = bucket;
+        [[maybe_unused]]  //
+        const bool inserted = bucket->entries.push_front(entry);
         assert(inserted);
-        (void) inserted;
     }
 
-    // Returns true when removing the entry empties its bucket.
-    bool nolock_remove_from_bucket(Entry& entry, const bool updateBounds = true) noexcept {
-        const usize frequency = entry.frequency;
-        const auto  itr       = buckets.find(frequency);
-        assert(itr != buckets.end());
-
-        list_type& bucket = *itr->second;
-        const bool erased = bucket.erase(entry);
+    void nolock_remove_from_bucket(Entry& entry) noexcept {
+        Bucket* const bucket = entry.bucket;
+        assert(bucket != nullptr);
+        [[maybe_unused]]  //
+        const bool erased = bucket->entries.erase(entry);
         assert(erased);
-        (void) erased;
 
-        if (!bucket.empty())
-            return false;
-
-        buckets.erase(itr);
-
-        if (updateBounds)
-        {
-            if (minFrequency == frequency || frequency == maxFrequency)
-                nolock_update_frequency_bounds();
-        }
-
-        return true;
+        entry.bucket = nullptr;
+        if (bucket->entries.empty())
+            nolock_destroy_bucket(*bucket);
     }
 
     list_iterator nolock_touch(list_iterator entry) noexcept {
         assert(entry != nullptr);
 
-        if (entry->frequency == std::numeric_limits<usize>::max())
-        {
-            const auto itr = buckets.find(entry->frequency);
-            assert(itr != buckets.end());
+        Bucket* const oldBucket = entry->bucket;
+        assert(oldBucket != nullptr);
 
-            itr->second->move_front(*entry);
+        if (oldBucket->frequency == std::numeric_limits<usize>::max())
+        {
+            oldBucket->entries.move_front(*entry);
             return entry;
         }
 
-        const bool wasMinimum    = entry->frequency == minFrequency;
-        const bool bucketEmptied = nolock_remove_from_bucket(*entry, false);
+        const usize   nextFrequency = oldBucket->frequency + 1;
+        Bucket* const nextBucket    = oldBucket->next;
+        const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
 
-        ++entry->frequency;
+        if (!targetExists && oldBucket->entries.size() == 1)
+        {
+            oldBucket->frequency = nextFrequency;
+            return entry;
+        }
 
-        nolock_add_to_bucket(*entry);
+        [[maybe_unused]]  //
+        const bool erased = oldBucket->entries.erase(*entry);
+        assert(erased);
 
-        if (bucketEmptied && wasMinimum)
-            minFrequency = entry->frequency;
+        if (targetExists)
+        {
+            entry->bucket = nextBucket;
+            [[maybe_unused]]  //
+            const bool inserted = nextBucket->entries.push_front(*entry);
+            assert(inserted);
 
-        if (maxFrequency < entry->frequency)
-            maxFrequency = entry->frequency;
+            if (oldBucket->entries.empty())
+                nolock_destroy_bucket(*oldBucket);
+        }
+        else if (oldBucket->entries.empty())
+        {
+            oldBucket->frequency = nextFrequency;
+            entry->bucket        = oldBucket;
+            [[maybe_unused]]  //
+            const bool inserted = oldBucket->entries.push_front(*entry);
+            assert(inserted);
+        }
+        else
+        {
+            Bucket* const newBucket = bucketPool.create(1, nextFrequency);
+            [[maybe_unused]]  //
+            const bool linked = buckets.insert_after(*oldBucket, *newBucket);
+            assert(linked);
+            entry->bucket = newBucket;
+            [[maybe_unused]]  //
+            const bool inserted = newBucket->entries.push_front(*entry);
+            assert(inserted);
+        }
 
         return entry;
     }
@@ -1449,15 +1531,12 @@ class PoolLFUCache final {
 
         const usize requiredSize = nolock_required_size();
 
-        Entry* const entry = pool.create(requiredSize, key, std::forward<Args>(args)...);
+        Entry* const entry = pool.create(requiredSize, key,  //
+                                         std::forward<Args>(args)...);
 
         mapItr->second = entry;
 
         nolock_add_to_bucket(*entry);
-
-        minFrequency = 1;
-        if (maxFrequency < 1)
-            maxFrequency = 1;
 
         mapGuard.commit();
 
@@ -1480,16 +1559,13 @@ class PoolLFUCache final {
 
         const usize requiredSize = nolock_required_size();
 
-        Entry* const entry = pool.create(
-          requiredSize, key, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        Entry* const entry = pool.create(requiredSize, key,      //
+                                         std::forward<Builder>(  //
+                                           builder)(std::forward<Args>(args)...));
 
         mapItr->second = entry;
 
         nolock_add_to_bucket(*entry);
-
-        minFrequency = 1;
-        if (maxFrequency < 1)
-            maxFrequency = 1;
 
         mapGuard.commit();
 
@@ -1501,8 +1577,8 @@ class PoolLFUCache final {
     void nolock_erase(typename map_type::iterator mapItr) noexcept {
         Entry* const entry = mapItr->second;
 
-        nolock_remove_from_bucket(*entry);
         map.erase(mapItr);
+        nolock_remove_from_bucket(*entry);
 
         pool.destroy(entry);
     }
@@ -1510,13 +1586,11 @@ class PoolLFUCache final {
     void nolock_evict_excess(const usize size) noexcept {
         while (map.size() > size)
         {
-            assert(minFrequency != 0);
-
-            const auto bucketItr = buckets.find(minFrequency);
-            assert(bucketItr != buckets.end());
+            Bucket* const minimumBucket = buckets.front();
+            assert(minimumBucket != nullptr);
 
             // MRU is at the front; evict the LRU from the back.
-            Entry* const entry = bucketItr->second->back();
+            Entry* const entry = minimumBucket->entries.back();
             assert(entry != nullptr);
 
             const auto mapItr = nolock_find(entry->key);
@@ -1538,32 +1612,29 @@ class PoolLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        for (auto& [frequency, bucket] : buckets)
+        while (Bucket* const bucket = buckets.front())
         {
-            (void) frequency;
-
-            while (Entry* const entry = bucket->back())
+            while (Entry* const entry = bucket->entries.back())
             {
-                bucket->erase(*entry);
+                bucket->entries.erase(*entry);
+                entry->bucket = nullptr;
                 pool.destroy(entry);
             }
+
+            nolock_destroy_bucket(*bucket);
         }
 
-        buckets.clear();
         map.clear();
-
-        minFrequency = 0;
-        maxFrequency = 0;
     }
 
-    void nolock_release_pool() noexcept { pool.release(); }
+    void nolock_release_pool() noexcept {
+        pool.release();
+        bucketPool.release();
+    }
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         map.reserve(reserveCount);
-
-        buckets.max_load_factor(maxLoadFactor);
-        buckets.reserve(reserveCount);
     }
 
     const usize defaultCapacity;
@@ -1576,9 +1647,8 @@ class PoolLFUCache final {
     map_type    map;
     Pool<Entry> pool;
 
-    bucket_map_type buckets;
-    usize           minFrequency = 0;
-    usize           maxFrequency = 0;
+    Pool<Bucket>                bucketPool;
+    SinglyIntrusiveList<Bucket> buckets;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -1588,13 +1658,10 @@ class PoolFlatLFUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
-       public:
-        template<typename... Args>
-        explicit Entry(const Key& k, Args&&... args) noexcept :
-            key(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
+    struct Bucket;
 
+    struct Entry final {
+       public:
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -1603,18 +1670,32 @@ class PoolFlatLFUCache final {
                 return std::make_shared<Value>(std::forward<Args>(args)...);
         }
 
+        template<typename... Args>
+        explicit Entry(const Key& k, Args&&... args) noexcept :
+            key(k),
+            value(make_storage(std::forward<Args>(args)...)) {}
+
         Key                key;
         storage_value_type value;
-        usize              frequency = 1;
-        Entry*             prev      = nullptr;
-        Entry*             next      = nullptr;
+        Bucket*            bucket = nullptr;
+        Entry*             prev   = nullptr;
+        Entry*             next   = nullptr;
     };
 
-    using list_type       = DoublyIntrusiveList<Entry>;
-    using list_iterator   = Entry*;
+    using list_value_type = Entry;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
+    using list_iterator   = list_value_type*;
     using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
-    using bucket_type     = std::unique_ptr<list_type>;
-    using bucket_map_type = std::unordered_map<usize, bucket_type>;
+
+    struct Bucket {
+       public:
+        explicit Bucket(const usize freq) noexcept :
+            frequency(freq) {}
+
+        usize     frequency;
+        list_type entries;
+        Bucket*   next = nullptr;
+    };
 
     class MapGuard final {
        public:
@@ -1759,7 +1840,6 @@ class PoolFlatLFUCache final {
         nolock_release_pool();
 
         map.rehash(0);
-        buckets.rehash(0);
 
         capacity = defaultCapacity;
 
@@ -1776,107 +1856,114 @@ class PoolFlatLFUCache final {
     [[nodiscard]] usize nolock_total_size() const noexcept {
         usize count = 0;
 
-        for (const auto& [frequency, bucket] : buckets)
+        for (const Bucket* bucket = buckets.front(); bucket != nullptr;
+             bucket               = buckets.next(*bucket))
         {
-            (void) frequency;
-            count += bucket->size();
+            count += bucket->entries.size();
         }
 
         return count;
     }
 
-    void nolock_update_frequency_bounds() noexcept {
-        if (map.empty())
+    void nolock_destroy_bucket(Bucket& bucket) noexcept {
+        assert(bucket.entries.empty());
+
+        if (buckets.front() == &bucket)
         {
-            minFrequency = 0;
-            maxFrequency = 0;
-            return;
+            [[maybe_unused]]  //
+            Bucket* const removedBucket = buckets.pop_front();
+            assert(removedBucket == &bucket);
+        }
+        else
+        {
+            [[maybe_unused]]  //
+            const bool erased = buckets.erase(bucket);
+            assert(erased);
         }
 
-        minFrequency = std::numeric_limits<usize>::max();
-        maxFrequency = 0;
-
-        for (const auto& [frequency, bucket] : buckets)
-        {
-            if (bucket->empty())
-                continue;
-
-            if (minFrequency > frequency)
-                minFrequency = frequency;
-            if (maxFrequency < frequency)
-                maxFrequency = frequency;
-        }
-
-        assert(minFrequency != std::numeric_limits<usize>::max());
+        bucketPool.destroy(&bucket);
     }
 
-    list_type& nolock_bucket(const usize frequency) {
-        auto itr = buckets.find(frequency);
+    void nolock_add_to_bucket(Entry& entry) noexcept {
+        Bucket* bucket = buckets.front();
 
-        if (itr == buckets.end())
+        if (bucket == nullptr || bucket->frequency != 1)
         {
-            auto bucket = std::make_unique<list_type>();
-            itr         = buckets.emplace(frequency, std::move(bucket)).first;
+            bucket = bucketPool.create(1, 1);
+            buckets.push_front(*bucket);
         }
 
-        return *itr->second;
-    }
-
-    void nolock_add_to_bucket(Entry& entry) {
-        const bool inserted = nolock_bucket(entry.frequency).push_front(entry);
+        entry.bucket = bucket;
+        [[maybe_unused]]  //
+        const bool inserted = bucket->entries.push_front(entry);
         assert(inserted);
-        (void) inserted;
     }
 
-    // Returns true when removing the entry empties its bucket.
-    bool nolock_remove_from_bucket(Entry& entry, const bool updateBounds = true) noexcept {
-        const usize frequency = entry.frequency;
-        const auto  itr       = buckets.find(frequency);
-        assert(itr != buckets.end());
-
-        list_type& bucket = *itr->second;
-        const bool erased = bucket.erase(entry);
+    void nolock_remove_from_bucket(Entry& entry) noexcept {
+        Bucket* const bucket = entry.bucket;
+        assert(bucket != nullptr);
+        [[maybe_unused]]  //
+        const bool erased = bucket->entries.erase(entry);
         assert(erased);
-        (void) erased;
 
-        if (!bucket.empty())
-            return false;
-
-        buckets.erase(itr);
-
-        if (updateBounds)
-        {
-            if (minFrequency == frequency || frequency == maxFrequency)
-                nolock_update_frequency_bounds();
-        }
-
-        return true;
+        entry.bucket = nullptr;
+        if (bucket->entries.empty())
+            nolock_destroy_bucket(*bucket);
     }
 
     list_iterator nolock_touch(list_iterator entry) noexcept {
         assert(entry != nullptr);
 
-        if (entry->frequency == std::numeric_limits<usize>::max())
-        {
-            const auto itr = buckets.find(entry->frequency);
-            assert(itr != buckets.end());
+        Bucket* const oldBucket = entry->bucket;
+        assert(oldBucket != nullptr);
 
-            itr->second->move_front(*entry);
+        if (oldBucket->frequency == std::numeric_limits<usize>::max())
+        {
+            oldBucket->entries.move_front(*entry);
             return entry;
         }
 
-        const bool wasMinimum    = entry->frequency == minFrequency;
-        const bool bucketEmptied = nolock_remove_from_bucket(*entry, false);
+        const usize   nextFrequency = oldBucket->frequency + 1;
+        Bucket* const nextBucket    = oldBucket->next;
+        const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
 
-        ++entry->frequency;
+        if (!targetExists && oldBucket->entries.size() == 1)
+        {
+            oldBucket->frequency = nextFrequency;
+            return entry;
+        }
 
-        nolock_add_to_bucket(*entry);
+        [[maybe_unused]]  //
+        const bool erased = oldBucket->entries.erase(*entry);
+        assert(erased);
 
-        if (bucketEmptied && wasMinimum)
-            minFrequency = entry->frequency;
+        if (targetExists)
+        {
+            entry->bucket = nextBucket;
+            [[maybe_unused]]  //
+            const bool inserted = nextBucket->entries.push_front(*entry);
+            assert(inserted);
 
-        if (maxFrequency < entry->frequency)
-            maxFrequency = entry->frequency;
+            if (oldBucket->entries.empty())
+                nolock_destroy_bucket(*oldBucket);
+        }
+        else if (oldBucket->entries.empty())
+        {
+            oldBucket->frequency = nextFrequency;
+            entry->bucket        = oldBucket;
+            [[maybe_unused]]  //
+            const bool inserted = oldBucket->entries.push_front(*entry);
+            assert(inserted);
+        }
+        else
+        {
+            Bucket* const               newBucket = bucketPool.create(1, nextFrequency);
+            [[maybe_unused]] const bool linked    = buckets.insert_after(*oldBucket, *newBucket);
+            assert(linked);
+            entry->bucket                        = newBucket;
+            [[maybe_unused]] const bool inserted = newBucket->entries.push_front(*entry);
+            assert(inserted);
+        }
 
         return entry;
     }
@@ -1906,15 +1993,12 @@ class PoolFlatLFUCache final {
 
         const usize requiredSize = nolock_required_size();
 
-        Entry* const entry = pool.create(requiredSize, key, std::forward<Args>(args)...);
+        Entry* const entry = pool.create(requiredSize, key,  //
+                                         std::forward<Args>(args)...);
 
         mapItr->second = entry;
 
         nolock_add_to_bucket(*entry);
-
-        minFrequency = 1;
-        if (maxFrequency < 1)
-            maxFrequency = 1;
 
         mapGuard.commit();
 
@@ -1937,16 +2021,13 @@ class PoolFlatLFUCache final {
 
         const usize requiredSize = nolock_required_size();
 
-        Entry* const entry = pool.create(
-          requiredSize, key, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        Entry* const entry = pool.create(requiredSize, key,      //
+                                         std::forward<Builder>(  //
+                                           builder)(std::forward<Args>(args)...));
 
         mapItr->second = entry;
 
         nolock_add_to_bucket(*entry);
-
-        minFrequency = 1;
-        if (maxFrequency < 1)
-            maxFrequency = 1;
 
         mapGuard.commit();
 
@@ -1968,13 +2049,11 @@ class PoolFlatLFUCache final {
     void nolock_evict_excess(const usize size) noexcept {
         while (map.size() > size)
         {
-            assert(minFrequency != 0);
-
-            const auto bucketItr = buckets.find(minFrequency);
-            assert(bucketItr != buckets.end());
+            Bucket* const minimumBucket = buckets.front();
+            assert(minimumBucket != nullptr);
 
             // MRU is at the front; evict the LRU from the back.
-            Entry* const entry = bucketItr->second->back();
+            Entry* const entry = minimumBucket->entries.back();
             assert(entry != nullptr);
 
             const auto mapItr = nolock_find(entry->key);
@@ -1996,32 +2075,28 @@ class PoolFlatLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        for (auto& [frequency, bucket] : buckets)
+        while (Bucket* const bucket = buckets.front())
         {
-            (void) frequency;
-
-            while (Entry* const entry = bucket->back())
+            while (Entry* const entry = bucket->entries.back())
             {
-                bucket->erase(*entry);
+                bucket->entries.erase(*entry);
                 pool.destroy(entry);
             }
+
+            nolock_destroy_bucket(*bucket);
         }
 
-        buckets.clear();
         map.clear();
-
-        minFrequency = 0;
-        maxFrequency = 0;
     }
 
-    void nolock_release_pool() noexcept { pool.release(); }
+    void nolock_release_pool() noexcept {
+        pool.release();
+        bucketPool.release();
+    }
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         map.reserve(reserveCount);
-
-        buckets.max_load_factor(maxLoadFactor);
-        buckets.reserve(reserveCount);
     }
 
     const usize defaultCapacity;
@@ -2034,9 +2109,8 @@ class PoolFlatLFUCache final {
     map_type    map;
     Pool<Entry> pool;
 
-    bucket_map_type buckets;
-    usize           minFrequency = 0;
-    usize           maxFrequency = 0;
+    Pool<Bucket>                bucketPool;
+    SinglyIntrusiveList<Bucket> buckets;
 };
 
 }  // namespace DON

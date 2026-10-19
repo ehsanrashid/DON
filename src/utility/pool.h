@@ -77,10 +77,10 @@ class Pool final {
 
     template<typename... Args>
     T* create(const usize requiredSize, Args&&... args) noexcept {
-        if (freeSlotList.empty())
+        if (slotList.empty())
             allocate_block(requiredSize);
 
-        Slot* const slot = freeSlotList.pop_front();
+        Slot* const slot = slotList.pop_front();
         assert(slot != nullptr);
 
         T* const object = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
@@ -98,14 +98,14 @@ class Pool final {
 
         object->~T();
 
-        freeSlotList.push_front(*slot);
+        slotList.push_front(*slot);
         --activeCount;
     }
 
     void release() noexcept {
         assert(activeCount == 0);
 
-        freeSlotList.clear();
+        slotList.clear();
 #if defined(USE_STATIC_VECTOR)
         blocks.clear_and_release();
 #else
@@ -138,13 +138,13 @@ class Pool final {
         blocks.push_back(Block{std::move(slots)});
 
         for (usize index = 0; index < count; ++index)
-            freeSlotList.push_front(first[index]);
+            slotList.push_front(first[index]);
     }
 
     static constexpr usize StorageOffset = offsetof(Slot, storage);
 
 #if defined(USE_STATIC_VECTOR)
-    static constexpr usize BlockMax = 512;
+    static constexpr usize BlockMax = 1024;
 
     StaticVector<Block, BlockMax>
 #else
@@ -153,7 +153,7 @@ class Pool final {
       blocks;
 
     usize                     activeCount = 0;
-    SinglyIntrusiveList<Slot> freeSlotList;
+    SinglyIntrusiveList<Slot> slotList;  // Free slots
 };
 
 }  // namespace DON

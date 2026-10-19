@@ -207,9 +207,8 @@ class ListLRUCache final {
    private:
     auto nolock_map_end() const noexcept { return map.end(); }
 
+    auto nolock_list_beg() noexcept { return list.begin(); }
     auto nolock_list_end() noexcept { return list.end(); }
-
-    auto nolock_list_pos() noexcept { return list.begin(); }
 
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
@@ -217,7 +216,7 @@ class ListLRUCache final {
     list_iterator nolock_touch(list_iterator listItr) noexcept {
         assert(listItr != nolock_list_end());
 
-        list.splice(nolock_list_pos(), list, listItr);
+        list.splice(nolock_list_beg(), list, listItr);
 
         return listItr;
     }
@@ -273,14 +272,14 @@ class ListLRUCache final {
             assert(oldMapItr != nolock_map_end());
 
             map.erase(oldMapItr);
-            list.splice(nolock_list_pos(), list, listItr);
+            list.splice(nolock_list_beg(), list, listItr);
             std::destroy_at(std::addressof(*listItr));
             new (static_cast<void*>(std::addressof(*listItr)))
               list_value_type(key, std::move(value));
             mapItr->second = listItr;
         }
         else
-            mapItr->second = list.emplace(nolock_list_pos(), key, std::move(value));
+            mapItr->second = list.emplace(nolock_list_beg(), key, std::move(value));
 
         mapGuard.commit();
         nolock_evict_excess(capacity);
@@ -333,8 +332,9 @@ class ListLRUCache final {
     const usize reserveCount;
     const float maxLoadFactor;
 
-    mutable Mutex  mutex;
-    usize          capacity;
+    mutable Mutex mutex;
+    usize         capacity;
+
     map_type       map;
     list_pool_type listPool;
     list_type      list;
@@ -347,12 +347,8 @@ class NewDeleteLRUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
-        template<typename... Args>
-        explicit Entry(const Key& k, Args&&... args) noexcept :
-            key(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
-
+    struct Entry final {
+       public:
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -360,6 +356,11 @@ class NewDeleteLRUCache final {
             else
                 return std::make_shared<Value>(std::forward<Args>(args)...);
         }
+
+        template<typename... Args>
+        explicit Entry(const Key& k, Args&&... args) noexcept :
+            key(k),
+            value(make_storage(std::forward<Args>(args)...)) {}
 
         Key                key;
         storage_value_type value;
@@ -651,9 +652,10 @@ class NewDeleteLRUCache final {
     const float maxLoadFactor;
 
     mutable Mutex mutex;
-    usize         capacity = 0;
-    map_type      map;
-    list_type     list;
+    usize         capacity;
+
+    map_type  map;
+    list_type list;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -663,13 +665,8 @@ class PoolLRUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
+    struct Entry final {
        public:
-        template<typename... Args>
-        explicit Entry(const Key& k, Args&&... args) noexcept :
-            key(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
-
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -677,6 +674,11 @@ class PoolLRUCache final {
             else
                 return std::make_shared<Value>(std::forward<Args>(args)...);
         }
+
+        template<typename... Args>
+        explicit Entry(const Key& k, Args&&... args) noexcept :
+            key(k),
+            value(make_storage(std::forward<Args>(args)...)) {}
 
         Key                key;
         storage_value_type value;
@@ -975,10 +977,12 @@ class PoolLRUCache final {
     const float maxLoadFactor;
 
     mutable Mutex mutex;
-    usize         capacity = 0;
-    map_type      map;
-    list_type     list;
-    Pool<Entry>   pool;
+    usize         capacity;
+
+    map_type  map;
+    list_type list;
+
+    Pool<Entry> pool;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -988,13 +992,8 @@ class PoolFlatLRUCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
-    struct Entry {
+    struct Entry final {
        public:
-        template<typename... Args>
-        explicit Entry(const Key& k, Args&&... args) noexcept :
-            key(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
-
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -1002,6 +1001,11 @@ class PoolFlatLRUCache final {
             else
                 return std::make_shared<Value>(std::forward<Args>(args)...);
         }
+
+        template<typename... Args>
+        explicit Entry(const Key& k, Args&&... args) noexcept :
+            key(k),
+            value(make_storage(std::forward<Args>(args)...)) {}
 
         Key                key;
         storage_value_type value;
@@ -1303,10 +1307,12 @@ class PoolFlatLRUCache final {
     const float maxLoadFactor;
 
     mutable Mutex mutex;
-    usize         capacity = 0;
-    map_type      map;
-    list_type     list;
-    Pool<Entry>   pool;
+    usize         capacity;
+
+    map_type  map;
+    list_type list;
+
+    Pool<Entry> pool;
 };
 
 }  // namespace DON

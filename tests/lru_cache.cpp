@@ -47,6 +47,7 @@ using namespace DON;
             return EXIT_FAILURE; \
         } \
     } while (false)
+
 namespace {
 
 using Clock = std::chrono::steady_clock;
@@ -59,7 +60,7 @@ constexpr usize BenchmarkCapacity   = 32 * KB;
 constexpr usize BenchmarkOperations = 3200'000;
 
 // Exercise the shared_ptr storage path (> 128 bytes).
-struct LargeValue {
+struct LargeValue final {
     std::array<std::uint8_t, 256> data{};
     int                           id = 0;
 
@@ -70,7 +71,7 @@ struct LargeValue {
 };
 
 template<typename Cache>
-int correctness_tests() {
+int correctness_tests() noexcept {
     Cache cache{3, 8};
 
     // Initial state.
@@ -167,7 +168,7 @@ int correctness_tests() {
 
 // Large values exercise shared_ptr-backed storage.
 template<typename Cache>
-int large_value_tests() {
+int large_value_tests() noexcept {
     Cache cache{4, 8, MaxLoadFactor};
 
     CHECK(cache.read_or_write(1, 101).id == 101);
@@ -181,8 +182,9 @@ int large_value_tests() {
     return EXIT_SUCCESS;
 }
 
-int pool_growth_tests() {
-    constexpr int EntryCount = 270'000;
+int pool_growth_tests() noexcept {
+    constexpr usize EntryCount = 270'000;
+
     PoolLRUCache<int, int> cache{EntryCount, 16, MaxLoadFactor};
 
     for (int key = 0; key < EntryCount; ++key)
@@ -200,8 +202,9 @@ int pool_growth_tests() {
     return EXIT_SUCCESS;
 }
 
-int flat_growth_tests() {
-    constexpr int EntryCount = 270'000;
+int flat_growth_tests() noexcept {
+    constexpr usize EntryCount = 270'000;
+
     PoolFlatLRUCache<int, int> cache{EntryCount, 16, MaxLoadFactor};
 
     for (int key = 0; key < EntryCount; ++key)
@@ -220,15 +223,16 @@ int flat_growth_tests() {
 }
 
 template<typename CacheA, typename CacheB, typename CacheC>
-int randomized_tests() {
+int randomized_tests() noexcept {
     CacheA a{Capacity, Capacity / 4, MaxLoadFactor};
     CacheB b{Capacity, Capacity / 4, MaxLoadFactor};
     CacheC c{Capacity, Capacity / 4, MaxLoadFactor};
 
     std::mt19937 rng{0xD04CACE};
-    int          buildsA = 0;
-    int          buildsB = 0;
-    int          buildsC = 0;
+
+    int buildsA = 0;
+    int buildsB = 0;
+    int buildsC = 0;
 
     for (int i = 0; i < RandomOperations; ++i)
     {
@@ -299,7 +303,7 @@ int randomized_tests() {
 }
 
 template<typename Cache>
-double benchmark_case(const char* name, const std::vector<int>& keys, const bool prefill) {
+double benchmark_case(const char* name, const std::vector<int>& keys, const bool prefill) noexcept {
     Cache cache{BenchmarkCapacity, BenchmarkCapacity / 4, MaxLoadFactor};
 
     if (prefill)
@@ -332,7 +336,7 @@ template<typename Cache>
 void benchmark_cache(const char*             cacheName,
                      const std::vector<int>& hitKeys,
                      const std::vector<int>& missKeys,
-                     const std::vector<int>& mixedKeys) {
+                     const std::vector<int>& mixedKeys) noexcept {
     std::cout << cacheName << '\n';
     benchmark_case<Cache>("hits", hitKeys, true);
     benchmark_case<Cache>("misses + eviction", missKeys, false);
@@ -343,23 +347,22 @@ void benchmark_cache(const char*             cacheName,
 
 int main() {
     using ListCache      = ListLRUCache<int, int, SpinMutex>;
-    //using NewDeleteCache = NewDeleteLRUCache<int, int, SpinMutex>;
+    using NewDeleteCache = NewDeleteLRUCache<int, int, SpinMutex>;
     using PoolCache      = PoolLRUCache<int, int, SpinMutex>;
     using FlatCache      = PoolFlatLRUCache<int, int, SpinMutex>;
 
-    //using LargeListCache      = ListLRUCache<int, LargeValue, SpinMutex>;
-    //using LargeNewDeleteCache = NewDeleteLRUCache<int, LargeValue, SpinMutex>;
+    using LargeListCache      = ListLRUCache<int, LargeValue, SpinMutex>;
+    using LargeNewDeleteCache = NewDeleteLRUCache<int, LargeValue, SpinMutex>;
     using LargePoolCache      = PoolLRUCache<int, LargeValue, SpinMutex>;
     using LargeFlatCache      = PoolFlatLRUCache<int, LargeValue, SpinMutex>;
 
     // ------------------------------------------------
-    /*
+
     if (correctness_tests<ListCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     if (correctness_tests<NewDeleteCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
-    */
 
     if (correctness_tests<PoolCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -368,13 +371,11 @@ int main() {
         return EXIT_FAILURE;
 
     // ------------------------------------------------
-    /*
     if (large_value_tests<LargeListCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
     if (large_value_tests<LargeNewDeleteCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
-    */
 
     if (large_value_tests<LargePoolCache>() != EXIT_SUCCESS)
         return EXIT_FAILURE;
@@ -415,7 +416,6 @@ int main() {
     std::cout << "Benchmark: " << BenchmarkOperations << " operations per workload\n"
               << "Lower ns/op is better; higher Mops/s is better.\n\n";
 
-    /*
     benchmark_cache<ListCache>("ListLRUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << '\n';
@@ -423,7 +423,6 @@ int main() {
     benchmark_cache<NewDeleteCache>("NewDeleteLRUCache", hitKeys, missKeys, mixedKeys);
 
     std::cout << '\n';
-    */
 
     benchmark_cache<PoolCache>("PoolLRUCache", hitKeys, missKeys, mixedKeys);
 

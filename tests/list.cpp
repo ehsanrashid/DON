@@ -188,6 +188,35 @@ int main() {
     CHECK(list.erase(a));
     check_list(list, {});
 
-    std::cout << "All DoublyIntrusiveList tests passed.\n";
+    SinglyIntrusiveList<Item> singlyList;
+    CHECK(singlyList.empty());
+    CHECK(singlyList.size() == 0);
+
+    singlyList.push_front(a);
+    singlyList.push_front(b);
+    singlyList.push_front(c);
+    CHECK(singlyList.size() == 3);
+
+    CHECK(singlyList.pop_front() == &c);
+    CHECK(singlyList.size() == 2);
+    CHECK(singlyList.pop_front() == &b);
+    CHECK(singlyList.size() == 1);
+    CHECK(singlyList.pop_front() == &a);
+    CHECK(singlyList.empty());
+
+    singlyList.push_front(a);
+    CHECK(singlyList.insert_after(a, b));
+    CHECK(singlyList.insert_after(b, c));
+    CHECK(singlyList.size() == 3);
+    CHECK(singlyList.erase(b));
+    CHECK(singlyList.size() == 2);
+    CHECK(singlyList.front() == &a);
+    CHECK(a.next == &c);
+    CHECK(b.next == nullptr);
+    CHECK(singlyList.erase(a));
+    CHECK(singlyList.pop_front() == &c);
+    CHECK(singlyList.empty());
+
+    std::cout << "All intrusive-list tests passed.\n";
     return 0;
 }

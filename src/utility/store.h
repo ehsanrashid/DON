@@ -165,12 +165,10 @@ class Store final {
    private:
     auto nolock_map_end() const noexcept { return map.end(); }
 
+    auto nolock_list_beg() noexcept { return list.begin(); }
     auto nolock_list_end() noexcept { return list.end(); }
 
-    auto nolock_list_pos() noexcept { return list.begin(); }
-
     auto nolock_find(const Key& key) { return map.find(key); }
-
     auto nolock_find(const Key& key) const { return map.find(key); }
 
     Return nolock_read(storage_value_type& value) const {
@@ -190,10 +188,10 @@ class Store final {
         MapGuard mapGuard{map, mapItr};
 
         if constexpr (sizeof(Value) <= ThresholdSize)
-            mapItr->second = list.emplace(nolock_list_pos(),  //
+            mapItr->second = list.emplace(nolock_list_beg(),  //
                                           std::forward<Args>(args)...);
         else
-            mapItr->second = list.emplace(nolock_list_pos(),        //
+            mapItr->second = list.emplace(nolock_list_beg(),        //
                                           std::make_shared<Value>(  //
                                             std::forward<Args>(args)...));
         mapGuard.commit();
@@ -211,11 +209,11 @@ class Store final {
         MapGuard mapGuard{map, mapItr};
 
         if constexpr (sizeof(Value) <= ThresholdSize)
-            mapItr->second = list.emplace(nolock_list_pos(),      //
+            mapItr->second = list.emplace(nolock_list_beg(),      //
                                           std::forward<Builder>(  //
                                             builder)(std::forward<Args>(args)...));
         else
-            mapItr->second = list.emplace(nolock_list_pos(),        //
+            mapItr->second = list.emplace(nolock_list_beg(),        //
                                           std::make_shared<Value>(  //
                                             std::forward<Builder>(  //
                                               builder)(std::forward<Args>(args)...)));
@@ -393,12 +391,10 @@ class SharedStore final {
        private:
         auto nolock_map_end() const noexcept { return map.end(); }
 
+        auto nolock_list_beg() noexcept { return list.begin(); }
         auto nolock_list_end() noexcept { return list.end(); }
 
-        auto nolock_list_pos() noexcept { return list.begin(); }
-
         auto nolock_find(const Key& key) noexcept { return map.find(key); }
-
         auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
         Return nolock_read(const storage_value_type& value) const {
@@ -418,10 +414,10 @@ class SharedStore final {
             MapGuard mapGuard{map, mapItr};
 
             if constexpr (sizeof(Value) <= ThresholdSize)
-                mapItr->second = list.emplace(nolock_list_pos(),  //
+                mapItr->second = list.emplace(nolock_list_beg(),  //
                                               std::forward<Args>(args)...);
             else
-                mapItr->second = list.emplace(nolock_list_pos(),        //
+                mapItr->second = list.emplace(nolock_list_beg(),        //
                                               std::make_shared<Value>(  //
                                                 std::forward<Args>(args)...));
             mapGuard.commit();
@@ -439,11 +435,11 @@ class SharedStore final {
             MapGuard mapGuard{map, mapItr};
 
             if constexpr (sizeof(Value) <= ThresholdSize)
-                mapItr->second = list.emplace(nolock_list_pos(),      //
+                mapItr->second = list.emplace(nolock_list_beg(),      //
                                               std::forward<Builder>(  //
                                                 builder)(std::forward<Args>(args)...));
             else
-                mapItr->second = list.emplace(nolock_list_pos(),        //
+                mapItr->second = list.emplace(nolock_list_beg(),        //
                                               std::make_shared<Value>(  //
                                                 std::forward<Builder>(  //
                                                   builder)(std::forward<Args>(args)...)));
