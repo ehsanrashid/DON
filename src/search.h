@@ -64,7 +64,7 @@ class Network;
 // Maximum number of moves stored during search
 inline constexpr usize MOVES_CAPACITY = 32;
 
-using MoveVector = StaticVector<Move, MOVES_CAPACITY, u16>;
+using MoveVector = StaticVector<Move, MOVES_CAPACITY, u8>;
 
 inline Book::PolyGlot PGBook;
 

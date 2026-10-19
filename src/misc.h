@@ -1105,7 +1105,8 @@ bool str_is_bool(std::string_view sv) noexcept;
 
 bool str_in_range(std::string_view sv, int minValue, int maxValue) noexcept;
 
-StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
+std::vector<std::string_view>
+split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
 std::vector<std::string> to_strings(const std::vector<std::string_view>& svs) noexcept;
 

@@ -1025,38 +1025,30 @@ bool str_in_range(const std::string_view sv, const int minValue, const int maxVa
 
 std::vector<std::string_view>
 split(const std::string_view sv, const std::string_view delimiter, bool trimPart) noexcept {
+    // Return no parts for empty input or delimiter
+    if (sv.empty() || delimiter.empty())
+        return {};
+
     std::vector<std::string_view> parts;
 
-    if (sv.empty() || delimiter.empty())
-        return parts;  // Avoid infinite loop for empty delimiter
-
-    std::string_view part;
-
-    usize offset = 0;
+    usize pos = 0;
 
     while (true)
     {
-        auto end = sv.find(delimiter, offset);
+        const usize next = sv.find(delimiter, pos);
 
-        if (end == std::string_view::npos)
-            break;
-
-        part = sv.substr(offset, end - offset);
+        auto part = sv.substr(pos, next - pos);
 
         if (trimPart)
             part = trim(part);
 
-        parts.emplace_back(part);
-        offset = end + delimiter.size();
+        parts.push_back(part);
+
+        if (next == std::string_view::npos)
+            break;
+
+        pos = next + delimiter.size();
     }
-
-    // Last part
-    part = sv.substr(offset);
-
-    if (trimPart)
-        part = trim(part);
-
-    parts.emplace_back(part);
 
     return parts;
 }

@@ -28,7 +28,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
@@ -98,9 +97,6 @@ using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
 
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
-
-using Strings     = std::vector<std::string>;
-using StringViews = std::vector<std::string_view>;
 
 inline constexpr usize BYTE_BITS = 8;
 

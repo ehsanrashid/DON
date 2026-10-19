@@ -615,7 +615,7 @@ class SetLFUCache final {
         const usize erased = entries.erase(&entry);
         assert(erased == 1);
 
-        if (entry.frequency < std::numeric_limits<usize>::max())
+        if (entry.frequency != std::numeric_limits<usize>::max())
             ++entry.frequency;
 
         entry.recency = nolock_next_recency();
