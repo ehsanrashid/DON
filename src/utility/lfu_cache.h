@@ -222,29 +222,18 @@ class ListLFUCache final {
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
-    // Called only while mutex is held.
+    void nolock_renumber_recency() noexcept {
+        usize recency = 0;
+
+        for (auto itr = nolock_list_beg(); itr != nolock_list_end(); ++itr)
+            itr->recency = ++recency;
+
+        recencyCounter = recency;
+    }
+
     usize nolock_next_recency() noexcept {
         if (recencyCounter == std::numeric_limits<usize>::max())
-        {
-            // Rare overflow recovery: preserve the relative recency order.
-            std::vector<list_iterator> ordered;
-            ordered.reserve(list.size());
-
-            for (auto itr = nolock_list_beg(); itr != nolock_list_end(); ++itr)
-                ordered.push_back(itr);
-
-            std::sort(ordered.begin(), ordered.end(),
-                      [](const list_iterator l1, const list_iterator l2) noexcept -> bool {
-                          return l1->recency < l2->recency;
-                      });
-
-            usize recency = 0;
-
-            for (const auto itr : ordered)
-                itr->recency = ++recency;
-
-            recencyCounter = recency;
-        }
+            nolock_renumber_recency();
 
         return ++recencyCounter;
     }
@@ -302,11 +291,10 @@ class ListLFUCache final {
         auto victim = nolock_list_beg();
 
         for (auto itr = std::next(victim); itr != nolock_list_end(); ++itr)
-        {
-            if (itr->frequency < victim->frequency
-                || (itr->frequency == victim->frequency && itr->recency < victim->recency))
+            if (itr->frequency != victim->frequency  //
+                  ? itr->frequency < victim->frequency
+                  : itr->recency < victim->recency)
                 victim = itr;
-        }
 
         return victim;
     }
@@ -430,8 +418,9 @@ class SetLFUCache final {
 
     struct EntryCompare final {
         bool operator()(const Entry* const e1, const Entry* const e2) const noexcept {
-            return e1->frequency != e2->frequency ? e1->frequency > e2->frequency
-                                                  : e1->recency > e2->recency;
+            return e1->frequency != e2->frequency  //
+                   ? e1->frequency > e2->frequency
+                   : e1->recency > e2->recency;
         }
     };
 
@@ -592,21 +581,20 @@ class SetLFUCache final {
     auto nolock_find(const Key& key) noexcept { return map.find(key); }
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
+    void nolock_renumber_recency() noexcept {
+        usize recency = 0;
+
+        for (Entry* const entry : entries)
+            entry->recency = ++recency;
+
+        recencyCounter = recency;
+    }
+
     usize nolock_next_recency() noexcept {
         if (recencyCounter == std::numeric_limits<usize>::max())
             nolock_renumber_recency();
 
         return ++recencyCounter;
-    }
-
-    void nolock_renumber_recency() noexcept {
-        usize recency = 0;
-
-        //for (Entry* const entry : entries)
-        //    entry->recency = ++recency;
-        entries.for_each([&](Entry* const entry) noexcept { entry->recency = ++recency; });
-
-        recencyCounter = recency;
     }
 
     void nolock_touch(Entry& entry) noexcept {
@@ -1398,15 +1386,13 @@ class PoolLFUCache final {
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
     [[nodiscard]] usize nolock_total_size() const noexcept {
-        usize count = 0;
+        usize size = 0;
 
         for (const Bucket* bucket = buckets.front(); bucket != nullptr;
              bucket               = buckets.next(*bucket))
-        {
-            count += bucket->entries.size();
-        }
+            size += bucket->entries.size();
 
-        return count;
+        return size;
     }
 
     void nolock_destroy_bucket(Bucket& bucket) noexcept {
@@ -1860,15 +1846,13 @@ class PoolFlatLFUCache final {
     auto nolock_find(const Key& key) const noexcept { return map.find(key); }
 
     [[nodiscard]] usize nolock_total_size() const noexcept {
-        usize count = 0;
+        usize size = 0;
 
         for (const Bucket* bucket = buckets.front(); bucket != nullptr;
              bucket               = buckets.next(*bucket))
-        {
-            count += bucket->entries.size();
-        }
+            size += bucket->entries.size();
 
-        return count;
+        return size;
     }
 
     void nolock_destroy_bucket(Bucket& bucket) noexcept {

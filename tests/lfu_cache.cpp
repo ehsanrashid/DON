@@ -4,6 +4,7 @@ Steps:
 
 mkdir -p build
 
+g++ -std=c++17 -O2 -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/lfu_cache.cpp -o build/lfu_cache
 g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/lfu_cache.cpp -o build/lfu_cache
 
 ./build/lfu_cache

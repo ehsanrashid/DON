@@ -207,7 +207,9 @@ struct RootMove final {
 
     // Sort in descending order
     bool operator<(const RootMove& rm) const noexcept {
-        return value != rm.value ? value > rm.value : preValue > rm.preValue;
+        return value != rm.value  //
+               ? value > rm.value
+               : preValue > rm.preValue;
     }
     bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
     bool operator<=(const RootMove& rm) const noexcept { return !(rm < *this); }
