@@ -35,6 +35,7 @@
 #include "utility/error.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
+#include "utility/reader.h"
 #include "utility/sharded_cache.h"
 
 namespace DON {

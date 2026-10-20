@@ -22,8 +22,8 @@
 #include <optional>
 #include <unordered_map>
 
-#include "misc.h"
 #include "option.h"
+#include "utility/functions.h"
 
 namespace DON {
 

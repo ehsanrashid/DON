@@ -26,6 +26,7 @@
 #include "bitboard.h"
 #include "position.h"
 #include "state.h"
+#include "utility/functions.h"
 
 namespace DON {
 

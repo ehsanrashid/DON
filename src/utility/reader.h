@@ -1,0 +1,66 @@
+/*
+  DON, UCI chess playing engine Copyright (C) 2003-2026
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef UTILITY_READER_H_INCLUDED
+#define UTILITY_READER_H_INCLUDED
+
+#include <string_view>
+
+#include "../utility/types.h"
+
+namespace DON {
+
+// StringReader: Fast, Small, allocation-free, read-only parser over std::string_view.
+class StringReader final {
+   public:
+    explicit StringReader(std::string_view sv) noexcept;
+
+    // Returns the current character without advancing the reader.
+    //
+    // Returns Null when the end of the input is reached.
+    char peek() const noexcept;
+
+    // Returns true if the current character exists and is not whitespace.
+    bool is_not_space() const noexcept;
+
+    // Advances the reader past all consecutive whitespace characters.
+    void skip_spaces() noexcept;
+
+    void advance() noexcept;
+
+    // Returns the current character and advances the reader.
+    //
+    // Returns Null when the end of the input is reached.
+    char get() noexcept;
+
+    // Reads a signed integer after skipping leading whitespace.
+    //
+    // Returns false if no integer is found; otherwise stores the parsed
+    // value in 'out' and returns true.
+    bool get_int(int& out) noexcept;
+
+    static constexpr char Null = '\0';
+
+   private:
+    const char* const beg;
+    const char*       cur;
+    const char* const end;
+};
+
+}  // namespace DON
+
+#endif  // UTILITY_READER_H_INCLUDED

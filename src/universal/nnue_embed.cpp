@@ -30,7 +30,7 @@
 #include "../utility/types.h"
 
 #if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
-    #include "../misc.h"
+    #include "../utility/functions.h"
 
 // In a macOS universal binary the network is embedded only in the arm64 slice,
 // and the x86-64 slice mmaps it from the arm64 slice.

@@ -158,14 +158,14 @@ template<
   typename T,
   std::enable_if_t<std::is_arithmetic_v<T> || (std::is_enum_v<T> && std::is_convertible_v<T, int>),
                    int> = 0>
-constexpr int sign(const T x) noexcept {
+[[nodiscard]] constexpr int sign(const T x) noexcept {
     // NaN -> 0; unsigned types never return -1
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
 
 // Return the square of a number, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sqr(const T x) noexcept {
+[[nodiscard]] constexpr auto sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * Wider(x);
@@ -173,15 +173,15 @@ constexpr auto sqr(const T x) noexcept {
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sign_sqr(const T x) noexcept {
+[[nodiscard]] constexpr auto sign_sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     return sign(x) * sqr(x);
 }
 
-constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
+[[nodiscard]] constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
 
 template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
+[[nodiscard]] constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
     //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
     return R(n) / R(d) + (R(n) % R(d) != 0);
@@ -189,12 +189,12 @@ constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
 
 // Round n up to be a multiple of base
 template<typename T>
-constexpr T ceil_to_multiple(const T n, const T base) noexcept {
+[[nodiscard]] constexpr T ceil_to_multiple(const T n, const T base) noexcept {
     return ceil_div(n, base) * base;
 }
 
 // Round up to the next power of 2
-constexpr usize round_up_to_pow2(usize x) noexcept {
+[[nodiscard]] constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
         return 1;
 
@@ -230,13 +230,25 @@ template<typename T>
     return (size + mask) & ~mask;
 }
 
+// Get the first aligned element of an array.
+// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
+// where N is the number of elements in the array.
+template<usize Alignment, typename T>
+[[nodiscard]] T* align_ptr_up(T* ptr) noexcept {
+    static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
+    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
+
+    const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
+    return reinterpret_cast<T*>(uPtr);
+}
+
 template<typename T1, typename T2>
-constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
+[[nodiscard]] constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     assert(x0 != x1);
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
-constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
+[[nodiscard]] constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__SIZEOF_INT128__)
     return (u128(u1) * u128(u2)) >> 64;
 #else

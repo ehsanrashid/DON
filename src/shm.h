@@ -114,6 +114,8 @@
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
+#include "utility/functions.h"
+#include "utility/guard.h"
 #include "utility/types.h"
 
 namespace DON {
