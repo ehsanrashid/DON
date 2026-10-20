@@ -41,6 +41,62 @@ class VectorSet final {
     using value_type = T;
     using size_type  = usize;
 
+    class const_iterator final {
+       public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type        = T;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = const T*;
+        using reference         = const T&;
+
+        const_iterator() noexcept = default;
+
+        [[nodiscard]] reference operator*() const noexcept {
+            return owner->blocks[blockIndex][elementIndex];
+        }
+
+        [[nodiscard]] pointer operator->() const noexcept { return std::addressof(operator*()); }
+
+        const_iterator& operator++() noexcept {
+            if (++elementIndex == owner->blocks[blockIndex].size())
+            {
+                ++blockIndex;
+                elementIndex = 0;
+            }
+
+            return *this;
+        }
+
+        const_iterator operator++(int) noexcept {
+            const_iterator previous = *this;
+            ++*this;
+            return previous;
+        }
+
+        [[nodiscard]] bool operator==(const const_iterator& other) const noexcept {
+            return owner == other.owner && blockIndex == other.blockIndex
+                && elementIndex == other.elementIndex;
+        }
+
+        [[nodiscard]] bool operator!=(const const_iterator& other) const noexcept {
+            return !(*this == other);
+        }
+
+       private:
+        friend class VectorSet;
+
+        const_iterator(const VectorSet* owner,
+                       const size_type  blockIndex,
+                       const size_type  elementIndex) noexcept :
+            owner(owner),
+            blockIndex(blockIndex),
+            elementIndex(elementIndex) {}
+
+        const VectorSet* owner        = nullptr;
+        size_type        blockIndex   = 0;
+        size_type        elementIndex = 0;
+    };
+
     // Identifies an element and the block containing it.
     struct Position final {
         block_iterator block;
@@ -50,16 +106,17 @@ class VectorSet final {
     explicit VectorSet(const Compare& comp = Compare{}) noexcept :
         compare(comp) {}
 
-    [[nodiscard]] size_type block_count() const noexcept { return blocks.size(); }
+    [[nodiscard]] const_iterator begin() const noexcept { return const_iterator(this, 0, 0); }
 
-    [[nodiscard]] size_type block_size(const size_type index) const noexcept {
-        return blocks[index].size();
+    [[nodiscard]] const_iterator end() const noexcept {
+        return const_iterator(this, blocks.size(), 0);
     }
 
-    [[nodiscard]] const T& block_content(const size_type index,
-                                         const size_type idx) const noexcept {
-        return blocks[index][idx];
-    }
+    [[nodiscard]] const_iterator cbegin() const noexcept { return begin(); }
+
+    [[nodiscard]] const_iterator cend() const noexcept { return end(); }
+
+    [[nodiscard]] Compare key_comp() const noexcept { return compare; }
 
     [[nodiscard]] size_type size() const noexcept { return size_; }
     [[nodiscard]] bool      empty() const noexcept { return size() == 0; }
@@ -152,6 +209,36 @@ class VectorSet final {
         return 1;
     }
 
+
+    void append_sorted(const T& value) noexcept {
+        if (blocks.empty())
+        {
+            auto& block = blocks.emplace_back();
+            block.reserve(BlockCapacity);
+            block.push_back(value);
+        }
+        else
+        {
+            blocks.back().push_back(value);
+            (void) split_block(blocks.end() - 1);
+        }
+
+        ++size_;
+    }
+
+    // --------------------------------------------------------------------------
+
+    [[nodiscard]] size_type block_count() const noexcept { return blocks.size(); }
+
+    [[nodiscard]] size_type block_size(const size_type index) const noexcept {
+        return blocks[index].size();
+    }
+
+    [[nodiscard]] const T& block_content(const size_type index,
+                                         const size_type idx) const noexcept {
+        return blocks[index][idx];
+    }
+
     [[nodiscard]] std::optional<Position> find_position(const T& value) noexcept {
         auto blockItr = find_block(value);
 
@@ -165,6 +252,19 @@ class VectorSet final {
             return std::nullopt;
 
         return Position{blockItr, elementItr};
+    }
+
+    [[nodiscard]] size_type erase(const Position& position) noexcept {
+        auto blockItr = position.block;
+
+        blockItr->erase(position.element);
+
+        if (blockItr->empty())
+            blocks.erase(blockItr);
+
+        --size_;
+
+        return 1;
     }
 
     [[nodiscard]] bool promote(const Position& position) noexcept {
@@ -279,6 +379,32 @@ class VectorSet final {
     blocks_type blocks;
     size_type   size_ = 0;
 };
+
+template<typename Set>
+class SortedBackInsertIterator final {
+   public:
+    explicit SortedBackInsertIterator(Set& set) noexcept :
+        set(&set) {}
+
+    SortedBackInsertIterator& operator=(const typename Set::value_type& value) noexcept {
+        set->append_sorted(value);
+        return *this;
+    }
+
+    SortedBackInsertIterator& operator*() noexcept { return *this; }
+
+    SortedBackInsertIterator& operator++() noexcept { return *this; }
+
+    SortedBackInsertIterator& operator++(int) noexcept { return *this; }
+
+   private:
+    Set* set;
+};
+
+template<typename Set>
+[[nodiscard]] SortedBackInsertIterator<Set> sorted_back_inserter(Set& set) noexcept {
+    return SortedBackInsertIterator<Set>(set);
+}
 
 }  // namespace DON
 

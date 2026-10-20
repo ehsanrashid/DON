@@ -26,7 +26,8 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src tests/set.cpp -o build/set
 
 using namespace DON;
 
-/*
+namespace {
+
 using Value   = int;
 
 using TestSet = VectorSet<Value, std::less<Value>>;
@@ -86,7 +87,7 @@ void run_test(const std::string_view name, std::vector<Value> values) {
     std::sort(values.begin(), values.end());
 
     verify(set, values);
-    //print_block_distribution(name, set);
+    print_block_distribution(name, set);
 }
 
 void print(TestSet& set) noexcept {
@@ -101,7 +102,7 @@ void print(TestSet& set) noexcept {
     std::cout << "-----------------------\n";
 }
 
-void run_small_test() {
+void small_random_test() {
     constexpr usize TestSize = 1024;
 
     std::vector<Value> values(TestSize);
@@ -132,7 +133,7 @@ void run_small_test() {
     }
 }
 
-int main() {
+void small_test() {
     std::vector<Value> values(TestSize);
     std::iota(values.begin(), values.end(), 0);
 
@@ -150,13 +151,11 @@ int main() {
     std::shuffle(randomized.begin(), randomized.end(), rng);
     run_test("Random insertion", std::move(randomized));
 
-    run_small_test();
+    small_random_test();
 
-    std::cout << "\nAll VectorSet tests passed.\n";
+    std::cout << "\nSmall VectorSet tests passed.\n";
 }
-*/
 
-namespace {
 
 struct Item final {
     int id;
@@ -364,11 +363,226 @@ void stress_test_vector_set() {
 
     std::cout << "VectorSet stress tests passed.\n";
 }
+
+void test_vector_set_iterator() noexcept {
+    std::cout << "\nVectorSet iterator test\n";
+
+    TestVectorSet actual;
+    ReferenceSet  expected;
+
+    std::vector<Item> items;
+    items.reserve(300);
+
+    // Insert enough items to exercise multiple blocks.
+    for (int i = 0; i < 300; ++i)
+        items.push_back({i, (i * 37) % 101});
+
+    for (Item& item : items)
+    {
+        assert(actual.insert(&item));
+        assert(expected.insert(&item).second);
+    }
+
+    std::cout << "VectorSet contents:\n";
+
+    auto expectedItr = expected.begin();
+
+    for (auto itr = actual.begin(); itr != actual.end(); ++itr, ++expectedItr)
+    {
+        assert(expectedItr != expected.end());
+
+        const Item* value = *itr;
+
+        // Verify this element matches the reference set's ordering.
+        assert(value == *expectedItr);
+
+        std::cout << "{id=" << value->id << ", priority=" << value->priority << "}\n";
+    }
+
+    // Both iterators must finish at their respective end positions.
+    assert(expectedItr == expected.end());
+    assert(actual.begin() != actual.end());
+
+    usize count = 0;
+    for (auto itr = actual.begin(); itr != actual.end(); ++itr)
+        ++count;
+
+    assert(count == actual.size());
+    assert(count == expected.size());
+
+    std::cout << "Iterator test passed: " << count << " elements across " << actual.block_count()
+              << " blocks.\n";
+}
+
+
+void test_vector_set_union_intersection() {
+    std::cout << "\nVectorSet union/intersection tests\n";
+
+    TestVectorSet first;
+    TestVectorSet second;
+
+    ReferenceSet referenceFirst;
+    ReferenceSet referenceSecond;
+
+    std::vector<Item> items;
+    items.reserve(200);
+
+    for (int i = 0; i < 200; ++i)
+        items.push_back({i, (i * 37) % 101});
+
+    // First set: even IDs.
+    // Second set: IDs divisible by 3.
+    for (Item& item : items)
+    {
+        if (item.id % 2 == 0)
+        {
+            assert(first.insert(&item));
+            assert(referenceFirst.insert(&item).second);
+        }
+
+        if (item.id % 3 == 0)
+        {
+            assert(second.insert(&item));
+            assert(referenceSecond.insert(&item).second);
+        }
+    }
+
+    // Reference union and intersection using std::set.
+    ReferenceSet expectedUnion;
+    ReferenceSet expectedIntersection;
+
+    std::set_union(referenceFirst.begin(), referenceFirst.end(), referenceSecond.begin(),
+                   referenceSecond.end(), std::inserter(expectedUnion, expectedUnion.end()),
+                   ItemCompare{});
+
+    std::set_intersection(
+      referenceFirst.begin(), referenceFirst.end(), referenceSecond.begin(), referenceSecond.end(),
+      std::inserter(expectedIntersection, expectedIntersection.end()), ItemCompare{});
+
+    // VectorSet union.
+    TestVectorSet actualUnion;
+
+    std::set_union(first.begin(), first.end(), second.begin(), second.end(),
+                   sorted_back_inserter(actualUnion), ItemCompare{});
+
+    // VectorSet intersection.
+    TestVectorSet actualIntersection;
+
+    std::set_intersection(first.begin(), first.end(), second.begin(), second.end(),
+                          sorted_back_inserter(actualIntersection), ItemCompare{});
+
+    // Validate ordering, contents, and block structure.
+    verify(actualUnion, expectedUnion);
+    verify(actualIntersection, expectedIntersection);
+
+    assert(actualUnion.size() == expectedUnion.size());
+    assert(actualIntersection.size() == expectedIntersection.size());
+
+    std::cout << "VectorSet union: " << actualUnion.size() << " elements\n";
+
+    std::cout << "VectorSet intersection: " << actualIntersection.size() << " elements\n";
+
+    // Mixed input: VectorSet + std::set -> VectorSet.
+    TestVectorSet mixedUnion;
+
+    std::set_union(first.begin(), first.end(), referenceSecond.begin(), referenceSecond.end(),
+                   sorted_back_inserter(mixedUnion), ItemCompare{});
+
+    verify(mixedUnion, expectedUnion);
+
+    TestVectorSet mixedIntersection;
+
+    std::set_intersection(first.begin(), first.end(), referenceSecond.begin(),
+                          referenceSecond.end(), sorted_back_inserter(mixedIntersection),
+                          ItemCompare{});
+
+    verify(mixedIntersection, expectedIntersection);
+
+    // Reverse mixed input: std::set + VectorSet -> VectorSet.
+    TestVectorSet reverseMixedUnion;
+
+    std::set_union(referenceFirst.begin(), referenceFirst.end(), second.begin(), second.end(),
+                   sorted_back_inserter(reverseMixedUnion), ItemCompare{});
+
+    verify(reverseMixedUnion, expectedUnion);
+
+    TestVectorSet reverseMixedIntersection;
+
+    std::set_intersection(referenceFirst.begin(), referenceFirst.end(), second.begin(),
+                          second.end(), sorted_back_inserter(reverseMixedIntersection),
+                          ItemCompare{});
+
+    verify(reverseMixedIntersection, expectedIntersection);
+
+    // std::set output should also work with VectorSet inputs.
+    ReferenceSet standardUnion;
+
+    std::set_union(first.begin(), first.end(), second.begin(), second.end(),
+                   std::inserter(standardUnion, standardUnion.end()), ItemCompare{});
+
+    assert(standardUnion == expectedUnion);
+
+    ReferenceSet standardIntersection;
+
+    std::set_intersection(first.begin(), first.end(), second.begin(), second.end(),
+                          std::inserter(standardIntersection, standardIntersection.end()),
+                          ItemCompare{});
+
+    assert(standardIntersection == expectedIntersection);
+
+    std::cout << "All VectorSet union/intersection tests passed.\n";
+}
+
+void test_vector_set_to_vector() noexcept {
+    std::cout << "\nVectorSet to std::vector test\n";
+
+    TestVectorSet actual;
+    ReferenceSet  expected;
+
+    std::vector<Item> items;
+    items.reserve(20);
+
+    for (int i = 0; i < 20; ++i)
+        items.push_back({i, (i * 37) % 101});
+
+    for (Item& item : items)
+    {
+        assert(actual.insert(&item));
+        assert(expected.insert(&item).second);
+    }
+
+    // Convert VectorSet to std::vector using its iterators.
+    const std::vector<Item*> values(actual.begin(), actual.end());
+
+    assert(values.size() == actual.size());
+    assert(values.size() == expected.size());
+
+    std::cout << "Converted vector contents:\n";
+
+    auto expectedItr = expected.begin();
+
+    for (const Item* value : values)
+    {
+        assert(expectedItr != expected.end());
+        assert(value == *expectedItr);
+
+        std::cout << "{id=" << value->id << ", priority=" << value->priority << "}\n";
+
+        ++expectedItr;
+    }
+
+    assert(expectedItr == expected.end());
+
+    std::cout << "Conversion passed: " << values.size() << " elements.\n";
+}
+
 }  // namespace
 
 int main() {
     constexpr usize ItemCount      = 2048;
     constexpr usize PromotionCount = 10000;
+
+    //small_test();
 
     TestVectorSet actual;
     ReferenceSet  expected;
@@ -449,6 +663,12 @@ int main() {
     assert(actual.block_count() == 0);
 
     stress_test_vector_set();
+
+    test_vector_set_iterator();
+
+    test_vector_set_union_intersection();
+
+    test_vector_set_to_vector();
 
     std::cout << "All VectorSet tests passed.\n";
 }
