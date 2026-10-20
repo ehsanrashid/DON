@@ -51,7 +51,8 @@ class Pool final {
 
     static constexpr usize BaseBlockSize = []() constexpr {
         constexpr usize count = BlockBytesMax / sizeof(Slot);
-        usize           size  = 1;
+
+        usize size = 1;
 
         while (size <= count / 2)
             size *= 2;
@@ -119,6 +120,7 @@ class Pool final {
             return BaseBlockSize;
 
         usize size = 1;
+
         while (size < requiredSize)
             size *= 2;
 

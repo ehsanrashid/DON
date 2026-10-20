@@ -44,7 +44,8 @@ void SpinMutex::lock() noexcept {
         {
             bool expected = false;
 
-            if (locked.compare_exchange_weak(expected, true, std::memory_order_acquire,
+            if (locked.compare_exchange_weak(expected, true,             //
+                                             std::memory_order_acquire,  //
                                              std::memory_order_relaxed))
                 break;
         }
@@ -299,10 +300,9 @@ void WriterSharedMutex::unlock() noexcept {
         notifyWriter = waitingWriterCount != 0;
     }
 
-    if (notifyWriter)
-        writerCondVar.notify_one();
-    else
-        readerCondVar.notify_all();
+    notifyWriter  //
+      ? writerCondVar.notify_one()
+      : readerCondVar.notify_all();
 }
 
 void WriterSharedMutex::lock_shared() noexcept {

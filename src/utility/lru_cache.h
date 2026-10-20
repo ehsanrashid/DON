@@ -316,9 +316,8 @@ class ListLRUCache final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
-
         list.clear();
+        map.clear();
     }
 
     void nolock_release_pool() noexcept { listPool.release(); }
@@ -411,8 +410,6 @@ class NewDeleteLRUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-
-        nolock_release_pool();
     }
 
     template<typename... Args>
@@ -511,8 +508,6 @@ class NewDeleteLRUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-
-        nolock_release_pool();
 
         map.rehash(0);
 
@@ -630,17 +625,15 @@ class NewDeleteLRUCache final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
-
         while (Entry* const entry = list.back())
         {
             list.erase(*entry);  // T&: requires an existing object
 
             delete entry;  // T*: pointer identifies the object to destroy
         }
-    }
 
-    void nolock_release_pool() noexcept { /*pool.release();*/ }
+        map.clear();
+    }
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
@@ -955,14 +948,14 @@ class PoolLRUCache final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
-
         while (Entry* const entry = list.back())
         {
             list.erase(*entry);  // T&: requires an existing object
 
             pool.destroy(entry);  // T*: pointer identifies the object to destroy
         }
+
+        map.clear();
     }
 
     void nolock_release_pool() noexcept { pool.release(); }
@@ -1285,14 +1278,14 @@ class PoolFlatLRUCache final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
-
         while (Entry* const entry = list.back())
         {
             list.erase(*entry);  // T&: requires an existing object
 
             pool.destroy(entry);  // T*: pointer identifies the object to destroy
         }
+
+        map.clear();
     }
 
     void nolock_release_pool() noexcept { pool.release(); }

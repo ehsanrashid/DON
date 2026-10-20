@@ -241,8 +241,8 @@ class Store final {
     }
 
     void nolock_clear() noexcept {
-        map.clear();
         list.clear();
+        map.clear();
     }
 
     void nolock_configure() noexcept {
@@ -467,8 +467,8 @@ class SharedStore final {
         }
 
         void nolock_clear() noexcept {
-            map.clear();
             list.clear();
+            map.clear();
         }
 
         void nolock_configure(const usize reserveCnt, const float maxLoadFac) noexcept {

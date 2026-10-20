@@ -104,7 +104,9 @@ class ListLFUCache final {
 
     ~ListLFUCache() noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_clear();
+
         nolock_release_pool();
     }
 
@@ -701,7 +703,7 @@ class SetLFUCache final {
     }
 
     void nolock_evict_excess(const usize size) noexcept {
-        while (map.size() > size)
+        while (entries.size() > size)
         {
             assert(!entries.empty());
 
@@ -829,6 +831,7 @@ class BucketListLFUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
         nolock_release_pool();
     }
 
@@ -1268,6 +1271,7 @@ class PoolLFUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
         nolock_release_pool();
     }
 
@@ -1369,6 +1373,7 @@ class PoolLFUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
         nolock_release_pool();
 
         map.rehash(0);
@@ -1728,6 +1733,7 @@ class PoolFlatLFUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
         nolock_release_pool();
     }
 
@@ -1829,6 +1835,7 @@ class PoolFlatLFUCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
         nolock_release_pool();
 
         map.rehash(0);
