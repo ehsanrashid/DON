@@ -18,7 +18,6 @@
 #include "../utility/reader.h"
 
 #include "../utility/functions.h"
-#include "../utility/types.h"
 
 namespace DON {
 

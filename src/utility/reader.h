@@ -20,8 +20,6 @@
 
 #include <string_view>
 
-#include "../utility/types.h"
-
 namespace DON {
 
 // StringReader: Fast, Small, allocation-free, read-only parser over std::string_view.

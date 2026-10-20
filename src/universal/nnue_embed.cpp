@@ -30,8 +30,6 @@
 #include "../utility/types.h"
 
 #if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
-    #include "../utility/functions.h"
-
 // In a macOS universal binary the network is embedded only in the arm64 slice,
 // and the x86-64 slice mmaps it from the arm64 slice.
 
@@ -51,7 +49,7 @@ const unsigned char* map_embedded_nnue() noexcept {
     const char* file = ::realpath(path, resolved) ? resolved : path;
 
     int fd = ::open(file, O_RDONLY | O_CLOEXEC);
-    if (!DON::is_valid_fd(fd))
+    if (fd < 0)
         return nullptr;
 
     const auto close_fd = [&fd]() noexcept { ::close(fd); };

@@ -970,17 +970,17 @@ class BucketListLFUCache final {
     }
 
     void nolock_add_to_bucket(Entry& entry) noexcept {
-        Bucket* bucket = buckets.front();
+        Bucket* bucket = buckets.back();
 
         if (bucket == nullptr || bucket->frequency != 1)
         {
             bucket = bucketPool.create(1, 1);
-            buckets.push_front(*bucket);
+            buckets.push_back(*bucket);
         }
 
         entry.bucket = bucket;
         [[maybe_unused]]  //
-        const bool inserted = bucket->entries.push_back(entry);
+        const bool inserted = bucket->entries.push_front(entry);
         assert(inserted);
     }
 
@@ -1007,15 +1007,15 @@ class BucketListLFUCache final {
         if (oldBucket->frequency == std::numeric_limits<usize>::max())
         {
             [[maybe_unused]]  //
-            const bool moved = oldBucket->entries.move_back(entry);
+            const bool moved = oldBucket->entries.move_front(entry);
             assert(moved);
-
             return listItr;
         }
 
         const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const nextBucket    = buckets.next(*oldBucket);
-        const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
+        Bucket* const higherBucket  = buckets.prev(*oldBucket);
+        const bool    targetExists  = higherBucket != nullptr  //
+                                   && higherBucket->frequency == nextFrequency;
 
         if (!targetExists && oldBucket->entries.size() == 1)
         {
@@ -1029,9 +1029,9 @@ class BucketListLFUCache final {
 
         if (targetExists)
         {
-            entry.bucket = nextBucket;
+            entry.bucket = higherBucket;
             [[maybe_unused]]  //
-            const bool inserted = nextBucket->entries.push_back(entry);
+            const bool inserted = higherBucket->entries.push_front(entry);
             assert(inserted);
 
             if (oldBucket->entries.empty())
@@ -1042,18 +1042,18 @@ class BucketListLFUCache final {
             oldBucket->frequency = nextFrequency;
             entry.bucket         = oldBucket;
             [[maybe_unused]]  //
-            const bool inserted = oldBucket->entries.push_back(entry);
+            const bool inserted = oldBucket->entries.push_front(entry);
             assert(inserted);
         }
         else
         {
             Bucket* const newBucket = bucketPool.create(1, nextFrequency);
             [[maybe_unused]]  //
-            const bool linked = buckets.insert_after(*newBucket, *oldBucket);
+            const bool linked = buckets.insert_before(*newBucket, *oldBucket);
             assert(linked);
             entry.bucket = newBucket;
             [[maybe_unused]]  //
-            const bool inserted = newBucket->entries.push_back(entry);
+            const bool inserted = newBucket->entries.push_front(entry);
             assert(inserted);
         }
 
@@ -1127,11 +1127,11 @@ class BucketListLFUCache final {
     void nolock_evict_excess(const usize size) noexcept {
         while (list.size() > size)
         {
-            Bucket* const minimumBucket = buckets.front();
-            assert(minimumBucket != nullptr);
+            Bucket* const leastFrequencyBucket = buckets.back();
+            assert(leastFrequencyBucket != nullptr);
 
-            // Evict the oldest entry from the minimum-frequency bucket.
-            auto* const victim = minimumBucket->entries.front();
+            // The LRU entry in the least-frequent bucket is at the back.
+            auto* const victim = leastFrequencyBucket->entries.back();
             assert(victim != nullptr);
 
             const auto mapItr = nolock_find(victim->key);
@@ -1419,12 +1419,12 @@ class PoolLFUCache final {
     }
 
     void nolock_add_to_bucket(Entry& entry) noexcept {
-        Bucket* bucket = buckets.front();
+        Bucket* bucket = buckets.back();
 
         if (bucket == nullptr || bucket->frequency != 1)
         {
             bucket = bucketPool.create(1, 1);
-            buckets.push_front(*bucket);
+            buckets.push_back(*bucket);
         }
 
         entry.bucket = bucket;
@@ -1445,37 +1445,41 @@ class PoolLFUCache final {
             nolock_destroy_bucket(*bucket);
     }
 
-    list_iterator nolock_touch(list_iterator entry) noexcept {
-        assert(entry != nullptr);
+    list_iterator nolock_touch(list_iterator listItr) noexcept {
+        assert(listItr != nullptr);
 
-        Bucket* const oldBucket = entry->bucket;
+        auto&         entry     = *listItr;
+        Bucket* const oldBucket = entry.bucket;
         assert(oldBucket != nullptr);
 
         if (oldBucket->frequency == std::numeric_limits<usize>::max())
         {
-            oldBucket->entries.move_front(*entry);
-            return entry;
+            [[maybe_unused]]  //
+            const bool moved = oldBucket->entries.move_front(entry);
+            assert(moved);
+            return listItr;
         }
 
         const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const nextBucket    = buckets.next(*oldBucket);
-        const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
+        Bucket* const higherBucket  = buckets.prev(*oldBucket);
+        const bool    targetExists  = higherBucket != nullptr  //
+                                   && higherBucket->frequency == nextFrequency;
 
         if (!targetExists && oldBucket->entries.size() == 1)
         {
             oldBucket->frequency = nextFrequency;
-            return entry;
+            return listItr;
         }
 
         [[maybe_unused]]  //
-        const bool erased = oldBucket->entries.erase(*entry);
+        const bool erased = oldBucket->entries.erase(entry);
         assert(erased);
 
         if (targetExists)
         {
-            entry->bucket = nextBucket;
+            entry.bucket = higherBucket;
             [[maybe_unused]]  //
-            const bool inserted = nextBucket->entries.push_front(*entry);
+            const bool inserted = higherBucket->entries.push_front(entry);
             assert(inserted);
 
             if (oldBucket->entries.empty())
@@ -1484,31 +1488,31 @@ class PoolLFUCache final {
         else if (oldBucket->entries.empty())
         {
             oldBucket->frequency = nextFrequency;
-            entry->bucket        = oldBucket;
+            entry.bucket         = oldBucket;
             [[maybe_unused]]  //
-            const bool inserted = oldBucket->entries.push_front(*entry);
+            const bool inserted = oldBucket->entries.push_front(entry);
             assert(inserted);
         }
         else
         {
             Bucket* const newBucket = bucketPool.create(1, nextFrequency);
             [[maybe_unused]]  //
-            const bool linked = buckets.insert_after(*newBucket, *oldBucket);
+            const bool linked = buckets.insert_before(*newBucket, *oldBucket);
             assert(linked);
-            entry->bucket = newBucket;
+            entry.bucket = newBucket;
             [[maybe_unused]]  //
-            const bool inserted = newBucket->entries.push_front(*entry);
+            const bool inserted = newBucket->entries.push_front(entry);
             assert(inserted);
         }
 
-        return entry;
+        return listItr;
     }
 
-    Return nolock_read(const list_iterator entry) const noexcept {
+    Return nolock_read(const list_iterator listItr) const noexcept {
         if constexpr (sizeof(Value) <= InlineValueThreshold)
-            return entry->value;
+            return listItr->value;
         else
-            return *entry->value;
+            return *listItr->value;
     }
 
     [[nodiscard]] usize nolock_required_size() const noexcept {
@@ -1584,11 +1588,11 @@ class PoolLFUCache final {
     void nolock_evict_excess(const usize size) noexcept {
         while (map.size() > size)
         {
-            Bucket* const minimumBucket = buckets.front();
-            assert(minimumBucket != nullptr);
+            Bucket* const leastFrequencyBucket = buckets.back();
+            assert(leastFrequencyBucket != nullptr);
 
-            // MRU is at the front; evict the LRU from the back.
-            Entry* const entry = minimumBucket->entries.back();
+            // The LRU entry in the least-frequent bucket is at the back.
+            Entry* const entry = leastFrequencyBucket->entries.back();
             assert(entry != nullptr);
 
             const auto mapItr = nolock_find(entry->key);
@@ -1875,12 +1879,12 @@ class PoolFlatLFUCache final {
     }
 
     void nolock_add_to_bucket(Entry& entry) noexcept {
-        Bucket* bucket = buckets.front();
+        Bucket* bucket = buckets.back();
 
         if (bucket == nullptr || bucket->frequency != 1)
         {
             bucket = bucketPool.create(1, 1);
-            buckets.push_front(*bucket);
+            buckets.push_back(*bucket);
         }
 
         entry.bucket = bucket;
@@ -1901,37 +1905,41 @@ class PoolFlatLFUCache final {
             nolock_destroy_bucket(*bucket);
     }
 
-    list_iterator nolock_touch(list_iterator entry) noexcept {
-        assert(entry != nullptr);
+    list_iterator nolock_touch(list_iterator listItr) noexcept {
+        assert(listItr != nullptr);
 
-        Bucket* const oldBucket = entry->bucket;
+        auto&         entry     = *listItr;
+        Bucket* const oldBucket = entry.bucket;
         assert(oldBucket != nullptr);
 
         if (oldBucket->frequency == std::numeric_limits<usize>::max())
         {
-            oldBucket->entries.move_front(*entry);
-            return entry;
+            [[maybe_unused]]  //
+            const bool moved = oldBucket->entries.move_front(entry);
+            assert(moved);
+            return listItr;
         }
 
         const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const nextBucket    = buckets.next(*oldBucket);
-        const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
+        Bucket* const higherBucket  = buckets.prev(*oldBucket);
+        const bool    targetExists  = higherBucket != nullptr  //
+                                   && higherBucket->frequency == nextFrequency;
 
         if (!targetExists && oldBucket->entries.size() == 1)
         {
             oldBucket->frequency = nextFrequency;
-            return entry;
+            return listItr;
         }
 
         [[maybe_unused]]  //
-        const bool erased = oldBucket->entries.erase(*entry);
+        const bool erased = oldBucket->entries.erase(entry);
         assert(erased);
 
         if (targetExists)
         {
-            entry->bucket = nextBucket;
+            entry.bucket = higherBucket;
             [[maybe_unused]]  //
-            const bool inserted = nextBucket->entries.push_front(*entry);
+            const bool inserted = higherBucket->entries.push_front(entry);
             assert(inserted);
 
             if (oldBucket->entries.empty())
@@ -1940,22 +1948,24 @@ class PoolFlatLFUCache final {
         else if (oldBucket->entries.empty())
         {
             oldBucket->frequency = nextFrequency;
-            entry->bucket        = oldBucket;
+            entry.bucket         = oldBucket;
             [[maybe_unused]]  //
-            const bool inserted = oldBucket->entries.push_front(*entry);
+            const bool inserted = oldBucket->entries.push_front(entry);
             assert(inserted);
         }
         else
         {
-            Bucket* const               newBucket = bucketPool.create(1, nextFrequency);
-            [[maybe_unused]] const bool linked    = buckets.insert_after(*newBucket, *oldBucket);
+            Bucket* const newBucket = bucketPool.create(1, nextFrequency);
+            [[maybe_unused]]  //
+            const bool linked = buckets.insert_before(*newBucket, *oldBucket);
             assert(linked);
-            entry->bucket                        = newBucket;
-            [[maybe_unused]] const bool inserted = newBucket->entries.push_front(*entry);
+            entry.bucket = newBucket;
+            [[maybe_unused]]  //
+            const bool inserted = newBucket->entries.push_front(entry);
             assert(inserted);
         }
 
-        return entry;
+        return listItr;
     }
 
     Return nolock_read(const list_iterator entry) const noexcept {
@@ -2039,11 +2049,11 @@ class PoolFlatLFUCache final {
     void nolock_evict_excess(const usize size) noexcept {
         while (map.size() > size)
         {
-            Bucket* const minimumBucket = buckets.front();
-            assert(minimumBucket != nullptr);
+            Bucket* const leastFrequencyBucket = buckets.back();
+            assert(leastFrequencyBucket != nullptr);
 
-            // MRU is at the front; evict the LRU from the back.
-            Entry* const entry = minimumBucket->entries.back();
+            // The LRU entry in the least-frequent bucket is at the back.
+            Entry* const entry = leastFrequencyBucket->entries.back();
             assert(entry != nullptr);
 
             const auto mapItr = nolock_find(entry->key);
