@@ -19,8 +19,12 @@
 
 #include "../utility/functions.h"
 #include "../utility/types.h"
+
 #if defined(_WIN32)
     #include "../utility/platform_win.h"
+#else
+    #include <unistd.h>    // close()
+    #include <sys/mman.h>  // munmap()
 #endif
 
 namespace DON {

@@ -24,7 +24,6 @@
 #include <limits>
 #include <vector>
 
-#include "misc.h"
 #include "numa.h"
 
 namespace DON::Benchmark {

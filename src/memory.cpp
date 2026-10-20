@@ -20,12 +20,8 @@
 #include <cstdlib>  // exit(), malloc(), free(), std::aligned_alloc()
 #include <iostream>
 
-#if !defined(_WIN32) && defined(LINUX_NON_ANDROID)
-    #include <sys/mman.h>  // munmap()
-    #include <unistd.h>    // close()
-    #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
-        #define USE_POSIX_HUGE_PAGES
-    #endif
+#if !defined(_WIN32) && defined(LINUX_NON_ANDROID) && defined(X86_64) && defined(MAP_HUGE_SHIFT)
+    #define USE_POSIX_HUGE_PAGES
 #endif
 
 #if defined(__APPLE__)      /* macOS / iOS */ \
@@ -61,7 +57,6 @@
     #include <stdlib.h>
 #endif
 
-#include "misc.h"
 #include "utility/concurrent.h"  // ConcurrentAllocationTracker<>
 
 namespace DON {

@@ -25,7 +25,6 @@
 #include <memory>  // unique_ptr<>, make_unique<>()
 #include <sstream>
 
-#include "misc.h"
 #include "notation.h"
 #include "position.h"
 #include "nnue/accumulator.h"

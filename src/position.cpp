@@ -33,6 +33,7 @@
 #include "tablebase/syzygy.h"
 #include "utility/lfu_cache.h"
 #include "utility/error.h"
+#include "utility/functions.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
 #include "utility/reader.h"

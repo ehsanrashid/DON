@@ -29,11 +29,9 @@
 #include <functional>
 #include <initializer_list>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 #include "utility/environment.h"
 
