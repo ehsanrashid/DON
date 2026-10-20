@@ -290,7 +290,8 @@ class VectorSet final {
             {
                 const bool atFront = positionItr == block.begin();
 
-                std::rotate(positionItr, element, std::next(element));
+                std::move_backward(positionItr, element, std::next(element));
+                *positionItr = value;
 
                 if (!atFront)
                     return true;

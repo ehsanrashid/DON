@@ -234,8 +234,8 @@ class ListLFUCache final {
                 ordered.push_back(itr);
 
             std::sort(ordered.begin(), ordered.end(),
-                      [](const list_iterator lhs, const list_iterator rhs) noexcept {
-                          return lhs->recency < rhs->recency;
+                      [](const list_iterator l1, const list_iterator l2) noexcept -> bool {
+                          return l1->recency < l2->recency;
                       });
 
             usize recency = 0;
@@ -610,20 +610,34 @@ class SetLFUCache final {
     }
 
     void nolock_touch(Entry& entry) noexcept {
-        // Ordering fields must not change while the entry is in the set.
-        [[maybe_unused]]  //
-        const usize erased = entries.erase(&entry);
-        assert(erased == 1);
+        if (recencyCounter == std::numeric_limits<usize>::max())
+        {
+            [[maybe_unused]]  //
+            const usize erased = entries.erase(&entry);
+            assert(erased == 1);
+
+            if (entry.frequency != std::numeric_limits<usize>::max())
+                ++entry.frequency;
+
+            entry.recency = nolock_next_recency();
+
+            [[maybe_unused]]  //
+            const bool inserted = entries.insert(&entry);
+            assert(inserted);
+            return;
+        }
+
+        const auto position = entries.find_position(&entry);
+        assert(position.has_value());
 
         if (entry.frequency != std::numeric_limits<usize>::max())
             ++entry.frequency;
 
-        entry.recency = nolock_next_recency();
+        entry.recency = ++recencyCounter;
 
         [[maybe_unused]]  //
-        //const bool inserted = entries.insert(&entry).second;
-        const bool inserted = entries.insert(&entry);
-        assert(inserted);
+        const bool promoted = entries.promote(*position);
+        assert(promoted);
     }
 
     Return nolock_read(const Entry& entry) const noexcept {
@@ -782,6 +796,7 @@ class BucketListLFUCache final {
 
         usize                      frequency;
         DoublyIntrusiveList<Entry> entries;
+        Bucket*                    prev = nullptr;
         Bucket*                    next = nullptr;
     };
 
@@ -947,18 +962,9 @@ class BucketListLFUCache final {
     void nolock_destroy_bucket(Bucket& bucket) noexcept {
         assert(bucket.entries.empty());
 
-        if (buckets.front() == &bucket)
-        {
-            [[maybe_unused]]  //
-            Bucket* const removedBucket = buckets.pop_front();
-            assert(removedBucket == &bucket);
-        }
-        else
-        {
-            [[maybe_unused]]  //
-            const bool erased = buckets.erase(bucket);
-            assert(erased);
-        }
+        [[maybe_unused]]  //
+        const bool erased = buckets.erase(bucket);
+        assert(erased);
 
         bucketPool.destroy(&bucket);
     }
@@ -1008,7 +1014,7 @@ class BucketListLFUCache final {
         }
 
         const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const nextBucket    = oldBucket->next;
+        Bucket* const nextBucket    = buckets.next(*oldBucket);
         const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
 
         if (!targetExists && oldBucket->entries.size() == 1)
@@ -1043,7 +1049,7 @@ class BucketListLFUCache final {
         {
             Bucket* const newBucket = bucketPool.create(1, nextFrequency);
             [[maybe_unused]]  //
-            const bool linked = buckets.insert_after(*oldBucket, *newBucket);
+            const bool linked = buckets.insert_after(*newBucket, *oldBucket);
             assert(linked);
             entry.bucket = newBucket;
             [[maybe_unused]]  //
@@ -1184,7 +1190,7 @@ class BucketListLFUCache final {
     list_type      list;
 
     Pool<Bucket>                bucketPool;
-    SinglyIntrusiveList<Bucket> buckets;
+    DoublyIntrusiveList<Bucket> buckets;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -1230,6 +1236,7 @@ class PoolLFUCache final {
 
         usize     frequency;
         list_type entries;
+        Bucket*   prev = nullptr;
         Bucket*   next = nullptr;
     };
 
@@ -1404,18 +1411,9 @@ class PoolLFUCache final {
     void nolock_destroy_bucket(Bucket& bucket) noexcept {
         assert(bucket.entries.empty());
 
-        if (buckets.front() == &bucket)
-        {
-            [[maybe_unused]]  //
-            Bucket* const removedBucket = buckets.pop_front();
-            assert(removedBucket == &bucket);
-        }
-        else
-        {
-            [[maybe_unused]]  //
-            const bool erased = buckets.erase(bucket);
-            assert(erased);
-        }
+        [[maybe_unused]]  //
+        const bool erased = buckets.erase(bucket);
+        assert(erased);
 
         bucketPool.destroy(&bucket);
     }
@@ -1460,7 +1458,7 @@ class PoolLFUCache final {
         }
 
         const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const nextBucket    = oldBucket->next;
+        Bucket* const nextBucket    = buckets.next(*oldBucket);
         const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
 
         if (!targetExists && oldBucket->entries.size() == 1)
@@ -1495,7 +1493,7 @@ class PoolLFUCache final {
         {
             Bucket* const newBucket = bucketPool.create(1, nextFrequency);
             [[maybe_unused]]  //
-            const bool linked = buckets.insert_after(*oldBucket, *newBucket);
+            const bool linked = buckets.insert_after(*newBucket, *oldBucket);
             assert(linked);
             entry->bucket = newBucket;
             [[maybe_unused]]  //
@@ -1648,7 +1646,7 @@ class PoolLFUCache final {
     Pool<Entry> pool;
 
     Pool<Bucket>                bucketPool;
-    SinglyIntrusiveList<Bucket> buckets;
+    DoublyIntrusiveList<Bucket> buckets;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -1694,6 +1692,7 @@ class PoolFlatLFUCache final {
 
         usize     frequency;
         list_type entries;
+        Bucket*   prev = nullptr;
         Bucket*   next = nullptr;
     };
 
@@ -1868,18 +1867,9 @@ class PoolFlatLFUCache final {
     void nolock_destroy_bucket(Bucket& bucket) noexcept {
         assert(bucket.entries.empty());
 
-        if (buckets.front() == &bucket)
-        {
-            [[maybe_unused]]  //
-            Bucket* const removedBucket = buckets.pop_front();
-            assert(removedBucket == &bucket);
-        }
-        else
-        {
-            [[maybe_unused]]  //
-            const bool erased = buckets.erase(bucket);
-            assert(erased);
-        }
+        [[maybe_unused]]  //
+        const bool erased = buckets.erase(bucket);
+        assert(erased);
 
         bucketPool.destroy(&bucket);
     }
@@ -1924,7 +1914,7 @@ class PoolFlatLFUCache final {
         }
 
         const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const nextBucket    = oldBucket->next;
+        Bucket* const nextBucket    = buckets.next(*oldBucket);
         const bool targetExists = nextBucket != nullptr && nextBucket->frequency == nextFrequency;
 
         if (!targetExists && oldBucket->entries.size() == 1)
@@ -1958,7 +1948,7 @@ class PoolFlatLFUCache final {
         else
         {
             Bucket* const               newBucket = bucketPool.create(1, nextFrequency);
-            [[maybe_unused]] const bool linked    = buckets.insert_after(*oldBucket, *newBucket);
+            [[maybe_unused]] const bool linked    = buckets.insert_after(*newBucket, *oldBucket);
             assert(linked);
             entry->bucket                        = newBucket;
             [[maybe_unused]] const bool inserted = newBucket->entries.push_front(*entry);
@@ -2110,7 +2100,7 @@ class PoolFlatLFUCache final {
     Pool<Entry> pool;
 
     Pool<Bucket>                bucketPool;
-    SinglyIntrusiveList<Bucket> buckets;
+    DoublyIntrusiveList<Bucket> buckets;
 };
 
 }  // namespace DON

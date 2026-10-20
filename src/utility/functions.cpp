@@ -17,9 +17,12 @@
 
 #include "../utility/functions.h"
 
-#include <charconv>
+#include <algorithm>  // min()/max(), transform(), remove_if()
+#include <charconv>   // from_chars(), from_chars_result()
 #include <cinttypes>  // PRIX32, PRIX64, PRIu64
+#include <cstdio>     // snprintf()
 #include <fstream>
+#include <limits>        // numeric_limits<>
 #include <system_error>  // errc
 
 #if defined(_WIN32)

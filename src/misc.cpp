@@ -26,11 +26,6 @@
 #include <system_error>  // errc
 #include <vector>        // vector<>
 
-#if !defined(_WIN32)
-    #include <unistd.h>    // close()
-    #include <sys/mman.h>  // munmap()
-#endif
-
 #include "utility/color.h"
 #include "utility/functions.h"
 

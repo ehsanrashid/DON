@@ -25,6 +25,8 @@
 #else
     #include <unistd.h>    // close()
     #include <sys/mman.h>  // munmap()
+
+    #include <utility>
 #endif
 
 namespace DON {

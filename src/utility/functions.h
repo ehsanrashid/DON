@@ -18,8 +18,9 @@
 #ifndef UTILITY_FUNCTIONS_H_INCLUDED
 #define UTILITY_FUNCTIONS_H_INCLUDED
 
-#include <optional>
+#include <cassert>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>

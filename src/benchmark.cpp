@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "numa.h"
+#include "utility/functions.h"
 
 namespace DON::Benchmark {
 
