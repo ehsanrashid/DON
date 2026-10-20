@@ -999,12 +999,14 @@ class BucketListLFUCache final {
     list_iterator nolock_touch(list_iterator listItr) noexcept {
         assert(listItr != nolock_list_end());
 
-        auto&         entry     = *listItr;
+        Entry& entry = *listItr;
+
         Bucket* const oldBucket = entry.bucket;
         assert(oldBucket != nullptr);
 
-        // At maximum frequency, only update recency.
-        if (oldBucket->frequency == std::numeric_limits<usize>::max())
+        const usize oldFrequency = oldBucket->frequency;
+
+        if (oldFrequency == std::numeric_limits<usize>::max())
         {
             [[maybe_unused]]  //
             const bool moved = oldBucket->entries.move_front(entry);
@@ -1012,50 +1014,49 @@ class BucketListLFUCache final {
             return listItr;
         }
 
-        const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const higherBucket  = buckets.prev(*oldBucket);
-        const bool    targetExists  = higherBucket != nullptr  //
-                                   && higherBucket->frequency == nextFrequency;
+        const usize nextFrequency = oldFrequency + 1;
 
-        if (!targetExists && oldBucket->entries.size() == 1)
+        Bucket* const higherBucket = buckets.prev(*oldBucket);
+
+        if (higherBucket != nullptr && higherBucket->frequency == nextFrequency)
         {
-            oldBucket->frequency = nextFrequency;
-            return listItr;
-        }
+            [[maybe_unused]]  //
+            const bool erased = oldBucket->entries.erase(entry);
+            assert(erased);
 
-        [[maybe_unused]]  //
-        const bool erased = oldBucket->entries.erase(entry);
-        assert(erased);
-
-        if (targetExists)
-        {
             entry.bucket = higherBucket;
+
             [[maybe_unused]]  //
             const bool inserted = higherBucket->entries.push_front(entry);
             assert(inserted);
 
             if (oldBucket->entries.empty())
                 nolock_destroy_bucket(*oldBucket);
+
+            return listItr;
         }
-        else if (oldBucket->entries.empty())
+
+        if (oldBucket->entries.size() == 1)
         {
             oldBucket->frequency = nextFrequency;
-            entry.bucket         = oldBucket;
-            [[maybe_unused]]  //
-            const bool inserted = oldBucket->entries.push_front(entry);
-            assert(inserted);
+            return listItr;
         }
-        else
-        {
-            Bucket* const newBucket = bucketPool.create(1, nextFrequency);
-            [[maybe_unused]]  //
-            const bool linked = buckets.insert_before(*newBucket, *oldBucket);
-            assert(linked);
-            entry.bucket = newBucket;
-            [[maybe_unused]]  //
-            const bool inserted = newBucket->entries.push_front(entry);
-            assert(inserted);
-        }
+
+        Bucket* const newBucket = bucketPool.create(1, nextFrequency);
+
+        [[maybe_unused]]  //
+        const bool linked = buckets.insert_before(*newBucket, *oldBucket);
+        assert(linked);
+
+        [[maybe_unused]]  //
+        const bool erased = oldBucket->entries.erase(entry);
+        assert(erased);
+
+        entry.bucket = newBucket;
+
+        [[maybe_unused]]  //
+        const bool inserted = newBucket->entries.push_front(entry);
+        assert(inserted);
 
         return listItr;
     }
@@ -1153,7 +1154,7 @@ class BucketListLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        while (Bucket* const bucket = buckets.front())
+        while (Bucket* const bucket = buckets.back())
         {
             while (Entry* const entry = bucket->entries.back())
             {
@@ -1448,11 +1449,14 @@ class PoolLFUCache final {
     list_iterator nolock_touch(list_iterator listItr) noexcept {
         assert(listItr != nullptr);
 
-        auto&         entry     = *listItr;
+        Entry& entry = *listItr;
+
         Bucket* const oldBucket = entry.bucket;
         assert(oldBucket != nullptr);
 
-        if (oldBucket->frequency == std::numeric_limits<usize>::max())
+        const usize oldFrequency = oldBucket->frequency;
+
+        if (oldFrequency == std::numeric_limits<usize>::max())
         {
             [[maybe_unused]]  //
             const bool moved = oldBucket->entries.move_front(entry);
@@ -1460,50 +1464,49 @@ class PoolLFUCache final {
             return listItr;
         }
 
-        const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const higherBucket  = buckets.prev(*oldBucket);
-        const bool    targetExists  = higherBucket != nullptr  //
-                                   && higherBucket->frequency == nextFrequency;
+        const usize nextFrequency = oldFrequency + 1;
 
-        if (!targetExists && oldBucket->entries.size() == 1)
+        Bucket* const higherBucket = buckets.prev(*oldBucket);
+
+        if (higherBucket != nullptr && higherBucket->frequency == nextFrequency)
         {
-            oldBucket->frequency = nextFrequency;
-            return listItr;
-        }
+            [[maybe_unused]]  //
+            const bool erased = oldBucket->entries.erase(entry);
+            assert(erased);
 
-        [[maybe_unused]]  //
-        const bool erased = oldBucket->entries.erase(entry);
-        assert(erased);
-
-        if (targetExists)
-        {
             entry.bucket = higherBucket;
+
             [[maybe_unused]]  //
             const bool inserted = higherBucket->entries.push_front(entry);
             assert(inserted);
 
             if (oldBucket->entries.empty())
                 nolock_destroy_bucket(*oldBucket);
+
+            return listItr;
         }
-        else if (oldBucket->entries.empty())
+
+        if (oldBucket->entries.size() == 1)
         {
             oldBucket->frequency = nextFrequency;
-            entry.bucket         = oldBucket;
-            [[maybe_unused]]  //
-            const bool inserted = oldBucket->entries.push_front(entry);
-            assert(inserted);
+            return listItr;
         }
-        else
-        {
-            Bucket* const newBucket = bucketPool.create(1, nextFrequency);
-            [[maybe_unused]]  //
-            const bool linked = buckets.insert_before(*newBucket, *oldBucket);
-            assert(linked);
-            entry.bucket = newBucket;
-            [[maybe_unused]]  //
-            const bool inserted = newBucket->entries.push_front(entry);
-            assert(inserted);
-        }
+
+        Bucket* const newBucket = bucketPool.create(1, nextFrequency);
+
+        [[maybe_unused]]  //
+        const bool linked = buckets.insert_before(*newBucket, *oldBucket);
+        assert(linked);
+
+        [[maybe_unused]]  //
+        const bool erased = oldBucket->entries.erase(entry);
+        assert(erased);
+
+        entry.bucket = newBucket;
+
+        [[maybe_unused]]  //
+        const bool inserted = newBucket->entries.push_front(entry);
+        assert(inserted);
 
         return listItr;
     }
@@ -1614,7 +1617,7 @@ class PoolLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        while (Bucket* const bucket = buckets.front())
+        while (Bucket* const bucket = buckets.back())
         {
             while (Entry* const entry = bucket->entries.back())
             {
@@ -1908,11 +1911,14 @@ class PoolFlatLFUCache final {
     list_iterator nolock_touch(list_iterator listItr) noexcept {
         assert(listItr != nullptr);
 
-        auto&         entry     = *listItr;
+        Entry& entry = *listItr;
+
         Bucket* const oldBucket = entry.bucket;
         assert(oldBucket != nullptr);
 
-        if (oldBucket->frequency == std::numeric_limits<usize>::max())
+        const usize oldFrequency = oldBucket->frequency;
+
+        if (oldFrequency == std::numeric_limits<usize>::max())
         {
             [[maybe_unused]]  //
             const bool moved = oldBucket->entries.move_front(entry);
@@ -1920,50 +1926,49 @@ class PoolFlatLFUCache final {
             return listItr;
         }
 
-        const usize   nextFrequency = oldBucket->frequency + 1;
-        Bucket* const higherBucket  = buckets.prev(*oldBucket);
-        const bool    targetExists  = higherBucket != nullptr  //
-                                   && higherBucket->frequency == nextFrequency;
+        const usize nextFrequency = oldFrequency + 1;
 
-        if (!targetExists && oldBucket->entries.size() == 1)
+        Bucket* const higherBucket = buckets.prev(*oldBucket);
+
+        if (higherBucket != nullptr && higherBucket->frequency == nextFrequency)
         {
-            oldBucket->frequency = nextFrequency;
-            return listItr;
-        }
+            [[maybe_unused]]  //
+            const bool erased = oldBucket->entries.erase(entry);
+            assert(erased);
 
-        [[maybe_unused]]  //
-        const bool erased = oldBucket->entries.erase(entry);
-        assert(erased);
-
-        if (targetExists)
-        {
             entry.bucket = higherBucket;
+
             [[maybe_unused]]  //
             const bool inserted = higherBucket->entries.push_front(entry);
             assert(inserted);
 
             if (oldBucket->entries.empty())
                 nolock_destroy_bucket(*oldBucket);
+
+            return listItr;
         }
-        else if (oldBucket->entries.empty())
+
+        if (oldBucket->entries.size() == 1)
         {
             oldBucket->frequency = nextFrequency;
-            entry.bucket         = oldBucket;
-            [[maybe_unused]]  //
-            const bool inserted = oldBucket->entries.push_front(entry);
-            assert(inserted);
+            return listItr;
         }
-        else
-        {
-            Bucket* const newBucket = bucketPool.create(1, nextFrequency);
-            [[maybe_unused]]  //
-            const bool linked = buckets.insert_before(*newBucket, *oldBucket);
-            assert(linked);
-            entry.bucket = newBucket;
-            [[maybe_unused]]  //
-            const bool inserted = newBucket->entries.push_front(entry);
-            assert(inserted);
-        }
+
+        Bucket* const newBucket = bucketPool.create(1, nextFrequency);
+
+        [[maybe_unused]]  //
+        const bool linked = buckets.insert_before(*newBucket, *oldBucket);
+        assert(linked);
+
+        [[maybe_unused]]  //
+        const bool erased = oldBucket->entries.erase(entry);
+        assert(erased);
+
+        entry.bucket = newBucket;
+
+        [[maybe_unused]]  //
+        const bool inserted = newBucket->entries.push_front(entry);
+        assert(inserted);
 
         return listItr;
     }
@@ -2075,7 +2080,7 @@ class PoolFlatLFUCache final {
     }
 
     void nolock_clear() noexcept {
-        while (Bucket* const bucket = buckets.front())
+        while (Bucket* const bucket = buckets.back())
         {
             while (Entry* const entry = bucket->entries.back())
             {
