@@ -73,24 +73,25 @@ class VectorSet final {
             return previous;
         }
 
-        [[nodiscard]] bool operator==(const const_iterator& other) const noexcept {
-            return owner == other.owner && blockIndex == other.blockIndex
-                && elementIndex == other.elementIndex;
+        [[nodiscard]] bool operator==(const const_iterator& constItr) const noexcept {
+            return owner == constItr.owner            //
+                && blockIndex == constItr.blockIndex  //
+                && elementIndex == constItr.elementIndex;
         }
 
-        [[nodiscard]] bool operator!=(const const_iterator& other) const noexcept {
-            return !(*this == other);
+        [[nodiscard]] bool operator!=(const const_iterator& constItr) const noexcept {
+            return !(*this == constItr);
         }
 
        private:
         friend class VectorSet;
 
-        const_iterator(const VectorSet* owner,
-                       const size_type  blockIndex,
-                       const size_type  elementIndex) noexcept :
-            owner(owner),
-            blockIndex(blockIndex),
-            elementIndex(elementIndex) {}
+        const_iterator(const VectorSet* ownerPtr,
+                       const size_type  blockIdx,
+                       const size_type  elementIdx) noexcept :
+            owner(ownerPtr),
+            blockIndex(blockIdx),
+            elementIndex(elementIdx) {}
 
         const VectorSet* owner        = nullptr;
         size_type        blockIndex   = 0;
@@ -383,8 +384,8 @@ class VectorSet final {
 template<typename Set>
 class SortedBackInsertIterator final {
    public:
-    explicit SortedBackInsertIterator(Set& set) noexcept :
-        set(&set) {}
+    explicit SortedBackInsertIterator(Set& s) noexcept :
+        set(&s) {}
 
     SortedBackInsertIterator& operator=(const typename Set::value_type& value) noexcept {
         set->append_sorted(value);
