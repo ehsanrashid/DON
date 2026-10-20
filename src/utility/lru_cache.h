@@ -130,10 +130,10 @@ class ListLRUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }
@@ -444,10 +444,10 @@ class NewDeleteLRUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }
@@ -758,10 +758,10 @@ class PoolLRUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }
@@ -1085,10 +1085,10 @@ class PoolFlatLRUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }

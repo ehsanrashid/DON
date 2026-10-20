@@ -42,7 +42,6 @@
 
 namespace DON {
 
-
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class ListLFUCache final {
     static constexpr usize InlineValueThreshold = 128;
@@ -142,10 +141,10 @@ class ListLFUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
         nolock_evict_excess(capacity);
     }
 
@@ -505,10 +504,10 @@ class SetLFUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }
@@ -867,10 +866,10 @@ class BucketListLFUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }
@@ -1307,10 +1306,10 @@ class PoolLFUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }
@@ -1769,10 +1768,10 @@ class PoolFlatLFUCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
+    void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = size;
+        capacity = newCapacity;
 
         nolock_evict_excess(capacity);
     }

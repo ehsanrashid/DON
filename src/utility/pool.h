@@ -78,7 +78,7 @@ class Pool final {
 
     template<typename... Args>
     T* create(const usize requiredSize, Args&&... args) noexcept {
-        if (slotList.empty())
+        if (empty())
             allocate_block(requiredSize);
 
         Slot* const slot = slotList.pop_front();
@@ -113,6 +113,8 @@ class Pool final {
         blocks.clear();
 #endif
     }
+
+    [[nodiscard]] bool empty() const noexcept { return slotList.empty(); }
 
    private:
     [[nodiscard]] static constexpr usize block_size(const usize requiredSize) noexcept {

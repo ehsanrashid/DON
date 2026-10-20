@@ -126,8 +126,8 @@ HEADERS := \
     nnue/accumulator.h nnue/architecture.h nnue/feature_transformer.h nnue/network.h nnue/nnz.h \
     nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
-    utility/access.h utility/attributes.h utility/call_once.h utility/channel.h utility/color.h \
-    utility/command_line.h utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h \
+    utility/access.h utility/arc_cache.h utility/attributes.h utility/call_once.h utility/channel.h \
+    utility/color.h utility/command_line.h utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h \
     utility/error.h utility/functions.h utility/guard.h utility/lfu_cache.h utility/list.h utility/lru_cache.h utility/map.h \
     utility/multi_array.h utility/mutex.h utility/platform_win.h utility/pool.h utility/prng.h utility/queue.h \
     utility/reader.h utility/set.h utility/sharded_cache.h utility/static_vector.h utility/store.h \

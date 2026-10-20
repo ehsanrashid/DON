@@ -106,8 +106,8 @@ class ShardedCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
-        const usize cap = shard_capacity(size);
+    void set_capacity(const usize newCapacity) noexcept {
+        const usize cap = shard_capacity(newCapacity);
 
         for (auto& shard : shards)
             shard.set_capacity(cap);
