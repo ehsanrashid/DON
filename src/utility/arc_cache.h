@@ -55,7 +55,7 @@ class PoolARCCache final {
 
     static constexpr usize BucketCount = 4;
 
-    static constexpr u8 InvalidBucket = u8(BucketCount);
+    static constexpr u8 InvalidIndex = u8(BucketCount);
 
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
@@ -81,7 +81,7 @@ class PoolARCCache final {
         }
 
         Key    key;
-        u8     bucketIndex = InvalidBucket;
+        u8     bucketIndex = InvalidIndex;
         Entry* prev        = nullptr;
         Entry* next        = nullptr;
 
@@ -323,18 +323,18 @@ class PoolARCCache final {
 
     [[nodiscard]] bool nolock_list_push_front(list_value_type& entry, const usize index) noexcept {
         assert(index < BucketCount);
-        assert(entry.bucketIndex == InvalidBucket);
+        assert(entry.bucketIndex == InvalidIndex);
         assert(entry.prev == nullptr);
         assert(entry.next == nullptr);
 
-        if (index >= BucketCount || entry.bucketIndex != InvalidBucket || entry.prev != nullptr
+        if (index >= BucketCount || entry.bucketIndex != InvalidIndex || entry.prev != nullptr
             || entry.next != nullptr)
             return false;
 
         if (!buckets[index].entries.push_front(entry))
             return false;
 
-        entry.bucketIndex = static_cast<u8>(index);
+        entry.bucketIndex = u8(index);
 
         return true;
     }
@@ -348,7 +348,7 @@ class PoolARCCache final {
         if (!buckets[entry.bucketIndex].entries.erase(entry))
             return false;
 
-        entry.bucketIndex = InvalidBucket;
+        entry.bucketIndex = InvalidIndex;
 
         assert(entry.prev == nullptr);
         assert(entry.next == nullptr);
@@ -894,7 +894,7 @@ class PoolARCCache final {
                 if (!erased)
                     break;
 
-                entry->bucketIndex = InvalidBucket;
+                entry->bucketIndex = InvalidIndex;
                 pool.destroy(entry);
             }
         }
@@ -1022,7 +1022,7 @@ class PoolFlatARCCache final {
 
     static constexpr usize BucketCount = 4;
 
-    static constexpr u8 InvalidBucket = u8(BucketCount);
+    static constexpr u8 InvalidIndex = u8(BucketCount);
 
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
@@ -1048,7 +1048,7 @@ class PoolFlatARCCache final {
         }
 
         Key    key;
-        u8     bucketIndex = InvalidBucket;
+        u8     bucketIndex = InvalidIndex;
         Entry* prev        = nullptr;
         Entry* next        = nullptr;
 
@@ -1290,18 +1290,18 @@ class PoolFlatARCCache final {
 
     [[nodiscard]] bool nolock_list_push_front(list_value_type& entry, const usize index) noexcept {
         assert(index < BucketCount);
-        assert(entry.bucketIndex == InvalidBucket);
+        assert(entry.bucketIndex == InvalidIndex);
         assert(entry.prev == nullptr);
         assert(entry.next == nullptr);
 
-        if (index >= BucketCount || entry.bucketIndex != InvalidBucket || entry.prev != nullptr
+        if (index >= BucketCount || entry.bucketIndex != InvalidIndex || entry.prev != nullptr
             || entry.next != nullptr)
             return false;
 
         if (!buckets[index].entries.push_front(entry))
             return false;
 
-        entry.bucketIndex = static_cast<u8>(index);
+        entry.bucketIndex = u8(index);
 
         return true;
     }
@@ -1315,7 +1315,7 @@ class PoolFlatARCCache final {
         if (!buckets[entry.bucketIndex].entries.erase(entry))
             return false;
 
-        entry.bucketIndex = InvalidBucket;
+        entry.bucketIndex = InvalidIndex;
 
         assert(entry.prev == nullptr);
         assert(entry.next == nullptr);
@@ -1861,7 +1861,7 @@ class PoolFlatARCCache final {
                 if (!erased)
                     break;
 
-                entry->bucketIndex = InvalidBucket;
+                entry->bucketIndex = InvalidIndex;
                 pool.destroy(entry);
             }
         }

@@ -31,7 +31,7 @@
 #include "tt.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
-#include "utility/lfu_cache.h"
+#include "utility/arc_cache.h"
 #include "utility/error.h"
 #include "utility/functions.h"
 #include "utility/multi_array.h"
@@ -55,7 +55,7 @@ Cuckoos_& cuckoos() noexcept {
     return cuckoos;
 }
 
-using ValueCache = ShardedCache<Key, Value, PoolFlatLFUCache, 32, SpinMutex>;
+using ValueCache = ShardedCache<Key, Value, PoolFlatARCCache, 32, SpinMutex>;
 
 ValueCache& non_pawn_cache() noexcept {
     static ValueCache nonPawnCache{64 * KB, 16 * KB, 0.75F};

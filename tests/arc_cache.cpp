@@ -32,8 +32,8 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp te
 using namespace DON;
 
 namespace {
-using TestCache = PoolARCCache<int, int>;
-using FlatTestCache = PoolFlatARCCache<int, int>;
+using PoolCache = PoolARCCache<int, int>;
+using FlatCache = PoolFlatARCCache<int, int>;
 
 // Verify that the Mutex template parameter remains configurable.
 class TestMutex final {
@@ -48,7 +48,7 @@ class TestMutex final {
 
 using CustomMutexCache = PoolARCCache<int, int, TestMutex>;
 
-void check_capacity(const TestCache& cache) noexcept {
+void check_capacity(const PoolCache& cache) noexcept {
     CHECK(cache.size() <= cache.get_capacity());
     CHECK(cache.empty() == (cache.size() == 0));
 }
@@ -56,7 +56,7 @@ void check_capacity(const TestCache& cache) noexcept {
 void test_basic_operations() noexcept {
     std::cout << "test_basic_operations\n";
 
-    TestCache cache(3, 16);
+    PoolCache cache(3, 16);
 
     CHECK(cache.empty());
     CHECK(cache.size() == 0);
@@ -95,7 +95,7 @@ void test_basic_operations() noexcept {
 void test_t1_eviction_and_b1_hit() noexcept {
     std::cout << "test_t1_eviction_and_b1_hit\n";
 
-    TestCache cache(2, 16);
+    PoolCache cache(2, 16);
 
     CHECK(cache.read_or_write(1, 10) == 10);
     CHECK(cache.read_or_write(2, 20) == 20);
@@ -123,7 +123,7 @@ void test_t1_eviction_and_b1_hit() noexcept {
 void test_b2_ghost_hit() noexcept {
     std::cout << "test_b2_ghost_hit\n";
 
-    TestCache cache(2, 16);
+    PoolCache cache(2, 16);
 
     CHECK(cache.read_or_write(1, 10) == 10);
     CHECK(cache.read_or_write(2, 20) == 20);
@@ -156,7 +156,7 @@ void test_b2_ghost_hit() noexcept {
 void test_capacity_one() noexcept {
     std::cout << "test_capacity_one\n";
 
-    TestCache cache(1, 8);
+    PoolCache cache(1, 8);
 
     CHECK(cache.read_or_write(1, 10) == 10);
     CHECK(cache.size() == 1);
@@ -181,7 +181,7 @@ void test_capacity_one() noexcept {
 void test_flat_cache_ghost_limit_churn() noexcept {
     std::cout << "test_flat_cache_ghost_limit_churn\n";
 
-    FlatTestCache cache(2, 16);
+    FlatCache cache(2, 16);
 
     CHECK(cache.read_or_write(1, 10) == 10);
     CHECK(cache.read_or_write(2, 20) == 20);
@@ -207,7 +207,7 @@ void test_flat_cache_ghost_limit_churn() noexcept {
 void test_builder() noexcept {
     std::cout << "test_builder\n";
 
-    TestCache cache(2, 16);
+    PoolCache cache(2, 16);
 
     int calls = 0;
 
@@ -241,7 +241,7 @@ void test_builder() noexcept {
 void test_zero_capacity() noexcept {
     std::cout << "test_zero_capacity\n";
 
-    TestCache cache(0, 8);
+    PoolCache cache(0, 8);
 
     CHECK(cache.empty());
     CHECK(cache.get_capacity() == 0);
@@ -278,7 +278,7 @@ void test_zero_capacity() noexcept {
 void test_capacity_management() noexcept {
     std::cout << "test_capacity_management\n";
 
-    TestCache cache(4, 16);
+    PoolCache cache(4, 16);
 
     for (int key = 1; key <= 4; ++key)
         CHECK(cache.read_or_write(key, key * 10) == key * 10);
@@ -314,7 +314,7 @@ void test_capacity_management() noexcept {
 void test_reset() noexcept {
     std::cout << "test_reset\n";
 
-    TestCache cache(3, 16);
+    PoolCache cache(3, 16);
 
     CHECK(cache.read_or_write(1, 10) == 10);
     CHECK(cache.read_or_write(2, 20) == 20);
@@ -357,6 +357,7 @@ void test_custom_mutex() noexcept {
     CHECK(cache.empty());
 }
 
+template<typename Cache>
 void test_stress() noexcept {
     std::cout << "test_stress\n";
 
@@ -364,7 +365,7 @@ void test_stress() noexcept {
     constexpr int KeyCount   = 64;
     constexpr int Iterations = 20000;
 
-    TestCache cache(Capacity, 128);
+    Cache cache(Capacity, 128);
 
     for (int i = 0; i < Iterations; ++i)
     {
@@ -395,6 +396,7 @@ void test_stress() noexcept {
     std::cout << "  Completed " << Iterations << " operations\n";
 }
 
+template<typename Cache>
 void test_heavy_stress() noexcept {
     std::cout << "test_heavy_stress\n";
 
@@ -403,7 +405,7 @@ void test_heavy_stress() noexcept {
     constexpr int HotKeyRange     = 16;
     constexpr int Operations      = 1'000'000;
 
-    TestCache       cache(InitialCapacity);
+    Cache           cache(InitialCapacity);
     std::mt19937_64 rng(0xD0A5CA7EULL);
 
     for (int i = 0; i < Operations; ++i)
@@ -509,8 +511,10 @@ int main() noexcept {
     test_capacity_management();
     test_reset();
     test_custom_mutex();
-    test_stress();
-    test_heavy_stress();
+    test_stress<PoolCache>();
+    test_stress<FlatCache>();
+    test_heavy_stress<PoolCache>();
+    test_heavy_stress<FlatCache>();
 
     std::cout << "\nAll ARC tests passed.\n";
 
