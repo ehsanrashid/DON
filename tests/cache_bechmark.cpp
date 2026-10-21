@@ -7,6 +7,12 @@ mkdir -p build
 g++ -std=c++17 -O2 -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/cache_bechmark.cpp -o build/cache_bechmark
 g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/cache_bechmark.cpp -o build/cache_bechmark
 
+g++ -std=c++17 -O0 -g -fno-omit-frame-pointer -I./src \
+    src/utility/cpu.cpp \
+    src/utility/mutex.cpp \
+    tests/cache_bechmark.cpp \
+    -o build/cache_bechmark_debug
+
 ./build/cache_bechmark
 */
 

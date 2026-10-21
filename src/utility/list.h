@@ -150,27 +150,27 @@ class DoublyIntrusiveList final {
     }
 
     [[nodiscard]] T* next(const T& node) noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
         return node.next;
     }
 
     [[nodiscard]] const T* next(const T& node) const noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
         return node.next;
     }
 
     [[nodiscard]] T* prev(T& node) noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
         return node.prev;
     }
 
     [[nodiscard]] const T* prev(const T& node) const noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
         return node.prev;
     }
 
     bool push_front(T& node) noexcept {
-        assert(!contains(node));
+        assert(!is_linked(node));
         assert(node.prev == nullptr && node.next == nullptr);
 
         if (node.prev != nullptr || node.next != nullptr)
@@ -182,7 +182,7 @@ class DoublyIntrusiveList final {
     }
 
     bool push_back(T& node) noexcept {
-        assert(!contains(node));
+        assert(!is_linked(node));
         assert(node.prev == nullptr && node.next == nullptr);
 
         if (node.prev != nullptr || node.next != nullptr)
@@ -195,8 +195,8 @@ class DoublyIntrusiveList final {
 
     bool insert_before(T& node, T& pos) noexcept {
         assert(&node != &pos);
-        assert(!contains(node));
-        assert(contains(pos));
+        assert(!is_linked(node));
+        assert(is_linked(pos));
         assert(node.prev == nullptr && node.next == nullptr);
 
         if (&node == &pos || node.prev != nullptr || node.next != nullptr)
@@ -209,8 +209,8 @@ class DoublyIntrusiveList final {
 
     bool insert_after(T& node, T& pos) noexcept {
         assert(&node != &pos);
-        assert(!contains(node));
-        assert(contains(pos));
+        assert(!is_linked(node));
+        assert(is_linked(pos));
         assert(node.prev == nullptr && node.next == nullptr);
 
         if (&node == &pos || node.prev != nullptr || node.next != nullptr)
@@ -222,7 +222,7 @@ class DoublyIntrusiveList final {
     }
 
     bool move_front(T& node) noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
 
         if (front_ == &node)
             return true;
@@ -233,7 +233,7 @@ class DoublyIntrusiveList final {
     }
 
     bool move_back(T& node) noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
 
         if (back_ == &node)
             return true;
@@ -244,8 +244,8 @@ class DoublyIntrusiveList final {
     }
 
     bool move_before(T& node, T& pos) noexcept {
-        assert(contains(node));
-        assert(contains(pos));
+        assert(is_linked(node));
+        assert(is_linked(pos));
 
         if (&node == &pos || node.next == &pos)
             return true;
@@ -256,8 +256,8 @@ class DoublyIntrusiveList final {
     }
 
     bool move_after(T& node, T& pos) noexcept {
-        assert(contains(node));
-        assert(contains(pos));
+        assert(is_linked(node));
+        assert(is_linked(pos));
 
         if (&node == &pos || node.prev == &pos)
             return true;
@@ -268,7 +268,7 @@ class DoublyIntrusiveList final {
     }
 
     bool erase(T& node) noexcept {
-        assert(contains(node));
+        assert(is_linked(node));
 
         unlink(node);
         --size_;
@@ -276,24 +276,23 @@ class DoublyIntrusiveList final {
     }
 
    private:
-    [[nodiscard]] bool contains(const T& node) const noexcept {
-        if (size_ == 0)
-            return false;
-
+    [[nodiscard]] bool is_linked(const T& node) const noexcept {
         // An intrusive list without an owner pointer cannot generally determine membership
         // from an arbitrary node in O(1). The boundary checks below handle the common cases.
-        if (front_ == &node || back_ == &node)
-            return true;
+        return front_ == &node || back_ == &node || node.prev != nullptr || node.next != nullptr;
+    }
 
-        return node.prev != nullptr || node.next != nullptr;
+    [[nodiscard]] bool contains(const T& node) const noexcept {
+        if (empty())
+            return false;
 
-        //for (auto* current = front_; current != nullptr; current = current->next)
-        //{
-        //    if (current == &node)
-        //        return true;
-        //}
-        //
-        //return false;
+        for (auto* current = front_; current != nullptr; current = current->next)
+        {
+            if (current == &node)
+                return true;
+        }
+
+        return false;
     }
 
     void unlink(T& node) noexcept {

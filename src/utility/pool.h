@@ -38,15 +38,29 @@
 
 namespace DON {
 
+
 template<typename T, usize BlockBytesMax = 64 * KB>
 class Pool final {
+    struct Slot;
+
+    struct ActiveNode {
+        Slot*       slot = nullptr;
+        ActiveNode* prev = nullptr;
+        ActiveNode* next = nullptr;
+
+        explicit ActiveNode(Slot* slotPtr) noexcept :
+            slot(slotPtr) {}
+    };
+
     struct Slot {
         alignas(T) std::byte storage[sizeof(T)];
-        Slot* next = nullptr;
+        Slot*      next = nullptr;
+        ActiveNode activeNode{this};
     };
 
     struct Block {
         std::unique_ptr<Slot[]> slots;
+        usize                   size = 0;
     };
 
     static constexpr usize BaseBlockSize = []() constexpr {
@@ -60,104 +74,158 @@ class Pool final {
         return size;
     }();
 
-   public:
-    explicit Pool() noexcept
-#if defined(USE_STATIC_VECTOR)
-      = default;
+#ifdef USE_STATIC_VECTOR
+    static constexpr usize BlockMax = 1024;
+
+    using block_container_type = StaticVector<Block, BlockMax>;
 #else
-    {
-        constexpr usize reserveCapacity = 32;
-        // Reserve blocks
-        blocks.reserve(reserveCapacity);
-    }
+    using block_container_type = std::vector<Block>;
 #endif
-    Pool(const Pool&)            = delete;
-    Pool& operator=(const Pool&) = delete;
-    Pool(Pool&&)                 = delete;
-    Pool& operator=(Pool&&)      = delete;
+
+   public:
+    Pool()                                = default;
+    Pool(const Pool&) noexcept            = delete;
+    Pool& operator=(const Pool&) noexcept = delete;
+    Pool(Pool&&) noexcept                 = delete;
+    Pool& operator=(Pool&&) noexcept      = delete;
+
+    ~Pool() noexcept { release(); }
 
     template<typename... Args>
-    T* create(const usize requiredSize, Args&&... args) noexcept {
-        if (empty())
-            allocate_block(requiredSize);
-
-        Slot* const slot = slotList.pop_front();
-        assert(slot != nullptr);
-
-        T* const object = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
-        ++activeCount;
-
-        return object;
+    [[nodiscard]] T* create(usize requiredSize, Args&&... args) noexcept {
+        return create_(requiredSize, std::forward<Args>(args)...);
     }
 
-    void destroy(T* const object) noexcept {
-        assert(object != nullptr);
-        assert(activeCount != 0);
+    template<typename... Args>
+    [[nodiscard]] T* create_object(Args&&... args) noexcept {
+        return create_(1, std::forward<Args>(args)...);
+    }
 
-        Slot* const slot = reinterpret_cast<Slot*>(  //
-          reinterpret_cast<std::byte*>(object) - StorageOffset);
+    void destroy(T* value) noexcept {
+        assert(value != nullptr);
 
-        object->~T();
+        if (value == nullptr)
+            std::terminate();
+
+        Slot* slot = slot_from_value(value);
+
+        detach_active(slot);
+        value->~T();
 
         slotList.push_front(*slot);
-        --activeCount;
     }
 
     void release() noexcept {
-        assert(activeCount == 0);
+        while (ActiveNode* node = activeList.front())
+        {
+            Slot* slot = node->slot;
+
+            detach_active(slot);
+
+            T* value = std::launder(reinterpret_cast<T*>(slot->storage));
+            value->~T();
+        }
 
         slotList.clear();
-#if defined(USE_STATIC_VECTOR)
-        blocks.clear_and_release();
-#else
         blocks.clear();
-#endif
+
+        nextBlockSize = 1;
     }
 
     [[nodiscard]] bool empty() const noexcept { return slotList.empty(); }
 
+    [[nodiscard]] usize active_size() const noexcept { return activeList.size(); }
+
+    [[nodiscard]] bool has_active_objects() const noexcept { return !activeList.empty(); }
+
+    [[nodiscard]] usize block_count() const noexcept { return blocks.size(); }
+
    private:
-    [[nodiscard]] static constexpr usize block_size(const usize requiredSize) noexcept {
-        if (requiredSize >= BaseBlockSize)
-            return BaseBlockSize;
+    [[nodiscard]] usize block_size(usize requiredSize) noexcept {
+        usize size = nextBlockSize;
 
-        usize size = 1;
+        while (size < requiredSize && size < BaseBlockSize)
+        {
+            if (size > BaseBlockSize / 2)
+            {
+                size = BaseBlockSize;
+                break;
+            }
 
-        while (size < requiredSize)
             size *= 2;
+        }
+
+        if (size < requiredSize)
+            size = requiredSize;
+
+        if (size < BaseBlockSize)
+            nextBlockSize = size > BaseBlockSize / 2 ? BaseBlockSize : size * 2;
 
         return size;
     }
 
-    void allocate_block(const usize requiredSize) noexcept {
-#if defined(USE_STATIC_VECTOR)
+    void allocate_block(usize requiredSize) {
+        const usize size = block_size(requiredSize);
+
+#ifdef USE_STATIC_VECTOR
         if (blocks.full())
             std::terminate();
 #endif
 
-        const usize count = block_size(requiredSize != 0 ? requiredSize : usize{1});
-        auto        slots = std::make_unique<Slot[]>(count);
-        Slot* const first = slots.get();
+        auto  slots = std::make_unique<Slot[]>(size);
+        Slot* first = slots.get();
 
-        blocks.push_back(Block{std::move(slots)});
+        blocks.push_back(Block{std::move(slots), size});
 
-        for (usize index = 0; index < count; ++index)
-            slotList.push_front(first[index]);
+        for (usize i = 0; i < size; ++i)
+            slotList.push_front(first[i]);
     }
 
-    static constexpr usize StorageOffset = offsetof(Slot, storage);
+    [[nodiscard]] static Slot* slot_from_value(T* value) noexcept {
+        constexpr usize offset = offsetof(Slot, storage);
 
-#if defined(USE_STATIC_VECTOR)
-    static constexpr usize BlockMax = 1024;
+        return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(value) - offset);
+    }
 
-    StaticVector<Block, BlockMax>
-#else
-    std::vector<Block>
-#endif
-      blocks;
+    void attach_active(Slot* slot) noexcept {
+        const bool inserted = activeList.push_back(slot->activeNode);
+        assert(inserted);
+        (void) inserted;
+    }
 
-    usize                     activeCount = 0;
-    SinglyIntrusiveList<Slot> slotList;  // Free slots
+    void detach_active(Slot* slot) noexcept {
+        const bool erased = activeList.erase(slot->activeNode);
+        assert(erased);
+        (void) erased;
+    }
+
+    template<typename... Args>
+    [[nodiscard]] T* create_(usize requiredSize, Args&&... args) {
+        if (slotList.empty())
+            allocate_block(requiredSize);
+
+        Slot* slot = slotList.pop_front();
+
+        T* value;
+
+        //try
+        //{
+        value = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
+        //} catch (...)
+        //{
+        //    slotList.push_front(*slot);
+        //    throw;
+        //}
+
+        attach_active(slot);
+
+        return value;
+    }
+
+    block_container_type            blocks;
+    SinglyIntrusiveList<Slot>       slotList;
+    DoublyIntrusiveList<ActiveNode> activeList;
+    usize                           nextBlockSize = 1;
 };
 
 }  // namespace DON
