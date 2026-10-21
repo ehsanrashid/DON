@@ -68,15 +68,7 @@ class PoolARCCache final {
     using map_type        = std::unordered_map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
 
-    struct Entry {
-        Key          key;
-        u8           bucketIndex = InvalidBucket;
-        Entry*       prev        = nullptr;
-        Entry*       next        = nullptr;
-        map_iterator mapItr{};
-
-        std::optional<storage_value_type> value;
-
+    struct Entry final {
         explicit Entry(const Key& k) noexcept :
             key(k) {}
 
@@ -87,32 +79,41 @@ class PoolARCCache final {
             else
                 value.emplace(std::make_shared<Value>(std::forward<Args>(args)...));
         }
+
+        Key    key;
+        u8     bucketIndex = InvalidBucket;
+        Entry* prev        = nullptr;
+        Entry* next        = nullptr;
+
+        std::optional<storage_value_type> value;
     };
 
-    struct Bucket {
+    struct Bucket final {
         list_type entries;
     };
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, map_iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        MapGuard(const MapGuard&)            = delete;
-        MapGuard& operator=(const MapGuard&) = delete;
-
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
         map_type&    map;
-        map_iterator iterator;
-        bool         active = true;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
@@ -173,7 +174,7 @@ class PoolARCCache final {
     void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        nolock_reserve_directory(newCapacity);
+        nolock_reserve_map(newCapacity);
 
         capacity = newCapacity;
 
@@ -268,27 +269,26 @@ class PoolARCCache final {
     }
 
    private:
-    // Directory reservation and iterator maintenance
+    // Map reservation and insertion
 
-    [[nodiscard]] usize
-    nolock_directory_reserve_size(const usize requestedCapacity) const noexcept {
+    [[nodiscard]] usize nolock_map_reserve_size(const usize requestedCapacity) const noexcept {
         const usize maxSize     = std::numeric_limits<usize>::max();
         const usize historySize = requestedCapacity > maxSize / 2 ? maxSize : requestedCapacity * 2;
 
         return std::max(reserveCount, historySize);
     }
 
-    void nolock_refresh_map_iterators() noexcept {
-        for (auto mapItr = map.begin(); mapItr != map.end(); ++mapItr)
-        {
-            if (list_iterator const entry = mapItr->second)
-                entry->mapItr = mapItr;
-        }
+    [[nodiscard]] map_iterator nolock_try_emplace(const Key& key) noexcept {
+        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+
+        if (!inserted)
+            return map.end();
+
+        return mapItr;
     }
 
-    void nolock_reserve_directory(const usize requestedCapacity) noexcept {
-        map.reserve(nolock_directory_reserve_size(requestedCapacity));
-        nolock_refresh_map_iterators();
+    void nolock_reserve_map(const usize requestedCapacity) noexcept {
+        map.reserve(nolock_map_reserve_size(requestedCapacity));
     }
 
     // Bucket and entry access
@@ -437,7 +437,6 @@ class PoolARCCache final {
             return nullptr;
         }
 
-        entry->mapItr  = mapItr;
         mapItr->second = entry;
 
         return entry;
@@ -494,7 +493,7 @@ class PoolARCCache final {
     }
 
     void nolock_remove_resident(list_value_type& entry) noexcept {
-        const map_iterator mapItr = entry.mapItr;
+        const auto mapItr = map.find(entry.key);
 
         assert(mapItr != map.end());
 
@@ -524,7 +523,7 @@ class PoolARCCache final {
     }
 
     [[nodiscard]] bool nolock_remove_ghost(list_value_type& entry) noexcept {
-        const map_iterator mapItr = entry.mapItr;
+        const auto mapItr = map.find(entry.key);
 
         assert(mapItr != map.end());
 
@@ -745,9 +744,9 @@ class PoolARCCache final {
         if (nolock_resident_size() >= capacity)
             return Return{std::forward<Args>(args)...};
 
-        auto [newItr, inserted] = map.try_emplace(key, nullptr);
+        map_iterator const newItr = nolock_try_emplace(key);
 
-        if (!inserted)
+        if (newItr == map.end())
             return Return{std::forward<Args>(args)...};
 
         MapGuard mapGuard{map, newItr};
@@ -806,9 +805,9 @@ class PoolARCCache final {
         if (nolock_resident_size() >= capacity)
             return Return{};
 
-        auto [newItr, inserted] = map.try_emplace(key, nullptr);
+        map_iterator const newItr = nolock_try_emplace(key);
 
-        if (!inserted)
+        if (newItr == map.end())
             return Return{};
 
         MapGuard mapGuard{map, newItr};
@@ -902,7 +901,7 @@ class PoolARCCache final {
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
-        nolock_reserve_directory(capacity);
+        nolock_reserve_map(capacity);
     }
 
 #ifndef NDEBUG
@@ -944,11 +943,6 @@ class PoolARCCache final {
                 if (mapItr == map.end() || mapItr->second != entry)
                     return false;
 
-                assert(entry->mapItr == mapItr);
-
-                if (entry->mapItr != mapItr)
-                    return false;
-
                 if (index == T1 || index == T2)
                     assert(entry->value.has_value());
                 else
@@ -969,10 +963,9 @@ class PoolARCCache final {
                 return false;
 
             assert(entry->key == mapItr->first);
-            assert(entry->mapItr == mapItr);
             assert(entry->bucketIndex < BucketCount);
 
-            if (entry->mapItr != mapItr || entry->bucketIndex >= BucketCount)
+            if (entry->bucketIndex >= BucketCount)
                 return false;
 
             const list_type& list  = buckets[entry->bucketIndex].entries;
@@ -1036,15 +1029,7 @@ class PoolFlatARCCache final {
     using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
 
-    struct Entry {
-        Key          key;
-        u8           bucketIndex = InvalidBucket;
-        Entry*       prev        = nullptr;
-        Entry*       next        = nullptr;
-        map_iterator mapItr{};
-
-        std::optional<storage_value_type> value;
-
+    struct Entry final {
         explicit Entry(const Key& k) noexcept :
             key(k) {}
 
@@ -1055,32 +1040,41 @@ class PoolFlatARCCache final {
             else
                 value.emplace(std::make_shared<Value>(std::forward<Args>(args)...));
         }
+
+        Key    key;
+        u8     bucketIndex = InvalidBucket;
+        Entry* prev        = nullptr;
+        Entry* next        = nullptr;
+
+        std::optional<storage_value_type> value;
     };
 
-    struct Bucket {
+    struct Bucket final {
         list_type entries;
     };
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, map_iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        MapGuard(const MapGuard&)            = delete;
-        MapGuard& operator=(const MapGuard&) = delete;
-
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
         map_type&    map;
-        map_iterator iterator;
-        bool         active = true;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
@@ -1141,7 +1135,7 @@ class PoolFlatARCCache final {
     void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        nolock_reserve_directory(newCapacity);
+        nolock_reserve_map(newCapacity);
 
         capacity = newCapacity;
 
@@ -1236,27 +1230,26 @@ class PoolFlatARCCache final {
     }
 
    private:
-    // Directory reservation and iterator maintenance
+    // Map reservation and insertion
 
-    [[nodiscard]] usize
-    nolock_directory_reserve_size(const usize requestedCapacity) const noexcept {
+    [[nodiscard]] usize nolock_map_reserve_size(const usize requestedCapacity) const noexcept {
         const usize maxSize     = std::numeric_limits<usize>::max();
         const usize historySize = requestedCapacity > maxSize / 2 ? maxSize : requestedCapacity * 2;
 
         return std::max(reserveCount, historySize);
     }
 
-    void nolock_refresh_map_iterators() noexcept {
-        for (auto mapItr = map.begin(); mapItr != map.end(); ++mapItr)
-        {
-            if (list_iterator const entry = mapItr->second)
-                entry->mapItr = mapItr;
-        }
+    [[nodiscard]] map_iterator nolock_try_emplace(const Key& key) noexcept {
+        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+
+        if (!inserted)
+            return map.end();
+
+        return mapItr;
     }
 
-    void nolock_reserve_directory(const usize requestedCapacity) noexcept {
-        map.reserve(nolock_directory_reserve_size(requestedCapacity));
-        nolock_refresh_map_iterators();
+    void nolock_reserve_map(const usize requestedCapacity) noexcept {
+        map.reserve(nolock_map_reserve_size(requestedCapacity));
     }
 
     // Bucket and entry access
@@ -1405,7 +1398,6 @@ class PoolFlatARCCache final {
             return nullptr;
         }
 
-        entry->mapItr  = mapItr;
         mapItr->second = entry;
 
         return entry;
@@ -1462,7 +1454,7 @@ class PoolFlatARCCache final {
     }
 
     void nolock_remove_resident(list_value_type& entry) noexcept {
-        const map_iterator mapItr = entry.mapItr;
+        const auto mapItr = map.find(entry.key);
 
         assert(mapItr != map.end());
 
@@ -1492,7 +1484,7 @@ class PoolFlatARCCache final {
     }
 
     [[nodiscard]] bool nolock_remove_ghost(list_value_type& entry) noexcept {
-        const map_iterator mapItr = entry.mapItr;
+        const auto mapItr = map.find(entry.key);
 
         assert(mapItr != map.end());
 
@@ -1713,9 +1705,9 @@ class PoolFlatARCCache final {
         if (nolock_resident_size() >= capacity)
             return Return{std::forward<Args>(args)...};
 
-        auto [newItr, inserted] = map.try_emplace(key, nullptr);
+        map_iterator const newItr = nolock_try_emplace(key);
 
-        if (!inserted)
+        if (newItr == map.end())
             return Return{std::forward<Args>(args)...};
 
         MapGuard mapGuard{map, newItr};
@@ -1774,9 +1766,9 @@ class PoolFlatARCCache final {
         if (nolock_resident_size() >= capacity)
             return Return{};
 
-        auto [newItr, inserted] = map.try_emplace(key, nullptr);
+        map_iterator const newItr = nolock_try_emplace(key);
 
-        if (!inserted)
+        if (newItr == map.end())
             return Return{};
 
         MapGuard mapGuard{map, newItr};
@@ -1870,7 +1862,7 @@ class PoolFlatARCCache final {
 
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
-        nolock_reserve_directory(capacity);
+        nolock_reserve_map(capacity);
     }
 
 #ifndef NDEBUG
@@ -1912,11 +1904,6 @@ class PoolFlatARCCache final {
                 if (mapItr == map.end() || mapItr->second != entry)
                     return false;
 
-                assert(entry->mapItr == mapItr);
-
-                if (entry->mapItr != mapItr)
-                    return false;
-
                 if (index == T1 || index == T2)
                     assert(entry->value.has_value());
                 else
@@ -1937,10 +1924,9 @@ class PoolFlatARCCache final {
                 return false;
 
             assert(entry->key == mapItr->first);
-            assert(entry->mapItr == mapItr);
             assert(entry->bucketIndex < BucketCount);
 
-            if (entry->mapItr != mapItr || entry->bucketIndex >= BucketCount)
+            if (entry->bucketIndex >= BucketCount)
                 return false;
 
             const list_type& list  = buckets[entry->bucketIndex].entries;

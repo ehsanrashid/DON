@@ -33,7 +33,7 @@ using namespace DON;
 
 namespace {
 using TestCache = PoolARCCache<int, int>;
-using FlatTestCache = PoolARCCache<int, int>;
+using FlatTestCache = PoolFlatARCCache<int, int>;
 
 // Verify that the Mutex template parameter remains configurable.
 class TestMutex final {
