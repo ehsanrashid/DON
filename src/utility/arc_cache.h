@@ -385,6 +385,7 @@ class PoolARCCache final {
         [[maybe_unused]]  //
         const bool restored = nolock_list_push_front(entry, oldIndex);
         assert(restored);
+        return true;
     }
 
     void nolock_promote_to_t2(list_value_type& entry) noexcept {
@@ -578,10 +579,10 @@ class PoolARCCache final {
 
         while (ghostSize > maxSize)
         {
-            list_iterator entry = buckets[B2].entries.back();
+            list_iterator entry = buckets[B1].entries.back();
 
             if (entry == nullptr)
-                entry = buckets[B1].entries.back();
+                entry = buckets[B2].entries.back();
 
             if (entry == nullptr || !nolock_remove_ghost(*entry))
                 break;
@@ -618,9 +619,7 @@ class PoolARCCache final {
             if (b2Size == 0)
                 return false;
 
-            usize delta = b1Size / b2Size;
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(b1Size / b2Size, usize{1});
 
             target = delta < target ? target - delta : usize{0};
         }
@@ -629,9 +628,7 @@ class PoolARCCache final {
             if (b1Size == 0)
                 return false;
 
-            usize delta = b2Size / b1Size;
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(b2Size / b1Size, usize{1});
 
             target += std::min(delta, capacity - target);
         }
@@ -839,7 +836,6 @@ class PoolARCCache final {
         }
 
         assert(nolock_consistency_check());
-
         return true;
     }
 
@@ -963,8 +959,7 @@ class PoolARCCache final {
 
             assert(entry->key == mapItr->first);
             assert(entry->bucketIndex < BucketCount);
-
-            if (entry->bucketIndex >= BucketCount)
+            if (entry->key != mapItr->first || entry->bucketIndex >= BucketCount)
                 return false;
 
             const list_type& list  = buckets[entry->bucketIndex].entries;
@@ -981,7 +976,6 @@ class PoolARCCache final {
             }
 
             assert(found);
-
             if (!found)
                 return false;
         }
@@ -1345,6 +1339,7 @@ class PoolFlatARCCache final {
         [[maybe_unused]]  //
         const bool restored = nolock_list_push_front(entry, oldIndex);
         assert(restored);
+        return true;
     }
 
     void nolock_promote_to_t2(list_value_type& entry) noexcept {
@@ -1537,10 +1532,10 @@ class PoolFlatARCCache final {
 
         while (ghostSize > maxSize)
         {
-            list_iterator entry = buckets[B2].entries.back();
+            list_iterator entry = buckets[B1].entries.back();
 
             if (entry == nullptr)
-                entry = buckets[B1].entries.back();
+                entry = buckets[B2].entries.back();
 
             if (entry == nullptr || !nolock_remove_ghost(*entry))
                 break;
@@ -1577,9 +1572,7 @@ class PoolFlatARCCache final {
             if (b2Size == 0)
                 return false;
 
-            usize delta = b1Size / b2Size;
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(b1Size / b2Size, usize{1});
 
             target = delta < target ? target - delta : usize{0};
         }
@@ -1588,9 +1581,7 @@ class PoolFlatARCCache final {
             if (b1Size == 0)
                 return false;
 
-            usize delta = b2Size / b1Size;
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(b2Size / b1Size, usize{1});
 
             target += std::min(delta, capacity - target);
         }
@@ -1798,7 +1789,6 @@ class PoolFlatARCCache final {
         }
 
         assert(nolock_consistency_check());
-
         return true;
     }
 
@@ -1922,8 +1912,7 @@ class PoolFlatARCCache final {
 
             assert(entry->key == mapItr->first);
             assert(entry->bucketIndex < BucketCount);
-
-            if (entry->bucketIndex >= BucketCount)
+            if (entry->key != mapItr->first || entry->bucketIndex >= BucketCount)
                 return false;
 
             const list_type& list  = buckets[entry->bucketIndex].entries;
@@ -1940,7 +1929,6 @@ class PoolFlatARCCache final {
             }
 
             assert(found);
-
             if (!found)
                 return false;
         }
