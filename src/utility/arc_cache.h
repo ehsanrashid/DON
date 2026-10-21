@@ -427,16 +427,14 @@ class PoolARCCache final {
         if (entry == nullptr)
             return nullptr;
 
-        entry->emplace_value(std::forward<Args>(args)...);
-
         if (!nolock_list_push_front(*entry, index))
         {
-            entry->value.reset();
             pool.destroy(entry);
 
             return nullptr;
         }
 
+        entry->emplace_value(std::forward<Args>(args)...);
         mapItr->second = entry;
 
         return entry;
@@ -462,43 +460,44 @@ class PoolARCCache final {
         if ((entry->bucketIndex != B1 && entry->bucketIndex != B2) || entry->value.has_value())
             return nullptr;
 
-        entry->emplace_value(std::forward<Args>(args)...);
-
         if (!nolock_move_entry(*entry, T2))
-        {
-            entry->value.reset();
             return nullptr;
-        }
+
+        entry->emplace_value(std::forward<Args>(args)...);
 
         return entry;
     }
 
     // Entry destruction
 
-    void nolock_remove_resident(map_iterator mapItr) noexcept {
+    [[nodiscard]] bool nolock_remove_resident(map_iterator mapItr) noexcept {
         assert(mapItr != map.end());
 
         if (mapItr == map.end() || mapItr->second == nullptr || !nolock_is_resident(mapItr->second))
-            return;
+            return false;
 
         list_iterator const entry = mapItr->second;
 
         assert(entry->value.has_value());
 
         if (!entry->value.has_value() || !nolock_list_remove(*entry))
-            return;
+            return false;
 
         map.erase(mapItr);
         pool.destroy(entry);
+
+        return true;
     }
 
-    void nolock_remove_resident(list_value_type& entry) noexcept {
+    [[nodiscard]] bool nolock_remove_resident(list_value_type& entry) noexcept {
         const auto mapItr = map.find(entry.key);
 
         assert(mapItr != map.end());
 
-        if (mapItr != map.end() && mapItr->second == &entry)
-            nolock_remove_resident(mapItr);
+        if (mapItr == map.end() || mapItr->second != &entry)
+            return false;
+
+        return nolock_remove_resident(mapItr);
     }
 
     [[nodiscard]] bool nolock_remove_ghost(map_iterator mapItr) noexcept {
@@ -681,7 +680,7 @@ class PoolARCCache final {
                 (void) nolock_replace(false, t1Size);
             }
             else if (list_iterator const entry = buckets[T1].entries.back())
-                nolock_remove_resident(*entry);
+                (void) nolock_remove_resident(*entry);
 
             return;
         }
@@ -728,11 +727,12 @@ class PoolARCCache final {
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Args>(args)...};
 
-            list_iterator const entry =
-              nolock_ghost_to_resident(mapItr, std::forward<Args>(args)...);
+            Value value{std::forward<Args>(args)...};
+
+            list_iterator const entry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (entry == nullptr)
-                return Return{std::forward<Args>(args)...};
+                return Return{std::move(value)};
 
             assert(nolock_consistency_check());
 
@@ -751,10 +751,12 @@ class PoolARCCache final {
 
         MapGuard mapGuard{map, newItr};
 
-        list_iterator const entry = nolock_add_resident(newItr, T1, std::forward<Args>(args)...);
+        Value value{std::forward<Args>(args)...};
+
+        list_iterator const entry = nolock_add_resident(newItr, T1, std::move(value));
 
         if (entry == nullptr)
-            return Return{std::forward<Args>(args)...};
+            return Return{std::move(value)};
 
         mapGuard.commit();
 
@@ -789,11 +791,12 @@ class PoolARCCache final {
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            list_iterator const entry = nolock_ghost_to_resident(
-              mapItr, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+            Value value{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
+            list_iterator const entry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (entry == nullptr)
-                return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+                return Return{std::move(value)};
 
             assert(nolock_consistency_check());
 
@@ -812,11 +815,12 @@ class PoolARCCache final {
 
         MapGuard mapGuard{map, newItr};
 
-        list_iterator const entry = nolock_add_resident(
-          newItr, T1, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        Value value{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
+        list_iterator const entry = nolock_add_resident(newItr, T1, std::move(value));
 
         if (entry == nullptr)
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            return Return{std::move(value)};
 
         mapGuard.commit();
 
@@ -834,7 +838,11 @@ class PoolARCCache final {
             return false;
         }
 
-        nolock_remove_resident(mapItr);
+        if (!nolock_remove_resident(mapItr))
+        {
+            assert(nolock_consistency_check());
+            return false;
+        }
 
         assert(nolock_consistency_check());
 
@@ -858,10 +866,8 @@ class PoolARCCache final {
             else
                 entry = t1.back();
 
-            if (entry == nullptr)
+            if (entry == nullptr || !nolock_remove_resident(*entry))
                 break;
-
-            nolock_remove_resident(*entry);
         }
 
         if (target > capacity)
@@ -1388,16 +1394,14 @@ class PoolFlatARCCache final {
         if (entry == nullptr)
             return nullptr;
 
-        entry->emplace_value(std::forward<Args>(args)...);
-
         if (!nolock_list_push_front(*entry, index))
         {
-            entry->value.reset();
             pool.destroy(entry);
 
             return nullptr;
         }
 
+        entry->emplace_value(std::forward<Args>(args)...);
         mapItr->second = entry;
 
         return entry;
@@ -1423,43 +1427,44 @@ class PoolFlatARCCache final {
         if ((entry->bucketIndex != B1 && entry->bucketIndex != B2) || entry->value.has_value())
             return nullptr;
 
-        entry->emplace_value(std::forward<Args>(args)...);
-
         if (!nolock_move_entry(*entry, T2))
-        {
-            entry->value.reset();
             return nullptr;
-        }
+
+        entry->emplace_value(std::forward<Args>(args)...);
 
         return entry;
     }
 
     // Entry destruction
 
-    void nolock_remove_resident(map_iterator mapItr) noexcept {
+    [[nodiscard]] bool nolock_remove_resident(map_iterator mapItr) noexcept {
         assert(mapItr != map.end());
 
         if (mapItr == map.end() || mapItr->second == nullptr || !nolock_is_resident(mapItr->second))
-            return;
+            return false;
 
         list_iterator const entry = mapItr->second;
 
         assert(entry->value.has_value());
 
         if (!entry->value.has_value() || !nolock_list_remove(*entry))
-            return;
+            return false;
 
         map.erase(mapItr);
         pool.destroy(entry);
+
+        return true;
     }
 
-    void nolock_remove_resident(list_value_type& entry) noexcept {
+    [[nodiscard]] bool nolock_remove_resident(list_value_type& entry) noexcept {
         const auto mapItr = map.find(entry.key);
 
         assert(mapItr != map.end());
 
-        if (mapItr != map.end() && mapItr->second == &entry)
-            nolock_remove_resident(mapItr);
+        if (mapItr == map.end() || mapItr->second != &entry)
+            return false;
+
+        return nolock_remove_resident(mapItr);
     }
 
     [[nodiscard]] bool nolock_remove_ghost(map_iterator mapItr) noexcept {
@@ -1642,7 +1647,7 @@ class PoolFlatARCCache final {
                 (void) nolock_replace(false, t1Size);
             }
             else if (list_iterator const entry = buckets[T1].entries.back())
-                nolock_remove_resident(*entry);
+                (void) nolock_remove_resident(*entry);
 
             return;
         }
@@ -1689,11 +1694,12 @@ class PoolFlatARCCache final {
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Args>(args)...};
 
-            list_iterator const entry =
-              nolock_ghost_to_resident(mapItr, std::forward<Args>(args)...);
+            Value value{std::forward<Args>(args)...};
+
+            list_iterator const entry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (entry == nullptr)
-                return Return{std::forward<Args>(args)...};
+                return Return{std::move(value)};
 
             assert(nolock_consistency_check());
 
@@ -1712,10 +1718,12 @@ class PoolFlatARCCache final {
 
         MapGuard mapGuard{map, newItr};
 
-        list_iterator const entry = nolock_add_resident(newItr, T1, std::forward<Args>(args)...);
+        Value value{std::forward<Args>(args)...};
+
+        list_iterator const entry = nolock_add_resident(newItr, T1, std::move(value));
 
         if (entry == nullptr)
-            return Return{std::forward<Args>(args)...};
+            return Return{std::move(value)};
 
         mapGuard.commit();
 
@@ -1750,11 +1758,12 @@ class PoolFlatARCCache final {
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            list_iterator const entry = nolock_ghost_to_resident(
-              mapItr, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+            Value value{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
+            list_iterator const entry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (entry == nullptr)
-                return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+                return Return{std::move(value)};
 
             assert(nolock_consistency_check());
 
@@ -1773,11 +1782,12 @@ class PoolFlatARCCache final {
 
         MapGuard mapGuard{map, newItr};
 
-        list_iterator const entry = nolock_add_resident(
-          newItr, T1, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        Value value{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
+        list_iterator const entry = nolock_add_resident(newItr, T1, std::move(value));
 
         if (entry == nullptr)
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            return Return{std::move(value)};
 
         mapGuard.commit();
 
@@ -1795,7 +1805,11 @@ class PoolFlatARCCache final {
             return false;
         }
 
-        nolock_remove_resident(mapItr);
+        if (!nolock_remove_resident(mapItr))
+        {
+            assert(nolock_consistency_check());
+            return false;
+        }
 
         assert(nolock_consistency_check());
 
@@ -1819,10 +1833,8 @@ class PoolFlatARCCache final {
             else
                 entry = t1.back();
 
-            if (entry == nullptr)
+            if (entry == nullptr || !nolock_remove_resident(*entry))
                 break;
-
-            nolock_remove_resident(*entry);
         }
 
         if (target > capacity)
