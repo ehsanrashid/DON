@@ -301,7 +301,7 @@ constexpr usize SurvivalTrainingRounds = 100;
 
 template<typename Cache>
 [[nodiscard]] usize run_hot_set_survival() {
-    Cache cache{SurvivalCapacity};
+    Cache cache(SurvivalCapacity);
 
     // Train the cache on frequently accessed keys.
     for (usize round = 0; round < SurvivalTrainingRounds; ++round)

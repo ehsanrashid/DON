@@ -15,6 +15,7 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp te
 #include <cstdlib>
 #include <cstdint>
 #include <iostream>
+#include <mutex>
 #include <random>
 
 #define CHECK(condition) \
@@ -32,6 +33,24 @@ using namespace DON;
 
 namespace {
 using TestCache = PoolARCCache<int, int>;
+
+// Verify that the Mutex template parameter remains configurable.
+class TestMutex final {
+   public:
+    void lock() noexcept { mutex.lock(); }
+
+    void unlock() noexcept { mutex.unlock(); }
+
+   private:
+    std::mutex mutex;
+};
+
+using CustomMutexCache = PoolARCCache<int, int, TestMutex>;
+
+void check_capacity(const TestCache& cache) noexcept {
+    CHECK(cache.size() <= cache.get_capacity());
+    CHECK(cache.empty() == (cache.size() == 0));
+}
 
 void test_basic_operations() noexcept {
     std::cout << "test_basic_operations\n";
@@ -65,6 +84,11 @@ void test_basic_operations() noexcept {
 
     CHECK(cache.empty());
     CHECK(cache.size() == 0);
+
+    // Reuse after clear.
+    CHECK(cache.read_or_write(4, 40) == 40);
+    CHECK(cache.contains(4));
+    CHECK(cache.size() == 1);
 }
 
 void test_t1_eviction_and_b1_hit() noexcept {
@@ -72,14 +96,12 @@ void test_t1_eviction_and_b1_hit() noexcept {
 
     TestCache cache(2, 16);
 
-    // T1 = {2, 1}; both are initially recent entries.
     CHECK(cache.read_or_write(1, 10) == 10);
     CHECK(cache.read_or_write(2, 20) == 20);
 
     // Promote key 1 from T1 to T2.
     CHECK(cache.read_or_write(1, 999) == 10);
 
-    // T1 contains key 2, T2 contains key 1.
     // Inserting key 3 should evict key 2 into B1.
     CHECK(cache.read_or_write(3, 30) == 30);
 
@@ -88,7 +110,7 @@ void test_t1_eviction_and_b1_hit() noexcept {
     CHECK(cache.contains(3));
     CHECK(!cache.contains(2));
 
-    // Key 2 is in B1. Reintroducing it should follow the B1-hit path.
+    // Reintroduce the key remembered in B1.
     CHECK(cache.read_or_write(2, 200) == 200);
 
     CHECK(cache.size() == 2);
@@ -112,20 +134,47 @@ void test_b2_ghost_hit() noexcept {
     CHECK(cache.read_or_write(3, 30) == 30);
     CHECK(!cache.contains(2));
 
-    // B1 hit increases p. Replacement evicts key 1 from T2 into B2.
+    // B1 hit adjusts the target and triggers replacement.
     CHECK(cache.read_or_write(2, 200) == 200);
-    CHECK(!cache.contains(1));
+
+    CHECK(cache.size() == 2);
     CHECK(cache.contains(2));
     CHECK(cache.contains(3));
+    CHECK(!cache.contains(1));
 
-    // Key 1 is now in B2. This exercises the B2 adaptation and
-    // the special REPLACE tie-breaking rule.
+    // Key 1 was evicted from T2 into B2.
+    // Exercise B2 adaptation and replacement.
     CHECK(cache.read_or_write(1, 100) == 100);
 
     CHECK(cache.size() == 2);
     CHECK(cache.contains(1));
     CHECK(cache.contains(2));
     CHECK(!cache.contains(3));
+}
+
+void test_capacity_one() noexcept {
+    std::cout << "test_capacity_one\n";
+
+    TestCache cache(1, 8);
+
+    CHECK(cache.read_or_write(1, 10) == 10);
+    CHECK(cache.size() == 1);
+
+    CHECK(cache.read_or_write(2, 20) == 20);
+    CHECK(cache.size() == 1);
+    CHECK(cache.contains(2));
+    CHECK(!cache.contains(1));
+
+    // Exercise a ghost hit with a single resident slot.
+    CHECK(cache.read_or_write(1, 100) == 100);
+    CHECK(cache.size() == 1);
+    CHECK(cache.contains(1));
+
+    CHECK(cache.read_or_write(3, 30) == 30);
+    CHECK(cache.size() == 1);
+    CHECK(cache.contains(3));
+
+    check_capacity(cache);
 }
 
 void test_builder() noexcept {
@@ -150,7 +199,7 @@ void test_builder() noexcept {
     CHECK(cache.read_or_write_with(2, builder, 7) == 70);
     CHECK(calls == 2);
 
-    // Force key 1 out, then access it again.
+    // Exercise another insertion and subsequent access.
     CHECK(cache.read_or_write(3, 30) == 30);
 
     if (!cache.contains(1))
@@ -158,6 +207,45 @@ void test_builder() noexcept {
         CHECK(cache.read_or_write_with(1, builder, 11) == 110);
         CHECK(calls == 3);
     }
+
+    check_capacity(cache);
+}
+
+void test_zero_capacity() noexcept {
+    std::cout << "test_zero_capacity\n";
+
+    TestCache cache(0, 8);
+
+    CHECK(cache.empty());
+    CHECK(cache.get_capacity() == 0);
+
+    CHECK(cache.read_or_write(1, 10) == 10);
+    CHECK(cache.read_or_write(1, 20) == 20);
+
+    CHECK(cache.empty());
+    CHECK(!cache.contains(1));
+
+    int calls = 0;
+
+    const auto builder = [&calls](int value) noexcept {
+        ++calls;
+        return value * 10;
+    };
+
+    CHECK(cache.read_or_write_with(2, builder, 5) == 50);
+    CHECK(calls == 1);
+    CHECK(cache.empty());
+
+    CHECK(cache.read_or_write_with(2, builder, 6) == 60);
+    CHECK(calls == 2);
+    CHECK(cache.empty());
+
+    // Restore a positive capacity and verify reuse.
+    cache.set_capacity(2);
+
+    CHECK(cache.read_or_write(1, 10) == 10);
+    CHECK(cache.contains(1));
+    CHECK(cache.size() == 1);
 }
 
 void test_capacity_management() noexcept {
@@ -183,7 +271,6 @@ void test_capacity_management() noexcept {
     CHECK(cache.get_capacity() == 0);
     CHECK(cache.empty());
 
-    // Zero-capacity cache returns the supplied value without storing it.
     CHECK(cache.read_or_write(100, 1234) == 1234);
     CHECK(cache.empty());
     CHECK(!cache.contains(100));
@@ -193,6 +280,8 @@ void test_capacity_management() noexcept {
     CHECK(cache.read_or_write(100, 1234) == 1234);
     CHECK(cache.contains(100));
     CHECK(cache.size() == 1);
+
+    check_capacity(cache);
 }
 
 void test_reset() noexcept {
@@ -206,6 +295,7 @@ void test_reset() noexcept {
 
     cache.set_capacity(1);
     CHECK(cache.get_capacity() == 1);
+    CHECK(cache.size() <= 1);
 
     cache.reset();
 
@@ -218,6 +308,26 @@ void test_reset() noexcept {
     CHECK(cache.size() == 2);
     CHECK(cache.contains(4));
     CHECK(cache.contains(5));
+
+    check_capacity(cache);
+}
+
+void test_custom_mutex() noexcept {
+    std::cout << "test_custom_mutex\n";
+
+    CustomMutexCache cache(2, 8);
+
+    CHECK(cache.read_or_write(1, 10) == 10);
+    CHECK(cache.read_or_write(2, 20) == 20);
+    CHECK(cache.read_or_write(1, 999) == 10);
+
+    CHECK(cache.size() == 2);
+    CHECK(cache.contains(1));
+    CHECK(cache.contains(2));
+
+    cache.clear();
+
+    CHECK(cache.empty());
 }
 
 void test_stress() noexcept {
@@ -239,12 +349,10 @@ void test_stress() noexcept {
         }
         else
         {
-            const int value = key * 100 + i;
-
+            const int value  = key * 100 + i;
             const int result = cache.read_or_write(key, value);
 
-            // A newly inserted key returns its supplied value.
-            // A hit returns the value previously cached for that key.
+            // A cached value originated from a supplied value for this key.
             CHECK(result >= key * 100);
         }
 
@@ -256,6 +364,8 @@ void test_stress() noexcept {
 
     CHECK(cache.empty());
     CHECK(cache.size() == 0);
+
+    std::cout << "  Completed " << Iterations << " operations\n";
 }
 
 void test_heavy_stress() noexcept {
@@ -274,7 +384,7 @@ void test_heavy_stress() noexcept {
         const auto random = rng();
         int        key;
 
-        // Mix hot keys, a larger random working set, and sequential scans.
+        // Mix hot keys, a larger working set, and sequential scans.
         switch (random % 4)
         {
         case 0 :
@@ -290,7 +400,7 @@ void test_heavy_stress() noexcept {
             break;
 
         default :
-            key = static_cast<int>((i / 7) % KeyRange);
+            key = (i / 7) % KeyRange;
             break;
         }
 
@@ -314,6 +424,7 @@ void test_heavy_stress() noexcept {
             const auto capacity = static_cast<usize>(1 + rng() % 128);
 
             cache.set_capacity(capacity);
+
             CHECK(cache.get_capacity() == capacity);
             CHECK(cache.size() <= capacity);
             break;
@@ -323,32 +434,33 @@ void test_heavy_stress() noexcept {
             const int value = i ^ key;
             (void) cache.read_or_write(key, value);
 
-            // Capacity is always positive, so the accessed key
-            // must remain resident after this operation.
+            // Capacity is positive, so the accessed key must be resident.
             CHECK(cache.contains(key));
             break;
         }
         }
 
-        //CHECK(cache.size() <= cache.get_capacity());
         if (cache.size() > cache.get_capacity())
         {
             std::cerr << "Capacity invariant failed"
-                      << ", action=" << action << " at operation " << i << ": size=" << cache.size()
+                      << ", action=" << action << ", operation=" << i << ", size=" << cache.size()
                       << ", capacity=" << cache.get_capacity() << ", key=" << key << '\n';
 
             std::abort();
         }
+
         CHECK(cache.empty() == (cache.size() == 0));
 
-        // Periodically verify that clear and reuse work repeatedly.
+        // Repeatedly verify clear and reuse.
         if ((i % 100'003) == 100'002)
         {
             cache.clear();
             CHECK(cache.empty());
 
             const int reuseKey = i % KeyRange;
+
             (void) cache.read_or_write(reuseKey, i);
+
             CHECK(cache.contains(reuseKey));
             CHECK(cache.size() == 1);
         }
@@ -356,17 +468,23 @@ void test_heavy_stress() noexcept {
 
     std::cout << "  Completed " << Operations << " operations\n";
 }
+
 }  // namespace
 
 int main() noexcept {
     test_basic_operations();
     test_t1_eviction_and_b1_hit();
     test_b2_ghost_hit();
+    test_capacity_one();
     test_builder();
+    test_zero_capacity();
     test_capacity_management();
     test_reset();
+    test_custom_mutex();
     test_stress();
     test_heavy_stress();
+
     std::cout << "\nAll ARC tests passed.\n";
+
     return 0;
 }
