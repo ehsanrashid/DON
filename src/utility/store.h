@@ -43,24 +43,30 @@ class Store final {
     using list_type       = std::list<list_value_type>;
     using list_iterator   = typename list_type::iterator;
     using map_type        = std::unordered_map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
-        map_type&                   map;
-        typename map_type::iterator iterator;
-        bool                        active = true;
+        map_type&    map;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
@@ -277,6 +283,7 @@ class SharedStore final {
     using list_type       = std::list<list_value_type>;
     using list_iterator   = typename list_type::iterator;
     using map_type        = std::unordered_map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
     struct Shard final {
        public:
@@ -286,21 +293,26 @@ class SharedStore final {
 
         class MapGuard final {
            public:
-            MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+            MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
                 map(mapRef),
-                iterator(mapItr) {}
+                mapItr(mapIterator) {}
+
+            MapGuard(const MapGuard&) noexcept            = delete;
+            MapGuard& operator=(const MapGuard&) noexcept = delete;
+            MapGuard(MapGuard&&) noexcept                 = delete;
+            MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
             ~MapGuard() noexcept {
-                if (active)
-                    map.erase(iterator);
+                if (!committed)
+                    map.erase(mapItr);
             }
 
-            void commit() noexcept { active = false; }
+            void commit() noexcept { committed = true; }
 
            private:
-            map_type&                   map;
-            typename map_type::iterator iterator;
-            bool                        active = true;
+            map_type&    map;
+            map_iterator mapItr;
+            bool         committed = false;
         };
 
         template<typename... Args>

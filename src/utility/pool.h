@@ -38,7 +38,6 @@
 
 namespace DON {
 
-
 template<typename T, usize BlockBytesMax = 64 * KB>
 class Pool final {
     struct Slot;
@@ -188,15 +187,15 @@ class Pool final {
     }
 
     void attach_active(Slot* slot) noexcept {
+        [[maybe_unused]]  //
         const bool inserted = activeList.push_back(slot->activeNode);
         assert(inserted);
-        (void) inserted;
     }
 
     void detach_active(Slot* slot) noexcept {
+        [[maybe_unused]]  //
         const bool erased = activeList.erase(slot->activeNode);
         assert(erased);
-        (void) erased;
     }
 
     template<typename... Args>

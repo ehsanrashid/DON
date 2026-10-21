@@ -53,24 +53,30 @@ class ListLRUCache final {
     using list_iterator   = typename list_type::iterator;
     using list_pool_type  = std::pmr::unsynchronized_pool_resource;
     using map_type        = std::unordered_map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
-        map_type&                   map;
-        typename map_type::iterator iterator;
-        bool                        active = true;
+        map_type&    map;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
@@ -371,24 +377,30 @@ class NewDeleteLRUCache final {
     using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
-        map_type&                   map;
-        typename map_type::iterator iterator;
-        bool                        active = true;
+        map_type&    map;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
@@ -683,24 +695,30 @@ class PoolLRUCache final {
     using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
-        map_type&                   map;
-        typename map_type::iterator iterator;
-        bool                        active = true;
+        map_type&    map;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
@@ -1010,24 +1028,30 @@ class PoolFlatLRUCache final {
     using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
     using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
     class MapGuard final {
        public:
-        MapGuard(map_type& mapRef, typename map_type::iterator mapItr) noexcept :
+        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
             map(mapRef),
-            iterator(mapItr) {}
+            mapItr(mapIterator) {}
+
+        MapGuard(const MapGuard&) noexcept            = delete;
+        MapGuard& operator=(const MapGuard&) noexcept = delete;
+        MapGuard(MapGuard&&) noexcept                 = delete;
+        MapGuard& operator=(MapGuard&&) noexcept      = delete;
 
         ~MapGuard() noexcept {
-            if (active)
-                map.erase(iterator);
+            if (!committed)
+                map.erase(mapItr);
         }
 
-        void commit() noexcept { active = false; }
+        void commit() noexcept { committed = true; }
 
        private:
-        map_type&                   map;
-        typename map_type::iterator iterator;
-        bool                        active = true;
+        map_type&    map;
+        map_iterator mapItr;
+        bool         committed = false;
     };
 
    public:
