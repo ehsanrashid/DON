@@ -358,13 +358,11 @@ class PoolARCCache final {
 
     void nolock_list_move_front(list_value_type& entry) noexcept {
         assert(entry.bucketIndex < BucketCount);
-
         if (entry.bucketIndex < BucketCount)
         {
+            [[maybe_unused]]  //
             const bool moved = buckets[entry.bucketIndex].entries.move_front(entry);
-
             assert(moved);
-            (void) moved;
         }
     }
 
@@ -372,7 +370,6 @@ class PoolARCCache final {
         assert(entry.bucketIndex < BucketCount);
         assert(newIndex < BucketCount);
         assert(entry.bucketIndex != newIndex);
-
         if (entry.bucketIndex >= BucketCount || newIndex >= BucketCount
             || entry.bucketIndex == newIndex)
             return false;
@@ -385,11 +382,9 @@ class PoolARCCache final {
         if (nolock_list_push_front(entry, newIndex))
             return true;
 
+        [[maybe_unused]]  //
         const bool restored = nolock_list_push_front(entry, oldIndex);
-
         assert(restored);
-
-        return false;
     }
 
     void nolock_promote_to_t2(list_value_type& entry) noexcept {
@@ -404,10 +399,9 @@ class PoolARCCache final {
             return;
         }
 
+        [[maybe_unused]]  //
         const bool moved = nolock_move_entry(entry, T2);
-
         assert(moved);
-        (void) moved;
     }
 
     // Entry creation
@@ -887,10 +881,9 @@ class PoolARCCache final {
 
             while (list_iterator const entry = list.back())
             {
+                [[maybe_unused]]  //
                 const bool erased = list.erase(*entry);
-
                 assert(erased);
-
                 if (!erased)
                     break;
 
@@ -1325,13 +1318,11 @@ class PoolFlatARCCache final {
 
     void nolock_list_move_front(list_value_type& entry) noexcept {
         assert(entry.bucketIndex < BucketCount);
-
         if (entry.bucketIndex < BucketCount)
         {
+            [[maybe_unused]]  //
             const bool moved = buckets[entry.bucketIndex].entries.move_front(entry);
-
             assert(moved);
-            (void) moved;
         }
     }
 
@@ -1339,7 +1330,6 @@ class PoolFlatARCCache final {
         assert(entry.bucketIndex < BucketCount);
         assert(newIndex < BucketCount);
         assert(entry.bucketIndex != newIndex);
-
         if (entry.bucketIndex >= BucketCount || newIndex >= BucketCount
             || entry.bucketIndex == newIndex)
             return false;
@@ -1352,11 +1342,9 @@ class PoolFlatARCCache final {
         if (nolock_list_push_front(entry, newIndex))
             return true;
 
+        [[maybe_unused]]  //
         const bool restored = nolock_list_push_front(entry, oldIndex);
-
         assert(restored);
-
-        return false;
     }
 
     void nolock_promote_to_t2(list_value_type& entry) noexcept {
@@ -1371,10 +1359,9 @@ class PoolFlatARCCache final {
             return;
         }
 
+        [[maybe_unused]]  //
         const bool moved = nolock_move_entry(entry, T2);
-
         assert(moved);
-        (void) moved;
     }
 
     // Entry creation
@@ -1385,7 +1372,6 @@ class PoolFlatARCCache final {
         assert(mapItr != map.end());
         assert(mapItr->second == nullptr);
         assert(index == T1 || index == T2);
-
         if (mapItr == map.end() || mapItr->second != nullptr || (index != T1 && index != T2))
             return nullptr;
 
@@ -1854,10 +1840,9 @@ class PoolFlatARCCache final {
 
             while (list_iterator const entry = list.back())
             {
+                [[maybe_unused]]  //
                 const bool erased = list.erase(*entry);
-
                 assert(erased);
-
                 if (!erased)
                     break;
 
