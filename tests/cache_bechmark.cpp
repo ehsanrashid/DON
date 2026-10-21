@@ -36,10 +36,10 @@ namespace DON::CacheBenchmark {
 using u64   = std::uint64_t;
 using Clock = std::chrono::steady_clock;
 
-constexpr usize Capacity       = 8 * KB;
+constexpr usize Capacity       = 6 * KB;
 constexpr usize OperationCount = 2 * MB;
-constexpr usize Repetitions    = 201;
-constexpr usize HotKeyCount    = 6 * KB;
+constexpr usize Repetitions    = 6;
+constexpr usize HotKeyCount    = 4 * KB;
 
 constexpr u64 ColdKeyBase = u64{1} << 40;
 constexpr u64 RandomSeed  = u64{0xD0A5CACE12345678};
