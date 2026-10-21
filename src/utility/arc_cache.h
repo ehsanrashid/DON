@@ -28,6 +28,7 @@
 #include <memory_resource>
 #include <mutex>
 #include <new>
+#include <optional>
 #include <set>
 #include <type_traits>
 #include <unordered_map>
@@ -53,20 +54,15 @@ class PoolARCCache final {
     struct Bucket;
 
     struct Entry {
-        Key     key;
-        Bucket* bucket = nullptr;
-        Entry*  prev   = nullptr;
-        Entry*  next   = nullptr;
+        Key                               key;
+        Bucket*                           bucket = nullptr;
+        Entry*                            prev   = nullptr;
+        Entry*                            next   = nullptr;
+        std::optional<storage_value_type> value;
 
         explicit Entry(const Key& k) noexcept :
             key(k) {}
-    };
 
-    using list_value_type = Entry;
-    using list_type       = DoublyIntrusiveList<list_value_type>;
-    using list_iterator   = list_value_type*;
-
-    struct ResidentEntry final: Entry {
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -76,24 +72,23 @@ class PoolARCCache final {
         }
 
         template<typename... Args>
-        explicit ResidentEntry(const Key& k, Args&&... args) noexcept :
-            Entry(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
-
-        storage_value_type value;
+        explicit Entry(const Key& k, std::in_place_t, Args&&... args) noexcept :
+            key(k),
+            value(std::in_place, make_storage(std::forward<Args>(args)...)) {}
     };
 
-    struct GhostEntry final: Entry {
-        explicit GhostEntry(const Key& k) noexcept :
-            Entry(k) {}
-    };
+    using ResidentEntry = Entry;
+    using GhostEntry    = Entry;
+
+    using list_value_type = Entry;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
+    using list_iterator   = list_value_type*;
 
     struct Bucket {
         list_type entries;
     };
 
-    using resident_map_type = std::unordered_map<Key, ResidentEntry*>;
-    using ghost_map_type    = std::unordered_map<Key, GhostEntry*>;
+    using directory_map_type = std::unordered_map<Key, Entry*>;
 
     template<typename Map>
     class MapGuard final {
@@ -132,8 +127,7 @@ class PoolARCCache final {
     PoolARCCache& operator=(PoolARCCache&&) noexcept      = delete;
 
     ~PoolARCCache() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_clear();
 
@@ -142,74 +136,67 @@ class PoolARCCache final {
 
     template<typename... Args>
     Return read_or_write(const Key& key, Args&&... args) noexcept {
-        std::lock_guard residentLock{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        const auto mapItr = residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
 
-        if (mapItr != residentMap.end())
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = mapItr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        std::lock_guard ghostLock{ghostMutex};
-
-        return nolock_write_after_resident_miss(key, std::forward<Args>(args)...);
+        return nolock_write_after_lookup(key, mapItr, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
     Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        std::lock_guard residentLock{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        const auto mapItr = residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
 
-        if (mapItr != residentMap.end())
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = mapItr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        std::lock_guard ghostLock{ghostMutex};
-
-        return nolock_write_with_after_resident_miss(key, std::forward<Builder>(builder),
-                                                     std::forward<Args>(args)...);
+        return nolock_write_with_after_lookup(key, mapItr, std::forward<Builder>(builder),
+                                              std::forward<Args>(args)...);
     }
 
     void evict_excess(const usize size) noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(size);
     }
 
     void evict_excess() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(capacity);
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
         return capacity;
     }
 
     void set_capacity(const usize newCapacity) noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         capacity = newCapacity;
 
@@ -222,66 +209,71 @@ class PoolARCCache final {
     // The returned iterator does not retain the lock.
     // Callers must prevent concurrent mutation while using it.
     [[nodiscard]] auto find(const Key& key) noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
+
+        return mapItr != directoryMap.end() && nolock_is_resident(mapItr->second)
+               ? mapItr
+               : directoryMap.end();
     }
 
     [[nodiscard]] auto find(const Key& key) const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
+
+        return mapItr != directoryMap.end() && nolock_is_resident(mapItr->second)
+               ? mapItr
+               : directoryMap.end();
     }
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.find(key) != residentMap.end();
+        const auto mapItr = directoryMap.find(key);
+
+        return mapItr != directoryMap.end() && nolock_is_resident(mapItr->second);
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.size();
+        return nolock_resident_size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.empty();
+        return nolock_resident_size() == 0;
     }
 
     [[nodiscard]] bool remove(const Key& key) noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         return nolock_remove(key);
     }
 
     void clear() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_clear();
     }
 
     void configure() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_configure();
         assert(nolock_consistency_check());
     }
 
     void reset() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_clear();
         nolock_release_pool();
 
-        residentMap.rehash(0);
-        ghostMap.rehash(0);
+        directoryMap.rehash(0);
 
         capacity = defaultCapacity;
         target   = 0;
@@ -299,6 +291,10 @@ class PoolARCCache final {
         return buckets[index];
     }
 
+    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
+        return entry != nullptr && (entry->bucket == &buckets[T1] || entry->bucket == &buckets[T2]);
+    }
+
     [[nodiscard]] usize nolock_resident_size() const noexcept {
         return buckets[T1].entries.size() + buckets[T2].entries.size();
     }
@@ -313,18 +309,14 @@ class PoolARCCache final {
 
     [[nodiscard]] usize nolock_required_size() const noexcept {
         return usize{1}
-             + (capacity > residentMap.size() ? capacity - residentMap.size() : usize{0});
-    }
-
-    [[nodiscard]] usize nolock_ghost_required_size() const noexcept {
-        return usize{1} + (capacity > ghostMap.size() ? capacity - ghostMap.size() : usize{0});
+             + (capacity > nolock_resident_size() ? capacity - nolock_resident_size() : usize{0});
     }
 
     Return nolock_read(const ResidentEntry* entry) const noexcept {
         if constexpr (sizeof(Value) <= InlineValueThreshold)
-            return entry->value;
-        else
             return *entry->value;
+        else
+            return **entry->value;
     }
 
     // ---------- Shared intrusive-list operations ----------
@@ -392,45 +384,20 @@ class PoolARCCache final {
 
     template<typename... Args>
     ResidentEntry* nolock_add_resident(const Key& key, const usize index, Args&&... args) noexcept {
-        const auto [mapItr, inserted] = residentMap.try_emplace(key, nullptr);
+        const auto [mapItr, inserted] = directoryMap.try_emplace(key, nullptr);
 
         assert(inserted);
 
         if (!inserted)
-            return mapItr->second;
+            return nolock_is_resident(mapItr->second) ? static_cast<ResidentEntry*>(mapItr->second)
+                                                      : nullptr;
 
-        MapGuard<resident_map_type> mapGuard{residentMap, mapItr};
+        MapGuard<directory_map_type> mapGuard{directoryMap, mapItr};
 
-        const usize requiredSize = residentPool.empty() ? nolock_required_size() : 0;
+        const usize requiredSize = entryPool.empty() ? nolock_required_size() : 0;
 
         ResidentEntry* const entry =
-          residentPool.create(requiredSize, key, std::forward<Args>(args)...);
-
-        if (entry == nullptr)
-            return nullptr;
-
-        mapItr->second = entry;
-
-        nolock_list_push_front(*entry, index);
-
-        mapGuard.commit();
-
-        return entry;
-    }
-
-    GhostEntry* nolock_add_ghost(const Key& key, const usize index) noexcept {
-        const auto [mapItr, inserted] = ghostMap.try_emplace(key, nullptr);
-
-        assert(inserted);
-
-        if (!inserted)
-            return nullptr;
-
-        MapGuard<ghost_map_type> mapGuard{ghostMap, mapItr};
-
-        const usize requiredSize = ghostPool.empty() ? nolock_ghost_required_size() : 0;
-
-        GhostEntry* const entry = ghostPool.create(requiredSize, key);
+          entryPool.create(requiredSize, key, std::in_place, std::forward<Args>(args)...);
 
         if (entry == nullptr)
             return nullptr;
@@ -446,13 +413,15 @@ class PoolARCCache final {
 
     // ---------- Entry destruction ----------
 
-    void nolock_remove_resident(typename resident_map_type::iterator mapItr) noexcept {
-        assert(mapItr != residentMap.end());
+    void nolock_remove_resident(typename directory_map_type::iterator mapItr) noexcept {
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == residentMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
-        ResidentEntry* const entry = mapItr->second;
+        ResidentEntry* const entry = nolock_is_resident(mapItr->second)
+                                     ? static_cast<ResidentEntry*>(mapItr->second)
+                                     : nullptr;
 
         assert(entry != nullptr);
 
@@ -461,16 +430,16 @@ class PoolARCCache final {
 
         nolock_list_remove(*entry);
 
-        residentMap.erase(mapItr);
-        residentPool.destroy(entry);
+        directoryMap.erase(mapItr);
+        entryPool.destroy(entry);
     }
 
     void nolock_remove_resident(ResidentEntry& entry) noexcept {
-        const auto mapItr = residentMap.find(entry.key);
+        const auto mapItr = directoryMap.find(entry.key);
 
-        assert(mapItr != residentMap.end());
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == residentMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
         assert(mapItr->second == &entry);
@@ -481,13 +450,14 @@ class PoolARCCache final {
         nolock_remove_resident(mapItr);
     }
 
-    void nolock_remove_ghost(typename ghost_map_type::iterator mapItr) noexcept {
-        assert(mapItr != ghostMap.end());
+    void nolock_remove_ghost(typename directory_map_type::iterator mapItr) noexcept {
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == ghostMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
-        GhostEntry* const entry = mapItr->second;
+        GhostEntry* const entry =
+          nolock_is_resident(mapItr->second) ? nullptr : static_cast<GhostEntry*>(mapItr->second);
 
         assert(entry != nullptr);
 
@@ -496,16 +466,16 @@ class PoolARCCache final {
 
         nolock_list_remove(*entry);
 
-        ghostMap.erase(mapItr);
-        ghostPool.destroy(entry);
+        directoryMap.erase(mapItr);
+        entryPool.destroy(entry);
     }
 
     void nolock_remove_ghost(GhostEntry& entry) noexcept {
-        const auto mapItr = ghostMap.find(entry.key);
+        const auto mapItr = directoryMap.find(entry.key);
 
-        assert(mapItr != ghostMap.end());
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == ghostMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
         assert(mapItr->second == &entry);
@@ -518,15 +488,46 @@ class PoolARCCache final {
 
     // ---------- ARC replacement ----------
 
+    // Reserve space before inserting so the ghost directory and pool never
+    // temporarily exceed the history limit.
+    bool nolock_make_room_for_ghost(const usize index) noexcept {
+        if (nolock_ghost_size() < capacity)
+            return true;
+
+        Entry* victim = buckets[B1].entries.back();
+
+        if (victim == nullptr)
+        {
+            if (index == B1)
+                return false;
+
+            victim = buckets[B2].entries.back();
+        }
+
+        if (victim == nullptr)
+            return false;
+
+        nolock_remove_ghost(*static_cast<GhostEntry*>(victim));
+        return true;
+    }
+
     void nolock_evict_to_ghost(ResidentEntry& entry, const usize index) noexcept {
-        GhostEntry* const ghost = nolock_add_ghost(entry.key, index);
+        if (!nolock_make_room_for_ghost(index))
+        {
+            nolock_remove_resident(entry);
+            return;
+        }
 
-        assert(ghost != nullptr);
+        const auto mapItr = directoryMap.find(entry.key);
 
-        if (ghost == nullptr)
+        assert(mapItr != directoryMap.end() && mapItr->second == &entry);
+
+        if (mapItr == directoryMap.end() || mapItr->second != &entry)
             return;
 
-        nolock_remove_resident(entry);
+        nolock_list_remove(entry);
+        entry.value.reset();
+        nolock_list_push_front(entry, index);
     }
 
     void nolock_replace(const bool keyInB2) noexcept {
@@ -571,7 +572,7 @@ class PoolARCCache final {
     // Keep only the total ghost-history limit.
     // No T1+B1 or T2+B2 pairwise capacity restriction is imposed.
     void nolock_trim_ghosts(const usize maxSize) noexcept {
-        while (ghostMap.size() > maxSize)
+        while (nolock_ghost_size() > maxSize)
         {
             Entry* entry = buckets[B1].entries.back();
 
@@ -587,13 +588,14 @@ class PoolARCCache final {
         }
     }
 
-    void nolock_handle_ghost_hit(typename ghost_map_type::iterator mapItr) noexcept {
-        assert(mapItr != ghostMap.end());
+    void nolock_handle_ghost_hit(typename directory_map_type::iterator mapItr) noexcept {
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == ghostMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
-        GhostEntry* const ghost = mapItr->second;
+        GhostEntry* const ghost =
+          nolock_is_resident(mapItr->second) ? nullptr : static_cast<GhostEntry*>(mapItr->second);
 
         assert(ghost != nullptr);
 
@@ -640,34 +642,43 @@ class PoolARCCache final {
             target += std::min(delta, capacity - target);
         }
 
-        // Erase before replacement can insert another ghost and rehash ghostMap.
-        nolock_remove_ghost(mapItr);
+        nolock_list_remove(*ghost);
 
-        if (residentMap.size() >= capacity && capacity != 0)
+        if (nolock_resident_size() >= capacity && capacity != 0)
             nolock_replace(keyInB2);
     }
 
     void nolock_prepare_miss() noexcept {
-        if (capacity != 0 && residentMap.size() >= capacity)
+        if (capacity != 0 && nolock_resident_size() >= capacity)
             nolock_replace(false);
     }
 
     // ---------- Read/write internals ----------
 
-    // The caller has already checked residentMap while holding residentMutex.
-    // ghostMutex is held by the caller.
     template<typename... Args>
-    Return nolock_write_after_resident_miss(const Key& key, Args&&... args) noexcept {
-        if (const auto itr = ghostMap.find(key); itr != ghostMap.end())
+    ResidentEntry* nolock_replace_ghost_with_resident(typename directory_map_type::iterator mapItr,
+                                                      const usize                           index,
+                                                      Args&&... args) noexcept {
+        assert(mapItr != directoryMap.end());
+
+        Entry* const entry = mapItr->second;
+        assert(entry != nullptr && !entry->value.has_value());
+        entry->value.emplace(Entry::make_storage(std::forward<Args>(args)...));
+        nolock_list_push_front(*entry, index);
+        return entry;
+    }
+
+    template<typename... Args>
+    Return nolock_write_after_lookup(const Key&                            key,
+                                     typename directory_map_type::iterator mapItr,
+                                     Args&&... args) noexcept {
+        if (mapItr != directoryMap.end())
         {
-            nolock_handle_ghost_hit(itr);
+            nolock_handle_ghost_hit(mapItr);
 
-            ResidentEntry* const entry = nolock_add_resident(key, T2, std::forward<Args>(args)...);
+            ResidentEntry* const entry =
+              nolock_replace_ghost_with_resident(mapItr, T2, std::forward<Args>(args)...);
 
-            if (entry == nullptr)
-                return Return{std::forward<Args>(args)...};
-
-            nolock_trim_ghosts(capacity);
             assert(nolock_consistency_check());
 
             return nolock_read(entry);
@@ -677,7 +688,6 @@ class PoolARCCache final {
 
         ResidentEntry* const entry = nolock_add_resident(key, T1, std::forward<Args>(args)...);
 
-        nolock_trim_ghosts(capacity);
         assert(nolock_consistency_check());
 
         if (entry == nullptr)
@@ -686,25 +696,21 @@ class PoolARCCache final {
         return nolock_read(entry);
     }
 
-    // The caller has already checked residentMap while holding residentMutex.
-    // ghostMutex is held by the caller.
     template<typename Builder, typename... Args>
-    Return nolock_write_with_after_resident_miss(const Key& key,
-                                                 Builder&&  builder,
-                                                 Args&&... args) noexcept {
+    Return nolock_write_with_after_lookup(const Key&                            key,
+                                          typename directory_map_type::iterator mapItr,
+                                          Builder&&                             builder,
+                                          Args&&... args) noexcept {
         // Evaluate the builder once and retain the value for allocation failure.
         Value value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
-        if (const auto itr = ghostMap.find(key); itr != ghostMap.end())
+        if (mapItr != directoryMap.end())
         {
-            nolock_handle_ghost_hit(itr);
+            nolock_handle_ghost_hit(mapItr);
 
-            ResidentEntry* const entry = nolock_add_resident(key, T2, std::move(value));
+            ResidentEntry* const entry =
+              nolock_replace_ghost_with_resident(mapItr, T2, std::move(value));
 
-            if (entry == nullptr)
-                return Return{std::move(value)};
-
-            nolock_trim_ghosts(capacity);
             assert(nolock_consistency_check());
 
             return nolock_read(entry);
@@ -714,7 +720,6 @@ class PoolARCCache final {
 
         ResidentEntry* const entry = nolock_add_resident(key, T1, std::move(value));
 
-        nolock_trim_ghosts(capacity);
         assert(nolock_consistency_check());
 
         if (entry == nullptr)
@@ -728,16 +733,18 @@ class PoolARCCache final {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        if (const auto itr = residentMap.find(key); itr != residentMap.end())
+        const auto mapItr = directoryMap.find(key);
+
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = itr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        return nolock_write_after_resident_miss(key, std::forward<Args>(args)...);
+        return nolock_write_after_lookup(key, mapItr, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
@@ -745,23 +752,25 @@ class PoolARCCache final {
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        if (const auto itr = residentMap.find(key); itr != residentMap.end())
+        const auto mapItr = directoryMap.find(key);
+
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = itr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        return nolock_write_with_after_resident_miss(key, std::forward<Builder>(builder),
-                                                     std::forward<Args>(args)...);
+        return nolock_write_with_after_lookup(key, mapItr, std::forward<Builder>(builder),
+                                              std::forward<Args>(args)...);
     }
 
     bool nolock_remove(const Key& key) noexcept {
-        const auto mapItr = residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
 
-        if (mapItr == residentMap.end())
+        if (mapItr == directoryMap.end() || !nolock_is_resident(mapItr->second))
         {
             assert(nolock_consistency_check());
             return false;
@@ -776,7 +785,7 @@ class PoolARCCache final {
 
     // Administrative eviction removes residents without creating ghosts.
     void nolock_evict_excess(const usize size) noexcept {
-        while (residentMap.size() > size)
+        while (nolock_resident_size() > size)
         {
             list_type& t1 = buckets[T1].entries;
             list_type& t2 = buckets[T2].entries;
@@ -817,7 +826,7 @@ class PoolARCCache final {
                 assert(erased);
 
                 entry->bucket = nullptr;
-                residentPool.destroy(static_cast<ResidentEntry*>(entry));
+                entryPool.destroy(entry);
             }
         }
 
@@ -832,29 +841,22 @@ class PoolARCCache final {
                 assert(erased);
 
                 entry->bucket = nullptr;
-                ghostPool.destroy(static_cast<GhostEntry*>(entry));
+                entryPool.destroy(entry);
             }
         }
 
-        residentMap.clear();
-        ghostMap.clear();
+        directoryMap.clear();
 
         target = 0;
 
         assert(nolock_consistency_check());
     }
 
-    void nolock_release_pool() noexcept {
-        residentPool.release();
-        ghostPool.release();
-    }
+    void nolock_release_pool() noexcept { entryPool.release(); }
 
     void nolock_configure() noexcept {
-        residentMap.max_load_factor(maxLoadFactor);
-        residentMap.reserve(reserveCount);
-
-        ghostMap.max_load_factor(maxLoadFactor);
-        ghostMap.reserve(reserveCount);
+        directoryMap.max_load_factor(maxLoadFactor);
+        directoryMap.reserve(reserveCount);
     }
 
 #ifndef NDEBUG
@@ -882,22 +884,18 @@ class PoolARCCache final {
 
                 if (bucketIndex == T1 || bucketIndex == T2)
                 {
-                    const auto mapItr = residentMap.find(entry->key);
+                    const auto mapItr = directoryMap.find(entry->key);
 
-                    assert(mapItr != residentMap.end());
+                    assert(mapItr != directoryMap.end());
                     assert(mapItr->second == static_cast<const ResidentEntry*>(entry));
-
-                    assert(ghostMap.find(entry->key) == ghostMap.end());
                     ++residentCount;
                 }
                 else
                 {
-                    const auto mapItr = ghostMap.find(entry->key);
+                    const auto mapItr = directoryMap.find(entry->key);
 
-                    assert(mapItr != ghostMap.end());
+                    assert(mapItr != directoryMap.end());
                     assert(mapItr->second == static_cast<const GhostEntry*>(entry));
-
-                    assert(residentMap.find(entry->key) == residentMap.end());
                     ++ghostCount;
                 }
 
@@ -912,8 +910,7 @@ class PoolARCCache final {
                 assert(previous->next == nullptr);
         }
 
-        assert(residentCount == residentMap.size());
-        assert(ghostCount == ghostMap.size());
+        assert(residentCount + ghostCount == directoryMap.size());
 
         assert(residentCount <= capacity);
         assert(ghostCount <= capacity);
@@ -930,16 +927,12 @@ class PoolARCCache final {
 
     // ---------- Synchronization ----------
 
-    mutable Mutex residentMutex;
-    mutable Mutex ghostMutex;
-
+    mutable Mutex mutex;
     // ---------- Maps and pools ----------
 
-    resident_map_type residentMap;
-    ghost_map_type    ghostMap;
+    directory_map_type directoryMap;
 
-    Pool<ResidentEntry> residentPool;
-    Pool<GhostEntry>    ghostPool;
+    Pool<Entry> entryPool;
 
     // ---------- ARC state ----------
 
@@ -966,20 +959,15 @@ class PoolFlatARCCache final {
     struct Bucket;
 
     struct Entry {
-        Key     key;
-        Bucket* bucket = nullptr;
-        Entry*  prev   = nullptr;
-        Entry*  next   = nullptr;
+        Key                               key;
+        Bucket*                           bucket = nullptr;
+        Entry*                            prev   = nullptr;
+        Entry*                            next   = nullptr;
+        std::optional<storage_value_type> value;
 
         explicit Entry(const Key& k) noexcept :
             key(k) {}
-    };
 
-    using list_value_type = Entry;
-    using list_type       = DoublyIntrusiveList<list_value_type>;
-    using list_iterator   = list_value_type*;
-
-    struct ResidentEntry final: Entry {
         template<typename... Args>
         static storage_value_type make_storage(Args&&... args) noexcept {
             if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -989,24 +977,23 @@ class PoolFlatARCCache final {
         }
 
         template<typename... Args>
-        explicit ResidentEntry(const Key& k, Args&&... args) noexcept :
-            Entry(k),
-            value(make_storage(std::forward<Args>(args)...)) {}
-
-        storage_value_type value;
+        explicit Entry(const Key& k, std::in_place_t, Args&&... args) noexcept :
+            key(k),
+            value(std::in_place, make_storage(std::forward<Args>(args)...)) {}
     };
 
-    struct GhostEntry final: Entry {
-        explicit GhostEntry(const Key& k) noexcept :
-            Entry(k) {}
-    };
+    using ResidentEntry = Entry;
+    using GhostEntry    = Entry;
+
+    using list_value_type = Entry;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
+    using list_iterator   = list_value_type*;
 
     struct Bucket {
         list_type entries;
     };
 
-    using resident_map_type = ankerl::unordered_dense::map<Key, ResidentEntry*>;
-    using ghost_map_type    = ankerl::unordered_dense::map<Key, GhostEntry*>;
+    using directory_map_type = ankerl::unordered_dense::map<Key, Entry*>;
 
     template<typename Map>
     class MapGuard final {
@@ -1045,8 +1032,7 @@ class PoolFlatARCCache final {
     PoolFlatARCCache& operator=(PoolFlatARCCache&&) noexcept      = delete;
 
     ~PoolFlatARCCache() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_clear();
 
@@ -1055,74 +1041,67 @@ class PoolFlatARCCache final {
 
     template<typename... Args>
     Return read_or_write(const Key& key, Args&&... args) noexcept {
-        std::lock_guard residentLock{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        const auto mapItr = residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
 
-        if (mapItr != residentMap.end())
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = mapItr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        std::lock_guard ghostLock{ghostMutex};
-
-        return nolock_write_after_resident_miss(key, std::forward<Args>(args)...);
+        return nolock_write_after_lookup(key, mapItr, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
     Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
-        std::lock_guard residentLock{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        const auto mapItr = residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
 
-        if (mapItr != residentMap.end())
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = mapItr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        std::lock_guard ghostLock{ghostMutex};
-
-        return nolock_write_with_after_resident_miss(key, std::forward<Builder>(builder),
-                                                     std::forward<Args>(args)...);
+        return nolock_write_with_after_lookup(key, mapItr, std::forward<Builder>(builder),
+                                              std::forward<Args>(args)...);
     }
 
     void evict_excess(const usize size) noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(size);
     }
 
     void evict_excess() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(capacity);
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
         return capacity;
     }
 
     void set_capacity(const usize newCapacity) noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         capacity = newCapacity;
 
@@ -1135,66 +1114,71 @@ class PoolFlatARCCache final {
     // The returned iterator does not retain the lock.
     // Callers must prevent concurrent mutation while using it.
     [[nodiscard]] auto find(const Key& key) noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
+
+        return mapItr != directoryMap.end() && nolock_is_resident(mapItr->second)
+               ? mapItr
+               : directoryMap.end();
     }
 
     [[nodiscard]] auto find(const Key& key) const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
+
+        return mapItr != directoryMap.end() && nolock_is_resident(mapItr->second)
+               ? mapItr
+               : directoryMap.end();
     }
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.find(key) != residentMap.end();
+        const auto mapItr = directoryMap.find(key);
+
+        return mapItr != directoryMap.end() && nolock_is_resident(mapItr->second);
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.size();
+        return nolock_resident_size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::lock_guard lockGuard{residentMutex};
+        std::lock_guard lockGuard{mutex};
 
-        return residentMap.empty();
+        return nolock_resident_size() == 0;
     }
 
     [[nodiscard]] bool remove(const Key& key) noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         return nolock_remove(key);
     }
 
     void clear() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_clear();
     }
 
     void configure() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_configure();
         assert(nolock_consistency_check());
     }
 
     void reset() noexcept {
-        std::lock_guard residentLock{residentMutex};
-        std::lock_guard ghostLock{ghostMutex};
+        std::lock_guard lockGuard{mutex};
 
         nolock_clear();
         nolock_release_pool();
 
-        residentMap.rehash(0);
-        ghostMap.rehash(0);
+        directoryMap.rehash(0);
 
         capacity = defaultCapacity;
         target   = 0;
@@ -1212,6 +1196,10 @@ class PoolFlatARCCache final {
         return buckets[index];
     }
 
+    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
+        return entry != nullptr && (entry->bucket == &buckets[T1] || entry->bucket == &buckets[T2]);
+    }
+
     [[nodiscard]] usize nolock_resident_size() const noexcept {
         return buckets[T1].entries.size() + buckets[T2].entries.size();
     }
@@ -1226,18 +1214,14 @@ class PoolFlatARCCache final {
 
     [[nodiscard]] usize nolock_required_size() const noexcept {
         return usize{1}
-             + (capacity > residentMap.size() ? capacity - residentMap.size() : usize{0});
-    }
-
-    [[nodiscard]] usize nolock_ghost_required_size() const noexcept {
-        return usize{1} + (capacity > ghostMap.size() ? capacity - ghostMap.size() : usize{0});
+             + (capacity > nolock_resident_size() ? capacity - nolock_resident_size() : usize{0});
     }
 
     Return nolock_read(const ResidentEntry* entry) const noexcept {
         if constexpr (sizeof(Value) <= InlineValueThreshold)
-            return entry->value;
-        else
             return *entry->value;
+        else
+            return **entry->value;
     }
 
     // ---------- Shared intrusive-list operations ----------
@@ -1305,45 +1289,20 @@ class PoolFlatARCCache final {
 
     template<typename... Args>
     ResidentEntry* nolock_add_resident(const Key& key, const usize index, Args&&... args) noexcept {
-        const auto [mapItr, inserted] = residentMap.try_emplace(key, nullptr);
+        const auto [mapItr, inserted] = directoryMap.try_emplace(key, nullptr);
 
         assert(inserted);
 
         if (!inserted)
-            return mapItr->second;
+            return nolock_is_resident(mapItr->second) ? static_cast<ResidentEntry*>(mapItr->second)
+                                                      : nullptr;
 
-        MapGuard<resident_map_type> mapGuard{residentMap, mapItr};
+        MapGuard<directory_map_type> mapGuard{directoryMap, mapItr};
 
-        const usize requiredSize = residentPool.empty() ? nolock_required_size() : 0;
+        const usize requiredSize = entryPool.empty() ? nolock_required_size() : 0;
 
         ResidentEntry* const entry =
-          residentPool.create(requiredSize, key, std::forward<Args>(args)...);
-
-        if (entry == nullptr)
-            return nullptr;
-
-        mapItr->second = entry;
-
-        nolock_list_push_front(*entry, index);
-
-        mapGuard.commit();
-
-        return entry;
-    }
-
-    GhostEntry* nolock_add_ghost(const Key& key, const usize index) noexcept {
-        const auto [mapItr, inserted] = ghostMap.try_emplace(key, nullptr);
-
-        assert(inserted);
-
-        if (!inserted)
-            return nullptr;
-
-        MapGuard<ghost_map_type> mapGuard{ghostMap, mapItr};
-
-        const usize requiredSize = ghostPool.empty() ? nolock_ghost_required_size() : 0;
-
-        GhostEntry* const entry = ghostPool.create(requiredSize, key);
+          entryPool.create(requiredSize, key, std::in_place, std::forward<Args>(args)...);
 
         if (entry == nullptr)
             return nullptr;
@@ -1359,13 +1318,15 @@ class PoolFlatARCCache final {
 
     // ---------- Entry destruction ----------
 
-    void nolock_remove_resident(typename resident_map_type::iterator mapItr) noexcept {
-        assert(mapItr != residentMap.end());
+    void nolock_remove_resident(typename directory_map_type::iterator mapItr) noexcept {
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == residentMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
-        ResidentEntry* const entry = mapItr->second;
+        ResidentEntry* const entry = nolock_is_resident(mapItr->second)
+                                     ? static_cast<ResidentEntry*>(mapItr->second)
+                                     : nullptr;
 
         assert(entry != nullptr);
 
@@ -1374,16 +1335,16 @@ class PoolFlatARCCache final {
 
         nolock_list_remove(*entry);
 
-        residentMap.erase(mapItr);
-        residentPool.destroy(entry);
+        directoryMap.erase(mapItr);
+        entryPool.destroy(entry);
     }
 
     void nolock_remove_resident(ResidentEntry& entry) noexcept {
-        const auto mapItr = residentMap.find(entry.key);
+        const auto mapItr = directoryMap.find(entry.key);
 
-        assert(mapItr != residentMap.end());
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == residentMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
         assert(mapItr->second == &entry);
@@ -1394,13 +1355,14 @@ class PoolFlatARCCache final {
         nolock_remove_resident(mapItr);
     }
 
-    void nolock_remove_ghost(typename ghost_map_type::iterator mapItr) noexcept {
-        assert(mapItr != ghostMap.end());
+    void nolock_remove_ghost(typename directory_map_type::iterator mapItr) noexcept {
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == ghostMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
-        GhostEntry* const entry = mapItr->second;
+        GhostEntry* const entry =
+          nolock_is_resident(mapItr->second) ? nullptr : static_cast<GhostEntry*>(mapItr->second);
 
         assert(entry != nullptr);
 
@@ -1409,16 +1371,16 @@ class PoolFlatARCCache final {
 
         nolock_list_remove(*entry);
 
-        ghostMap.erase(mapItr);
-        ghostPool.destroy(entry);
+        directoryMap.erase(mapItr);
+        entryPool.destroy(entry);
     }
 
     void nolock_remove_ghost(GhostEntry& entry) noexcept {
-        const auto mapItr = ghostMap.find(entry.key);
+        const auto mapItr = directoryMap.find(entry.key);
 
-        assert(mapItr != ghostMap.end());
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == ghostMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
         assert(mapItr->second == &entry);
@@ -1431,15 +1393,46 @@ class PoolFlatARCCache final {
 
     // ---------- ARC replacement ----------
 
+    // Reserve space before inserting so the ghost directory and pool never
+    // temporarily exceed the history limit.
+    bool nolock_make_room_for_ghost(const usize index) noexcept {
+        if (nolock_ghost_size() < capacity)
+            return true;
+
+        Entry* victim = buckets[B1].entries.back();
+
+        if (victim == nullptr)
+        {
+            if (index == B1)
+                return false;
+
+            victim = buckets[B2].entries.back();
+        }
+
+        if (victim == nullptr)
+            return false;
+
+        nolock_remove_ghost(*static_cast<GhostEntry*>(victim));
+        return true;
+    }
+
     void nolock_evict_to_ghost(ResidentEntry& entry, const usize index) noexcept {
-        GhostEntry* const ghost = nolock_add_ghost(entry.key, index);
+        if (!nolock_make_room_for_ghost(index))
+        {
+            nolock_remove_resident(entry);
+            return;
+        }
 
-        assert(ghost != nullptr);
+        const auto mapItr = directoryMap.find(entry.key);
 
-        if (ghost == nullptr)
+        assert(mapItr != directoryMap.end() && mapItr->second == &entry);
+
+        if (mapItr == directoryMap.end() || mapItr->second != &entry)
             return;
 
-        nolock_remove_resident(entry);
+        nolock_list_remove(entry);
+        entry.value.reset();
+        nolock_list_push_front(entry, index);
     }
 
     void nolock_replace(const bool keyInB2) noexcept {
@@ -1484,7 +1477,7 @@ class PoolFlatARCCache final {
     // Keep only the total ghost-history limit.
     // No T1+B1 or T2+B2 pairwise capacity restriction is imposed.
     void nolock_trim_ghosts(const usize maxSize) noexcept {
-        while (ghostMap.size() > maxSize)
+        while (nolock_ghost_size() > maxSize)
         {
             Entry* entry = buckets[B1].entries.back();
 
@@ -1500,13 +1493,14 @@ class PoolFlatARCCache final {
         }
     }
 
-    void nolock_handle_ghost_hit(typename ghost_map_type::iterator mapItr) noexcept {
-        assert(mapItr != ghostMap.end());
+    void nolock_handle_ghost_hit(typename directory_map_type::iterator mapItr) noexcept {
+        assert(mapItr != directoryMap.end());
 
-        if (mapItr == ghostMap.end())
+        if (mapItr == directoryMap.end())
             return;
 
-        GhostEntry* const ghost = mapItr->second;
+        GhostEntry* const ghost =
+          nolock_is_resident(mapItr->second) ? nullptr : static_cast<GhostEntry*>(mapItr->second);
 
         assert(ghost != nullptr);
 
@@ -1553,34 +1547,43 @@ class PoolFlatARCCache final {
             target += std::min(delta, capacity - target);
         }
 
-        // Erase before replacement can insert another ghost and rehash ghostMap.
-        nolock_remove_ghost(mapItr);
+        nolock_list_remove(*ghost);
 
-        if (residentMap.size() >= capacity && capacity != 0)
+        if (nolock_resident_size() >= capacity && capacity != 0)
             nolock_replace(keyInB2);
     }
 
     void nolock_prepare_miss() noexcept {
-        if (capacity != 0 && residentMap.size() >= capacity)
+        if (capacity != 0 && nolock_resident_size() >= capacity)
             nolock_replace(false);
     }
 
     // ---------- Read/write internals ----------
 
-    // The caller has already checked residentMap while holding residentMutex.
-    // ghostMutex is held by the caller.
     template<typename... Args>
-    Return nolock_write_after_resident_miss(const Key& key, Args&&... args) noexcept {
-        if (const auto itr = ghostMap.find(key); itr != ghostMap.end())
+    ResidentEntry* nolock_replace_ghost_with_resident(typename directory_map_type::iterator mapItr,
+                                                      const usize                           index,
+                                                      Args&&... args) noexcept {
+        assert(mapItr != directoryMap.end());
+
+        Entry* const entry = mapItr->second;
+        assert(entry != nullptr && !entry->value.has_value());
+        entry->value.emplace(Entry::make_storage(std::forward<Args>(args)...));
+        nolock_list_push_front(*entry, index);
+        return entry;
+    }
+
+    template<typename... Args>
+    Return nolock_write_after_lookup(const Key&                            key,
+                                     typename directory_map_type::iterator mapItr,
+                                     Args&&... args) noexcept {
+        if (mapItr != directoryMap.end())
         {
-            nolock_handle_ghost_hit(itr);
+            nolock_handle_ghost_hit(mapItr);
 
-            ResidentEntry* const entry = nolock_add_resident(key, T2, std::forward<Args>(args)...);
+            ResidentEntry* const entry =
+              nolock_replace_ghost_with_resident(mapItr, T2, std::forward<Args>(args)...);
 
-            if (entry == nullptr)
-                return Return{std::forward<Args>(args)...};
-
-            nolock_trim_ghosts(capacity);
             assert(nolock_consistency_check());
 
             return nolock_read(entry);
@@ -1590,7 +1593,6 @@ class PoolFlatARCCache final {
 
         ResidentEntry* const entry = nolock_add_resident(key, T1, std::forward<Args>(args)...);
 
-        nolock_trim_ghosts(capacity);
         assert(nolock_consistency_check());
 
         if (entry == nullptr)
@@ -1599,25 +1601,21 @@ class PoolFlatARCCache final {
         return nolock_read(entry);
     }
 
-    // The caller has already checked residentMap while holding residentMutex.
-    // ghostMutex is held by the caller.
     template<typename Builder, typename... Args>
-    Return nolock_write_with_after_resident_miss(const Key& key,
-                                                 Builder&&  builder,
-                                                 Args&&... args) noexcept {
+    Return nolock_write_with_after_lookup(const Key&                            key,
+                                          typename directory_map_type::iterator mapItr,
+                                          Builder&&                             builder,
+                                          Args&&... args) noexcept {
         // Evaluate the builder once and retain the value for allocation failure.
         Value value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
-        if (const auto itr = ghostMap.find(key); itr != ghostMap.end())
+        if (mapItr != directoryMap.end())
         {
-            nolock_handle_ghost_hit(itr);
+            nolock_handle_ghost_hit(mapItr);
 
-            ResidentEntry* const entry = nolock_add_resident(key, T2, std::move(value));
+            ResidentEntry* const entry =
+              nolock_replace_ghost_with_resident(mapItr, T2, std::move(value));
 
-            if (entry == nullptr)
-                return Return{std::move(value)};
-
-            nolock_trim_ghosts(capacity);
             assert(nolock_consistency_check());
 
             return nolock_read(entry);
@@ -1627,7 +1625,6 @@ class PoolFlatARCCache final {
 
         ResidentEntry* const entry = nolock_add_resident(key, T1, std::move(value));
 
-        nolock_trim_ghosts(capacity);
         assert(nolock_consistency_check());
 
         if (entry == nullptr)
@@ -1641,16 +1638,18 @@ class PoolFlatARCCache final {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        if (const auto itr = residentMap.find(key); itr != residentMap.end())
+        const auto mapItr = directoryMap.find(key);
+
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = itr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        return nolock_write_after_resident_miss(key, std::forward<Args>(args)...);
+        return nolock_write_after_lookup(key, mapItr, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
@@ -1658,23 +1657,25 @@ class PoolFlatARCCache final {
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        if (const auto itr = residentMap.find(key); itr != residentMap.end())
+        const auto mapItr = directoryMap.find(key);
+
+        if (mapItr != directoryMap.end() && nolock_is_resident(mapItr->second))
         {
-            ResidentEntry* const entry = itr->second;
+            ResidentEntry* const entry = static_cast<ResidentEntry*>(mapItr->second);
 
             nolock_promote_to_t2(*entry);
 
             return nolock_read(entry);
         }
 
-        return nolock_write_with_after_resident_miss(key, std::forward<Builder>(builder),
-                                                     std::forward<Args>(args)...);
+        return nolock_write_with_after_lookup(key, mapItr, std::forward<Builder>(builder),
+                                              std::forward<Args>(args)...);
     }
 
     bool nolock_remove(const Key& key) noexcept {
-        const auto mapItr = residentMap.find(key);
+        const auto mapItr = directoryMap.find(key);
 
-        if (mapItr == residentMap.end())
+        if (mapItr == directoryMap.end() || !nolock_is_resident(mapItr->second))
         {
             assert(nolock_consistency_check());
             return false;
@@ -1689,7 +1690,7 @@ class PoolFlatARCCache final {
 
     // Administrative eviction removes residents without creating ghosts.
     void nolock_evict_excess(const usize size) noexcept {
-        while (residentMap.size() > size)
+        while (nolock_resident_size() > size)
         {
             list_type& t1 = buckets[T1].entries;
             list_type& t2 = buckets[T2].entries;
@@ -1730,7 +1731,7 @@ class PoolFlatARCCache final {
                 assert(erased);
 
                 entry->bucket = nullptr;
-                residentPool.destroy(static_cast<ResidentEntry*>(entry));
+                entryPool.destroy(entry);
             }
         }
 
@@ -1745,29 +1746,22 @@ class PoolFlatARCCache final {
                 assert(erased);
 
                 entry->bucket = nullptr;
-                ghostPool.destroy(static_cast<GhostEntry*>(entry));
+                entryPool.destroy(entry);
             }
         }
 
-        residentMap.clear();
-        ghostMap.clear();
+        directoryMap.clear();
 
         target = 0;
 
         assert(nolock_consistency_check());
     }
 
-    void nolock_release_pool() noexcept {
-        residentPool.release();
-        ghostPool.release();
-    }
+    void nolock_release_pool() noexcept { entryPool.release(); }
 
     void nolock_configure() noexcept {
-        residentMap.max_load_factor(maxLoadFactor);
-        residentMap.reserve(reserveCount);
-
-        ghostMap.max_load_factor(maxLoadFactor);
-        ghostMap.reserve(reserveCount);
+        directoryMap.max_load_factor(maxLoadFactor);
+        directoryMap.reserve(reserveCount);
     }
 
 #ifndef NDEBUG
@@ -1795,22 +1789,18 @@ class PoolFlatARCCache final {
 
                 if (bucketIndex == T1 || bucketIndex == T2)
                 {
-                    const auto mapItr = residentMap.find(entry->key);
+                    const auto mapItr = directoryMap.find(entry->key);
 
-                    assert(mapItr != residentMap.end());
+                    assert(mapItr != directoryMap.end());
                     assert(mapItr->second == static_cast<const ResidentEntry*>(entry));
-
-                    assert(ghostMap.find(entry->key) == ghostMap.end());
                     ++residentCount;
                 }
                 else
                 {
-                    const auto mapItr = ghostMap.find(entry->key);
+                    const auto mapItr = directoryMap.find(entry->key);
 
-                    assert(mapItr != ghostMap.end());
+                    assert(mapItr != directoryMap.end());
                     assert(mapItr->second == static_cast<const GhostEntry*>(entry));
-
-                    assert(residentMap.find(entry->key) == residentMap.end());
                     ++ghostCount;
                 }
 
@@ -1825,8 +1815,7 @@ class PoolFlatARCCache final {
                 assert(previous->next == nullptr);
         }
 
-        assert(residentCount == residentMap.size());
-        assert(ghostCount == ghostMap.size());
+        assert(residentCount + ghostCount == directoryMap.size());
 
         assert(residentCount <= capacity);
         assert(ghostCount <= capacity);
@@ -1843,16 +1832,12 @@ class PoolFlatARCCache final {
 
     // ---------- Synchronization ----------
 
-    mutable Mutex residentMutex;
-    mutable Mutex ghostMutex;
-
+    mutable Mutex mutex;
     // ---------- Maps and pools ----------
 
-    resident_map_type residentMap;
-    ghost_map_type    ghostMap;
+    directory_map_type directoryMap;
 
-    Pool<ResidentEntry> residentPool;
-    Pool<GhostEntry>    ghostPool;
+    Pool<Entry> entryPool;
 
     // ---------- ARC state ----------
 

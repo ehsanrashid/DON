@@ -33,6 +33,7 @@ using namespace DON;
 
 namespace {
 using TestCache = PoolARCCache<int, int>;
+using FlatTestCache = PoolFlatARCCache<int, int>;
 
 // Verify that the Mutex template parameter remains configurable.
 class TestMutex final {
@@ -175,6 +176,32 @@ void test_capacity_one() noexcept {
     CHECK(cache.contains(3));
 
     check_capacity(cache);
+}
+
+void test_flat_cache_ghost_limit_churn() noexcept {
+    std::cout << "test_flat_cache_ghost_limit_churn\n";
+
+    FlatTestCache cache(2, 16);
+
+    CHECK(cache.read_or_write(1, 10) == 10);
+    CHECK(cache.read_or_write(2, 20) == 20);
+    CHECK(cache.read_or_write(1, 999) == 10);
+    CHECK(cache.read_or_write(3, 30) == 30);
+    CHECK(cache.read_or_write(2, 200) == 200);
+    CHECK(cache.contains(2));
+    CHECK(cache.contains(3));
+    CHECK(!cache.contains(1));
+
+    for (int key = 0; key < 10'000; ++key)
+    {
+        const int coldKey = 100 + key;
+
+        CHECK(cache.read_or_write(coldKey, coldKey * 10) == coldKey * 10);
+        CHECK(cache.size() <= 2);
+        CHECK(cache.contains(coldKey));
+    }
+
+    CHECK(cache.read_or_write(10'099, -1) == 100'990);
 }
 
 void test_builder() noexcept {
@@ -476,6 +503,7 @@ int main() noexcept {
     test_t1_eviction_and_b1_hit();
     test_b2_ghost_hit();
     test_capacity_one();
+    test_flat_cache_ghost_limit_churn();
     test_builder();
     test_zero_capacity();
     test_capacity_management();
