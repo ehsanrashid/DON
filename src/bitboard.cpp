@@ -21,7 +21,7 @@
     #include <cstring>  // memcpy()
 #endif
 
-#include "utility/lfu_cache.h"
+#include "utility/arc_cache.h"
 #include "utility/mutex.h"
 #include "utility/sharded_cache.h"
 
@@ -43,10 +43,10 @@ alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
 #endif
 
 using BitboardCache =
-  ShardedCache<Bitboard, std::string, PoolFlatLFUCache, 32, SpinMutex, std::string_view>;
+  ShardedCache<Bitboard, std::string, PoolFlatARCCache, 32, SpinMutex, std::string_view>;
 
 BitboardCache& bitboard_cache() noexcept {
-    static BitboardCache bitboardCache{usize{256}, usize{64}, 0.75F};
+    static BitboardCache bitboardCache{usize{256}, usize{512}, 0.75F};
     return bitboardCache;
 }
 

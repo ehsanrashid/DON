@@ -275,6 +275,30 @@ class DoublyIntrusiveList final {
         return true;
     }
 
+    T* pop_front() noexcept {
+        if (front_ == nullptr)
+            return nullptr;
+
+        T* const node = front_;
+
+        unlink(*node);
+        --size_;
+
+        return node;
+    }
+
+    T* pop_back() noexcept {
+        if (back_ == nullptr)
+            return nullptr;
+
+        T* const node = back_;
+
+        unlink(*node);
+        --size_;
+
+        return node;
+    }
+
    private:
     [[nodiscard]] bool is_linked(const T& node) const noexcept {
         // An intrusive list without an owner pointer cannot generally determine membership

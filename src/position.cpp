@@ -57,16 +57,18 @@ Cuckoos_& cuckoos() noexcept {
 
 using ValueCache = ShardedCache<Key, Value, PoolFlatARCCache, 32, SpinMutex>;
 
+constexpr float MAX_LOAD_FACTOR = 0.75F;
+
 ValueCache& non_pawn_cache() noexcept {
-    static ValueCache nonPawnCache{64 * KB, 16 * KB, 0.75F};
+    static ValueCache nonPawnCache{64 * KB, 128 * KB, MAX_LOAD_FACTOR};
     return nonPawnCache;
 }
 ValueCache& material_cache() noexcept {
-    static ValueCache materialCache{32 * KB, 8 * KB, 0.75F};
+    static ValueCache materialCache{32 * KB, 64 * KB, MAX_LOAD_FACTOR};
     return materialCache;
 }
 ValueCache& evaluate_cache() noexcept {
-    static ValueCache evaluateCache{32 * KB, 8 * KB, 0.75F};
+    static ValueCache evaluateCache{32 * KB, 64 * KB, MAX_LOAD_FACTOR};
     return evaluateCache;
 }
 }  // namespace

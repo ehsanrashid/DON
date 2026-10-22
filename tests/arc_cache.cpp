@@ -16,6 +16,7 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp te
 #include <cstdint>
 #include <iostream>
 #include <mutex>
+#include <shared_mutex>
 #include <random>
 
 #define CHECK(condition) \
@@ -311,6 +312,30 @@ void test_capacity_management() noexcept {
     check_capacity(cache);
 }
 
+template<typename Cache>
+void test_capacity_reallocation_and_erase() noexcept {
+    std::cout << "test_capacity_reallocation_and_erase\n";
+
+    for (int removedKey = 1; removedKey <= 4; ++removedKey)
+    {
+        Cache cache(4, 0);
+
+        for (int key = 1; key <= 4; ++key)
+            CHECK(cache.read_or_write(key, key * 10) == key * 10);
+
+        // Force the map to grow while entries are resident, then evict through
+        // the cached-entry path after shrinking the capacity.
+        cache.set_capacity(2048);
+        CHECK(cache.size() == 4);
+        CHECK(cache.remove(removedKey));
+        cache.set_capacity(3);
+        CHECK(cache.size() == 3);
+        cache.set_capacity(0);
+        CHECK(cache.empty());
+        CHECK(cache.size() == 0);
+    }
+}
+
 void test_reset() noexcept {
     std::cout << "test_reset\n";
 
@@ -509,6 +534,8 @@ int main() noexcept {
     test_builder();
     test_zero_capacity();
     test_capacity_management();
+    test_capacity_reallocation_and_erase<PoolCache>();
+    test_capacity_reallocation_and_erase<FlatCache>();
     test_reset();
     test_custom_mutex();
     test_stress<PoolCache>();

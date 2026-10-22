@@ -36,9 +36,12 @@ namespace DON::CacheBenchmark {
 using u64   = std::uint64_t;
 using Clock = std::chrono::steady_clock;
 
-constexpr usize Capacity       = 6 * KB;
+constexpr usize Capacity      = 6 * KB;
+constexpr usize ReserveCount  = 2 * Capacity;
+constexpr float MaxLoadFactor = 0.75F;
+
 constexpr usize OperationCount = 2 * MB;
-constexpr usize Repetitions    = 6;
+constexpr usize Repetitions    = 26;
 constexpr usize HotKeyCount    = 4 * KB;
 
 constexpr u64 ColdKeyBase = u64{1} << 40;
@@ -109,7 +112,7 @@ class Random {
 
 template<typename Cache>
 [[nodiscard]] Result run_once(const std::vector<u64>& keys) {
-    Cache cache{Capacity};
+    Cache cache{Capacity, ReserveCount, MaxLoadFactor};
 
     // Prepare the cache outside the timed region.
     for (usize i = 0; i < Capacity; ++i)
@@ -307,7 +310,7 @@ constexpr usize SurvivalTrainingRounds = 100;
 
 template<typename Cache>
 [[nodiscard]] usize run_hot_set_survival() {
-    Cache cache(SurvivalCapacity);
+    Cache cache{SurvivalCapacity};
 
     // Train the cache on frequently accessed keys.
     for (usize round = 0; round < SurvivalTrainingRounds; ++round)
