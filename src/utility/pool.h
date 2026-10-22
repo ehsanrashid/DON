@@ -111,7 +111,7 @@ class Pool final {
         if (value == nullptr)
             std::terminate();
 
-        Slot* slot = slot_from_value(value);
+        Slot* const slot = slot_from_value(value);
 
         detach_active(slot);
         value->~T();
@@ -149,6 +149,12 @@ class Pool final {
     [[nodiscard]] usize block_count() const noexcept { return blocks.size(); }
 
    private:
+    [[nodiscard]] static Slot* slot_from_value(T* value) noexcept {
+        constexpr usize offset = offsetof(Slot, storage);
+
+        return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(value) - offset);
+    }
+
     // Choose at least requiredSize slots. Ordinary blocks grow geometrically up to
     // BaseBlockSize; requests larger than that are allocated at their requested size.
     [[nodiscard]] usize block_size(usize requiredSize) noexcept {
@@ -193,19 +199,13 @@ class Pool final {
             slotList.push_front(first[i]);
     }
 
-    [[nodiscard]] static Slot* slot_from_value(T* value) noexcept {
-        constexpr usize offset = offsetof(Slot, storage);
-
-        return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(value) - offset);
-    }
-
-    void attach_active(Slot* slot) noexcept {
+    void attach_active(Slot* const slot) noexcept {
         [[maybe_unused]]  //
         const bool inserted = activeList.push_back(slot->activeNode);
         assert(inserted);
     }
 
-    void detach_active(Slot* slot) noexcept {
+    void detach_active(Slot* const slot) noexcept {
         [[maybe_unused]]  //
         const bool erased = activeList.erase(slot->activeNode);
         assert(erased);
@@ -216,7 +216,7 @@ class Pool final {
         if (slotList.empty())
             allocate_block(requiredSize);
 
-        Slot* slot = slotList.pop_front();
+        Slot* const slot = slotList.pop_front();
 
         T* value;
 

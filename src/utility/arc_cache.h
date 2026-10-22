@@ -265,15 +265,6 @@ class PoolARCCache final {
         map.reserve(nolock_map_reserve_size(requestedCapacity));
     }
 
-    [[nodiscard]] map_iterator nolock_try_emplace(const Key& key) noexcept {
-        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-
-        if (!inserted)
-            return map.end();
-
-        return mapItr;
-    }
-
     void nolock_safe_map_erase(const map_iterator targetItr) noexcept {
         assert(targetItr != map.end());
 
@@ -804,8 +795,8 @@ class PoolARCCache final {
 
         mapItr->second = newEntry;
 
-        // Prepare after the probe. Do not use mapItr below because erasing from
-        // unordered_dense can relocate this map element.
+        // Replacement mutates the directory. The flat-map variant can compact it,
+        // so use the key for rollback and don't reuse mapItr afterward.
         nolock_prepare_miss();
 
         if (nolock_resident_size() >= capacity)
@@ -1307,15 +1298,6 @@ class PoolFlatARCCache final {
         map.reserve(nolock_map_reserve_size(requestedCapacity));
     }
 
-    [[nodiscard]] map_iterator nolock_try_emplace(const Key& key) noexcept {
-        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-
-        if (!inserted)
-            return map.end();
-
-        return mapItr;
-    }
-
     void nolock_safe_map_erase(const map_iterator targetItr) noexcept {
         assert(targetItr != map.end());
         map.erase(targetItr);
@@ -1844,8 +1826,8 @@ class PoolFlatARCCache final {
 
         mapItr->second = newEntry;
 
-        // Prepare after the probe. Do not use mapItr below because erasing from
-        // unordered_dense can relocate this map element.
+        // Replacement mutates the directory. The flat-map variant can compact it,
+        // so use the key for rollback and don't reuse mapItr afterward.
         nolock_prepare_miss();
 
         if (nolock_resident_size() >= capacity)

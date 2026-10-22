@@ -34,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+#include "../utility/guard.h"
 #include "../utility/list.h"
 #include "../utility/pool.h"
 #include "../utility/set.h"
@@ -64,30 +65,6 @@ class ListLFUCache final {
     using list_pool_type  = std::pmr::unsynchronized_pool_resource;
     using map_type        = std::unordered_map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit ListLFUCache(const usize cap        = 2 * KB,
@@ -316,7 +293,7 @@ class ListLFUCache final {
             return nolock_read(mapItr->second);
         }
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
@@ -437,30 +414,6 @@ class SetLFUCache final {
     using map_value_type = Entry;
     using map_type       = std::unordered_map<Key, map_value_type>;
     using map_iterator   = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit SetLFUCache(const usize cap        = 2 * KB,
@@ -688,7 +641,7 @@ class SetLFUCache final {
                                                         Entry{std::move(value), 1, 0, nullptr});
         assert(inserted);
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         Entry& entry  = mapItr->second;
         entry.key     = std::addressof(mapItr->first);
@@ -800,30 +753,6 @@ class BucketListLFUCache final {
         DoublyIntrusiveList<Entry> entries;
         Bucket*                    prev = nullptr;
         Bucket*                    next = nullptr;
-    };
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
     };
 
    public:
@@ -1109,7 +1038,7 @@ class BucketListLFUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
@@ -1248,30 +1177,6 @@ class PoolLFUCache final {
         list_type entries;
         Bucket*   prev = nullptr;
         Bucket*   next = nullptr;
-    };
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
     };
 
    public:
@@ -1546,7 +1451,7 @@ class PoolLFUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize requiredSize = nolock_required_size();
 
@@ -1574,7 +1479,7 @@ class PoolLFUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize requiredSize = nolock_required_size();
 
@@ -1716,30 +1621,6 @@ class PoolFlatLFUCache final {
         list_type entries;
         Bucket*   prev = nullptr;
         Bucket*   next = nullptr;
-    };
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
     };
 
    public:
@@ -2014,7 +1895,7 @@ class PoolFlatLFUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize requiredSize = nolock_required_size();
 
@@ -2042,7 +1923,7 @@ class PoolFlatLFUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize requiredSize = nolock_required_size();
 

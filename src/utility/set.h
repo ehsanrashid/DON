@@ -19,6 +19,8 @@
 #define UTILITY_SET_H_INCLUDED
 
 #include <algorithm>
+#include <iterator>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -44,6 +46,7 @@ class VectorSet final {
     class const_iterator final {
        public:
         using iterator_category = std::forward_iterator_tag;
+        using iterator_concept  = std::forward_iterator_tag;
         using value_type        = T;
         using difference_type   = std::ptrdiff_t;
         using pointer           = const T*;
@@ -211,16 +214,17 @@ class VectorSet final {
     }
 
 
-    void append_sorted(const T& value) noexcept {
+    template<typename U>
+    void append_sorted(U&& value) noexcept {
         if (blocks.empty())
         {
             auto& block = blocks.emplace_back();
             block.reserve(BlockCapacity);
-            block.push_back(value);
+            block.push_back(std::forward<U>(value));
         }
         else
         {
-            blocks.back().push_back(value);
+            blocks.back().push_back(std::forward<U>(value));
             (void) split_block(blocks.end() - 1);
         }
 
@@ -385,19 +389,31 @@ class VectorSet final {
 template<typename Set>
 class SortedBackInsertIterator final {
    public:
+    using iterator_category = std::output_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = void;
+    using pointer           = void;
+    using reference         = void;
+
     explicit SortedBackInsertIterator(Set& s) noexcept :
         set(&s) {}
 
-    SortedBackInsertIterator& operator=(const typename Set::value_type& value) noexcept {
+    const SortedBackInsertIterator&
+    operator=(const typename Set::value_type& value) const noexcept {
         set->append_sorted(value);
         return *this;
     }
 
-    SortedBackInsertIterator& operator*() noexcept { return *this; }
+    const SortedBackInsertIterator& operator=(typename Set::value_type&& value) const noexcept {
+        set->append_sorted(std::move(value));
+        return *this;
+    }
 
-    SortedBackInsertIterator& operator++() noexcept { return *this; }
+    const SortedBackInsertIterator& operator*() const noexcept { return *this; }
 
-    SortedBackInsertIterator& operator++(int) noexcept { return *this; }
+    const SortedBackInsertIterator& operator++() const noexcept { return *this; }
+
+    const SortedBackInsertIterator& operator++(int) const noexcept { return *this; }
 
    private:
     Set* set;

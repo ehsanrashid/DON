@@ -26,6 +26,36 @@
 
 namespace DON {
 
+// Erases a newly inserted map entry unless the operation commits successfully.
+// The iterator must remain valid until commit() or guard destruction.
+template<typename Map>
+class MapGuard final {
+   public:
+    using map_iterator = typename Map::iterator;
+
+    MapGuard(Map& mapRef, map_iterator mapIterator) noexcept :
+        map(mapRef),
+        mapItr(mapIterator) {}
+
+    MapGuard() noexcept                           = delete;
+    MapGuard(const MapGuard&) noexcept            = delete;
+    MapGuard& operator=(const MapGuard&) noexcept = delete;
+    MapGuard(MapGuard&&) noexcept                 = delete;
+    MapGuard& operator=(MapGuard&&) noexcept      = delete;
+
+    ~MapGuard() noexcept {
+        if (!committed)
+            map.erase(mapItr);
+    }
+
+    void commit() noexcept { committed = true; }
+
+   private:
+    Map&         map;
+    map_iterator mapItr;
+    bool         committed = false;
+};
+
 #if defined(_WIN32)
 struct HandleGuard final {
    public:

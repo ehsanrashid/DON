@@ -28,6 +28,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "../utility/guard.h"
 #include "../utility/types.h"
 
 namespace DON {
@@ -44,30 +45,6 @@ class Store final {
     using list_iterator   = typename list_type::iterator;
     using map_type        = std::unordered_map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit Store(const usize reserveCnt = 1 * KB, const float maxLoadFac = 0.75F) :
@@ -191,7 +168,7 @@ class Store final {
         if (!inserted)
             return nolock_read(*mapItr->second);
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         if constexpr (sizeof(Value) <= ThresholdSize)
             mapItr->second = list.emplace(nolock_list_beg(),  //
@@ -212,7 +189,7 @@ class Store final {
         if (!inserted)
             return nolock_read(*mapItr->second);
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         if constexpr (sizeof(Value) <= ThresholdSize)
             mapItr->second = list.emplace(nolock_list_beg(),      //
@@ -290,30 +267,6 @@ class SharedStore final {
         mutable Mutex mutex;
         map_type      map;
         list_type     list;
-
-        class MapGuard final {
-           public:
-            MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-                map(mapRef),
-                mapItr(mapIterator) {}
-
-            MapGuard(const MapGuard&) noexcept            = delete;
-            MapGuard& operator=(const MapGuard&) noexcept = delete;
-            MapGuard(MapGuard&&) noexcept                 = delete;
-            MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-            ~MapGuard() noexcept {
-                if (!committed)
-                    map.erase(mapItr);
-            }
-
-            void commit() noexcept { committed = true; }
-
-           private:
-            map_type&    map;
-            map_iterator mapItr;
-            bool         committed = false;
-        };
 
         template<typename... Args>
         Return read_or_write(const Key& key, Args&&... args) noexcept {
@@ -423,7 +376,7 @@ class SharedStore final {
             if (!inserted)
                 return nolock_read(*mapItr->second);
 
-            MapGuard mapGuard{map, mapItr};
+            MapGuard<map_type> mapGuard{map, mapItr};
 
             if constexpr (sizeof(Value) <= ThresholdSize)
                 mapItr->second = list.emplace(nolock_list_beg(),  //
@@ -444,7 +397,7 @@ class SharedStore final {
             if (!inserted)
                 return nolock_read(*mapItr->second);
 
-            MapGuard mapGuard{map, mapItr};
+            MapGuard<map_type> mapGuard{map, mapItr};
 
             if constexpr (sizeof(Value) <= ThresholdSize)
                 mapItr->second = list.emplace(nolock_list_beg(),      //

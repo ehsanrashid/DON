@@ -32,6 +32,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "../utility/guard.h"
 #include "../utility/list.h"
 #include "../utility/pool.h"
 #include "../utility/types.h"
@@ -54,30 +55,6 @@ class ListLRUCache final {
     using list_pool_type  = std::pmr::unsynchronized_pool_resource;
     using map_type        = std::unordered_map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit ListLRUCache(const usize cap        = 2 * KB,
@@ -267,7 +244,7 @@ class ListLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard           mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
         storage_value_type value = std::forward<CreateStorage>(createStorage)();
 
         // Reuse the LRU node to avoid allocating a list node on a full-cache miss.
@@ -378,30 +355,6 @@ class NewDeleteLRUCache final {
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit NewDeleteLRUCache(const usize cap        = 2 * KB,
@@ -544,7 +497,7 @@ class NewDeleteLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         Entry* const entry = new Entry(key,  //
                                        std::forward<Args>(args)...);
@@ -570,7 +523,7 @@ class NewDeleteLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         Entry* const entry = new Entry(key,                    //
                                        std::forward<Builder>(  //
@@ -696,30 +649,6 @@ class PoolLRUCache final {
     using list_iterator   = list_value_type*;
     using map_type        = std::unordered_map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit PoolLRUCache(const usize cap        = 2 * KB,
@@ -873,7 +802,7 @@ class PoolLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize  requiredSize                = nolock_required_size();
         Entry* const entry                       = pool.create(requiredSize, key,  //
@@ -899,7 +828,7 @@ class PoolLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize  requiredSize = nolock_required_size();
         Entry* const entry        = pool.create(requiredSize, key,      //
@@ -1029,30 +958,6 @@ class PoolFlatLRUCache final {
     using list_iterator   = list_value_type*;
     using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
     using map_iterator    = typename map_type::iterator;
-
-    class MapGuard final {
-       public:
-        MapGuard(map_type& mapRef, const map_iterator mapIterator) noexcept :
-            map(mapRef),
-            mapItr(mapIterator) {}
-
-        MapGuard(const MapGuard&) noexcept            = delete;
-        MapGuard& operator=(const MapGuard&) noexcept = delete;
-        MapGuard(MapGuard&&) noexcept                 = delete;
-        MapGuard& operator=(MapGuard&&) noexcept      = delete;
-
-        ~MapGuard() noexcept {
-            if (!committed)
-                map.erase(mapItr);
-        }
-
-        void commit() noexcept { committed = true; }
-
-       private:
-        map_type&    map;
-        map_iterator mapItr;
-        bool         committed = false;
-    };
 
    public:
     explicit PoolFlatLRUCache(const usize cap        = 2 * KB,
@@ -1206,7 +1111,7 @@ class PoolFlatLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize  requiredSize = nolock_required_size();
         Entry* const entry        = pool.create(requiredSize, key,  //
@@ -1233,7 +1138,7 @@ class PoolFlatLRUCache final {
         if (!inserted)
             return nolock_read(nolock_touch(mapItr->second));
 
-        MapGuard mapGuard{map, mapItr};
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         const usize requiredSize = nolock_required_size();
 
