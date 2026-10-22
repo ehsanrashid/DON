@@ -34,6 +34,7 @@
     #include <vector>
 #endif
 
+#include "../utility/list.h"
 #include "../utility/types.h"
 
 namespace DON {
@@ -62,6 +63,8 @@ class Pool final {
         usize                   size = 0;
     };
 
+    // Default block size: the largest power of two whose Slot array fits within BlockBytesMax.
+    // It is at least one slot, even if one Slot exceeds that limit.
     static constexpr usize BaseBlockSize = []() constexpr {
         constexpr usize count = BlockBytesMax / sizeof(Slot);
 
@@ -90,6 +93,8 @@ class Pool final {
 
     ~Pool() noexcept { release(); }
 
+    // These creation functions are noexcept. If allocating a block or constructing T throws,
+    // the process terminates rather than returning a recoverable failure.
     template<typename... Args>
     [[nodiscard]] T* create(usize requiredSize, Args&&... args) noexcept {
         return create_(requiredSize, std::forward<Args>(args)...);
@@ -131,15 +136,21 @@ class Pool final {
         nextBlockSize = 1;
     }
 
+    // True when there are no free slots available for reuse; active objects may still exist.
     [[nodiscard]] bool empty() const noexcept { return slotList.empty(); }
 
+    // Number of currently constructed objects tracked by the active-object list.
     [[nodiscard]] usize active_size() const noexcept { return activeList.size(); }
 
+    // True when at least one object is currently constructed in this pool.
     [[nodiscard]] bool has_active_objects() const noexcept { return !activeList.empty(); }
 
+    // Number of allocated storage blocks, including blocks with no active objects.
     [[nodiscard]] usize block_count() const noexcept { return blocks.size(); }
 
    private:
+    // Choose at least requiredSize slots. Ordinary blocks grow geometrically up to
+    // BaseBlockSize; requests larger than that are allocated at their requested size.
     [[nodiscard]] usize block_size(usize requiredSize) noexcept {
         usize size = nextBlockSize;
 
@@ -163,6 +174,8 @@ class Pool final {
         return size;
     }
 
+    // Allocate and retain a stable Slot array, then put every slot on the free list.
+    // With StaticVector, exceeding BlockMax retained blocks terminates the process.
     void allocate_block(usize requiredSize) {
         const usize size = block_size(requiredSize);
 

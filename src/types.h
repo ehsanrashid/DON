@@ -662,10 +662,10 @@ constexpr CastlingRights make_cr(const Color c, const CastlingSide cs) noexcept 
 //  6 bits  0- 5 : Destination square (0-63)
 //  6 bits  6-11 : Origin square      (0-63)
 //  2 bits 12-13 : Promotion piece type:
-//                  KNIGHT = 0
-//                  BISHOP = 1
-//                  ROOK   = 2
-//                  QUEEN  = 3
+//                  KNIGHT = (2-2) 0
+//                  BISHOP = (3-2) 1
+//                  ROOK   = (4-2) 2
+//                  QUEEN  = (5-2) 3
 //  2 bits 14-15 : Move type:
 //                  NORMAL     = 0
 //                  PROMOTION  = 1
@@ -743,7 +743,7 @@ class Move {
     bool operator!=(const Move m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    [[nodiscard]] bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
+    [[nodiscard]] bool is_ok() const noexcept { return (data & u16{0x0FFF}) != 0; }
 
     [[nodiscard]] Move reverse() const noexcept {
         assert(type() == Type::NORMAL);
@@ -796,8 +796,8 @@ ALWAYS_INLINE Move::Move(const Square orgSq, const Square dstSq, const PieceType
 }
 
 // **Define the constexpr static members outside the class**
-inline const Move Move::None{0x000};
-inline const Move Move::Null{0xFFF};
+inline const Move Move::None{0xC000};
+inline const Move Move::Null{0xE000};
 
 using Moves = std::vector<Move>;
 

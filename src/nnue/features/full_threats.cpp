@@ -192,7 +192,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
 }();
 
 // Get index within piece threats
-constexpr u8 lut_index(const Piece pc, const Square s1, const Square s2) noexcept {
+ALWAYS_INLINE constexpr Index lut_index(const Piece pc, const Square s1, const Square s2) noexcept {
     assert(is_ok(pc) && is_ok(s1) && is_ok(s2));
 
     return type_of(pc) == PAWN ? LUT_INDICES[color_of(pc)][s1][s2]

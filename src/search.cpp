@@ -148,7 +148,7 @@ constexpr Bound fail_bound(const bool failHigh) noexcept {
 }
 
 Move legal_move(const Move m, const Position& pos) noexcept {
-    return m != Move::None && pos.legal(m) ? m : Move::None;
+    return m.is_ok() && pos.legal(m) ? m : Move::None;
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.

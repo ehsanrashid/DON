@@ -130,7 +130,7 @@ void TTEntry::save(const u16   k,
     assert(gen <= GENERATION_MASK);
 
     // Preserve the old move if don't have a new one
-    if (key() != k || m != Move::None)
+    if (key() != k || m.is_ok())
         move16 = m;
 
     // Overwrite less valuable entries (cheapest checks first)
