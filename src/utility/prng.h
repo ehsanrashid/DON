@@ -75,6 +75,8 @@ class SplitMix64 final {
 // - Long-jump function: advances the state by 2^48 steps for parallel streams.
 // - Speed: 1.60 ns/call (measured on a Core i7 @ 3.40 GHz).
 // - Passes Dieharder and SmallCrush test batteries reported in the original paper.
+// - The * scrambler improves output quality, but xorshift64* still has known
+//   statistical weaknesses (including failures in BigCrush tests).
 // - Warm-up: Not required; the state is initialized with non-zero values.
 // - Zero-State Insurance: SplitMix64 initializes the state, avoiding the all-zero state.
 // - Zero Overhead: No additional memory is required beyond the 64-bit internal state.
@@ -100,12 +102,12 @@ class Xorshift64s final {
         return T(rand64() & rand64() & rand64());
     }
 
-    // Jump ahead by 2^32 steps.
+    // Jump ahead by 2^32 state transitions.
     //
     // This can be used to create independent streams for parallel computations.
     void jump() noexcept;
 
-    // Jump ahead by 2^48 steps.
+    // Jump ahead by 2^48 state transitions.
     //
     // This can be used to create distant independent streams for parallel computations.
     void long_jump() noexcept;
@@ -166,12 +168,12 @@ class Xoroshiro128ss final {
         return T(rand64() & rand64() & rand64());
     }
 
-    // Jump ahead by 2^64 steps.
+    // Jump ahead by 2^64 state transitions.
     //
     // This can be used to create independent streams for parallel computations.
     void jump() noexcept;
 
-    // Jump ahead by 2^96 steps.
+    // Jump ahead by 2^96 state transitions.
     //
     // This can be used to create distant independent streams for parallel computations.
     void long_jump() noexcept;
@@ -232,12 +234,12 @@ class Xoshiro256ss final {
         return T(rand64() & rand64() & rand64());
     }
 
-    // Jump ahead by 2^128 steps.
+    // Jump ahead by 2^128 state transitions.
     //
     // This can be used to create independent streams for parallel computations.
     void jump() noexcept;
 
-    // Long-jump ahead by 2^192 steps.
+    // Long-jump ahead by 2^192 state transitions.
     //
     // This can be used to create distant independent streams for parallel computations.
     void long_jump() noexcept;
@@ -252,6 +254,65 @@ class Xoshiro256ss final {
     u64 rand64() noexcept;
 
     static constexpr State DefaultState = {1, 0, 0, 0};
+
+    State state = DefaultState;
+};
+
+// xoshiro512** Pseudo-Random Number Generator
+//
+// Fast, high-quality 64-bit pseudorandom number generator with a
+// 512-bit internal state.
+//
+// Characteristics:
+// - Output: 64 bits.
+// - Period: 2^512 - 1.
+// - Jump function: advances the state by 2^256 steps.
+// - Long-jump function: advances the state by 2^384 steps.
+// - Initialization: SplitMix64 is used to initialize the internal state.
+// - The all-zero state is invalid.
+//
+// Based on:
+//   David Blackman and Sebastiano Vigna,
+//   "Scrambled Linear Pseudorandom Number Generators"
+//   <https://vigna.di.unimi.it/ftp/papers/ScrambledLinear.pdf>
+//
+// Reference implementation:
+//   <https://prng.di.unimi.it/xoshiro512starstar.c>
+class Xoshiro512ss final {
+   public:
+    static constexpr usize StateSize = 8;
+
+    using State = Array<u64, StateSize>;
+
+    explicit Xoshiro512ss(u64 seed) noexcept;
+
+    template<typename T>
+    T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Sparse random (1/8 bits set on average).
+    template<typename T>
+    T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // Jump ahead by 2^256 state transitions.
+    void jump() noexcept;
+
+    // Jump ahead by 2^384 state transitions.
+    void long_jump() noexcept;
+
+   private:
+    // Advance the xoshiro512** state using its linear recurrence.
+    void update() noexcept;
+
+    // Apply the xoshiro512** output scrambler.
+    u64 mix() const noexcept;
+
+    u64 rand64() noexcept;
+
+    static constexpr State DefaultState = {1, 0, 0, 0, 0, 0, 0, 0};
 
     State state = DefaultState;
 };

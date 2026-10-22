@@ -66,7 +66,8 @@ Xorshift64s::Xorshift64s(const u64 seed) noexcept {
 }
 
 void Xorshift64s::jump() noexcept {
-    constexpr State Jump = {u64{0xDD97D02513476FA5}};
+    // Polynomial for advancing the (12, 25, 27) recurrence by 2^32 steps.
+    constexpr State Jump = {u64{0xBBD5E1C3A495E3E0}};
 
     State tmpState = {0};
 
@@ -75,9 +76,8 @@ void Xorshift64s::jump() noexcept {
         for (u8 b = 0; b < 64; ++b)
         {
             if ((jump & bit(b)) != 0)
-            {
-                tmpState[0] ^= state[0];
-            }
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
 
             // Advance the state through the underlying linear recurrence.
             update();
@@ -88,7 +88,8 @@ void Xorshift64s::jump() noexcept {
 }
 
 void Xorshift64s::long_jump() noexcept {
-    constexpr State LongJump = {u64{0xAE82CA9F848EBC6D}};
+    // Polynomial for advancing the (12, 25, 27) recurrence by 2^48 steps.
+    constexpr State LongJump = {u64{0x76C6208C83EE6437}};
 
     State tmpState = {0};
 
@@ -97,9 +98,8 @@ void Xorshift64s::long_jump() noexcept {
         for (u8 b = 0; b < 64; ++b)
         {
             if ((longJump & bit(b)) != 0)
-            {
-                tmpState[0] ^= state[0];
-            }
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
 
             // Advance the state through the underlying linear recurrence.
             update();
@@ -150,10 +150,8 @@ void Xoroshiro128ss::jump() noexcept {
         for (u8 b = 0; b < 64; ++b)
         {
             if ((jump & bit(b)) != 0)
-            {
-                tmpState[0] ^= state[0];
-                tmpState[1] ^= state[1];
-            }
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
 
             // Advance the state through the underlying linear recurrence.
             update();
@@ -173,10 +171,8 @@ void Xoroshiro128ss::long_jump() noexcept {
         for (u8 b = 0; b < 64; ++b)
         {
             if ((longJump & bit(b)) != 0)
-            {
-                tmpState[0] ^= state[0];
-                tmpState[1] ^= state[1];
-            }
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
 
             // Advance the state through the underlying linear recurrence.
             update();
@@ -232,12 +228,8 @@ void Xoshiro256ss::jump() noexcept {
         for (u8 b = 0; b < 64; ++b)
         {
             if ((jump & bit(b)) != 0)
-            {
-                tmpState[0] ^= state[0];
-                tmpState[1] ^= state[1];
-                tmpState[2] ^= state[2];
-                tmpState[3] ^= state[3];
-            }
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
 
             // Advance the state through the underlying linear recurrence.
             update();
@@ -258,12 +250,8 @@ void Xoshiro256ss::long_jump() noexcept {
         for (u8 b = 0; b < 64; ++b)
         {
             if ((longJump & bit(b)) != 0)
-            {
-                tmpState[0] ^= state[0];
-                tmpState[1] ^= state[1];
-                tmpState[2] ^= state[2];
-                tmpState[3] ^= state[3];
-            }
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
 
             // Advance the state through the underlying linear recurrence.
             update();
@@ -298,5 +286,92 @@ u64 Xoshiro256ss::rand64() noexcept {
 }
 
 // ------------------
+
+Xoshiro512ss::Xoshiro512ss(const u64 seed) noexcept {
+    SplitMix64 seeder{seed};
+
+    std::generate(state.begin(), state.end(),
+                  [&seeder]() noexcept -> u64 { return seeder.next(); });
+
+    if (UNLIKELY(std::all_of(state.begin(), state.end(),
+                             [](const u64 s) noexcept -> bool { return s == 0; })))
+        state = DefaultState;
+}
+
+void Xoshiro512ss::jump() noexcept {
+    constexpr State Jump = {u64{0x33ED89B6E7A353F9}, u64{0x760083D7955323BE},
+                            u64{0x2837F2FBB5F22FAE}, u64{0x4B8C5674D309511C},
+                            u64{0xB11AC47A7BA28C25}, u64{0xF1BE7667092BCC1C},
+                            u64{0x53851EFDB6DF0AAF}, u64{0x1EBBC8B23EAF25DB}};
+
+    State tmpState = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    for (const u64 jump : Jump)
+    {
+        for (u8 b = 0; b < 64; ++b)
+        {
+            if ((jump & bit(b)) != 0)
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
+
+            // Advance the state through the underlying linear recurrence.
+            update();
+        }
+    }
+
+    state = tmpState;
+}
+
+void Xoshiro512ss::long_jump() noexcept {
+    constexpr State LongJump = {u64{0x11467FEF8F921D28}, u64{0xA2A819F2E79C8EA8},
+                                u64{0xA8299FC284B3959A}, u64{0xB4D347340CA63EE1},
+                                u64{0x1CB0940BEDBFF6CE}, u64{0xD956C5C4FA1F8E17},
+                                u64{0x915E38FD4EDA93BC}, u64{0x5B3CCDFA5D7DACA5}};
+
+    State tmpState = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    for (const u64 longJump : LongJump)
+    {
+        for (u8 b = 0; b < 64; ++b)
+        {
+            if ((longJump & bit(b)) != 0)
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[i];
+
+            // Advance the state through the underlying linear recurrence.
+            update();
+        }
+    }
+
+    state = tmpState;
+}
+
+void Xoshiro512ss::update() noexcept {
+    const u64 tmp = state[1] << 11;
+
+    state[2] ^= state[0];
+    state[5] ^= state[1];
+    state[1] ^= state[2];
+    state[7] ^= state[3];
+    state[3] ^= state[4];
+    state[4] ^= state[5];
+    state[0] ^= state[6];
+    state[6] ^= state[7];
+
+    state[6] ^= tmp;
+
+    state[7] = rotl(state[7], 21);
+}
+
+u64 Xoshiro512ss::mix() const noexcept { return rotl(state[1] * 5, 7) * 9; }
+
+u64 Xoshiro512ss::rand64() noexcept {
+    // Generate the output before advancing the state.
+    const u64 rand = mix();
+
+    update();
+
+    return rand;
+}
 
 }  // namespace DON

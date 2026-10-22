@@ -28,7 +28,7 @@
 namespace DON {
 
 void Zobrist::init(const u64 seed) noexcept {
-    Xoshiro256ss prng(seed);
+    Xoshiro512ss prng(seed);
 
     const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
 

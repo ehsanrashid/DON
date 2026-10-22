@@ -691,9 +691,9 @@ class Move {
     static constexpr u8 PromoShift = 12;
     static constexpr u8 TypeShift  = 14;
 
-    static constexpr u16 SqMask    = (1u << 6) - 1;
-    static constexpr u16 PromoMask = (1u << 2) - 1;
-    static constexpr u16 TypeMask  = ((1u << 2) - 1) << TypeShift;
+    static constexpr u8  SqMask    = (u8{1} << 6) - 1;
+    static constexpr u8  PromoMask = (u8{1} << 2) - 1;
+    static constexpr u16 TypeMask  = ((u16{1} << 2) - 1) << TypeShift;
 
     static Move normal(Square orgSq, Square dstSq) noexcept;
     static Move
@@ -710,13 +710,13 @@ class Move {
     [[nodiscard]] Square org_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> OrgSqShift) & SqMask);
+        return Square(org());
     }
 
     [[nodiscard]] Square dst_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> DstSqShift) & SqMask);
+        return Square(dst());
     }
 
     [[nodiscard]] Type type() const noexcept { return Type((data & TypeMask) >> TypeShift); }
@@ -743,7 +743,7 @@ class Move {
     bool operator!=(const Move m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    [[nodiscard]] bool is_ok() const noexcept { return (data & u16{0x0FFF}) != 0; }
+    [[nodiscard]] bool is_ok() const noexcept { return org() != dst(); }
 
     [[nodiscard]] Move reverse() const noexcept {
         assert(type() == Type::NORMAL);
@@ -757,6 +757,10 @@ class Move {
 
    protected:
     u16 data;
+
+   private:
+    [[nodiscard]] u8 org() const noexcept { return (data >> OrgSqShift) & SqMask; }
+    [[nodiscard]] u8 dst() const noexcept { return (data >> DstSqShift) & SqMask; }
 };
 
 ALWAYS_INLINE Move Move::normal(Square orgSq, Square dstSq) noexcept {

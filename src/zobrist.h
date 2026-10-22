@@ -92,7 +92,7 @@ class Zobrist final {
     Array<Key, CASTLING_RIGHTS_NB>                      Castling;
     Array<Key, FILE_NB>                                 Enpassant;
     Key                                                 Turn;
-    Array<Key, 32>                                      MR50;
+    Array<Key, 64>                                      MR50;
 };
 
 }  // namespace DON
