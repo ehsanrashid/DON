@@ -187,19 +187,68 @@ template<typename T1, typename T2>
     return R(n) / R(d) + (R(n) % R(d) != 0);
 }
 
-// Divide and round to the nearest integer, with exact halves rounded upward.
-[[nodiscard]] constexpr usize ratio_with_half(const usize numerator,
-                                              const usize denominator) noexcept {
+// Return round(value * numerator / denominator), capped at limit.
+// The scale numerator is expected to be a small constant in callers.
+[[nodiscard]] constexpr usize scaled_ratio_clamped(const usize value,
+                                                   const usize numerator,
+                                                   const usize denominator,
+                                                   const usize limit) noexcept {
     assert(denominator != 0);
 
-    if (denominator == 0)
+    if (denominator == 0 || numerator == 0 || limit == 0 || value == 0)
         return 0;
 
-    const usize quotient  = numerator / denominator;
-    const usize remainder = numerator % denominator;
-    const usize threshold = denominator - (denominator >> 1);
+    // 1. Calculate the whole quotient section safely
+    const usize quotient = value / denominator;
+    if (quotient > limit / numerator)
+        return limit;
 
-    return quotient + (remainder >= threshold ? 1 : 0);
+    const usize whole     = quotient * numerator;
+    const usize remainder = value % denominator;
+
+    // 2. Compute the fractional part. Callers use a small scale numerator
+    // (currently 6 or 15), so repeated modular addition is a cheap exact
+    // fallback when remainder * numerator would overflow.
+    usize fraction          = 0;
+    usize fractionRemainder = 0;
+
+    if (remainder == 0 || numerator <= std::numeric_limits<usize>::max() / remainder)
+    {
+        // Fast path when the product fits in usize.
+        const usize product = remainder * numerator;
+        fraction            = product / denominator;
+        fractionRemainder   = product % denominator;
+    }
+    else
+    {
+        // Add remainder numerator times while keeping the intermediate
+        // remainder below denominator. This computes the exact quotient and
+        // remainder of (remainder * numerator) / denominator without forming
+        // the potentially overflowing product.
+        for (usize i = 0; i < numerator; ++i)
+        {
+            if (fractionRemainder >= denominator - remainder)
+            {
+                fractionRemainder -= denominator - remainder;
+                ++fraction;
+            }
+            else
+            {
+                fractionRemainder += remainder;
+            }
+        }
+    }
+
+    // 3. Apply exact halves-upward rounding constraints
+    const usize threshold = denominator - (denominator >> 1);
+    if (fractionRemainder >= threshold)
+        ++fraction;
+
+    // 4. Verify structural safety margins
+    if (fraction >= limit || whole > limit - fraction)
+        return limit;
+
+    return whole + fraction;
 }
 
 // Round n up to be a multiple of base

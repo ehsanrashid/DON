@@ -388,11 +388,10 @@ class PoolARCCache final {
         assert(entry != nullptr);
         assert(index == T1 || index == T2);
 
-        // Perform value assignment first to keep list pointer updates isolated
-        entry->emplace_value(std::forward<Args>(args)...);
-
         if (!nolock_list_push_front(*entry, index))
             return nullptr;
+
+        entry->emplace_value(std::forward<Args>(args)...);
 
         return entry;
     }
@@ -424,13 +423,11 @@ class PoolARCCache final {
                 return nullptr;  // Fails safely BEFORE any arguments are moved or constructed!
         }
 
-        // PERFECT FORWARDING FIX: Construct the payload data directly inside the node
-        // ONLY after space is guaranteed. args... are perfectly intact until this moment.
-        entry->emplace_value(std::forward<Args>(args)...);
-
         // Move the entry into T2 (Promoted Frequency Resident List)
         if (!nolock_list_move_entry(*entry, T2))
             return nullptr;
+
+        entry->emplace_value(std::forward<Args>(args)...);
 
         return entry;
     }
@@ -520,27 +517,7 @@ class PoolARCCache final {
 
     [[nodiscard]] usize nolock_max_recency_limit() const noexcept {
         // Dynamic limits based on 80/20 optimization strategy (100/20) = 5
-        return capacity <= 4 ? 1 : capacity / 5;
-    }
-
-    [[nodiscard]] usize nolock_scaled_delta(const usize value,
-                                            const usize numerator,
-                                            const usize denominator) const noexcept {
-        assert(denominator != 0);
-
-        const usize quotient  = value / denominator;
-        const usize remainder = value % denominator;
-
-        if (quotient > capacity / numerator)
-            return capacity;
-
-        const usize whole    = quotient * numerator;
-        const usize fraction = (remainder * numerator) / denominator;
-
-        if (fraction >= capacity || whole > capacity - fraction)
-            return capacity;
-
-        return whole + fraction;
+        return capacity == 0 ? 0 : capacity <= 5 ? 1 : capacity / 5;
     }
 
     [[nodiscard]] bool nolock_replace(const usize t1Size) noexcept {
@@ -635,16 +612,16 @@ class PoolARCCache final {
 
     [[nodiscard]] bool nolock_handle_ghost_hit(map_iterator mapItr) noexcept {
         assert(mapItr != map.end());
-
-        if (mapItr == map.end() || mapItr->second == nullptr || nolock_is_resident(mapItr->second))
-            return false;
+        assert(mapItr->second != nullptr);
+        assert(!nolock_is_resident(mapItr->second));
 
         const list_iterator ghost = mapItr->second;
         const usize         index = ghost->bucketIndex;
 
         assert(index == B1 || index == B2);
+        assert(!ghost->value.has_value());
 
-        if ((index != B1 && index != B2) || ghost->value.has_value() || capacity == 0)
+        if (capacity == 0)
             return false;
 
         // Enforce valid target boundary before math
@@ -663,9 +640,8 @@ class PoolARCCache final {
             if (b2Size == 0)
                 return false;
 
-            // Frequency Hit: Shrink Recency partition (T1 target) to give Frequency more room
-            usize delta = nolock_scaled_delta(ratio_with_half(b1Size, b2Size), 15, 10);
-            // 150% accelerated pace toward Frequency
+            // Frequency Hit: Shrink Recency target (give Frequency more room)
+            usize delta = scaled_ratio_clamped(b1Size, 15, 10 * b2Size, capacity);
             if (delta < 1)
                 delta = 1;
 
@@ -676,9 +652,8 @@ class PoolARCCache final {
             if (b1Size == 0)
                 return false;
 
-            // Recency Hit: Expand Recency partition (T1 target)
-            usize delta = nolock_scaled_delta(ratio_with_half(b2Size, b1Size), 6, 10);
-            // 60% dampened pace toward Recency
+            /// Recency Hit: Expand Recency target (give Frequency less room)
+            usize delta = scaled_ratio_clamped(b2Size, 6, 10 * b1Size, capacity);
             if (delta < 1)
                 delta = 1;
 
@@ -686,8 +661,6 @@ class PoolARCCache final {
         }
 
         // --- Ratio (LFU/LRU) 80/20 DOMINANCE CONSTRAINT ---
-        // Frequency must dominate by at least 80% of capacity, meaning
-        // Recency target (target) is strictly hard-capped at a maximum of 20% of capacity.
         if (target > maxRecencyLimit)
             target = maxRecencyLimit;
 
@@ -699,7 +672,6 @@ class PoolARCCache final {
             // Check again after eviction attempt
             if (nolock_resident_size() >= capacity)
             {
-                // Rollback target changes if eviction failed
                 target = oldTarget;
                 return false;
             }
@@ -1481,11 +1453,10 @@ class PoolFlatARCCache final {
         assert(entry != nullptr);
         assert(index == T1 || index == T2);
 
-        // Perform value assignment first to keep list pointer updates isolated
-        entry->emplace_value(std::forward<Args>(args)...);
-
         if (!nolock_list_push_front(*entry, index))
             return nullptr;
+
+        entry->emplace_value(std::forward<Args>(args)...);
 
         return entry;
     }
@@ -1517,13 +1488,11 @@ class PoolFlatARCCache final {
                 return nullptr;  // Fails safely BEFORE any arguments are moved or constructed!
         }
 
-        // PERFECT FORWARDING FIX: Construct the payload data directly inside the node
-        // ONLY after space is guaranteed. args... are perfectly intact until this moment.
-        entry->emplace_value(std::forward<Args>(args)...);
-
         // Move the entry into T2 (Promoted Frequency Resident List)
         if (!nolock_list_move_entry(*entry, T2))
             return nullptr;
+
+        entry->emplace_value(std::forward<Args>(args)...);
 
         return entry;
     }
@@ -1613,27 +1582,7 @@ class PoolFlatARCCache final {
 
     [[nodiscard]] usize nolock_max_recency_limit() const noexcept {
         // Dynamic limits based on 80/20 optimization strategy (100/20) = 5
-        return capacity <= 4 ? 1 : capacity / 5;
-    }
-
-    [[nodiscard]] usize nolock_scaled_delta(const usize value,
-                                            const usize numerator,
-                                            const usize denominator) const noexcept {
-        assert(denominator != 0);
-
-        const usize quotient  = value / denominator;
-        const usize remainder = value % denominator;
-
-        if (quotient > capacity / numerator)
-            return capacity;
-
-        const usize whole    = quotient * numerator;
-        const usize fraction = (remainder * numerator) / denominator;
-
-        if (fraction >= capacity || whole > capacity - fraction)
-            return capacity;
-
-        return whole + fraction;
+        return capacity == 0 ? 0 : capacity <= 5 ? 1 : capacity / 5;
     }
 
     [[nodiscard]] bool nolock_replace(const usize t1Size) noexcept {
@@ -1728,16 +1677,16 @@ class PoolFlatARCCache final {
 
     [[nodiscard]] bool nolock_handle_ghost_hit(map_iterator mapItr) noexcept {
         assert(mapItr != map.end());
-
-        if (mapItr == map.end() || mapItr->second == nullptr || nolock_is_resident(mapItr->second))
-            return false;
+        assert(mapItr->second != nullptr);
+        assert(!nolock_is_resident(mapItr->second));
 
         const list_iterator ghost = mapItr->second;
         const usize         index = ghost->bucketIndex;
 
         assert(index == B1 || index == B2);
+        assert(!ghost->value.has_value());
 
-        if ((index != B1 && index != B2) || ghost->value.has_value() || capacity == 0)
+        if (capacity == 0)
             return false;
 
         // Enforce valid target boundary before math
@@ -1756,9 +1705,8 @@ class PoolFlatARCCache final {
             if (b2Size == 0)
                 return false;
 
-            // Frequency Hit: Shrink Recency partition (T1 target) to give Frequency more room
-            usize delta = nolock_scaled_delta(ratio_with_half(b1Size, b2Size), 15, 10);
-            // 150% accelerated pace toward Frequency
+            // Frequency Hit: Shrink Recency target (give Frequency more room)
+            usize delta = scaled_ratio_clamped(b1Size, 15, 10 * b2Size, capacity);
             if (delta < 1)
                 delta = 1;
 
@@ -1769,9 +1717,8 @@ class PoolFlatARCCache final {
             if (b1Size == 0)
                 return false;
 
-            // Recency Hit: Expand Recency partition (T1 target)
-            usize delta = nolock_scaled_delta(ratio_with_half(b2Size, b1Size), 6, 10);
-            // 60% dampened pace toward Recency
+            /// Recency Hit: Expand Recency target (give Frequency less room)
+            usize delta = scaled_ratio_clamped(b2Size, 6, 10 * b1Size, capacity);
             if (delta < 1)
                 delta = 1;
 
@@ -1779,8 +1726,6 @@ class PoolFlatARCCache final {
         }
 
         // --- Ratio (LFU/LRU) 80/20 DOMINANCE CONSTRAINT ---
-        // Frequency must dominate by at least 80% of capacity, meaning
-        // Recency target (target) is strictly hard-capped at a maximum of 20% of capacity.
         if (target > maxRecencyLimit)
             target = maxRecencyLimit;
 
@@ -1792,7 +1737,6 @@ class PoolFlatARCCache final {
             // Check again after eviction attempt
             if (nolock_resident_size() >= capacity)
             {
-                // Rollback target changes if eviction failed
                 target = oldTarget;
                 return false;
             }
