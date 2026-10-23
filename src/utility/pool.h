@@ -190,13 +190,12 @@ class Pool final {
             std::terminate();
 #endif
 
-        auto  slots = std::make_unique<Slot[]>(size);
-        Slot* first = slots.get();
+        blocks.push_back(Block{std::make_unique<Slot[]>(size), size});
 
-        blocks.push_back(Block{std::move(slots), size});
+        Slot* const slots = blocks.back().slots.get();
 
         for (usize i = 0; i < size; ++i)
-            slotList.push_front(first[i]);
+            slotList.push_front(slots[i]);
     }
 
     void attach_active(Slot* const slot) noexcept {
