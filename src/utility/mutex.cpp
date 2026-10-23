@@ -67,6 +67,7 @@ void SpinMutex::lock() noexcept {
             continue;
         }
 
+        // Emit architecture-specific pause instructions to keep the pipeline clear
         cpu_relax();
     }
 }
@@ -80,7 +81,8 @@ void SharedMutex::lock() noexcept {
 
     ++waitingWriterCount;
 
-    commonCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock(); });
+    commonCondVar.wait(uniqueLock,
+                       [this]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool { return can_lock(); });
 
     --waitingWriterCount;
 
@@ -111,7 +113,9 @@ void SharedMutex::unlock() noexcept {
 void SharedMutex::lock_shared() noexcept {
     std::unique_lock uniqueLock{mutex};
 
-    commonCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock_shared(); });
+    commonCondVar.wait(uniqueLock, [this]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool {
+        return can_lock_shared();
+    });
 
     ++activeReaderCount;
 }
@@ -175,7 +179,8 @@ void ReaderSharedMutex::lock() noexcept {
 
     ++waitingWriterCount;
 
-    writerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock(); });
+    writerCondVar.wait(uniqueLock,
+                       [this]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool { return can_lock(); });
 
     --waitingWriterCount;
 
@@ -208,7 +213,9 @@ void ReaderSharedMutex::unlock() noexcept {
 void ReaderSharedMutex::lock_shared() noexcept {
     std::unique_lock uniqueLock{mutex};
 
-    readerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock_shared(); });
+    readerCondVar.wait(uniqueLock, [this]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool {
+        return can_lock_shared();
+    });
 
     ++activeReaderCount;
 }
@@ -273,7 +280,8 @@ void WriterSharedMutex::lock() noexcept {
 
     ++waitingWriterCount;
 
-    writerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock(); });
+    writerCondVar.wait(uniqueLock,
+                       [this]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool { return can_lock(); });
 
     --waitingWriterCount;
 
@@ -308,7 +316,9 @@ void WriterSharedMutex::unlock() noexcept {
 void WriterSharedMutex::lock_shared() noexcept {
     std::unique_lock uniqueLock{mutex};
 
-    readerCondVar.wait(uniqueLock, [this]() noexcept -> bool { return can_lock_shared(); });
+    readerCondVar.wait(uniqueLock, [this]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool {
+        return can_lock_shared();
+    });
 
     ++activeReaderCount;
 }
@@ -386,7 +396,9 @@ void FairSharedMutex::lock() noexcept {
     ++waitingWriterCount;
     waitList.push_back(writer.node);
 
-    commonCondVar.wait(uniqueLock, [this, &writer]() noexcept -> bool { return can_lock(writer); });
+    commonCondVar.wait(uniqueLock, [this, &writer]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool {
+        return can_lock(writer);
+    });
 
     waitList.erase(writer.node);
     --waitingWriterCount;
@@ -423,8 +435,9 @@ void FairSharedMutex::lock_shared() noexcept {
 
     waitList.push_back(reader.node);
 
-    commonCondVar.wait(uniqueLock,
-                       [this, &reader]() noexcept -> bool { return can_lock_shared(reader); });
+    commonCondVar.wait(uniqueLock, [this, &reader]() NO_THREAD_SAFETY_ANALYSIS noexcept -> bool {
+        return can_lock_shared(reader);
+    });
 
     waitList.erase(reader.node);
 

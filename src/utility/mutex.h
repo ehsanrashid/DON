@@ -101,18 +101,18 @@ class LOCKABLE SharedMutex final {
 
     void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
-    [[nodiscard]] usize active_reader_count() const noexcept;
+    [[nodiscard]] usize active_reader_count() const noexcept LOCKS_EXCLUDED(mutex);
 
-    [[nodiscard]] usize waiting_writer_count() const noexcept;
+    [[nodiscard]] usize waiting_writer_count() const noexcept LOCKS_EXCLUDED(mutex);
 
    private:
-    [[nodiscard]] bool can_lock() const noexcept;
+    [[nodiscard]] bool can_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock() const noexcept;
+    [[nodiscard]] bool can_try_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_lock_shared() const noexcept;
+    [[nodiscard]] bool can_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+    [[nodiscard]] bool can_try_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;
@@ -146,18 +146,18 @@ class LOCKABLE ReaderSharedMutex final {
 
     void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
-    [[nodiscard]] usize active_reader_count() const noexcept;
+    [[nodiscard]] usize active_reader_count() const noexcept LOCKS_EXCLUDED(mutex);
 
-    [[nodiscard]] usize waiting_writer_count() const noexcept;
+    [[nodiscard]] usize waiting_writer_count() const noexcept LOCKS_EXCLUDED(mutex);
 
    private:
-    [[nodiscard]] bool can_lock() const noexcept;
+    [[nodiscard]] bool can_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock() const noexcept;
+    [[nodiscard]] bool can_try_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_lock_shared() const noexcept;
+    [[nodiscard]] bool can_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+    [[nodiscard]] bool can_try_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
     mutable std::mutex      mutex;
     std::condition_variable readerCondVar;
@@ -193,18 +193,18 @@ class LOCKABLE WriterSharedMutex final {
     void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
 
-    [[nodiscard]] usize active_reader_count() const noexcept;
+    [[nodiscard]] usize active_reader_count() const noexcept LOCKS_EXCLUDED(mutex);
 
-    [[nodiscard]] usize waiting_writer_count() const noexcept;
+    [[nodiscard]] usize waiting_writer_count() const noexcept LOCKS_EXCLUDED(mutex);
 
    private:
-    [[nodiscard]] bool can_lock() const noexcept;
+    [[nodiscard]] bool can_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock() const noexcept;
+    [[nodiscard]] bool can_try_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_lock_shared() const noexcept;
+    [[nodiscard]] bool can_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+    [[nodiscard]] bool can_try_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
     mutable std::mutex      mutex;
     std::condition_variable readerCondVar;
@@ -254,20 +254,23 @@ class LOCKABLE FairSharedMutex final {
 
     void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
 
-    [[nodiscard]] usize active_reader_count() const noexcept;
+    [[nodiscard]] usize active_reader_count() const noexcept LOCKS_EXCLUDED(mutex);
 
-    [[nodiscard]] usize waiting_writer_count() const noexcept;
+    [[nodiscard]] usize waiting_writer_count() const noexcept LOCKS_EXCLUDED(mutex);
 
    private:
-    [[nodiscard]] bool can_lock(const Waiter& writer) const noexcept;
+    [[nodiscard]] bool can_lock(const Waiter& writer) const noexcept
+      REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock() const noexcept;
+    [[nodiscard]] bool can_try_lock() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_lock_shared(const Waiter& reader) const noexcept;
+    [[nodiscard]] bool can_lock_shared(const Waiter& reader) const noexcept
+      REQUIRES_SHARED_CAPABILITY(mutex);
 
-    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+    [[nodiscard]] bool can_try_lock_shared() const noexcept REQUIRES_SHARED_CAPABILITY(mutex);
 
-    bool has_writer_before(const Waiter* until = nullptr) const noexcept;
+    bool has_writer_before(const Waiter* until = nullptr) const noexcept
+      REQUIRES_SHARED_CAPABILITY(mutex);
 
     mutable std::mutex      mutex;
     std::condition_variable commonCondVar;
