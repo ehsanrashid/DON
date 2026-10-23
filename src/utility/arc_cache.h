@@ -498,10 +498,7 @@ class PoolARCCache final {
     [[nodiscard]] bool nolock_evict_to_ghost(list_value_type& entry, const usize index) noexcept {
         assert(index == B1 || index == B2);
         assert(entry.bucketIndex == T1 || entry.bucketIndex == T2);
-
-        // if the entry's value has already been cleared by another eviction pipeline branch.
-        if (!entry.value.has_value())
-            return true;
+        assert(entry.value.has_value());
 
         // Perform structural queue updates first to ensure transaction success
         if (!nolock_list_move_entry(entry, index))
@@ -641,9 +638,8 @@ class PoolARCCache final {
                 return false;
 
             // Frequency Hit: Shrink Recency target (give Frequency more room)
-            usize delta = scaled_ratio_clamped(b1Size, 15, 10 * b2Size, capacity);
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(  //
+              scaled_ratio_clamped(b1Size, 15, 10 * b2Size, capacity), usize{1});
 
             target = delta < target ? target - delta : 0;
         }
@@ -653,11 +649,10 @@ class PoolARCCache final {
                 return false;
 
             /// Recency Hit: Expand Recency target (give Frequency less room)
-            usize delta = scaled_ratio_clamped(b2Size, 6, 10 * b1Size, capacity);
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(  //
+              scaled_ratio_clamped(b2Size, 6, 10 * b1Size, capacity), usize{1});
 
-            target = target + delta < maxRecencyLimit ? target + delta : maxRecencyLimit;
+            target = delta < maxRecencyLimit - target ? target + delta : maxRecencyLimit;
         }
 
         // --- Ratio (LFU/LRU) 80/20 DOMINANCE CONSTRAINT ---
@@ -1563,10 +1558,7 @@ class PoolFlatARCCache final {
     [[nodiscard]] bool nolock_evict_to_ghost(list_value_type& entry, const usize index) noexcept {
         assert(index == B1 || index == B2);
         assert(entry.bucketIndex == T1 || entry.bucketIndex == T2);
-
-        // if the entry's value has already been cleared by another eviction pipeline branch.
-        if (!entry.value.has_value())
-            return true;
+        assert(entry.value.has_value());
 
         // Perform structural queue updates first to ensure transaction success
         if (!nolock_list_move_entry(entry, index))
@@ -1706,9 +1698,8 @@ class PoolFlatARCCache final {
                 return false;
 
             // Frequency Hit: Shrink Recency target (give Frequency more room)
-            usize delta = scaled_ratio_clamped(b1Size, 15, 10 * b2Size, capacity);
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(  //
+              scaled_ratio_clamped(b1Size, 15, 10 * b2Size, capacity), usize{1});
 
             target = delta < target ? target - delta : 0;
         }
@@ -1718,11 +1709,10 @@ class PoolFlatARCCache final {
                 return false;
 
             /// Recency Hit: Expand Recency target (give Frequency less room)
-            usize delta = scaled_ratio_clamped(b2Size, 6, 10 * b1Size, capacity);
-            if (delta < 1)
-                delta = 1;
+            const usize delta = std::max(  //
+              scaled_ratio_clamped(b2Size, 6, 10 * b1Size, capacity), usize{1});
 
-            target = target + delta < maxRecencyLimit ? target + delta : maxRecencyLimit;
+            target = delta < maxRecencyLimit - target ? target + delta : maxRecencyLimit;
         }
 
         // --- Ratio (LFU/LRU) 80/20 DOMINANCE CONSTRAINT ---
