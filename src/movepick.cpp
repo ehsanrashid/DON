@@ -287,13 +287,13 @@ MovePicker::MovePicker(const Position&                 p,
     atomicHistories{atomicHists},
     ssPly{ply},
     threshold{th} {
-    assert(ttMove == Move::None || pos.legal(ttMove));
+    assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
     if (pos.checkers_bb() != 0)
     {
         initStage = Stage::EVA_CAPTURE;
-        curStage  = Stage{!(ttMove != Move::None)};
+        curStage  = Stage{!(ttMove.is_ok())};
     }
     else if (threshold < 0)
     {
@@ -301,12 +301,12 @@ MovePicker::MovePicker(const Position&                 p,
             assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
-        curStage  = Stage{!(ttMove != Move::None)};
+        curStage  = Stage{!(ttMove.is_ok())};
     }
     else
     {
         initStage = Stage::QS_CAPTURE;
-        curStage  = Stage{!(ttMove != Move::None && pos.capture_promo(ttMove))};
+        curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
     }
 }
 
@@ -319,10 +319,10 @@ MovePicker::MovePicker(const Position&             p,
     captureHistory{captureHist},
     threshold{th} {
     assert(pos.checkers_bb() == 0);
-    assert(ttMove == Move::None || pos.legal(ttMove));
+    assert(!ttMove.is_ok() || pos.legal(ttMove));
 
     initStage = Stage::PROBCUT;
-    curStage  = Stage{!(ttMove != Move::None && pos.capture_promo(ttMove))};
+    curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
 }
 
 template<GenType GT>
@@ -483,8 +483,11 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 
 bool MovePicker::remove(const Move m) noexcept {
 
-    if (m == Move::None)
+    if (!m.is_ok())
+    {
+        assert(std::find(cur, curEnd, m) == curEnd);
         return false;
+    }
 
     const auto itr = std::find(cur, curEnd, m);
 

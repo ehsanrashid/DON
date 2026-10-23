@@ -106,13 +106,13 @@ class ShardedCache final {
         return capacity;
     }
 
-    void set_capacity(const usize size) noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        const usize cap = shard_capacity(size);
+    void set_capacity(const usize newCapacity) noexcept {
+        const usize cap = shard_capacity(newCapacity);
 
         for (auto& shard : shards)
             shard.set_capacity(cap);
+
+        std::lock_guard lockGuard{mutex};
 
         capacity = cap * ShardCount;
     }
@@ -161,10 +161,10 @@ class ShardedCache final {
     }
 
     void reset() noexcept {
-        std::lock_guard lockGuard{mutex};
-
         for (auto& shard : shards)
             shard.reset();
+
+        std::lock_guard lockGuard{mutex};
 
         capacity = defaultCapacity;
     }

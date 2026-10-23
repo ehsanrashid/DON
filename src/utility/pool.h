@@ -20,11 +20,11 @@
 
 #include <cassert>
 #include <cstddef>      // std::byte, offsetof()
+#include <exception>    // terminate()
 #include <memory>       // unique_ptr, make_unique
 #include <new>          // placement new
 #include <type_traits>  // is_nothrow_destructible_v, if used
 #include <utility>      // forward, move()
-#include <exception>    // terminate()
 
 #define USE_STATIC_VECTOR
 
@@ -34,24 +34,44 @@
     #include <vector>
 #endif
 
+#include "../utility/list.h"
 #include "../utility/types.h"
 
 namespace DON {
 
 template<typename T, usize BlockBytesMax = 64 * KB>
 class Pool final {
-    struct Slot {
+    struct Slot;
+
+    struct ActiveNode final {
+       public:
+        explicit ActiveNode(Slot* slotPtr) noexcept :
+            slot(slotPtr) {}
+
+        Slot*       slot = nullptr;
+        ActiveNode* prev = nullptr;
+        ActiveNode* next = nullptr;
+    };
+
+    struct Slot final {
+       public:
         alignas(T) std::byte storage[sizeof(T)];
-        Slot* next = nullptr;
+        ActiveNode activeNode{this};
+        Slot*      next = nullptr;
     };
 
-    struct Block {
+    struct Block final {
+       public:
         std::unique_ptr<Slot[]> slots;
+        usize                   size = 0;
     };
 
+    // Default block size: the largest power of two whose Slot array fits within BlockBytesMax.
+    // It is at least one slot, even if one Slot exceeds that limit.
     static constexpr usize BaseBlockSize = []() constexpr {
         constexpr usize count = BlockBytesMax / sizeof(Slot);
-        usize           size  = 1;
+
+        usize size = 1;
 
         while (size <= count / 2)
             size *= 2;
@@ -59,101 +79,173 @@ class Pool final {
         return size;
     }();
 
+#if defined(USE_STATIC_VECTOR)
+    static constexpr usize BlockMax = 1024;
+
+    using block_container_type = StaticVector<Block, BlockMax>;
+#else
+    using block_container_type = std::vector<Block>;
+#endif
+
    public:
-    explicit Pool() noexcept
+    Pool()
 #if defined(USE_STATIC_VECTOR)
       = default;
 #else
     {
-        constexpr usize reserveCapacity = 32;
-        // Reserve blocks
-        blocks.reserve(reserveCapacity);
+        blocks.reserve(16);
     }
 #endif
-    Pool(const Pool&)            = delete;
-    Pool& operator=(const Pool&) = delete;
-    Pool(Pool&&)                 = delete;
-    Pool& operator=(Pool&&)      = delete;
+    Pool(const Pool&) noexcept            = delete;
+    Pool& operator=(const Pool&) noexcept = delete;
+    Pool(Pool&&) noexcept                 = delete;
+    Pool& operator=(Pool&&) noexcept      = delete;
 
+    ~Pool() noexcept { release(); }
+
+    // These creation functions are noexcept. If allocating a block or constructing T throws,
+    // the process terminates rather than returning a recoverable failure.
     template<typename... Args>
-    T* create(const usize requiredSize, Args&&... args) noexcept {
-        if (freeSlotList.empty())
-            allocate_block(requiredSize);
-
-        Slot* const slot = freeSlotList.pop_front();
-        assert(slot != nullptr);
-
-        T* const object = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
-        ++activeCount;
-
-        return object;
+    [[nodiscard]] T* create(usize requiredSize, Args&&... args) noexcept {
+        return create_(requiredSize, std::forward<Args>(args)...);
     }
 
-    void destroy(T* const object) noexcept {
-        assert(object != nullptr);
-        assert(activeCount != 0);
+    template<typename... Args>
+    [[nodiscard]] T* create_object(Args&&... args) noexcept {
+        return create_(1, std::forward<Args>(args)...);
+    }
 
-        Slot* const slot = reinterpret_cast<Slot*>(  //
-          reinterpret_cast<std::byte*>(object) - StorageOffset);
+    void destroy(T* value) noexcept {
+        assert(value != nullptr);
 
-        object->~T();
+        if (value == nullptr)
+            std::terminate();
 
-        freeSlotList.push_front(*slot);
-        --activeCount;
+        Slot* const slot = slot_from_value(value);
+
+        detach_active(slot);
+        value->~T();
+
+        slotList.push_front(*slot);
     }
 
     void release() noexcept {
-        assert(activeCount == 0);
+        while (ActiveNode* node = activeList.front())
+        {
+            Slot* const slot = node->slot;
 
-        freeSlotList.clear();
-#if defined(USE_STATIC_VECTOR)
-        blocks.clear_and_release();
-#else
+            detach_active(slot);
+
+            T* value = std::launder(reinterpret_cast<T*>(slot->storage));
+            value->~T();
+        }
+
+        slotList.clear();
         blocks.clear();
-#endif
+
+        nextBlockSize = 1;
     }
 
-   private:
-    [[nodiscard]] static constexpr usize block_size(const usize requiredSize) noexcept {
-        if (requiredSize >= BaseBlockSize)
-            return BaseBlockSize;
+    // True when there are no free slots available for reuse; active objects may still exist.
+    [[nodiscard]] bool empty() const noexcept { return slotList.empty(); }
 
-        usize size = 1;
-        while (size < requiredSize)
+    // Number of currently constructed objects tracked by the active-object list.
+    [[nodiscard]] usize active_size() const noexcept { return activeList.size(); }
+
+    // True when at least one object is currently constructed in this pool.
+    [[nodiscard]] bool has_active_objects() const noexcept { return !activeList.empty(); }
+
+    // Number of allocated storage blocks, including blocks with no active objects.
+    [[nodiscard]] usize block_count() const noexcept { return blocks.size(); }
+
+   private:
+    [[nodiscard]] static Slot* slot_from_value(T* value) noexcept {
+        constexpr usize offset = offsetof(Slot, storage);
+
+        return reinterpret_cast<Slot*>(reinterpret_cast<std::byte*>(value) - offset);
+    }
+
+    // Choose at least requiredSize slots. Ordinary blocks grow geometrically up to
+    // BaseBlockSize; requests larger than that are allocated at their requested size.
+    [[nodiscard]] usize block_size(usize requiredSize) noexcept {
+        usize size = nextBlockSize;
+
+        while (size < requiredSize && size < BaseBlockSize)
+        {
+            if (size > BaseBlockSize / 2)
+            {
+                size = BaseBlockSize;
+                break;
+            }
+
             size *= 2;
+        }
+
+        if (size < requiredSize)
+            size = requiredSize;
+
+        if (size < BaseBlockSize)
+            nextBlockSize = size > BaseBlockSize / 2 ? BaseBlockSize : size * 2;
 
         return size;
     }
 
-    void allocate_block(const usize requiredSize) noexcept {
+    // Allocate and retain a stable Slot array, then put every slot on the free list.
+    // With StaticVector, exceeding BlockMax retained blocks terminates the process.
+    void allocate_block(usize requiredSize) {
 #if defined(USE_STATIC_VECTOR)
         if (blocks.full())
             std::terminate();
 #endif
+        const usize size = block_size(requiredSize);
 
-        const usize count = block_size(requiredSize != 0 ? requiredSize : usize{1});
-        auto        slots = std::make_unique<Slot[]>(count);
-        Slot* const first = slots.get();
+        blocks.push_back(Block{std::make_unique<Slot[]>(size), size});
 
-        blocks.push_back(Block{std::move(slots)});
-
-        for (usize index = 0; index < count; ++index)
-            freeSlotList.push_front(first[index]);
+        Slot* const slots = blocks.back().slots.get();
+        // Loop directly using pointer limits for absolute code minimization
+        for (Slot* slot = slots; slot < slots + size; ++slot)
+            slotList.push_front(*slot);
     }
 
-    static constexpr usize StorageOffset = offsetof(Slot, storage);
+    void attach_active(Slot* const slot) noexcept {
+        [[maybe_unused]]  //
+        const bool inserted = activeList.push_back(slot->activeNode);
+        assert(inserted);
+    }
 
-#if defined(USE_STATIC_VECTOR)
-    static constexpr usize BlockMax = 256;
+    void detach_active(Slot* const slot) noexcept {
+        [[maybe_unused]]  //
+        const bool erased = activeList.erase(slot->activeNode);
+        assert(erased);
+    }
 
-    StaticVector<Block, BlockMax>
-#else
-    std::vector<Block>
-#endif
-      blocks;
+    template<typename... Args>
+    [[nodiscard]] T* create_(usize requiredSize, Args&&... args) {
+        if (slotList.empty())
+            allocate_block(requiredSize);
 
-    usize                     activeCount = 0;
-    SinglyIntrusiveList<Slot> freeSlotList;
+        Slot* const slot = slotList.pop_front();
+
+        T* value;
+
+        //try
+        //{
+        value = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
+        //} catch (...)
+        //{
+        //    slotList.push_front(*slot);
+        //    throw;
+        //}
+
+        attach_active(slot);
+
+        return value;
+    }
+
+    block_container_type            blocks;
+    SinglyIntrusiveList<Slot>       slotList;
+    DoublyIntrusiveList<ActiveNode> activeList;
+    usize                           nextBlockSize = 1;
 };
 
 }  // namespace DON

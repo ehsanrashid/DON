@@ -28,7 +28,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
@@ -99,9 +98,6 @@ using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
 
-using Strings     = std::vector<std::string>;
-using StringViews = std::vector<std::string_view>;
-
 inline constexpr usize BYTE_BITS = 8;
 
 inline constexpr usize HEX64_SIZE = 16;
@@ -162,14 +158,14 @@ template<
   typename T,
   std::enable_if_t<std::is_arithmetic_v<T> || (std::is_enum_v<T> && std::is_convertible_v<T, int>),
                    int> = 0>
-constexpr int sign(const T x) noexcept {
+[[nodiscard]] constexpr int sign(const T x) noexcept {
     // NaN -> 0; unsigned types never return -1
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
 
 // Return the square of a number, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sqr(const T x) noexcept {
+[[nodiscard]] constexpr auto sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * Wider(x);
@@ -177,28 +173,92 @@ constexpr auto sqr(const T x) noexcept {
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sign_sqr(const T x) noexcept {
+[[nodiscard]] constexpr auto sign_sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     return sign(x) * sqr(x);
 }
 
-constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
+[[nodiscard]] constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
 
 template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
+[[nodiscard]] constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
     //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
     return R(n) / R(d) + (R(n) % R(d) != 0);
 }
 
+// Return round(value * numerator / denominator), capped at limit.
+// The scale numerator is expected to be a small constant in callers.
+[[nodiscard]] constexpr usize scaled_ratio_clamped(const usize value,
+                                                   const usize numerator,
+                                                   const usize denominator,
+                                                   const usize limit) noexcept {
+    assert(denominator != 0);
+
+    if (denominator == 0 || numerator == 0 || limit == 0 || value == 0)
+        return 0;
+
+    // 1. Calculate the whole quotient section safely
+    const usize quotient = value / denominator;
+    if (quotient > limit / numerator)
+        return limit;
+
+    const usize whole     = quotient * numerator;
+    const usize remainder = value % denominator;
+
+    // 2. Compute the fractional part. Callers use a small scale numerator
+    // (currently 6 or 15), so repeated modular addition is a cheap exact
+    // fallback when remainder * numerator would overflow.
+    usize fraction          = 0;
+    usize fractionRemainder = 0;
+
+    if (remainder == 0 || numerator <= std::numeric_limits<usize>::max() / remainder)
+    {
+        // Fast path when the product fits in usize.
+        const usize product = remainder * numerator;
+        fraction            = product / denominator;
+        fractionRemainder   = product % denominator;
+    }
+    else
+    {
+        // Add remainder numerator times while keeping the intermediate
+        // remainder below denominator. This computes the exact quotient and
+        // remainder of (remainder * numerator) / denominator without forming
+        // the potentially overflowing product.
+        for (usize i = 0; i < numerator; ++i)
+        {
+            if (fractionRemainder >= denominator - remainder)
+            {
+                fractionRemainder -= denominator - remainder;
+                ++fraction;
+            }
+            else
+            {
+                fractionRemainder += remainder;
+            }
+        }
+    }
+
+    // 3. Apply exact halves-upward rounding constraints
+    const usize threshold = denominator - (denominator >> 1);
+    if (fractionRemainder >= threshold)
+        ++fraction;
+
+    // 4. Verify structural safety margins
+    if (fraction >= limit || whole > limit - fraction)
+        return limit;
+
+    return whole + fraction;
+}
+
 // Round n up to be a multiple of base
 template<typename T>
-constexpr T ceil_to_multiple(const T n, const T base) noexcept {
+[[nodiscard]] constexpr T ceil_to_multiple(const T n, const T base) noexcept {
     return ceil_div(n, base) * base;
 }
 
 // Round up to the next power of 2
-constexpr usize round_up_to_pow2(usize x) noexcept {
+[[nodiscard]] constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
         return 1;
 
@@ -234,13 +294,25 @@ template<typename T>
     return (size + mask) & ~mask;
 }
 
+// Get the first aligned element of an array.
+// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
+// where N is the number of elements in the array.
+template<usize Alignment, typename T>
+[[nodiscard]] T* align_ptr_up(T* ptr) noexcept {
+    static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
+    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
+
+    const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
+    return reinterpret_cast<T*>(uPtr);
+}
+
 template<typename T1, typename T2>
-constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
+[[nodiscard]] constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     assert(x0 != x1);
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
-constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
+[[nodiscard]] constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__SIZEOF_INT128__)
     return (u128(u1) * u128(u2)) >> 64;
 #else

@@ -40,7 +40,7 @@
 namespace DON {
 
 struct Error;
-class Worker;
+class AtomicHistories;
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 248)
@@ -147,11 +147,11 @@ class Position final {
     // Makes a move, and saves all necessary information to new state.
     // Also prefetch tt and histories for the new position.
     // The move is assumed to be legal.
-    void do_move(Move          m,
-                 State&        newSt,
-                 bool          mayCheck = true,
-                 const Worker* worker   = nullptr,
-                 Dirties*      dirties  = nullptr) noexcept;
+    void do_move(Move                   m,
+                 State&                 newSt,
+                 bool                   mayCheck        = true,
+                 const AtomicHistories* atomicHistories = nullptr,
+                 Dirties*               dirties         = nullptr) noexcept;
     // Unmakes a move, restoring the position to its exact state before the move was made.
     void undo_move(Move m) noexcept;
     // Makes a null move

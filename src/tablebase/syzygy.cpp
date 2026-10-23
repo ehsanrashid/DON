@@ -53,6 +53,7 @@
 #include "../utility/call_once.h"
 #include "../utility/error.h"
 #include "../utility/functions.h"
+#include "../utility/guard.h"
 #include "../utility/types.h"
 
 namespace DON::Tablebase::Syzygy {

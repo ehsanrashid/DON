@@ -49,7 +49,7 @@ const unsigned char* map_embedded_nnue() noexcept {
     const char* file = ::realpath(path, resolved) ? resolved : path;
 
     int fd = ::open(file, O_RDONLY | O_CLOEXEC);
-    if (!DON::is_valid_fd(fd))
+    if (fd < 0)
         return nullptr;
 
     const auto close_fd = [&fd]() noexcept { ::close(fd); };

@@ -1012,17 +1012,18 @@ namespace {
 template<typename Container, typename T>
 [[nodiscard]] bool insert_sorted_unique(Container& container, const T& value) noexcept {
     if (container.empty() || container.back() < value)
-    {
         container.push_back(value);
-        return true;
+    else
+    {
+        const auto itr = std::lower_bound(container.begin(), container.end(), value);
+
+        assert(itr == container.end() || *itr != value);
+        if (itr != container.end() && *itr == value)
+            return false;
+
+        container.insert(itr, value);
     }
 
-    const auto itr = std::lower_bound(container.begin(), container.end(), value);
-    assert(itr == container.end() || *itr != value);
-    if (itr != container.end() && *itr == value)
-        return false;
-
-    container.insert(itr, value);
     return true;
 }
 

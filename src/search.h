@@ -64,7 +64,7 @@ class Network;
 // Maximum number of moves stored during search
 inline constexpr usize MOVES_CAPACITY = 32;
 
-using MoveVector = StaticVector<Move, MOVES_CAPACITY, u16>;
+using MoveVector = StaticVector<Move, MOVES_CAPACITY, u8>;
 
 inline Book::PolyGlot PGBook;
 
@@ -207,7 +207,9 @@ struct RootMove final {
 
     // Sort in descending order
     bool operator<(const RootMove& rm) const noexcept {
-        return value != rm.value ? value > rm.value : preValue > rm.preValue;
+        return value != rm.value  //
+               ? value > rm.value
+               : preValue > rm.preValue;
     }
     bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
     bool operator<=(const RootMove& rm) const noexcept { return !(rm < *this); }

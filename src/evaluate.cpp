@@ -25,12 +25,12 @@
 #include <memory>  // unique_ptr<>, make_unique<>()
 #include <sstream>
 
-#include "misc.h"
 #include "notation.h"
 #include "position.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
 #include "nnue/types.h"
+#include "utility/functions.h"
 
 namespace DON::Evaluate {
 

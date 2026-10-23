@@ -36,6 +36,7 @@
 #include "../state.h"
 #include "../types.h"
 #include "../utility/environment.h"
+#include "../utility/functions.h"
 #include "../utility/prng.h"
 #include "../utility/types.h"
 

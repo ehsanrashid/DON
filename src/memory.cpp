@@ -20,22 +20,8 @@
 #include <cstdlib>  // exit(), malloc(), free(), std::aligned_alloc()
 #include <iostream>
 
-
-#if defined(_WIN32)
-    #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
-    #include "utility/platform_win.h"
-#else
-    #if defined(__has_include) && __has_include(<features.h>)
-        #include <features.h>  // glibc feature-test macros
-    #endif
-    #if defined(LINUX_NON_ANDROID)
-        #include <sys/mman.h>  // munmap()
-        #include <unistd.h>    // close()
-        #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
-            #define USE_POSIX_HUGE_PAGES
-        #endif
-    #endif
-    #include <cerrno>
+#if !defined(_WIN32) && defined(LINUX_NON_ANDROID) && defined(X86_64) && defined(MAP_HUGE_SHIFT)
+    #define USE_POSIX_HUGE_PAGES
 #endif
 
 #if defined(__APPLE__)      /* macOS / iOS */ \
@@ -48,11 +34,29 @@
   || defined(_AIX)          /* IBM AIX */ \
   || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) \
       && !defined(_WIN32)) /* libstdc++ without aligned_alloc() */
-    #include <stdlib.h>
     #define USE_POSIX_ALIGNED_ALLOC
 #endif
 
-#include "misc.h"
+#if defined(_WIN32)
+    #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
+    #include "utility/platform_win.h"
+    #include "utility/functions.h"
+    #include "utility/guard.h"
+#else
+    #if defined(__has_include) && __has_include(<features.h>)
+        #include <features.h>  // glibc feature-test macros
+    #endif
+    #if defined(LINUX_NON_ANDROID)
+        #include <sys/mman.h>  // munmap()
+        #include <unistd.h>    // close()
+    #endif
+    #include <cerrno>
+#endif
+
+#if defined(USE_POSIX_ALIGNED_ALLOC)
+    #include <stdlib.h>
+#endif
+
 #include "utility/concurrent.h"  // ConcurrentAllocationTracker<>
 
 namespace DON {

@@ -148,7 +148,7 @@ constexpr Bound fail_bound(const bool failHigh) noexcept {
 }
 
 Move legal_move(const Move m, const Position& pos) noexcept {
-    return m != Move::None && pos.legal(m) ? m : Move::None;
+    return m.is_ok() && pos.legal(m) ? m : Move::None;
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.
@@ -323,10 +323,10 @@ void Worker::start_search() noexcept {
         if (!limit.infinite && limit.mate == 0)
             bookBestMove = PGBook.probe(rootPos, rootMoves, options);
 
-        if (bookBestMove != Move::None)
+        if (bookBestMove.is_ok())
         {
             State st;
-            rootPos.do_move(bookBestMove, st, true, this);
+            rootPos.do_move(bookBestMove, st, true, &atomicHistories);
 
             RootMoves orms;
             for (const Move m : MoveList<GenType::ALL>(rootPos))
@@ -342,7 +342,7 @@ void Worker::start_search() noexcept {
 
                 rms.swap_to_front(bookBestMove);
 
-                if (bookPonderMove != Move::None)
+                if (bookPonderMove.is_ok())
                     rms[0].push_back(bookPonderMove);
             }
         }
@@ -898,7 +898,7 @@ Value Worker::search(Position&    pos,
 
     assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
-    const bool exclude = excludedMove != Move::None;
+    const bool exclude = excludedMove.is_ok();
 
     const auto correctionValue = correction_value(pos, ss);
 
@@ -913,7 +913,7 @@ Value Worker::search(Position&    pos,
     ss->ttMove = ttd.move;
     ss->ttPv   = exclude ? ss->ttPv : PVNode || (ttd.hit && ttd.pv);
 
-    const bool ttmNone    = ttd.move == Move::None;
+    const bool ttmNone    = !ttd.move.is_ok();
     const bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     const Move preMove = (ss - 1)->move;
@@ -1260,7 +1260,7 @@ Value Worker::search(Position&    pos,
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
         // Loop through all legal moves
-        while ((move = mp.next_move()) != Move::None)
+        while ((move = mp.next_move()).is_ok())
         {
             assert(pos.legal(move));
             assert(move == ttd.move || pos.see(move) >= probCutThreshold);
@@ -1337,7 +1337,7 @@ Value Worker::search(Position&    pos,
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
                   &atomicHistories, ss->ply, -1);
     // Step 14. Loop through all legal moves until no moves remain or a beta cutoff occurs.
-    while ((move = mp.next_move()) != Move::None)
+    while ((move = mp.next_move()).is_ok())
     {
         assert(pos.legal(move));
 
@@ -1851,7 +1851,7 @@ Value Worker::search(Position&    pos,
             bestValue = blend_values(bestValue, beta, depth, depth + 1);
 
         // If there is a move that produces search value greater than alpha update the history of searched moves
-        if (bestMove != Move::None)
+        if (bestMove.is_ok())
         {
             bool ttBm = bestMove == ttd.move;
 
@@ -1921,18 +1921,18 @@ Value Worker::search(Position&    pos,
     if (!exclude && (!RootNode || pvIdx == 0))
         ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue,
                   moveCount != 0 ? depth : std::min(Depth(depth + 6), DEPTH_MAX),
-                  bestValue >= beta                  ? Bound::LOWER
-                  : PVNode && bestMove != Move::None ? Bound::EXACT
-                                                     : Bound::UPPER,
+                  bestValue >= beta            ? Bound::LOWER
+                  : PVNode && bestMove.is_ok() ? Bound::EXACT
+                                               : Bound::UPPER,
                   ss->ttPv);
 
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
-    if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
-        && (bestValue > ss->evalue) == (bestMove != Move::None))
+    if (!ss->inCheck && (!bestMove.is_ok() || !pos.capture(bestMove))
+        && (bestValue > ss->evalue) == bestMove.is_ok())
     {
         int bonus = constexpr_round((bestValue - ss->evalue) * depth
-                                    * (bestMove != Move::None ? 12.0 : 18.0) / 128.0);
+                                    * (bestMove.is_ok() ? 12.0 : 18.0) / 128.0);
         bonus     = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
         bonus     = constexpr_round(bonus * 1061.0 / 1024.0);
         update_correction_histories(pos, ss, bonus);
@@ -1990,7 +1990,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
-    assert(ttd.move == Move::None || pos.legal(ttd.move));
+    assert(!ttd.move.is_ok() || pos.legal(ttd.move));
     const bool ttPv = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
@@ -2086,7 +2086,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
                   &atomicHistories, ss->ply);
     // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs
-    while ((move = mp.next_move()) != Move::None)
+    while ((move = mp.next_move()).is_ok())
     {
         assert(pos.legal(move));
         assert(inCheck || pos.capture_promo(move));
@@ -2230,7 +2230,7 @@ void Worker::do_move(Position&    pos,
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
     Dirties& dirties = accStack.push();
-    pos.do_move(m, st, mayCheck, this, &dirties);
+    pos.do_move(m, st, mayCheck, &atomicHistories, &dirties);
     assert(moveKey == pos.key());
 
     ++nodes;
@@ -2381,7 +2381,7 @@ void Worker::update_histories(const Position&             pos,
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
     Stack* const ss1 = ss - 1;
     if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE
-        && ss1->moveCount == 1 + int(ss1->ttHit && ss1->ttMove != Move::None))
+        && ss1->moveCount == 1 + int(ss1->ttHit && ss1->ttMove.is_ok()))
     {
         const Square preSq = ss1->move.dst_sq();
         update_continuation_histories(ss1, pos[preSq], preSq,
@@ -2485,10 +2485,10 @@ bool Worker::ponder_move_extracted() noexcept {
     assert(rm0.size() == 1);
 
     const Move bestMove = rm0[0];
-    assert(bestMove != Move::None);
+    assert(bestMove.is_ok());
 
     State st;
-    rootPos.do_move(bestMove, st, true, this);
+    rootPos.do_move(bestMove, st, true, &atomicHistories);
 
     if (!rootPos.is_draw(1))
     {
@@ -2503,7 +2503,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
             ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
-            if (ponderMove == Move::None || !moveList.contains(ponderMove))
+            if (!ponderMove.is_ok() || !moveList.contains(ponderMove))
             {
                 ponderMove = Move::None;
 
@@ -2519,7 +2519,7 @@ bool Worker::ponder_move_extracted() noexcept {
                     }
                 }
 
-                if (ponderMove == Move::None)
+                if (!ponderMove.is_ok())
                     for (auto&& th : threads)
                     {
                         if (th->worker.get() == this)
@@ -2532,7 +2532,7 @@ bool Worker::ponder_move_extracted() noexcept {
                         }
                     }
 
-                if (ponderMove == Move::None)
+                if (!ponderMove.is_ok())
                 {
                     std::uniform_int_distribution<usize> distribution(0, moveList.size() - 1);
                     ponderMove = *(moveList.begin() + distribution(prng));
@@ -2812,7 +2812,7 @@ void Manager::handle_time_management(const Worker& worker,
     const TimePoint elapsedTime = elapsed(worker.threads);
 
     // Stop the search if have exceeded the total time, or
-    // if know that there are no better moves in the analysed line(s)
+    // if know that there are no better moves in the analyzed line(s)
     if (elapsedTime > totalTime  //
         // found mates-in-1 or found mates-in-2
         || worker.rootMoves[worker.multiPV - 1].value >= mates_in(3)
@@ -2942,7 +2942,7 @@ void Skill::pick_move(const RootMoves& rootMoves,
     assert(0 < multiPV && multiPV <= rootMoves.size());
     static Xorshift64s prng(now());  // PRNG sequence should be non-deterministic
 
-    if (forcePick || move() == Move::None)
+    if (forcePick || !move().is_ok())
     {
         // With tablebases at the root, rootMoves are ordered by tbRank rather than by value,
         // so compute the value range explicitly to keep 'delta' non-negative.

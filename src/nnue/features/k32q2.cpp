@@ -50,7 +50,7 @@ constexpr Index PS_B_QUEEN  = 9 * SQUARE_NB;
 constexpr Index PS_KING     = 10 * SQUARE_NB;
 constexpr Index PS_NB       = 11 * SQUARE_NB;
 
-constexpr Array<Index, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
+alignas(CACHE_LINE_SIZE) constexpr Array<Index, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
   // Convention: W - us, B - them
   // Viewed from other side, W and B are reversed
   {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
@@ -61,7 +61,7 @@ constexpr Array<Index, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
 
 #define B(v) (2 * v * PS_NB)
 // clang-format off
-constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
+alignas(CACHE_LINE_SIZE) constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
     B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
     B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
     B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
@@ -75,21 +75,22 @@ constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
 #undef B
 
 alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
-    Array<u32, SQUARE_NB, COLOR_NB, 2, PIECE_NB> offsets{};
+    Array<Index, COLOR_NB, 2, SQUARE_NB, PIECE_NB> offsets{};
 
-    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    for (const Color c : {WHITE, BLACK})
     {
-        for (const Color c : {WHITE, BLACK})
-        {
-            const u16 flip   = 56 * c;
-            const u16 orient = relative_sq(c, orientation(s));
+        const Index flip = 56 * c;
 
-            for (const bool q : {false, true})
+        for (const bool q : {false, true})
+        {
+            const Index queenOffset = int(q) * PS_NB;
+
+            for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
-                const u16 queenOffset = q ? PS_NB : 0;
+                const Index orient = relative_sq(c, orientation(s));
 
                 for (usize piece = 0; piece < PIECE_NB; ++piece)
-                    offsets[s][c][q][piece] = PIECE_SQUARE_INDICES[c][piece]
+                    offsets[c][q][s][piece] = PIECE_SQUARE_INDICES[c][piece]
                                             + KING_BUCKETS[u8(s) ^ flip] + queenOffset + orient;
             }
         }
@@ -104,7 +105,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const bool   opponentHasQueen,
                                          const Square s,
                                          const Piece  pc) noexcept {
-    return Index(s) ^ OFFSETS[kingSq][perspective][int(opponentHasQueen)][+pc];
+    return Index(s) ^ OFFSETS[perspective][int(opponentHasQueen)][kingSq][+pc];
 }
 }  // namespace
 

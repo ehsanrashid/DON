@@ -23,7 +23,7 @@
 #include <string_view>
 
 #include "bitboard.h"
-#include "misc.h"
+#include "utility/functions.h"
 
 namespace DON {
 

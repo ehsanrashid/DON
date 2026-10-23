@@ -39,7 +39,7 @@ class SinglyIntrusiveList final {
 
     [[nodiscard]] const_pointer front() const noexcept { return head; }
 
-    [[nodiscard]] bool size() const noexcept { return size_; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
 
     [[nodiscard]] bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
@@ -52,6 +52,20 @@ class SinglyIntrusiveList final {
         head      = &node;
 
         ++size_;
+    }
+
+    // position must belong to this list; node must be detached.
+    bool insert_after(T& node, T& pos) noexcept {
+        assert(&pos != &node);
+        assert(node.next == nullptr);
+
+        if (&pos == &node || node.next != nullptr)
+            return false;
+
+        node.next = pos.next;
+        pos.next  = &node;
+        ++size_;
+        return true;
     }
 
     [[nodiscard]] pointer pop_front() noexcept {
@@ -67,6 +81,34 @@ class SinglyIntrusiveList final {
         return node;
     }
 
+    [[nodiscard]] T* next(const T& node) noexcept { return node.next; }
+
+    [[nodiscard]] const T* next(const T& node) const noexcept { return node.next; }
+
+    bool erase(T& node) noexcept {
+        T* previous = nullptr;
+        T* current  = head;
+
+        while (current != nullptr && current != &node)
+        {
+            previous = current;
+            current  = current->next;
+        }
+
+        assert(current == &node);
+        if (current == nullptr)
+            return false;
+
+        if (previous != nullptr)
+            previous->next = node.next;
+        else
+            head = node.next;
+
+        node.next = nullptr;
+        --size_;
+        return true;
+    }
+
     void clear() noexcept {
         head  = nullptr;
         size_ = 0;
@@ -75,91 +117,6 @@ class SinglyIntrusiveList final {
    private:
     pointer head  = nullptr;
     usize   size_ = 0;
-};
-
-// Intrusive doubly linked list optimized for LRU policy operations.
-template<typename T>
-class LRUIntrusiveList final {
-   public:
-    LRUIntrusiveList() noexcept                              = default;
-    LRUIntrusiveList(const LRUIntrusiveList&)                = delete;
-    LRUIntrusiveList& operator=(const LRUIntrusiveList&)     = delete;
-    LRUIntrusiveList(LRUIntrusiveList&&) noexcept            = delete;
-    LRUIntrusiveList& operator=(LRUIntrusiveList&&) noexcept = delete;
-
-    [[nodiscard]] T*       front() noexcept { return front_; }
-    [[nodiscard]] const T* front() const noexcept { return front_; }
-
-    [[nodiscard]] T*       back() noexcept { return back_; }
-    [[nodiscard]] const T* back() const noexcept { return back_; }
-
-    [[nodiscard]] usize size() const noexcept { return size_; }
-
-    [[nodiscard]] bool empty() const noexcept {
-        assert((front() == nullptr) == (size() == 0));
-        assert((back() == nullptr) == (size() == 0));
-
-        return size() == 0;
-    }
-
-    bool push_front(T& item) noexcept {
-        assert(item.prev == nullptr && item.next == nullptr);
-
-        if (item.prev != nullptr || item.next != nullptr)
-            return false;
-
-        item.prev = nullptr;
-        item.next = front_;
-
-        if (front_ != nullptr)
-            front_->prev = &item;
-        else
-            back_ = &item;
-
-        front_ = &item;
-
-        ++size_;
-        return true;
-    }
-
-    void move_front(T& item) noexcept {
-        if (front_ == &item)
-            return;
-
-        unlink(item);
-
-        item.prev = nullptr;
-        item.next = front_;
-
-        front_->prev = &item;
-        front_       = &item;
-    }
-
-    void erase(T& item) noexcept {
-        unlink(item);
-
-        item.prev = nullptr;
-        item.next = nullptr;
-
-        --size_;
-    }
-
-   private:
-    void unlink(T& item) noexcept {
-        if (item.prev != nullptr)
-            item.prev->next = item.next;
-        else
-            front_ = item.next;
-
-        if (item.next != nullptr)
-            item.next->prev = item.prev;
-        else
-            back_ = item.prev;
-    }
-
-    T*    front_ = nullptr;
-    T*    back_  = nullptr;
-    usize size_  = 0;
 };
 
 // A lightweight intrusive doubly linked list that does not own its elements or allocate memory.
@@ -178,12 +135,10 @@ class DoublyIntrusiveList final {
     DoublyIntrusiveList(DoublyIntrusiveList&&) noexcept            = delete;
     DoublyIntrusiveList& operator=(DoublyIntrusiveList&&) noexcept = delete;
 
-    [[nodiscard]] T* front() noexcept { return front_; }
-
+    [[nodiscard]] T*       front() noexcept { return front_; }
     [[nodiscard]] const T* front() const noexcept { return front_; }
 
-    [[nodiscard]] T* back() noexcept { return back_; }
-
+    [[nodiscard]] T*       back() noexcept { return back_; }
     [[nodiscard]] const T* back() const noexcept { return back_; }
 
     [[nodiscard]] usize size() const noexcept { return size_; }
@@ -191,272 +146,240 @@ class DoublyIntrusiveList final {
     [[nodiscard]] bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
         assert((back() == nullptr) == (size() == 0));
-
         return size() == 0;
     }
 
-    [[nodiscard]] T* next(T& item) noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return nullptr;
-
-        return item.next;
+    [[nodiscard]] T* next(const T& node) noexcept {
+        assert(is_linked(node));
+        return node.next;
     }
 
-    [[nodiscard]] const T* next(const T& item) const noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return nullptr;
-
-        return item.next;
+    [[nodiscard]] const T* next(const T& node) const noexcept {
+        assert(is_linked(node));
+        return node.next;
     }
 
-    [[nodiscard]] T* prev(T& item) noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return nullptr;
-
-        return item.prev;
+    [[nodiscard]] T* prev(T& node) noexcept {
+        assert(is_linked(node));
+        return node.prev;
     }
 
-    [[nodiscard]] const T* prev(const T& item) const noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return nullptr;
-
-        return item.prev;
+    [[nodiscard]] const T* prev(const T& node) const noexcept {
+        assert(is_linked(node));
+        return node.prev;
     }
 
-    // ----------------------------------------------
+    bool push_front(T& node) noexcept {
+        assert(!is_linked(node));
+        assert(node.prev == nullptr && node.next == nullptr);
 
-    bool push_front(T& item) noexcept {
-        assert(item.prev == nullptr);
-        assert(item.next == nullptr);
-
-        if (item.prev != nullptr || item.next != nullptr)
+        if (node.prev != nullptr || node.next != nullptr)
             return false;
 
-        attach_front(item);
-
+        link_front(node);
+        ++size_;
         return true;
     }
 
-    bool push_back(T& item) noexcept {
-        assert(item.prev == nullptr);
-        assert(item.next == nullptr);
+    bool push_back(T& node) noexcept {
+        assert(!is_linked(node));
+        assert(node.prev == nullptr && node.next == nullptr);
 
-        if (item.prev != nullptr || item.next != nullptr)
+        if (node.prev != nullptr || node.next != nullptr)
             return false;
 
-        attach_back(item);
-
+        link_back(node);
+        ++size_;
         return true;
     }
 
-    // Inserts a detached item before a node already in this list.
-    bool insert_before(T& item, T& node) noexcept {
-        assert(&item != &node);
-        assert(item.prev == nullptr);
-        assert(item.next == nullptr);
+    bool insert_before(T& node, T& pos) noexcept {
+        assert(&node != &pos);
+        assert(!is_linked(node));
+        assert(is_linked(pos));
+        assert(node.prev == nullptr && node.next == nullptr);
 
-        if (&item == &node || item.prev != nullptr || item.next != nullptr)
+        if (&node == &pos || node.prev != nullptr || node.next != nullptr)
             return false;
 
-        link_before(item, node);
-
-        attach();
-
+        link_before(node, pos);
+        ++size_;
         return true;
     }
 
-    // Inserts a detached item after a node already in this list.
-    bool insert_after(T& item, T& node) noexcept {
-        assert(&item != &node);
-        assert(item.prev == nullptr);
-        assert(item.next == nullptr);
+    bool insert_after(T& node, T& pos) noexcept {
+        assert(&node != &pos);
+        assert(!is_linked(node));
+        assert(is_linked(pos));
+        assert(node.prev == nullptr && node.next == nullptr);
 
-        if (&item == &node || item.prev != nullptr || item.next != nullptr)
+        if (&node == &pos || node.prev != nullptr || node.next != nullptr)
             return false;
 
-        link_after(item, node);
-
-        attach();
-
+        link_after(node, pos);
+        ++size_;
         return true;
     }
 
-    // ----------------------------------------------
+    bool move_front(T& node) noexcept {
+        assert(is_linked(node));
 
-    bool move_front(T& item) noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return false;
-
-        if (front_ == &item)
+        if (front_ == &node)
             return true;
 
-        unlink(item);
-
-        link_front(item);
-
+        unlink(node);
+        link_front(node);
         return true;
     }
 
-    bool move_back(T& item) noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return false;
+    bool move_back(T& node) noexcept {
+        assert(is_linked(node));
 
-        if (back_ == &item)
+        if (back_ == &node)
             return true;
 
-        unlink(item);
-
-        link_back(item);
-
+        unlink(node);
+        link_back(node);
         return true;
     }
 
-    bool move_before(T& item, T& node) noexcept {
-        assert(contains(item));
-        assert(contains(node));
-        //if (!contains(item) || !contains(node))
-        //    return false;
+    bool move_before(T& node, T& pos) noexcept {
+        assert(is_linked(node));
+        assert(is_linked(pos));
 
-        if (&item == &node || item.next == &node)
+        if (&node == &pos || node.next == &pos)
             return true;
 
-        unlink(item);
-
-        link_before(item, node);
-
+        unlink(node);
+        link_before(node, pos);
         return true;
     }
 
-    bool move_after(T& item, T& node) noexcept {
-        assert(contains(item));
-        assert(contains(node));
-        //if (!contains(item) || !contains(node))
-        //    return false;
+    bool move_after(T& node, T& pos) noexcept {
+        assert(is_linked(node));
+        assert(is_linked(pos));
 
-        if (&item == &node || item.prev == &node)
+        if (&node == &pos || node.prev == &pos)
             return true;
 
-        unlink(item);
-
-        link_after(item, node);
-
+        unlink(node);
+        link_after(node, pos);
         return true;
     }
 
-    // ----------------------------------------------
+    bool erase(T& node) noexcept {
+        assert(is_linked(node));
 
-    bool erase(T& item) noexcept {
-        assert(contains(item));
-        //if (!contains(item))
-        //    return false;
-
-        detach(item);
-
+        unlink(node);
+        --size_;
         return true;
+    }
+
+    T* pop_front() noexcept {
+        if (front_ == nullptr)
+            return nullptr;
+
+        T* const node = front_;
+
+        unlink(*node);
+        --size_;
+
+        return node;
+    }
+
+    T* pop_back() noexcept {
+        if (back_ == nullptr)
+            return nullptr;
+
+        T* const node = back_;
+
+        unlink(*node);
+        --size_;
+
+        return node;
     }
 
    private:
-    [[nodiscard]] bool contains(const T& item) const noexcept {
-        if (size_ == 0)
-            return false;
-
+    [[nodiscard]] bool is_linked(const T& node) const noexcept {
         // An intrusive list without an owner pointer cannot generally determine membership
         // from an arbitrary node in O(1). The boundary checks below handle the common cases.
-        if (front_ == &item || back_ == &item)
-            return true;
-
-        return item.prev != nullptr || item.next != nullptr;
+        return front_ == &node || back_ == &node || node.prev != nullptr || node.next != nullptr;
     }
 
-    void unlink(T& item) noexcept {
-        if (item.prev != nullptr)
-            item.prev->next = item.next;
-        else
-            front_ = item.next;
+    [[nodiscard]] bool contains(const T& node) const noexcept {
+        if (empty())
+            return false;
 
-        if (item.next != nullptr)
-            item.next->prev = item.prev;
-        else
-            back_ = item.prev;
+        for (auto* current = front_; current != nullptr; current = current->next)
+        {
+            if (current == &node)
+                return true;
+        }
 
-        item.prev = nullptr;
-        item.next = nullptr;
+        return false;
     }
 
-    void link_front(T& item) noexcept {
-        item.prev = nullptr;
-        item.next = front_;
-
-        if (front_ != nullptr)
-            front_->prev = &item;
+    void unlink(T& node) noexcept {
+        if (node.prev != nullptr)
+            node.prev->next = node.next;
         else
-            back_ = &item;
-
-        front_ = &item;
-    }
-
-    void link_back(T& item) noexcept {
-        item.prev = back_;
-        item.next = nullptr;
-
-        if (back_ != nullptr)
-            back_->next = &item;
-        else
-            front_ = &item;
-
-        back_ = &item;
-    }
-
-    void link_after(T& item, T& node) noexcept {
-        item.prev = &node;
-        item.next = node.next;
+            front_ = node.next;
 
         if (node.next != nullptr)
-            node.next->prev = &item;
+            node.next->prev = node.prev;
         else
-            back_ = &item;
+            back_ = node.prev;
 
-        node.next = &item;
+        node.prev = nullptr;
+        node.next = nullptr;
     }
 
-    void link_before(T& item, T& node) noexcept {
-        item.prev = node.prev;
-        item.next = &node;
+    void link_front(T& node) noexcept {
+        node.prev = nullptr;
+        node.next = front_;
 
-        if (node.prev != nullptr)
-            node.prev->next = &item;
+        if (front_ != nullptr)
+            front_->prev = &node;
         else
-            front_ = &item;
+            back_ = &node;
 
-        node.prev = &item;
+        front_ = &node;
     }
 
-    void attach() noexcept {  //
-        ++size_;
+    void link_back(T& node) noexcept {
+        node.prev = back_;
+        node.next = nullptr;
+
+        if (back_ != nullptr)
+            back_->next = &node;
+        else
+            front_ = &node;
+
+        back_ = &node;
     }
 
-    void detach(T& item) noexcept {
-        unlink(item);
+    void link_after(T& node, T& pos) noexcept {
+        node.prev = &pos;
+        node.next = pos.next;
 
-        --size_;
+        if (pos.next != nullptr)
+            pos.next->prev = &node;
+        else
+            back_ = &node;
+
+        pos.next = &node;
     }
 
-    void attach_front(T& item) noexcept {
-        link_front(item);
+    void link_before(T& node, T& pos) noexcept {
+        node.prev = pos.prev;
+        node.next = &pos;
 
-        attach();
-    }
+        if (pos.prev != nullptr)
+            pos.prev->next = &node;
+        else
+            front_ = &node;
 
-    void attach_back(T& item) noexcept {
-        link_back(item);
-
-        attach();
+        pos.prev = &node;
     }
 
     T*    front_ = nullptr;

@@ -28,6 +28,23 @@
 
 namespace DON {
 
+// A std::mutex wrapper for clang thread safety annotation.
+class LOCKABLE Mutex final {
+   public:
+    Mutex() noexcept                        = default;
+    Mutex(const Mutex&) noexcept            = delete;
+    Mutex& operator=(const Mutex&) noexcept = delete;
+    Mutex(Mutex&&) noexcept                 = delete;
+    Mutex& operator=(Mutex&&) noexcept      = delete;
+
+    void lock() noexcept ACQUIRE_CAPABILITY();
+
+    void unlock() noexcept RELEASE_CAPABILITY();
+
+   private:
+    std::mutex mutex;
+};
+
 // A lightweight mutex that actively spins while waiting for the lock to
 // become available. Under sustained contention, periodically yields the
 // thread or briefly sleeps to reduce CPU usage and excessive busy-waiting.
@@ -56,10 +73,54 @@ class LOCKABLE SpinMutex final {
 
    private:
     static constexpr usize SpinsMax    = 512;
-    static constexpr usize YieldsMax   = 4 * MB;
+    static constexpr usize YieldsMax   = 128;
     static constexpr usize SleepTimeNs = 10;
 
     std::atomic<bool> locked{false};
+};
+
+// A shared mutex that gives no preference for readers or writers.
+// Provides exclusive and shared locking with Clang thread-safety annotations.
+class LOCKABLE SharedMutex final {
+   public:
+    SharedMutex() noexcept                              = default;
+    SharedMutex(const SharedMutex&) noexcept            = delete;
+    SharedMutex& operator=(const SharedMutex&) noexcept = delete;
+    SharedMutex(SharedMutex&&) noexcept                 = delete;
+    SharedMutex& operator=(SharedMutex&&) noexcept      = delete;
+
+    void lock() noexcept ACQUIRE_CAPABILITY();
+
+    bool try_lock() noexcept TRY_ACQUIRE_CAPABILITY(true);
+
+    void unlock() noexcept RELEASE_CAPABILITY();
+
+    void lock_shared() noexcept ACQUIRE_SHARED_CAPABILITY();
+
+    bool try_lock_shared() noexcept TRY_ACQUIRE_SHARED_CAPABILITY(true);
+
+    void unlock_shared() noexcept RELEASE_SHARED_CAPABILITY();
+
+    [[nodiscard]] usize active_reader_count() const noexcept;
+
+    [[nodiscard]] usize waiting_writer_count() const noexcept;
+
+   private:
+    [[nodiscard]] bool can_lock() const noexcept;
+
+    [[nodiscard]] bool can_try_lock() const noexcept;
+
+    [[nodiscard]] bool can_lock_shared() const noexcept;
+
+    [[nodiscard]] bool can_try_lock_shared() const noexcept;
+
+    mutable std::mutex      mutex;
+    std::condition_variable commonCondVar;
+
+    usize activeReaderCount  GUARDED_BY(mutex) = 0;
+    usize waitingWriterCount GUARDED_BY(mutex) = 0;
+
+    bool writerActive GUARDED_BY(mutex) = false;
 };
 
 // A shared mutex that gives priority to readers over waiting writers.
