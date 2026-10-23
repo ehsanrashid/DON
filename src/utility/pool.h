@@ -20,11 +20,11 @@
 
 #include <cassert>
 #include <cstddef>      // std::byte, offsetof()
+#include <exception>    // terminate()
 #include <memory>       // unique_ptr, make_unique
 #include <new>          // placement new
 #include <type_traits>  // is_nothrow_destructible_v, if used
 #include <utility>      // forward, move()
-#include <exception>    // terminate()
 
 #define USE_STATIC_VECTOR
 
@@ -43,22 +43,25 @@ template<typename T, usize BlockBytesMax = 64 * KB>
 class Pool final {
     struct Slot;
 
-    struct ActiveNode {
+    struct ActiveNode final {
+       public:
+        explicit ActiveNode(Slot* slotPtr) noexcept :
+            slot(slotPtr) {}
+
         Slot*       slot = nullptr;
         ActiveNode* prev = nullptr;
         ActiveNode* next = nullptr;
-
-        explicit ActiveNode(Slot* slotPtr) noexcept :
-            slot(slotPtr) {}
     };
 
-    struct Slot {
+    struct Slot final {
+       public:
         alignas(T) std::byte storage[sizeof(T)];
-        Slot*      next = nullptr;
         ActiveNode activeNode{this};
+        Slot*      next = nullptr;
     };
 
-    struct Block {
+    struct Block final {
+       public:
         std::unique_ptr<Slot[]> slots;
         usize                   size = 0;
     };
@@ -76,7 +79,7 @@ class Pool final {
         return size;
     }();
 
-#ifdef USE_STATIC_VECTOR
+#if defined(USE_STATIC_VECTOR)
     static constexpr usize BlockMax = 1024;
 
     using block_container_type = StaticVector<Block, BlockMax>;
@@ -85,7 +88,14 @@ class Pool final {
 #endif
 
    public:
-    Pool()                                = default;
+    Pool()
+#if defined(USE_STATIC_VECTOR)
+      = default;
+#else
+    {
+        blocks.reserve(16);
+    }
+#endif
     Pool(const Pool&) noexcept            = delete;
     Pool& operator=(const Pool&) noexcept = delete;
     Pool(Pool&&) noexcept                 = delete;
@@ -122,7 +132,7 @@ class Pool final {
     void release() noexcept {
         while (ActiveNode* node = activeList.front())
         {
-            Slot* slot = node->slot;
+            Slot* const slot = node->slot;
 
             detach_active(slot);
 
@@ -183,19 +193,18 @@ class Pool final {
     // Allocate and retain a stable Slot array, then put every slot on the free list.
     // With StaticVector, exceeding BlockMax retained blocks terminates the process.
     void allocate_block(usize requiredSize) {
-        const usize size = block_size(requiredSize);
-
-#ifdef USE_STATIC_VECTOR
+#if defined(USE_STATIC_VECTOR)
         if (blocks.full())
             std::terminate();
 #endif
+        const usize size = block_size(requiredSize);
 
         blocks.push_back(Block{std::make_unique<Slot[]>(size), size});
 
         Slot* const slots = blocks.back().slots.get();
-
-        for (usize i = 0; i < size; ++i)
-            slotList.push_front(slots[i]);
+        // Loop directly using pointer limits for absolute code minimization
+        for (Slot* slot = slots; slot < slots + size; ++slot)
+            slotList.push_front(*slot);
     }
 
     void attach_active(Slot* const slot) noexcept {
