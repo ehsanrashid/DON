@@ -29,7 +29,7 @@
 #include "movegen.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
-#include "utility/arc_cache.h"
+#include "utility/sieve_cache.h"
 #include "utility/error.h"
 #include "utility/functions.h"
 #include "utility/multi_array.h"
@@ -53,7 +53,7 @@ Cuckoos_& cuckoos() noexcept {
     return cuckoos;
 }
 
-using ValueCache = ShardedCache<Key, Value, PoolFlatARCCache, 32, SpinMutex>;
+using ValueCache = ShardedCache<Key, Value, PoolFlatSIEVECache, 32, SpinMutex>;
 
 constexpr float MAX_LOAD_FACTOR = 0.75F;
 

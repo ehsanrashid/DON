@@ -222,33 +222,33 @@ void benchmark_workload(const char* name, Workload workload, usize hotAccessesPe
     const double lirsNs = median(lirsTimes);
 
     std::printf("\n%s (%zu operations)\n", name, keys.size());
-    std::printf("%-12s %12s %12s %16s\n", "Cache", "ns/op", "Mops/s", "Checksum");
+    std::printf("%-15s %12s %12s %16s\n", "Cache", "ns/op", "Mops/s", "Checksum");
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLRU", lruNs, 1000.0 / lruNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatLRU", lruNs, 1000.0 / lruNs,
                 static_cast<unsigned long long>(lruChecksum));
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLFU", lfuNs, 1000.0 / lfuNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatLFU", lfuNs, 1000.0 / lfuNs,
                 static_cast<unsigned long long>(lfuChecksum));
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatARC", arcNs, 1000.0 / arcNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatARC", arcNs, 1000.0 / arcNs,
                 static_cast<unsigned long long>(arcChecksum));
 
-    //std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLIRS", lirsNs, 1000.0 / lirsNs,
+    //std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatLIRS", lirsNs, 1000.0 / lirsNs,
     //            static_cast<unsigned long long>(lirsChecksum));
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatSIEVE", lirsNs, 1000.0 / lirsNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatSIEVE", lirsNs, 1000.0 / lirsNs,
                 static_cast<unsigned long long>(lirsChecksum));
 
-    std::printf("LFU vs LRU: %+.2f%% %s\n", (lruNs - lfuNs) * 100.0 / lruNs,
+    std::printf("LFU   vs LRU: %+.2f%% %s\n", (lruNs - lfuNs) * 100.0 / lruNs,
                 lfuNs < lruNs   ? "faster"
                 : lfuNs > lruNs ? "slower"
                                 : "equal");
 
-    std::printf("ARC vs LRU: %+.2f%% %s\n", (lruNs - arcNs) * 100.0 / lruNs,
+    std::printf("ARC   vs LRU: %+.2f%% %s\n", (lruNs - arcNs) * 100.0 / lruNs,
                 arcNs < lruNs   ? "faster"
                 : arcNs > lruNs ? "slower"
                                 : "equal");
 
-    // std::printf("LIRS vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
+    // std::printf("LIRS  vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
     //             lirsNs < lruNs   ? "faster"
     //             : lirsNs > lruNs ? "slower"
     //                              : "equal");
