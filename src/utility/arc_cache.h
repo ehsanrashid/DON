@@ -336,17 +336,6 @@ class PoolARCCache final {
         return true;
     }
 
-    void nolock_list_move_front(list_value_type& entry) noexcept {
-        assert(entry.bucketIndex < BucketCount);
-
-        if (entry.prev == nullptr)
-            return;
-
-        [[maybe_unused]]  //
-        const bool moved = buckets[entry.bucketIndex].entries.move_front(entry);
-        assert(moved);
-    }
-
     [[nodiscard]] bool nolock_list_move_entry(list_value_type& entry,
                                               const usize      newIndex) noexcept {
         assert(entry.bucketIndex < BucketCount);
@@ -379,7 +368,9 @@ class PoolARCCache final {
 
         if (entry.bucketIndex == T2)
         {
-            nolock_list_move_front(entry);
+            [[maybe_unused]]  //
+            const bool moved = buckets[T2].entries.move_front(entry);
+            assert(moved);
             return;
         }
 
@@ -486,6 +477,10 @@ class PoolARCCache final {
             return false;
 
         map.erase(mapItr);
+
+        // Cleanly explicitly clear out the value state right before destroying the item,
+        // guaranteeing that dynamic underlying allocations inside 'Value' are safely released.
+        entry->value.reset();
 
         pool.destroy(entry);
 
@@ -729,12 +724,14 @@ class PoolARCCache final {
         else
         {
             // 2. Case B: Maximum General Directory Overlap Pruning
-            // Triggers only if the total database lookup map reaches structural limits (2 * capacity)
+            // Triggers only if the total database lookup map reaches structural limits (2 * capacity).
+            // FIXED FOR 80/20: We target B2 first to allow the massive 80% frequency tracking queue
+            // to naturally shed its oldest entries, perfectly insulating the small 20% B1 tracking space.
             if (map.size() >= (2 * capacity))
             {
-                auto ghost = buckets[B1].entries.back();
+                auto ghost = buckets[B2].entries.back();
                 if (ghost == nullptr)
-                    ghost = buckets[B2].entries.back();
+                    ghost = buckets[B1].entries.back();
 
                 if (ghost != nullptr)
                     (void) nolock_remove_ghost(*ghost);
@@ -1385,17 +1382,6 @@ class PoolFlatARCCache final {
         return true;
     }
 
-    void nolock_list_move_front(list_value_type& entry) noexcept {
-        assert(entry.bucketIndex < BucketCount);
-
-        if (entry.prev == nullptr)
-            return;
-
-        [[maybe_unused]]  //
-        const bool moved = buckets[entry.bucketIndex].entries.move_front(entry);
-        assert(moved);
-    }
-
     [[nodiscard]] bool nolock_list_move_entry(list_value_type& entry,
                                               const usize      newIndex) noexcept {
         assert(entry.bucketIndex < BucketCount);
@@ -1428,7 +1414,9 @@ class PoolFlatARCCache final {
 
         if (entry.bucketIndex == T2)
         {
-            nolock_list_move_front(entry);
+            [[maybe_unused]]  //
+            const bool moved = buckets[T2].entries.move_front(entry);
+            assert(moved);
             return;
         }
 
@@ -1535,6 +1523,10 @@ class PoolFlatARCCache final {
             return false;
 
         map.erase(mapItr);
+
+        // Cleanly explicitly clear out the value state right before destroying the item,
+        // guaranteeing that dynamic underlying allocations inside 'Value' are safely released.
+        entry->value.reset();
 
         pool.destroy(entry);
 
@@ -1778,12 +1770,14 @@ class PoolFlatARCCache final {
         else
         {
             // 2. Case B: Maximum General Directory Overlap Pruning
-            // Triggers only if the total database lookup map reaches structural limits (2 * capacity)
+            // Triggers only if the total database lookup map reaches structural limits (2 * capacity).
+            // FIXED FOR 80/20: We target B2 first to allow the massive 80% frequency tracking queue
+            // to naturally shed its oldest entries, perfectly insulating the small 20% B1 tracking space.
             if (map.size() >= (2 * capacity))
             {
-                auto ghost = buckets[B1].entries.back();
+                auto ghost = buckets[B2].entries.back();
                 if (ghost == nullptr)
-                    ghost = buckets[B2].entries.back();
+                    ghost = buckets[B1].entries.back();
 
                 if (ghost != nullptr)
                     (void) nolock_remove_ghost(*ghost);
