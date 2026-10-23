@@ -787,9 +787,7 @@ class PoolARCCache final {
         // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
-        {
             return Return{std::forward<Args>(args)...};
-        }
 
         // 3. PROBE AND EMBED INTO THE MAP DIRECTLY
         auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
@@ -828,9 +826,13 @@ class PoolARCCache final {
             return Return{std::forward<Args>(args)...};
         }
 
-        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        // 6. STARTUP BALANCE ADAPTATION: Isolated strictly to under-capacity growth phase
+        if (nolock_resident_size() < capacity && target < buckets[T1].entries.size())
+            target = buckets[T1].entries.size();
+
+        // Enforce strict 80/20 constraints once steady-state capacity limit is reached
         const usize maxRecencyLimit = nolock_max_recency_limit();
-        if (target > maxRecencyLimit)
+        if (nolock_resident_size() >= capacity && target > maxRecencyLimit)
             target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
@@ -868,14 +870,13 @@ class PoolARCCache final {
             assert(mapItr != map.end() && mapItr->second != nullptr);
 
             // 2. TRANSACTION COMMIT WALL: Construct the value EXACTLY once here.
+            // This prevents duplicate evaluation or use-after-move vulnerabilities if the promotion fails!
             Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
 
             list_iterator const promotedEntry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (promotedEntry == nullptr)
-            {
                 return Return{std::move(value)};
-            }
 
             assert(nolock_consistency_check());
             return nolock_read(promotedEntry);
@@ -883,15 +884,14 @@ class PoolARCCache final {
 
         // --- CLEAN MISS PATH ---
 
-        // 1. PREPARE THE MISS FIRST
+        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
+        // BEFORE touching the map directory lookups or initializing allocations!
         nolock_prepare_miss();
 
         // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
-        {
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
-        }
 
         // 3. PROBE AND EMBED INTO THE MAP DIRECTLY
         auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
@@ -930,9 +930,13 @@ class PoolARCCache final {
             return Return{std::move(value)};
         }
 
-        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        // 7. STARTUP BALANCE ADAPTATION: Guarded strictly via under-capacity check
+        if (nolock_resident_size() < capacity && target < buckets[T1].entries.size())
+            target = buckets[T1].entries.size();
+
+        // Enforce strict 80/20 constraints only once the steady-state capacity limit is reached.
         const usize maxRecencyLimit = nolock_max_recency_limit();
-        if (target > maxRecencyLimit)
+        if (nolock_resident_size() >= capacity && target > maxRecencyLimit)
             target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
@@ -1036,7 +1040,8 @@ class PoolARCCache final {
         assert(residentSize <= capacity);
         assert(ghostSize <= capacity);
         assert(target <= capacity);
-        assert(target <= nolock_max_recency_limit());
+        if (residentSize >= capacity)
+            assert(target <= nolock_max_recency_limit());
 
         if (capacity <= std::numeric_limits<usize>::max() / 2)
             assert(map.size() <= 2 * capacity);
@@ -1866,9 +1871,7 @@ class PoolFlatARCCache final {
         // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
-        {
             return Return{std::forward<Args>(args)...};
-        }
 
         // 3. PROBE AND EMBED INTO THE MAP DIRECTLY
         auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
@@ -1907,9 +1910,13 @@ class PoolFlatARCCache final {
             return Return{std::forward<Args>(args)...};
         }
 
-        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        // 6. STARTUP BALANCE ADAPTATION: Isolated strictly to under-capacity growth phase
+        if (nolock_resident_size() < capacity && target < buckets[T1].entries.size())
+            target = buckets[T1].entries.size();
+
+        // Enforce strict 80/20 constraints once steady-state capacity limit is reached
         const usize maxRecencyLimit = nolock_max_recency_limit();
-        if (target > maxRecencyLimit)
+        if (nolock_resident_size() >= capacity && target > maxRecencyLimit)
             target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
@@ -1947,14 +1954,13 @@ class PoolFlatARCCache final {
             assert(mapItr != map.end() && mapItr->second != nullptr);
 
             // 2. TRANSACTION COMMIT WALL: Construct the value EXACTLY once here.
+            // This prevents duplicate evaluation or use-after-move vulnerabilities if the promotion fails!
             Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
 
             list_iterator const promotedEntry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (promotedEntry == nullptr)
-            {
                 return Return{std::move(value)};
-            }
 
             assert(nolock_consistency_check());
             return nolock_read(promotedEntry);
@@ -1962,15 +1968,14 @@ class PoolFlatARCCache final {
 
         // --- CLEAN MISS PATH ---
 
-        // 1. PREPARE THE MISS FIRST
+        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
+        // BEFORE touching the map directory lookups or initializing allocations!
         nolock_prepare_miss();
 
         // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
-        {
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
-        }
 
         // 3. PROBE AND EMBED INTO THE MAP DIRECTLY
         auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
@@ -2009,9 +2014,13 @@ class PoolFlatARCCache final {
             return Return{std::move(value)};
         }
 
-        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        // 7. STARTUP BALANCE ADAPTATION: Guarded strictly via under-capacity check
+        if (nolock_resident_size() < capacity && target < buckets[T1].entries.size())
+            target = buckets[T1].entries.size();
+
+        // Enforce strict 80/20 constraints only once the steady-state capacity limit is reached.
         const usize maxRecencyLimit = nolock_max_recency_limit();
-        if (target > maxRecencyLimit)
+        if (nolock_resident_size() >= capacity && target > maxRecencyLimit)
             target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
@@ -2115,7 +2124,8 @@ class PoolFlatARCCache final {
         assert(residentSize <= capacity);
         assert(ghostSize <= capacity);
         assert(target <= capacity);
-        assert(target <= nolock_max_recency_limit());
+        if (residentSize >= capacity)
+            assert(target <= nolock_max_recency_limit());
 
         if (capacity <= std::numeric_limits<usize>::max() / 2)
             assert(map.size() <= 2 * capacity);
