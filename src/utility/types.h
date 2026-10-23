@@ -187,6 +187,21 @@ template<typename T1, typename T2>
     return R(n) / R(d) + (R(n) % R(d) != 0);
 }
 
+// Divide and round to the nearest integer, with exact halves rounded upward.
+[[nodiscard]] constexpr usize ratio_with_half(const usize numerator,
+                                              const usize denominator) noexcept {
+    assert(denominator != 0);
+
+    if (denominator == 0)
+        return 0;
+
+    const usize quotient  = numerator / denominator;
+    const usize remainder = numerator % denominator;
+    const usize threshold = denominator - (denominator >> 1);
+
+    return quotient + (remainder >= threshold ? 1 : 0);
+}
+
 // Round n up to be a multiple of base
 template<typename T>
 [[nodiscard]] constexpr T ceil_to_multiple(const T n, const T base) noexcept {

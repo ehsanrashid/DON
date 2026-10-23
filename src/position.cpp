@@ -1467,8 +1467,11 @@ Key Position::non_pawn_key(const Color c) const noexcept {
 }
 
 Key Position::move_key(const Move m) const noexcept {
+    assert(m != Move ::None);
+
     Key moveKey = st->key ^ zobrist().turn() ^ zobrist().enpassant(en_passant_sq());
 
+    assert(m != Move ::Null);
     //if (m == Move::Null)
     //    return moveKey;
 

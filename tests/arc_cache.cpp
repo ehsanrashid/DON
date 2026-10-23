@@ -485,11 +485,10 @@ void test_heavy_stress() noexcept {
         }
 
         default : {
-            const int value  = i ^ key;
-            const int result = cache.read_or_write(key, value);
+            const int value = i ^ key;
+            (void) cache.read_or_write(key, value);
 
             // Capacity is positive, so the accessed key must be resident.
-            //CHECK(result == value);
             CHECK(cache.contains(key));
             break;
         }

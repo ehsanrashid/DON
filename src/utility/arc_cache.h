@@ -157,8 +157,9 @@ class PoolARCCache final {
 
         capacity = newCapacity;
 
-        if (target > capacity)
-            target = capacity;
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         nolock_evict_excess(capacity);
     }
@@ -517,9 +518,29 @@ class PoolARCCache final {
 
     // ARC replacement
 
-    [[nodiscard]] usize nolock_max_recency_limit() noexcept {
-        // Dynamic limits based on 80/20 optimization strategy
-        return capacity <= 4 ? 1 : (capacity * 20) / 100;
+    [[nodiscard]] usize nolock_max_recency_limit() const noexcept {
+        // Dynamic limits based on 80/20 optimization strategy (100/20) = 5
+        return capacity <= 4 ? 1 : capacity / 5;
+    }
+
+    [[nodiscard]] usize nolock_scaled_delta(const usize value,
+                                            const usize numerator,
+                                            const usize denominator) const noexcept {
+        assert(denominator != 0);
+
+        const usize quotient  = value / denominator;
+        const usize remainder = value % denominator;
+
+        if (quotient > capacity / numerator)
+            return capacity;
+
+        const usize whole    = quotient * numerator;
+        const usize fraction = (remainder * numerator) / denominator;
+
+        if (fraction >= capacity || whole > capacity - fraction)
+            return capacity;
+
+        return whole + fraction;
     }
 
     [[nodiscard]] bool nolock_replace(const usize t1Size) noexcept {
@@ -627,8 +648,9 @@ class PoolARCCache final {
             return false;
 
         // Enforce valid target boundary before math
-        if (target > capacity)
-            target = capacity;
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         const usize oldTarget = target;
         const usize b1Size    = buckets[B1].entries.size();
@@ -642,12 +664,12 @@ class PoolARCCache final {
                 return false;
 
             // Frequency Hit: Shrink Recency partition (T1 target) to give Frequency more room
-            usize delta = (b1Size + (b2Size >> 1)) / b2Size;
-            delta       = (delta * 15) / 10;  // 150% accelerated pace toward Frequency
+            usize delta = nolock_scaled_delta(ratio_with_half(b1Size, b2Size), 15, 10);
+            // 150% accelerated pace toward Frequency
             if (delta < 1)
                 delta = 1;
 
-            target = target > delta ? target - delta : 0;
+            target = delta < target ? target - delta : 0;
         }
         else
         {
@@ -655,20 +677,19 @@ class PoolARCCache final {
                 return false;
 
             // Recency Hit: Expand Recency partition (T1 target)
-            usize delta = (b2Size + (b1Size >> 1)) / b1Size;
-            delta       = (delta * 6) / 10;  // 60% dampened pace toward Recency
+            usize delta = nolock_scaled_delta(ratio_with_half(b2Size, b1Size), 6, 10);
+            // 60% dampened pace toward Recency
             if (delta < 1)
                 delta = 1;
 
-            target = target + delta < capacity ? target + delta : capacity;
+            target = target + delta < maxRecencyLimit ? target + delta : maxRecencyLimit;
         }
 
         // --- Ratio (LFU/LRU) 80/20 DOMINANCE CONSTRAINT ---
         // Frequency must dominate by at least 80% of capacity, meaning
         // Recency target (target) is strictly hard-capped at a maximum of 20% of capacity.
-        const usize maxRecencyTarget = nolock_max_recency_limit();
-        if (target > maxRecencyTarget)
-            target = maxRecencyTarget;
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         // Evict if over capacity
         if (nolock_resident_size() >= capacity)
@@ -727,7 +748,7 @@ class PoolARCCache final {
             // Triggers only if the total database lookup map reaches structural limits (2 * capacity).
             // FIXED FOR 80/20: We target B2 first to allow the massive 80% frequency tracking queue
             // to naturally shed its oldest entries, perfectly insulating the small 20% B1 tracking space.
-            if (map.size() >= (2 * capacity))
+            if (capacity <= std::numeric_limits<usize>::max() / 2 && map.size() >= (2 * capacity))
             {
                 auto ghost = buckets[B2].entries.back();
                 if (ghost == nullptr)
@@ -754,9 +775,9 @@ class PoolARCCache final {
 
         // Probe the map directory container using a clean, non-mutating lookup first.
         // This stops placeholders from pre-allocating empty keys and polluting the slots.
-        auto mapItr = map.find(key);
+        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
 
-        if (mapItr != map.end())
+        if (!inserted)
         {
             list_iterator const current = mapItr->second;
 
@@ -782,8 +803,7 @@ class PoolARCCache final {
             if (mapItr == map.end())
                 return Return{std::forward<Args>(args)...};
 
-            list_iterator const entry = mapItr->second;
-            assert(entry != nullptr);
+            assert(mapItr->second != nullptr);
 
             // 3. PROMOTE NODE REGISTRATION: Restore the value payload directly inside the
             // node memory and transition the item into the live T2 Frequency partition.
@@ -799,59 +819,40 @@ class PoolARCCache final {
 
         // --- CLEAN MISS PATH ---
 
-        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
-        // BEFORE touching the map directory lookups or initializing allocations!
-        nolock_prepare_miss();
-
-        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
+            map.erase(mapItr);
             return Return{std::forward<Args>(args)...};
         }
 
-        // 3. PROBE AND EMBED INTO THE MAP
-        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
-        if (!missInserted)
-        {
-            // If another thread or operations loop somehow raced and filled this key,
-            // safe rollback allocation immediately.
-            pool.destroy(newEntry);
+        mapItr->second = newEntry;
 
-            // Fallback gracefully to processing it as a regular resident hit
-            list_iterator const current = missMapItr->second;
-            if (current != nullptr && nolock_is_resident(current))
-            {
-                nolock_promote_to_t2(*current);
-                assert(nolock_consistency_check());
-                return nolock_read(current);
-            }
-            return Return{std::forward<Args>(args)...};
-        }
+        // 1. PREPARE THE MISS
+        nolock_prepare_miss();
 
-        // 4. VERIFY THE HARD PHYSICAL CEILING
+        // 2. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
         }
 
-        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
+        // 3. LINK INTO T1 AND COMPLETE TRANSACTION
         list_iterator const entry = nolock_add_resident(newEntry, T1, std::forward<Args>(args)...);
 
         if (entry == nullptr)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
         }
 
-        // Adjust target boundaries for startup safety layout
-        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
-        {
-            target = buckets[T1].entries.size();
-        }
+        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
         return nolock_read(entry);
@@ -863,9 +864,9 @@ class PoolARCCache final {
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
         // Probe the map directory container using a clean, non-mutating lookup first.
-        auto mapItr = map.find(key);
+        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
 
-        if (mapItr != map.end())
+        if (!inserted)
         {
             list_iterator const current = mapItr->second;
 
@@ -890,8 +891,7 @@ class PoolARCCache final {
             if (mapItr == map.end())
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            list_iterator const entry = mapItr->second;
-            assert(entry != nullptr);
+            assert(mapItr->second != nullptr);
 
             // 3. TRANSACTION COMMIT WALL: Construct the value EXACTLY once here.
             // This prevents duplicate evaluation or use-after-move vulnerabilities if the promotion fails!
@@ -911,59 +911,43 @@ class PoolARCCache final {
 
         // --- CLEAN MISS PATH ---
 
-        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
-        // BEFORE touching the map directory lookups or initializing allocations!
-        nolock_prepare_miss();
-
-        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
+            map.erase(mapItr);
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
         }
 
-        // 3. PROBE AND EMBED INTO THE MAP
-        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
-        if (!missInserted)
-        {
-            pool.destroy(newEntry);
+        mapItr->second = newEntry;
 
-            list_iterator const current = missMapItr->second;
-            if (current != nullptr && nolock_is_resident(current))
-            {
-                nolock_promote_to_t2(*current);
-                assert(nolock_consistency_check());
-                return nolock_read(current);
-            }
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
-        }
+        // 1. PREPARE THE MISS
+        nolock_prepare_miss();
 
-        // EVALUATE VALUE ONCE: Commit to generating the engine state now that map insertion succeeded
+        // 2. EVALUATE VALUE ONCE: Commit to generating the engine state now that map insertion succeeded
         Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
 
-        // 4. VERIFY THE HARD PHYSICAL CEILING
+        // 3. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::move(value)};
         }
 
-        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
+        // 4. LINK INTO T1 AND COMPLETE TRANSACTION
         list_iterator const entry = nolock_add_resident(newEntry, T1, std::move(value));
 
         if (entry == nullptr)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::move(value)};
         }
 
-        // Adjust target boundaries for startup safety layout
-        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
-        {
-            target = buckets[T1].entries.size();
-        }
+        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
         return nolock_read(entry);
@@ -1009,8 +993,9 @@ class PoolARCCache final {
                 break;
         }
 
-        if (target > capacity)
-            target = capacity;
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         nolock_trim_ghosts(capacity);
 
@@ -1065,6 +1050,7 @@ class PoolARCCache final {
         assert(residentSize <= capacity);
         assert(ghostSize <= capacity);
         assert(target <= capacity);
+        assert(target <= nolock_max_recency_limit());
 
         if (capacity <= std::numeric_limits<usize>::max() / 2)
             assert(map.size() <= 2 * capacity);
@@ -1264,8 +1250,9 @@ class PoolFlatARCCache final {
 
         capacity = newCapacity;
 
-        if (target > capacity)
-            target = capacity;
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         nolock_evict_excess(capacity);
     }
@@ -1624,9 +1611,29 @@ class PoolFlatARCCache final {
 
     // ARC replacement
 
-    [[nodiscard]] usize nolock_max_recency_limit() noexcept {
-        // Dynamic limits based on 80/20 optimization strategy
-        return capacity <= 4 ? 1 : (capacity * 20) / 100;
+    [[nodiscard]] usize nolock_max_recency_limit() const noexcept {
+        // Dynamic limits based on 80/20 optimization strategy (100/20) = 5
+        return capacity <= 4 ? 1 : capacity / 5;
+    }
+
+    [[nodiscard]] usize nolock_scaled_delta(const usize value,
+                                            const usize numerator,
+                                            const usize denominator) const noexcept {
+        assert(denominator != 0);
+
+        const usize quotient  = value / denominator;
+        const usize remainder = value % denominator;
+
+        if (quotient > capacity / numerator)
+            return capacity;
+
+        const usize whole    = quotient * numerator;
+        const usize fraction = (remainder * numerator) / denominator;
+
+        if (fraction >= capacity || whole > capacity - fraction)
+            return capacity;
+
+        return whole + fraction;
     }
 
     [[nodiscard]] bool nolock_replace(const usize t1Size) noexcept {
@@ -1734,8 +1741,9 @@ class PoolFlatARCCache final {
             return false;
 
         // Enforce valid target boundary before math
-        if (target > capacity)
-            target = capacity;
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         const usize oldTarget = target;
         const usize b1Size    = buckets[B1].entries.size();
@@ -1749,12 +1757,12 @@ class PoolFlatARCCache final {
                 return false;
 
             // Frequency Hit: Shrink Recency partition (T1 target) to give Frequency more room
-            usize delta = (b1Size + (b2Size >> 1)) / b2Size;
-            delta       = (delta * 15) / 10;  // 150% accelerated pace toward Frequency
+            usize delta = nolock_scaled_delta(ratio_with_half(b1Size, b2Size), 15, 10);
+            // 150% accelerated pace toward Frequency
             if (delta < 1)
                 delta = 1;
 
-            target = target > delta ? target - delta : 0;
+            target = delta < target ? target - delta : 0;
         }
         else
         {
@@ -1762,20 +1770,19 @@ class PoolFlatARCCache final {
                 return false;
 
             // Recency Hit: Expand Recency partition (T1 target)
-            usize delta = (b2Size + (b1Size >> 1)) / b1Size;
-            delta       = (delta * 6) / 10;  // 60% dampened pace toward Recency
+            usize delta = nolock_scaled_delta(ratio_with_half(b2Size, b1Size), 6, 10);
+            // 60% dampened pace toward Recency
             if (delta < 1)
                 delta = 1;
 
-            target = target + delta < capacity ? target + delta : capacity;
+            target = target + delta < maxRecencyLimit ? target + delta : maxRecencyLimit;
         }
 
         // --- Ratio (LFU/LRU) 80/20 DOMINANCE CONSTRAINT ---
         // Frequency must dominate by at least 80% of capacity, meaning
         // Recency target (target) is strictly hard-capped at a maximum of 20% of capacity.
-        const usize maxRecencyTarget = nolock_max_recency_limit();
-        if (target > maxRecencyTarget)
-            target = maxRecencyTarget;
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         // Evict if over capacity
         if (nolock_resident_size() >= capacity)
@@ -1834,7 +1841,7 @@ class PoolFlatARCCache final {
             // Triggers only if the total database lookup map reaches structural limits (2 * capacity).
             // FIXED FOR 80/20: We target B2 first to allow the massive 80% frequency tracking queue
             // to naturally shed its oldest entries, perfectly insulating the small 20% B1 tracking space.
-            if (map.size() >= (2 * capacity))
+            if (capacity <= std::numeric_limits<usize>::max() / 2 && map.size() >= (2 * capacity))
             {
                 auto ghost = buckets[B2].entries.back();
                 if (ghost == nullptr)
@@ -1861,9 +1868,9 @@ class PoolFlatARCCache final {
 
         // Probe the map directory container using a clean, non-mutating lookup first.
         // This stops placeholders from pre-allocating empty keys and polluting the slots.
-        auto mapItr = map.find(key);
+        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
 
-        if (mapItr != map.end())
+        if (!inserted)
         {
             list_iterator const current = mapItr->second;
 
@@ -1889,8 +1896,7 @@ class PoolFlatARCCache final {
             if (mapItr == map.end())
                 return Return{std::forward<Args>(args)...};
 
-            list_iterator const entry = mapItr->second;
-            assert(entry != nullptr);
+            assert(mapItr->second != nullptr);
 
             // 3. PROMOTE NODE REGISTRATION: Restore the value payload directly inside the
             // node memory and transition the item into the live T2 Frequency partition.
@@ -1906,59 +1912,40 @@ class PoolFlatARCCache final {
 
         // --- CLEAN MISS PATH ---
 
-        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
-        // BEFORE touching the map directory lookups or initializing allocations!
-        nolock_prepare_miss();
-
-        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
+            map.erase(mapItr);
             return Return{std::forward<Args>(args)...};
         }
 
-        // 3. PROBE AND EMBED INTO THE MAP
-        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
-        if (!missInserted)
-        {
-            // If another thread or operations loop somehow raced and filled this key,
-            // safe rollback allocation immediately.
-            pool.destroy(newEntry);
+        mapItr->second = newEntry;
 
-            // Fallback gracefully to processing it as a regular resident hit
-            list_iterator const current = missMapItr->second;
-            if (current != nullptr && nolock_is_resident(current))
-            {
-                nolock_promote_to_t2(*current);
-                assert(nolock_consistency_check());
-                return nolock_read(current);
-            }
-            return Return{std::forward<Args>(args)...};
-        }
+        // 1. PREPARE THE MISS
+        nolock_prepare_miss();
 
-        // 4. VERIFY THE HARD PHYSICAL CEILING
+        // 2. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
         }
 
-        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
+        // 3. LINK INTO T1 AND COMPLETE TRANSACTION
         list_iterator const entry = nolock_add_resident(newEntry, T1, std::forward<Args>(args)...);
 
         if (entry == nullptr)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
         }
 
-        // Adjust target boundaries for startup safety layout
-        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
-        {
-            target = buckets[T1].entries.size();
-        }
+        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
         return nolock_read(entry);
@@ -1970,9 +1957,9 @@ class PoolFlatARCCache final {
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
         // Probe the map directory container using a clean, non-mutating lookup first.
-        auto mapItr = map.find(key);
+        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
 
-        if (mapItr != map.end())
+        if (!inserted)
         {
             list_iterator const current = mapItr->second;
 
@@ -1997,8 +1984,7 @@ class PoolFlatARCCache final {
             if (mapItr == map.end())
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            list_iterator const entry = mapItr->second;
-            assert(entry != nullptr);
+            assert(mapItr->second != nullptr);
 
             // 3. TRANSACTION COMMIT WALL: Construct the value EXACTLY once here.
             // This prevents duplicate evaluation or use-after-move vulnerabilities if the promotion fails!
@@ -2018,59 +2004,43 @@ class PoolFlatARCCache final {
 
         // --- CLEAN MISS PATH ---
 
-        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
-        // BEFORE touching the map directory lookups or initializing allocations!
-        nolock_prepare_miss();
-
-        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
+            map.erase(mapItr);
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
         }
 
-        // 3. PROBE AND EMBED INTO THE MAP
-        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
-        if (!missInserted)
-        {
-            pool.destroy(newEntry);
+        mapItr->second = newEntry;
 
-            list_iterator const current = missMapItr->second;
-            if (current != nullptr && nolock_is_resident(current))
-            {
-                nolock_promote_to_t2(*current);
-                assert(nolock_consistency_check());
-                return nolock_read(current);
-            }
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
-        }
+        // 1. PREPARE THE MISS
+        nolock_prepare_miss();
 
-        // EVALUATE VALUE ONCE: Commit to generating the engine state now that map insertion succeeded
+        // 2. EVALUATE VALUE ONCE: Commit to generating the engine state now that map insertion succeeded
         Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
 
-        // 4. VERIFY THE HARD PHYSICAL CEILING
+        // 3. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::move(value)};
         }
 
-        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
+        // 4. LINK INTO T1 AND COMPLETE TRANSACTION
         list_iterator const entry = nolock_add_resident(newEntry, T1, std::move(value));
 
         if (entry == nullptr)
         {
-            map.erase(missMapItr);
+            map.erase(key);
             pool.destroy(newEntry);
             return Return{std::move(value)};
         }
 
-        // Adjust target boundaries for startup safety layout
-        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
-        {
-            target = buckets[T1].entries.size();
-        }
+        // Keep the adaptive T1 target within the same 80/20 bound used by ghost hits.
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         assert(nolock_consistency_check());
         return nolock_read(entry);
@@ -2116,8 +2086,9 @@ class PoolFlatARCCache final {
                 break;
         }
 
-        if (target > capacity)
-            target = capacity;
+        const usize maxRecencyLimit = nolock_max_recency_limit();
+        if (target > maxRecencyLimit)
+            target = maxRecencyLimit;
 
         nolock_trim_ghosts(capacity);
 
@@ -2172,6 +2143,7 @@ class PoolFlatARCCache final {
         assert(residentSize <= capacity);
         assert(ghostSize <= capacity);
         assert(target <= capacity);
+        assert(target <= nolock_max_recency_limit());
 
         if (capacity <= std::numeric_limits<usize>::max() / 2)
             assert(map.size() <= 2 * capacity);
