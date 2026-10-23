@@ -326,7 +326,7 @@ void Worker::start_search() noexcept {
         if (bookBestMove.is_ok())
         {
             State st;
-            rootPos.do_move(bookBestMove, st, true, this);
+            rootPos.do_move(bookBestMove, st, true, &atomicHistories);
 
             RootMoves orms;
             for (const Move m : MoveList<GenType::ALL>(rootPos))
@@ -2230,7 +2230,7 @@ void Worker::do_move(Position&    pos,
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
     Dirties& dirties = accStack.push();
-    pos.do_move(m, st, mayCheck, this, &dirties);
+    pos.do_move(m, st, mayCheck, &atomicHistories, &dirties);
     assert(moveKey == pos.key());
 
     ++nodes;
@@ -2488,7 +2488,7 @@ bool Worker::ponder_move_extracted() noexcept {
     assert(bestMove.is_ok());
 
     State st;
-    rootPos.do_move(bestMove, st, true, this);
+    rootPos.do_move(bestMove, st, true, &atomicHistories);
 
     if (!rootPos.is_draw(1))
     {

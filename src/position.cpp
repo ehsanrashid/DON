@@ -27,8 +27,6 @@
 #include "history.h"
 #include "misc.h"
 #include "movegen.h"
-#include "search.h"
-#include "tt.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
 #include "utility/arc_cache.h"
@@ -782,11 +780,11 @@ void Position::do_castling(const Color    ac,
         put(Do ? rookDstSq : rookOrgSq, rookPc, dTs);
 }
 
-void Position::do_move(const Move          m,
-                       State&              newSt,
-                       const bool          mayCheck,
-                       const Worker* const worker,
-                       Dirties* const      dirties) noexcept {
+void Position::do_move(const Move                   m,
+                       State&                       newSt,
+                       const bool                   mayCheck,
+                       const AtomicHistories* const atomicHistories,
+                       Dirties* const               dirties) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -996,18 +994,15 @@ void Position::do_move(const Move          m,
     st->castlingRights &= ~castling_rights_mask(orgSq, dstSq);
     st->key ^= zobrist().castling(castling_rights());
 
-    if (worker != nullptr)
+    if (atomicHistories != nullptr)
     {
-        if (!is_ok(enPassantSq))
-            prefetch(worker->transpositionTable.cluster(key()));
-
-        prefetch(&worker->atomicHistories.pawn_entry(*this)[+movedPc][dstSq]);
-        prefetch(&worker->atomicHistories.pawn_correction_entry<WHITE>(*this));
-        prefetch(&worker->atomicHistories.pawn_correction_entry<BLACK>(*this));
-        prefetch(&worker->atomicHistories.minor_correction_entry<WHITE>(*this));
-        prefetch(&worker->atomicHistories.minor_correction_entry<BLACK>(*this));
-        prefetch(&worker->atomicHistories.non_pawn_correction_entry<WHITE>(*this));
-        prefetch(&worker->atomicHistories.non_pawn_correction_entry<BLACK>(*this));
+        prefetch(&atomicHistories->pawn_entry(*this)[+movedPc][dstSq]);
+        prefetch(&atomicHistories->pawn_correction_entry<WHITE>(*this));
+        prefetch(&atomicHistories->pawn_correction_entry<BLACK>(*this));
+        prefetch(&atomicHistories->minor_correction_entry<WHITE>(*this));
+        prefetch(&atomicHistories->minor_correction_entry<BLACK>(*this));
+        prefetch(&atomicHistories->non_pawn_correction_entry<WHITE>(*this));
+        prefetch(&atomicHistories->non_pawn_correction_entry<BLACK>(*this));
     }
 
     // Update board
@@ -1052,21 +1047,15 @@ void Position::do_move(const Move          m,
 
     activeColor = ~ac;
 
+    if (is_ok(enPassantSq) && enpassant_possible(active_color(), enPassantSq))
+    {
+        st->enPassantSq = enPassantSq;
+        st->key ^= zobrist().enpassant(enPassantSq);
+    }
+
     set_pinner_blocker();
 
     set_ext_state();
-
-    if (is_ok(enPassantSq))
-    {
-        if (enpassant_possible(active_color(), enPassantSq))
-        {
-            st->enPassantSq = enPassantSq;
-            st->key ^= zobrist().enpassant(enPassantSq);
-        }
-
-        if (worker != nullptr)
-            prefetch(worker->transpositionTable.cluster(key()));
-    }
 
     if (dPps != nullptr)
     {
