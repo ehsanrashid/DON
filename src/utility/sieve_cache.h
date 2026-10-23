@@ -156,6 +156,7 @@ class PoolSIEVECache final {
     // SIEVE keeps only resident entries and has no ghost history.
     [[nodiscard]] bool contains_ghost(const Key&) const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return false;
     }
 
@@ -164,6 +165,7 @@ class PoolSIEVECache final {
 
         assert(map.size() == list.size());
         assert(list.size() <= capacity);
+
         return list.size();
     }
 
@@ -171,6 +173,7 @@ class PoolSIEVECache final {
         std::lock_guard lockGuard{mutex};
 
         assert(map.empty() == list.empty());
+
         return list.empty();
     }
 
@@ -183,6 +186,7 @@ class PoolSIEVECache final {
 
         nolock_erase(mapItr);
         assert(nolock_consistency_check());
+
         return true;
     }
 
@@ -216,19 +220,25 @@ class PoolSIEVECache final {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        if (!inserted)
+        const auto existingItr = map.find(key);
+        if (existingItr != map.end())
         {
-            assert(mapItr->second != nullptr);
-            return nolock_read(nolock_touch(mapItr->second));
+            assert(existingItr->second != nullptr);
+
+            return nolock_read(nolock_touch(existingItr->second));
         }
 
-        MapGuard<map_type> mapGuard{map, mapItr};
-
-        // SIEVE evicts before insertion, so the pool and map never need a
-        // temporary capacity+1 resident entry.
+        // Erasing from a flat hash map can invalidate other iterators.
+        // Evict before inserting and retaining the new map iterator.
         if (list.size() >= capacity)
             nolock_evict_one();
+
+        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        assert(inserted);
+        if (!inserted)
+            std::terminate();
+
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         Entry* const entry = pool.create(1, key);
         entry->emplace_value(std::forward<Args>(args)...);
@@ -237,6 +247,7 @@ class PoolSIEVECache final {
         mapGuard.commit();
 
         assert(nolock_consistency_check());
+
         return nolock_read(entry);
     }
 
@@ -245,17 +256,24 @@ class PoolSIEVECache final {
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        if (!inserted)
+        const auto existingItr = map.find(key);
+        if (existingItr != map.end())
         {
-            assert(mapItr->second != nullptr);
-            return nolock_read(nolock_touch(mapItr->second));
+            assert(existingItr->second != nullptr);
+
+            return nolock_read(nolock_touch(existingItr->second));
         }
 
-        MapGuard<map_type> mapGuard{map, mapItr};
-
+        // Complete eviction before retaining a flat-map iterator.
         if (list.size() >= capacity)
             nolock_evict_one();
+
+        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        assert(inserted);
+        if (!inserted)
+            std::terminate();
+
+        MapGuard<map_type> mapGuard{map, mapItr};
 
         Entry* const entry = pool.create(1, key);
         entry->emplace_value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
@@ -264,6 +282,7 @@ class PoolSIEVECache final {
         mapGuard.commit();
 
         assert(nolock_consistency_check());
+
         return nolock_read(entry);
     }
 
@@ -272,6 +291,7 @@ class PoolSIEVECache final {
         assert(entry->value.has_value());
 
         entry->visited = true;
+
         return entry;
     }
 
@@ -283,7 +303,6 @@ class PoolSIEVECache final {
         if (list.push_front(entry))
             return;
 
-        // A freshly allocated pool entry cannot already be linked.
         std::terminate();
     }
 
@@ -301,14 +320,17 @@ class PoolSIEVECache final {
         Entry* const entry = mapItr->second;
         assert(entry != nullptr);
 
-        // Preserve the next scan position if a caller removes the hand node.
+        // Advance the hand before destroying its current entry.
         const bool removingHand = hand == entry;
         if (removingHand)
             hand = list.prev(*entry);
 
         map.erase(mapItr);
+
         [[maybe_unused]] const bool erased = list.erase(*entry);
         assert(erased);
+        if (!erased)
+            std::terminate();
 
         if (removingHand && hand == nullptr)
             hand = list.back();
@@ -319,40 +341,63 @@ class PoolSIEVECache final {
     void nolock_evict_one() noexcept {
         assert(!list.empty());
 
+        if (list.empty())
+            return;
+
         if (hand == nullptr)
             hand = list.back();
 
-        while (hand != nullptr)
-        {
-            Entry* const candidate = hand;
-            hand                   = list.prev(*candidate);
+        // The list is unchanged during this scan except when a victim is erased.
+        // At most two full passes are needed: one to clear visited bits and
+        // another to find an unvisited victim.
+        const usize scanCount = list.size();
 
-            if (candidate->visited)
+        for (usize pass = 0; pass < 2; ++pass)
+        {
+            for (usize scanned = 0; scanned < scanCount; ++scanned)
             {
-                candidate->visited = false;
                 if (hand == nullptr)
                     hand = list.back();
-                continue;
+
+                if (hand == nullptr)
+                    std::terminate();
+
+                Entry* const candidate = hand;
+                hand                   = list.prev(*candidate);
+
+                if (candidate->visited)
+                {
+                    candidate->visited = false;
+                    continue;
+                }
+
+                const auto mapItr = map.find(candidate->key);
+                assert(mapItr != map.end() && mapItr->second == candidate);
+                if (mapItr == map.end() || mapItr->second != candidate)
+                    std::terminate();
+
+                nolock_erase(mapItr);
+
+                if (hand == nullptr)
+                    hand = list.back();
+
+                return;
             }
-
-            const auto mapItr = map.find(candidate->key);
-            assert(mapItr != map.end() && mapItr->second == candidate);
-            if (mapItr == map.end() || mapItr->second != candidate)
-                std::terminate();
-
-            nolock_erase(mapItr);
-            if (hand == nullptr)
-                hand = list.back();
-            return;
         }
 
-        // A non-empty list always wraps the hand to a candidate.
         std::terminate();
     }
 
     void nolock_evict_excess(const usize targetSize) noexcept {
         while (list.size() > targetSize)
+        {
+            const usize previousSize = list.size();
+
             nolock_evict_one();
+
+            if (list.size() >= previousSize)
+                std::terminate();
+        }
 
         assert(nolock_consistency_check());
     }
@@ -364,6 +409,9 @@ class PoolSIEVECache final {
         {
             [[maybe_unused]] const bool erased = list.erase(*entry);
             assert(erased);
+            if (!erased)
+                std::terminate();
+
             pool.destroy(entry);
         }
 
@@ -382,9 +430,433 @@ class PoolSIEVECache final {
 
         bool  handFound = hand == nullptr;
         usize count     = 0;
+
         for (const Entry* entry = list.front(); entry != nullptr; entry = list.next(*entry))
         {
             ++count;
+
+            const auto mapItr = map.find(entry->key);
+            if (mapItr == map.end() || mapItr->second != entry || !entry->value.has_value())
+                return false;
+
+            if (entry == hand)
+                handFound = true;
+        }
+
+        return handFound && count == list.size();
+    }
+
+    const usize defaultCapacity;
+    const usize reserveCount;
+    const float maxLoadFactor;
+
+    mutable Mutex mutex;
+    usize         capacity;
+
+    map_type    map;
+    list_type   list;
+    Pool<Entry> pool;
+    Entry*      hand = nullptr;
+};
+
+template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
+class PoolFlatSIEVECache final {
+    static constexpr usize InlineValueThreshold = 128;
+
+    using storage_value_type =
+      std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
+
+    struct Entry final {
+        explicit Entry(const Key& k) noexcept :
+            key(k) {}
+
+        template<typename... Args>
+        void emplace_value(Args&&... args) noexcept {
+            if constexpr (sizeof(Value) <= InlineValueThreshold)
+                value.emplace(std::forward<Args>(args)...);
+            else
+                value.emplace(std::make_shared<Value>(std::forward<Args>(args)...));
+        }
+
+        Key    key;
+        bool   visited = false;
+        Entry* prev    = nullptr;
+        Entry* next    = nullptr;
+
+        std::optional<storage_value_type> value;
+    };
+
+    using list_type     = DoublyIntrusiveList<Entry>;
+    using list_iterator = Entry*;
+    using map_type      = ankerl::unordered_dense::map<Key, list_iterator>;
+
+   public:
+    explicit PoolFlatSIEVECache(const usize cap        = 2 * KB,
+                                const usize reserveCnt = 1 * KB,
+                                const float maxLoadFac = 0.75F) noexcept :
+        defaultCapacity(cap),
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFac),
+        capacity(cap) {
+        configure();
+    }
+
+    PoolFlatSIEVECache(const PoolFlatSIEVECache&)            = delete;
+    PoolFlatSIEVECache& operator=(const PoolFlatSIEVECache&) = delete;
+    PoolFlatSIEVECache(PoolFlatSIEVECache&&)                 = delete;
+    PoolFlatSIEVECache& operator=(PoolFlatSIEVECache&&)      = delete;
+
+    ~PoolFlatSIEVECache() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+        pool.release();
+    }
+
+    template<typename... Args>
+    Return read_or_write(const Key& key, Args&&... args) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_write(key, std::forward<Args>(args)...);
+    }
+
+    template<typename Builder, typename... Args>
+    Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return nolock_write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
+    }
+
+    void evict_excess(const usize size) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_evict_excess(size);
+    }
+
+    void evict_excess() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_evict_excess(capacity);
+    }
+
+    [[nodiscard]] usize get_capacity() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return capacity;
+    }
+
+    void set_capacity(const usize newCapacity) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        capacity = newCapacity;
+        nolock_evict_excess(capacity);
+    }
+
+    // The returned iterator does not retain the lock; callers must prevent
+    // concurrent mutation while using it.
+    [[nodiscard]] auto find(const Key& key) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        const auto mapItr = map.find(key);
+        return mapItr == map.end() || mapItr->second == nullptr ? map.end() : mapItr;
+    }
+
+    [[nodiscard]] auto find(const Key& key) const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        const auto mapItr = map.find(key);
+        return mapItr == map.end() || mapItr->second == nullptr ? map.end() : mapItr;
+    }
+
+    [[nodiscard]] bool contains(const Key& key) const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        const auto mapItr = map.find(key);
+        return mapItr != map.end() && mapItr->second != nullptr;
+    }
+
+    // SIEVE keeps only resident entries and has no ghost history.
+    [[nodiscard]] bool contains_ghost(const Key&) const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return false;
+    }
+
+    [[nodiscard]] usize size() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        assert(map.size() == list.size());
+        assert(list.size() <= capacity);
+
+        return list.size();
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        assert(map.empty() == list.empty());
+
+        return list.empty();
+    }
+
+    [[nodiscard]] bool remove(const Key& key) noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        const auto mapItr = map.find(key);
+        if (mapItr == map.end() || mapItr->second == nullptr)
+            return false;
+
+        nolock_erase(mapItr);
+        assert(nolock_consistency_check());
+
+        return true;
+    }
+
+    // Retains pooled storage for reuse.
+    void clear() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+    }
+
+    void configure() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_configure();
+    }
+
+    // Releases pooled storage and restores the original configuration.
+    void reset() noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        nolock_clear();
+        pool.release();
+        map.rehash(0);
+        capacity = defaultCapacity;
+        nolock_configure();
+    }
+
+   private:
+    template<typename... Args>
+    Return nolock_write(const Key& key, Args&&... args) noexcept {
+        if (capacity == 0)
+            return Return{std::forward<Args>(args)...};
+
+        const auto existingItr = map.find(key);
+        if (existingItr != map.end())
+        {
+            assert(existingItr->second != nullptr);
+
+            return nolock_read(nolock_touch(existingItr->second));
+        }
+
+        // Erasing from a flat hash map can invalidate other iterators.
+        // Evict before inserting and retaining the new map iterator.
+        if (list.size() >= capacity)
+            nolock_evict_one();
+
+        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        assert(inserted);
+        if (!inserted)
+            std::terminate();
+
+        MapGuard<map_type> mapGuard{map, mapItr};
+
+        Entry* const entry = pool.create(1, key);
+        entry->emplace_value(std::forward<Args>(args)...);
+        nolock_link_new_entry(*entry);
+        mapItr->second = entry;
+        mapGuard.commit();
+
+        assert(nolock_consistency_check());
+
+        return nolock_read(entry);
+    }
+
+    template<typename Builder, typename... Args>
+    Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        if (capacity == 0)
+            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
+        const auto existingItr = map.find(key);
+        if (existingItr != map.end())
+        {
+            assert(existingItr->second != nullptr);
+
+            return nolock_read(nolock_touch(existingItr->second));
+        }
+
+        // Complete eviction before retaining a flat-map iterator.
+        if (list.size() >= capacity)
+            nolock_evict_one();
+
+        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        assert(inserted);
+        if (!inserted)
+            std::terminate();
+
+        MapGuard<map_type> mapGuard{map, mapItr};
+
+        Entry* const entry = pool.create(1, key);
+        entry->emplace_value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        nolock_link_new_entry(*entry);
+        mapItr->second = entry;
+        mapGuard.commit();
+
+        assert(nolock_consistency_check());
+
+        return nolock_read(entry);
+    }
+
+    [[nodiscard]] list_iterator nolock_touch(list_iterator entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        entry->visited = true;
+
+        return entry;
+    }
+
+    void nolock_link_new_entry(Entry& entry) noexcept {
+        assert(!entry.visited);
+        assert(entry.prev == nullptr && entry.next == nullptr);
+        assert(entry.value.has_value());
+
+        if (list.push_front(entry))
+            return;
+
+        std::terminate();
+    }
+
+    Return nolock_read(const list_iterator entry) const noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
+            return *entry->value;
+        else
+            return **entry->value;
+    }
+
+    void nolock_erase(typename map_type::iterator mapItr) noexcept {
+        Entry* const entry = mapItr->second;
+        assert(entry != nullptr);
+
+        // Advance the hand before destroying its current entry.
+        const bool removingHand = hand == entry;
+        if (removingHand)
+            hand = list.prev(*entry);
+
+        map.erase(mapItr);
+
+        [[maybe_unused]] const bool erased = list.erase(*entry);
+        assert(erased);
+        if (!erased)
+            std::terminate();
+
+        if (removingHand && hand == nullptr)
+            hand = list.back();
+
+        pool.destroy(entry);
+    }
+
+    void nolock_evict_one() noexcept {
+        assert(!list.empty());
+
+        if (list.empty())
+            return;
+
+        if (hand == nullptr)
+            hand = list.back();
+
+        // The list is unchanged during this scan except when a victim is erased.
+        // At most two full passes are needed: one to clear visited bits and
+        // another to find an unvisited victim.
+        const usize scanCount = list.size();
+
+        for (usize pass = 0; pass < 2; ++pass)
+        {
+            for (usize scanned = 0; scanned < scanCount; ++scanned)
+            {
+                if (hand == nullptr)
+                    hand = list.back();
+
+                if (hand == nullptr)
+                    std::terminate();
+
+                Entry* const candidate = hand;
+                hand                   = list.prev(*candidate);
+
+                if (candidate->visited)
+                {
+                    candidate->visited = false;
+                    continue;
+                }
+
+                const auto mapItr = map.find(candidate->key);
+                assert(mapItr != map.end() && mapItr->second == candidate);
+                if (mapItr == map.end() || mapItr->second != candidate)
+                    std::terminate();
+
+                nolock_erase(mapItr);
+
+                if (hand == nullptr)
+                    hand = list.back();
+
+                return;
+            }
+        }
+
+        std::terminate();
+    }
+
+    void nolock_evict_excess(const usize targetSize) noexcept {
+        while (list.size() > targetSize)
+        {
+            const usize previousSize = list.size();
+
+            nolock_evict_one();
+
+            if (list.size() >= previousSize)
+                std::terminate();
+        }
+
+        assert(nolock_consistency_check());
+    }
+
+    void nolock_clear() noexcept {
+        hand = nullptr;
+
+        while (Entry* const entry = list.back())
+        {
+            [[maybe_unused]] const bool erased = list.erase(*entry);
+            assert(erased);
+            if (!erased)
+                std::terminate();
+
+            pool.destroy(entry);
+        }
+
+        map.clear();
+        assert(nolock_consistency_check());
+    }
+
+    void nolock_configure() noexcept {
+        map.max_load_factor(maxLoadFactor);
+        map.reserve(reserveCount);
+    }
+
+    [[nodiscard]] bool nolock_consistency_check() const noexcept {
+        if (map.size() != list.size() || list.size() > capacity)
+            return false;
+
+        bool  handFound = hand == nullptr;
+        usize count     = 0;
+
+        for (const Entry* entry = list.front(); entry != nullptr; entry = list.next(*entry))
+        {
+            ++count;
+
             const auto mapItr = map.find(entry->key);
             if (mapItr == map.end() || mapItr->second != entry || !entry->value.has_value())
                 return false;

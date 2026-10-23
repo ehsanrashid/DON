@@ -28,9 +28,9 @@ g++ -std=c++17 -O0 -g -fno-omit-frame-pointer -I./src \
 #include "utility/lfu_cache.h"
 #include "utility/lirs_cache.h"
 #include "utility/lru_cache.h"
+#include "utility/sieve_cache.h"
 #include "utility/mutex.h"
 #include "utility/types.h"
-
 
 namespace DON::CacheBenchmark {
 
@@ -233,7 +233,9 @@ void benchmark_workload(const char* name, Workload workload, usize hotAccessesPe
     std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatARC", arcNs, 1000.0 / arcNs,
                 static_cast<unsigned long long>(arcChecksum));
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLIRS", lirsNs, 1000.0 / lirsNs,
+    //std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLIRS", lirsNs, 1000.0 / lirsNs,
+    //            static_cast<unsigned long long>(lirsChecksum));
+    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatSIEVE", lirsNs, 1000.0 / lirsNs,
                 static_cast<unsigned long long>(lirsChecksum));
 
     std::printf("LFU vs LRU: %+.2f%% %s\n", (lruNs - lfuNs) * 100.0 / lruNs,
@@ -246,10 +248,15 @@ void benchmark_workload(const char* name, Workload workload, usize hotAccessesPe
                 : arcNs > lruNs ? "slower"
                                 : "equal");
 
-    std::printf("LIRS vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
-                lirsNs < lruNs   ? "faster"
-                : lirsNs > lruNs ? "slower"
-                                 : "equal");
+    // std::printf("LIRS vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
+    //             lirsNs < lruNs   ? "faster"
+    //             : lirsNs > lruNs ? "slower"
+    //                              : "equal");
+
+    std::printf("SIEVE vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
+            lirsNs < lruNs   ? "faster"
+            : lirsNs > lruNs ? "slower"
+                                : "equal");
 
     if (lruChecksum != lfuChecksum || lruChecksum != arcChecksum || lruChecksum != lirsChecksum)
         std::printf("WARNING: checksums differ!\n");
@@ -452,11 +459,13 @@ void benchmark_hot_set_survival() {
     std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
     std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
     std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatARC", arcSurvivors, arcRate);
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLIRS", lirsSurvivors, lirsRate);
+    //std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLIRS", lirsSurvivors, lirsRate);
+    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatSIEVE", lirsSurvivors, lirsRate);
 
     std::printf("LFU vs LRU: %+.3f percentage points\n", lfuRate - lruRate);
     std::printf("ARC vs LRU: %+.3f percentage points\n", arcRate - lruRate);
-    std::printf("LIRS vs LRU: %+.3f percentage points\n", lirsRate - lruRate);
+    //std::printf("LIRS vs LRU: %+.3f percentage points\n", lirsRate - lruRate);
+    std::printf("SIEVE vs LRU: %+.3f percentage points\n", lirsRate - lruRate);
 }
 
 template<typename LruCache, typename LfuCache, typename ArcCache, typename LirsCache>
@@ -494,7 +503,7 @@ int main() {
     CacheBenchmark::run<PoolFlatLRUCache<u64, u64, SpinMutex>,  //
                         PoolFlatLFUCache<u64, u64, SpinMutex>,  //
                         PoolFlatARCCache<u64, u64, SpinMutex>,
-                        PoolFlatLIRSCache<u64, u64, SpinMutex>>();
+                        PoolFlatSIEVECache<u64, u64, SpinMutex>>();
 
     return 0;
 }

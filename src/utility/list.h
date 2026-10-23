@@ -149,6 +149,12 @@ class DoublyIntrusiveList final {
         return size() == 0;
     }
 
+    void clear() noexcept {
+        front_ = nullptr;
+        back_  = nullptr;
+        size_  = 0;
+    }
+
     [[nodiscard]] T* next(const T& node) noexcept {
         assert(is_linked(node));
         return node.next;
