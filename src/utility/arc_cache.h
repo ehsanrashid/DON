@@ -519,7 +519,7 @@ class PoolARCCache final {
 
     [[nodiscard]] usize nolock_max_recency_limit() noexcept {
         // Dynamic limits based on 80/20 optimization strategy
-        return capacity <= 4 ? capacity : (capacity * 20) / 100;
+        return capacity <= 4 ? 1 : (capacity * 20) / 100;
     }
 
     [[nodiscard]] bool nolock_replace(const usize t1Size) noexcept {
@@ -752,11 +752,11 @@ class PoolARCCache final {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        // Probe once: existing entries are hits; a new key is inserted here so
-        // the clean-miss path does not hash it again after replacement.
-        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        // Probe the map directory container using a clean, non-mutating lookup first.
+        // This stops placeholders from pre-allocating empty keys and polluting the slots.
+        auto mapItr = map.find(key);
 
-        if (!inserted)
+        if (mapItr != map.end())
         {
             list_iterator const current = mapItr->second;
 
@@ -771,10 +771,13 @@ class PoolARCCache final {
             }
 
             // --- GHOST HIT PATH ---
+
+            // 1. ADAPT PARTITION LIMITS: Run the 80/20 adaptation math on ghost directory telemetry
+            // and determine if any resident data allocations need to be flushed out.
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Args>(args)...};
 
-            // Refresh the iterator locally because handle_ghost_hit evicted elements
+            // 2. RE-VERIFY: iterator safety because handle_ghost_hit modified bounds
             mapItr = map.find(key);
             if (mapItr == map.end())
                 return Return{std::forward<Args>(args)...};
@@ -782,9 +785,8 @@ class PoolARCCache final {
             list_iterator const entry = mapItr->second;
             assert(entry != nullptr);
 
-            // If the entry already exists in the directory map but its value
-            // payload was dropped to ghost status, check your test architecture needs.
-            // For a strict lookup cache, we preserve the value or emplace the correct identity!
+            // 3. PROMOTE NODE REGISTRATION: Restore the value payload directly inside the
+            // node memory and transition the item into the live T2 Frequency partition.
             list_iterator const promotedEntry =
               nolock_ghost_to_resident(mapItr, std::forward<Args>(args)...);
 
@@ -792,37 +794,63 @@ class PoolARCCache final {
                 return Return{std::forward<Args>(args)...};
 
             assert(nolock_consistency_check());
-            return nolock_read(entry);
+            return nolock_read(promotedEntry);
         }
 
+        // --- CLEAN MISS PATH ---
+
+        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
+        // BEFORE touching the map directory lookups or initializing allocations!
+        nolock_prepare_miss();
+
+        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
-            map.erase(mapItr);
             return Return{std::forward<Args>(args)...};
         }
 
-        mapItr->second = newEntry;
+        // 3. PROBE AND EMBED INTO THE MAP
+        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
+        if (!missInserted)
+        {
+            // If another thread or operations loop somehow raced and filled this key,
+            // safe rollback allocation immediately.
+            pool.destroy(newEntry);
 
-        // Replacement mutates the directory. The flat-map variant can compact it,
-        // so use the key for rollback and don't reuse mapItr afterward.
-        nolock_prepare_miss();
+            // Fallback gracefully to processing it as a regular resident hit
+            list_iterator const current = missMapItr->second;
+            if (current != nullptr && nolock_is_resident(current))
+            {
+                nolock_promote_to_t2(*current);
+                assert(nolock_consistency_check());
+                return nolock_read(current);
+            }
+            return Return{std::forward<Args>(args)...};
+        }
 
+        // 4. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
         }
 
-        // Clean template deduction pass: no explicit specialized types <Args...> needed
-        // because arguments pack matches trailing template definitions flawlessly now.
+        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
         list_iterator const entry = nolock_add_resident(newEntry, T1, std::forward<Args>(args)...);
+
         if (entry == nullptr)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
+        }
+
+        // Adjust target boundaries for startup safety layout
+        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
+        {
+            target = buckets[T1].entries.size();
         }
 
         assert(nolock_consistency_check());
@@ -834,11 +862,10 @@ class PoolARCCache final {
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        // Probe once: existing entries are hits; a new key is inserted here so
-        // the clean-miss path does not hash it again after replacement.
-        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        // Probe the map directory container using a clean, non-mutating lookup first.
+        auto mapItr = map.find(key);
 
-        if (!inserted)
+        if (mapItr != map.end())
         {
             list_iterator const current = mapItr->second;
 
@@ -853,10 +880,12 @@ class PoolARCCache final {
             }
 
             // --- GHOST HIT PATH ---
+
+            // 1. ADAPT PARTITION LIMITS: Run the 80/20 adaptation math on ghost directory telemetry.
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            // Refresh the iterator locally because handle_ghost_hit evicted elements
+            // 2. RE-VERIFY: iterator safety because handle_ghost_hit modified bounds
             mapItr = map.find(key);
             if (mapItr == map.end())
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
@@ -864,44 +893,76 @@ class PoolARCCache final {
             list_iterator const entry = mapItr->second;
             assert(entry != nullptr);
 
-            // Raw template pack perfect forwarding
-            list_iterator const promotedEntry = nolock_ghost_to_resident(
-              mapItr, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+            // 3. TRANSACTION COMMIT WALL: Construct the value EXACTLY once here.
+            // This prevents duplicate evaluation or use-after-move vulnerabilities if the promotion fails!
+            Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
+
+            list_iterator const promotedEntry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (promotedEntry == nullptr)
-                return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            {
+                // If the cache is full, return via move semantics cleanly without re-running the builder
+                return Return{std::move(value)};
+            }
 
             assert(nolock_consistency_check());
-            return nolock_read(entry);
+            return nolock_read(promotedEntry);
         }
 
+        // --- CLEAN MISS PATH ---
+
+        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
+        // BEFORE touching the map directory lookups or initializing allocations!
+        nolock_prepare_miss();
+
+        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
-            map.erase(mapItr);
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
         }
 
-        mapItr->second = newEntry;
+        // 3. PROBE AND EMBED INTO THE MAP
+        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
+        if (!missInserted)
+        {
+            pool.destroy(newEntry);
 
-        // Replacement mutates the directory. The flat-map variant can compact it,
-        // so use the key for rollback and don't reuse mapItr afterward.
-        nolock_prepare_miss();
+            list_iterator const current = missMapItr->second;
+            if (current != nullptr && nolock_is_resident(current))
+            {
+                nolock_promote_to_t2(*current);
+                assert(nolock_consistency_check());
+                return nolock_read(current);
+            }
+            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+        }
 
+        // EVALUATE VALUE ONCE: Commit to generating the engine state now that map insertion succeeded
+        Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
+
+        // 4. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            return Return{std::move(value)};
         }
 
-        list_iterator const entry = nolock_add_resident(
-          newEntry, T1, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
+        list_iterator const entry = nolock_add_resident(newEntry, T1, std::move(value));
+
         if (entry == nullptr)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            return Return{std::move(value)};
+        }
+
+        // Adjust target boundaries for startup safety layout
+        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
+        {
+            target = buckets[T1].entries.size();
         }
 
         assert(nolock_consistency_check());
@@ -1565,7 +1626,7 @@ class PoolFlatARCCache final {
 
     [[nodiscard]] usize nolock_max_recency_limit() noexcept {
         // Dynamic limits based on 80/20 optimization strategy
-        return capacity <= 4 ? capacity : (capacity * 20) / 100;
+        return capacity <= 4 ? 1 : (capacity * 20) / 100;
     }
 
     [[nodiscard]] bool nolock_replace(const usize t1Size) noexcept {
@@ -1798,11 +1859,11 @@ class PoolFlatARCCache final {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
 
-        // Probe once: existing entries are hits; a new key is inserted here so
-        // the clean-miss path does not hash it again after replacement.
-        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        // Probe the map directory container using a clean, non-mutating lookup first.
+        // This stops placeholders from pre-allocating empty keys and polluting the slots.
+        auto mapItr = map.find(key);
 
-        if (!inserted)
+        if (mapItr != map.end())
         {
             list_iterator const current = mapItr->second;
 
@@ -1817,10 +1878,13 @@ class PoolFlatARCCache final {
             }
 
             // --- GHOST HIT PATH ---
+
+            // 1. ADAPT PARTITION LIMITS: Run the 80/20 adaptation math on ghost directory telemetry
+            // and determine if any resident data allocations need to be flushed out.
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Args>(args)...};
 
-            // Refresh the iterator locally because handle_ghost_hit evicted elements
+            // 2. RE-VERIFY: iterator safety because handle_ghost_hit modified bounds
             mapItr = map.find(key);
             if (mapItr == map.end())
                 return Return{std::forward<Args>(args)...};
@@ -1828,9 +1892,8 @@ class PoolFlatARCCache final {
             list_iterator const entry = mapItr->second;
             assert(entry != nullptr);
 
-            // If the entry already exists in the directory map but its value
-            // payload was dropped to ghost status, check your test architecture needs.
-            // For a strict lookup cache, we preserve the value or emplace the correct identity!
+            // 3. PROMOTE NODE REGISTRATION: Restore the value payload directly inside the
+            // node memory and transition the item into the live T2 Frequency partition.
             list_iterator const promotedEntry =
               nolock_ghost_to_resident(mapItr, std::forward<Args>(args)...);
 
@@ -1838,37 +1901,63 @@ class PoolFlatARCCache final {
                 return Return{std::forward<Args>(args)...};
 
             assert(nolock_consistency_check());
-            return nolock_read(entry);
+            return nolock_read(promotedEntry);
         }
 
+        // --- CLEAN MISS PATH ---
+
+        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
+        // BEFORE touching the map directory lookups or initializing allocations!
+        nolock_prepare_miss();
+
+        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
-            map.erase(mapItr);
             return Return{std::forward<Args>(args)...};
         }
 
-        mapItr->second = newEntry;
+        // 3. PROBE AND EMBED INTO THE MAP
+        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
+        if (!missInserted)
+        {
+            // If another thread or operations loop somehow raced and filled this key,
+            // safe rollback allocation immediately.
+            pool.destroy(newEntry);
 
-        // Replacement mutates the directory. The flat-map variant can compact it,
-        // so use the key for rollback and don't reuse mapItr afterward.
-        nolock_prepare_miss();
+            // Fallback gracefully to processing it as a regular resident hit
+            list_iterator const current = missMapItr->second;
+            if (current != nullptr && nolock_is_resident(current))
+            {
+                nolock_promote_to_t2(*current);
+                assert(nolock_consistency_check());
+                return nolock_read(current);
+            }
+            return Return{std::forward<Args>(args)...};
+        }
 
+        // 4. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
         }
 
-        // Clean template deduction pass: no explicit specialized types <Args...> needed
-        // because arguments pack matches trailing template definitions flawlessly now.
+        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
         list_iterator const entry = nolock_add_resident(newEntry, T1, std::forward<Args>(args)...);
+
         if (entry == nullptr)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
             return Return{std::forward<Args>(args)...};
+        }
+
+        // Adjust target boundaries for startup safety layout
+        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
+        {
+            target = buckets[T1].entries.size();
         }
 
         assert(nolock_consistency_check());
@@ -1880,11 +1969,10 @@ class PoolFlatARCCache final {
         if (capacity == 0)
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-        // Probe once: existing entries are hits; a new key is inserted here so
-        // the clean-miss path does not hash it again after replacement.
-        auto [mapItr, inserted] = map.try_emplace(key, nullptr);
+        // Probe the map directory container using a clean, non-mutating lookup first.
+        auto mapItr = map.find(key);
 
-        if (!inserted)
+        if (mapItr != map.end())
         {
             list_iterator const current = mapItr->second;
 
@@ -1899,10 +1987,12 @@ class PoolFlatARCCache final {
             }
 
             // --- GHOST HIT PATH ---
+
+            // 1. ADAPT PARTITION LIMITS: Run the 80/20 adaptation math on ghost directory telemetry.
             if (!nolock_handle_ghost_hit(mapItr))
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
-            // Refresh the iterator locally because handle_ghost_hit evicted elements
+            // 2. RE-VERIFY: iterator safety because handle_ghost_hit modified bounds
             mapItr = map.find(key);
             if (mapItr == map.end())
                 return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
@@ -1910,44 +2000,76 @@ class PoolFlatARCCache final {
             list_iterator const entry = mapItr->second;
             assert(entry != nullptr);
 
-            // Raw template pack perfect forwarding
-            list_iterator const promotedEntry = nolock_ghost_to_resident(
-              mapItr, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+            // 3. TRANSACTION COMMIT WALL: Construct the value EXACTLY once here.
+            // This prevents duplicate evaluation or use-after-move vulnerabilities if the promotion fails!
+            Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
+
+            list_iterator const promotedEntry = nolock_ghost_to_resident(mapItr, std::move(value));
 
             if (promotedEntry == nullptr)
-                return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            {
+                // If the cache is full, return via move semantics cleanly without re-running the builder
+                return Return{std::move(value)};
+            }
 
             assert(nolock_consistency_check());
-            return nolock_read(entry);
+            return nolock_read(promotedEntry);
         }
 
+        // --- CLEAN MISS PATH ---
+
+        // 1. PREPARE THE MISS FIRST: Actively evict an old item to secure a physical slot
+        // BEFORE touching the map directory lookups or initializing allocations!
+        nolock_prepare_miss();
+
+        // 2. ALLOCATE THE FRESH DIRECTORY POOL NODE
         list_iterator const newEntry = pool.create(0, key);
         if (newEntry == nullptr)
         {
-            map.erase(mapItr);
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
         }
 
-        mapItr->second = newEntry;
+        // 3. PROBE AND EMBED INTO THE MAP
+        auto [missMapItr, missInserted] = map.try_emplace(key, newEntry);
+        if (!missInserted)
+        {
+            pool.destroy(newEntry);
 
-        // Replacement mutates the directory. The flat-map variant can compact it,
-        // so use the key for rollback and don't reuse mapItr afterward.
-        nolock_prepare_miss();
+            list_iterator const current = missMapItr->second;
+            if (current != nullptr && nolock_is_resident(current))
+            {
+                nolock_promote_to_t2(*current);
+                assert(nolock_consistency_check());
+                return nolock_read(current);
+            }
+            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+        }
 
+        // EVALUATE VALUE ONCE: Commit to generating the engine state now that map insertion succeeded
+        Value value = std::forward<Builder>(builder)(std::forward<Args>(args)...);
+
+        // 4. VERIFY THE HARD PHYSICAL CEILING
         if (nolock_resident_size() >= capacity)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            return Return{std::move(value)};
         }
 
-        list_iterator const entry = nolock_add_resident(
-          newEntry, T1, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+        // 5. LINK INTO T1 AND COMPLETE TRANSACTION
+        list_iterator const entry = nolock_add_resident(newEntry, T1, std::move(value));
+
         if (entry == nullptr)
         {
-            map.erase(key);
+            map.erase(missMapItr);
             pool.destroy(newEntry);
-            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+            return Return{std::move(value)};
+        }
+
+        // Adjust target boundaries for startup safety layout
+        if (nolock_resident_size() <= capacity && target < buckets[T1].entries.size())
+        {
+            target = buckets[T1].entries.size();
         }
 
         assert(nolock_consistency_check());
