@@ -455,12 +455,12 @@ void benchmark_hot_set_survival() {
     std::printf("\nHot-set survival (capacity=%zu, %zu hot, %zu cold)\n", SurvivalCapacity,
                 SurvivalHotKeyCount, SurvivalColdKeyCount);
 
-    std::printf("%-12s %12s %12s\n", "Cache", "Survivors", "Survival");
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatARC", arcSurvivors, arcRate);
-    //std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLIRS", lirsSurvivors, lirsRate);
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatSIEVE", lirsSurvivors, lirsRate);
+    std::printf("%-15s %12s %12s\n", "Cache", "Survivors", "Survival");
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatARC", arcSurvivors, arcRate);
+    //std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatLIRS", lirsSurvivors, lirsRate);
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatSIEVE", lirsSurvivors, lirsRate);
 
     std::printf("LFU vs LRU: %+.3f percentage points\n", lfuRate - lruRate);
     std::printf("ARC vs LRU: %+.3f percentage points\n", arcRate - lruRate);

@@ -23,7 +23,7 @@
     #if defined(_MSC_VER)
         #include <emmintrin.h>  // _mm_pause() intrinsic
     #else
-        #include <xmmintrin.h>  // _mm_pause() intrinsic
+    //#include <xmmintrin.h>  // _mm_pause() intrinsic
     #endif
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(ARM32_V7)
     #if defined(_MSC_VER)

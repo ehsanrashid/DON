@@ -293,8 +293,11 @@ class PoolSIEVECache final {
         assert(entry.prev == nullptr && entry.next == nullptr);
         assert(entry.value.has_value());
 
-        if (!list.push_front(entry))
-            assert(false);
+        if (list.push_front(entry))
+            return;
+
+        assert(false);
+        UNREACHABLE();
     }
 
     Return nolock_read(const list_iterator entry) const noexcept {
@@ -382,11 +385,8 @@ class PoolSIEVECache final {
 
     void nolock_evict_excess(const usize targetSize) noexcept {
         while (list.size() > targetSize)
-        {
-            const usize previousSize = list.size();
             nolock_evict_one();
-            assert(list.size() < previousSize);
-        }
+
         assert(nolock_consistency_check());
     }
 
@@ -673,8 +673,11 @@ class PoolFlatSIEVECache final {
         assert(entry.prev == nullptr && entry.next == nullptr);
         assert(entry.value.has_value());
 
-        if (!list.push_front(entry))
-            assert(false);
+        if (list.push_front(entry))
+            return;
+
+        assert(false);
+        UNREACHABLE();
     }
 
     Return nolock_read(const list_iterator entry) const noexcept {
@@ -756,11 +759,8 @@ class PoolFlatSIEVECache final {
 
     void nolock_evict_excess(const usize targetSize) noexcept {
         while (list.size() > targetSize)
-        {
-            const usize previousSize = list.size();
             nolock_evict_one();
-            assert(list.size() < previousSize);
-        }
+
         assert(nolock_consistency_check());
     }
 

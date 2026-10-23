@@ -21,6 +21,7 @@
 #include <chrono>
 #include <thread>  // sleep_for()
 
+#include "../utility/thread_attributes.h"
 #include "../utility/cpu.h"
 #include "../utility/list.h"
 #include "../utility/types.h"
