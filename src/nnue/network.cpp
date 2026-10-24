@@ -34,6 +34,7 @@
 #include "../nnue/nnz.h"
 #include "../nnue/serialization.h"
 #include "../nnue/types.h"
+#include "../utility/streambuf.h"
 #include "../utility/types.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
@@ -294,10 +295,10 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
         return false;
 #endif
 
-    MemoryBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
-                  static_cast<usize>(gEmbeddedNNUESize));
+    MemoryBuf streambuf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
+                        static_cast<usize>(gEmbeddedNNUESize));
 
-    std::istream is{&buf};
+    std::istream is{&streambuf};
 
     auto netDescription = load(is);
 

@@ -50,7 +50,7 @@ namespace DON {
 //  - OStreamMutexes ensures that the same ostream uses the same mutex.
 class [[nodiscard]] SyncOStream final {
    public:
-    explicit SyncOStream(std::ostream& osRef);
+    explicit SyncOStream(std::ostream& osRef) noexcept;
 
     SyncOStream(const SyncOStream&) noexcept            = delete;
     SyncOStream& operator=(const SyncOStream&) noexcept = delete;
@@ -89,7 +89,7 @@ class [[nodiscard]] SyncOStream final {
     std::unique_lock<std::mutex> uniqueLock;
 };
 
-[[nodiscard]] SyncOStream sync_os(std::ostream& os = std::cout);
+[[nodiscard]] SyncOStream sync_os(std::ostream& os = std::cout) noexcept;
 
 }  // namespace DON
 

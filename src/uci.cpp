@@ -36,6 +36,7 @@
 #include "utility/debug.h"
 #include "utility/error.h"
 #include "utility/functions.h"
+#include "utility/streambuf.h"
 
 namespace DON {
 
@@ -264,9 +265,9 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(const std::string_view command) noexcept {
 
-    StringBuf buf{command};
+    StringBuf streambuf{command};
 
-    std::istream is{&buf};
+    std::istream is{&streambuf};
 
     std::string token;
     if (!(is >> token))

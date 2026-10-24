@@ -26,6 +26,7 @@
 #include "uci.h"
 #include "tablebase/syzygy.h"
 #include "utility/command_line.h"
+#include "utility/console.h"
 #include "utility/functions.h"
 
 using namespace DON;
@@ -58,8 +59,12 @@ int main(const int argc, const char* const argv[]) noexcept {
 
     Tune::init(uci.options());
 
+#if defined(ENABLE_CONSOLE_COLORS)
+    ConsoleColors consoleColors;
+#endif
+
     commandLine.size() > 1  //
-      ? uci.execute(commandLine.command())
+      ? uci.execute(commandLine.arguments_string())
       : uci.process_input(std::cin);
 
     uci.execute(QUIT_CMD);

@@ -77,14 +77,14 @@ Advapi::~Advapi() noexcept { free(); }
 
 bool Advapi::load() noexcept {
 
-    hModule = GetModuleHandle(ModuleName);
+    hModule = ::GetModuleHandle(ModuleName);
 
     if (hModule == nullptr)
     {
-        hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        hModule = ::LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
         // Optional last resort
         if (hModule == nullptr)
-            hModule = LoadLibrary(ModuleName);
+            hModule = ::LoadLibrary(ModuleName);
 
         if (hModule == nullptr)
             return false;

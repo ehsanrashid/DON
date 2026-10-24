@@ -107,8 +107,9 @@ SRCS := \
     nnue/features/full_threats.cpp nnue/features/k32q2.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
-    utility/command_line.cpp utility/cpu.cpp utility/debug.cpp utility/functions.cpp utility/guard.cpp \
-    utility/mutex.cpp utility/prng.cpp utility/reader.cpp utility/sync_ostream.cpp
+    utility/command_line.cpp utility/console.cpp utility/cpu.cpp utility/debug.cpp utility/functions.cpp \
+    utility/guard.cpp utility/logger.cpp utility/mutex.cpp utility/prng.cpp utility/reader.cpp \
+    utility/streambuf.cpp utility/sync_ostream.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -127,11 +128,12 @@ HEADERS := \
     nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
     utility/access.h utility/arc_cache.h utility/attributes.h utility/call_once.h utility/channel.h \
-    utility/color.h utility/command_line.h utility/concurrent.h utility/cpu.h utility/debug.h utility/environment.h \
-    utility/error.h utility/functions.h utility/guard.h utility/lfu_cache.h utility/lirs_cache.h utility/list.h \
-    utility/lru_cache.h utility/map.h utility/multi_array.h utility/mutex.h utility/platform_win.h utility/pool.h \
-    utility/prng.h utility/queue.h utility/reader.h utility/set.h utility/sharded_cache.h utility/static_vector.h \
-    utility/store.h utility/sync_ostream.h utility/thread_attributes.h utility/types.h utility/unordered_map.h \
+    utility/command_line.h utility/concurrent.h utility/console.h utility/cpu.h utility/debug.h \
+    utility/environment.h utility/error.h utility/functions.h utility/guard.h utility/lfu_cache.h \
+    utility/lirs_cache.h utility/list.h utility/logger.h utility/lru_cache.h utility/map.h utility/multi_array.h \
+    utility/mutex.h utility/platform_win.h utility/pool.h utility/prng.h utility/queue.h utility/reader.h \
+    utility/set.h utility/sharded_cache.h utility/sieve_cache.h utility/static_vector.h utility/store.h \
+    utility/streambuf.h utility/sync_ostream.h utility/thread_attributes.h utility/types.h utility/unordered_map.h \
     utility/ankerl/stl.h utility/ankerl/unordered_dense.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
@@ -1030,7 +1032,8 @@ endif
 ifeq ($(vsx),yes)
 CXXFLAGS += -mvsx
 ifneq ($(filter gcc,$(COMP)),)
-CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
+CPPFLAGS += -DNO_WARN_X86_INTRINSICS
+CXXFLAGS += -DUSE_SSE2
 endif
 endif
 
@@ -1090,12 +1093,12 @@ endif
 
 ### NNUE embedding
 ifeq ($(embedding),no)
-CXXFLAGS += -DNO_NNUE_EMBEDDING
+CPPFLAGS += -DNO_NNUE_EMBEDDING
 endif
 
 ### Syzygy tablebases
 ifeq ($(tablebases),no)
-CXXFLAGS += -DNO_TABLEBASES
+CPPFLAGS += -DNO_TABLEBASES
 endif
 
 ### 3.8.1 Include architecture when specified
@@ -1261,6 +1264,10 @@ endif
 ifeq ($(OS),Android)
 CXXFLAGS += -fPIE
 LDFLAGS  += -pie
+endif
+
+ifeq ($(ENABLE_CONSOLE_COLORS),yes)
+    CPPFLAGS += -DENABLE_CONSOLE_COLORS
 endif
 
 ### ==========================================================================
@@ -1678,10 +1685,8 @@ icx-profile-use:
 	@echo Generating dependencies...
 	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > '$@.tmp' || { rm -f '$@.tmp'; exit 1; }
 	@sed -E \
-		-e 's@([^[:space:]]*/)?DON/src/nnue/features/\.\./\.\./@ @g' \
 		-e 's@nnue/features/\.\./\.\./@@g' \
 		-e 's@nnue/features/\.\./@nnue/@g' \
-		-e 's@([^[:space:]]*/)?DON/src/nnue/layers/\.\./\.\./@ @g' \
 		-e 's@nnue/layers/\.\./\.\./@@g' \
 		-e 's@nnue/layers/\.\./@nnue/@g' \
 		-e 's@([^[:space:]]*/)?DON/src/nnue/@nnue/@g' \
@@ -1693,8 +1698,9 @@ icx-profile-use:
 		-e 's@([^[:space:]]*/)?DON/src/utility/@utility/@g' \
 		-e 's@utility/\.\./@@g' \
 		-e 's@([^[:space:]]*/)?DON/src/@@g' \
-		'$@.tmp' > '$@'
-	@rm -f '$@.tmp'
+		'$@.tmp' > '$@.tmp.sed' || { rm -f '$@.tmp.sed' '$@.tmp'; exit 1; }
+	@mv '$@.tmp.sed' '$@.tmp' || { rm -f '$@.tmp.sed' '$@.tmp'; exit 1; }
+	@mv '$@.tmp' '$@' || { rm -f '$@.tmp'; exit 1; }
 
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend when at least one non-excluded goal is requested

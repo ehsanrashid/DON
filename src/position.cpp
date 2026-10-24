@@ -29,7 +29,7 @@
 #include "movegen.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
-#include "utility/arc_cache.h"
+#include "utility/sieve_cache.h"
 #include "utility/error.h"
 #include "utility/functions.h"
 #include "utility/multi_array.h"
@@ -53,7 +53,7 @@ Cuckoos_& cuckoos() noexcept {
     return cuckoos;
 }
 
-using ValueCache = ShardedCache<Key, Value, PoolFlatARCCache, 32, SpinMutex>;
+using ValueCache = ShardedCache<Key, Value, PoolFlatSIEVECache, 32, SpinMutex>;
 
 constexpr float MAX_LOAD_FACTOR = 0.75F;
 
@@ -306,12 +306,11 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // Ignore if square is invalid or not on side to move relative rank 6.
     Square enPassantSq = SQ_NONE;
 
-    const char ep = reader.peek();
+    token = reader.peek();
 
-    if (ep == StringReader::Null)
+    if (token == StringReader::Null)
         return FENError{"invalid en-passant square."};
-
-    if (ep == '-')
+    else if (token == '-')
         reader.advance();
     else
     {
@@ -672,7 +671,7 @@ bool Position::enpassant_possible(const Color     ac,
     if (epPawnsBB == 0)
     {
         if (collect)
-            *epPawnsBBp = epPawnsBB;
+            *epPawnsBBp = 0;
 
         return false;
     }
@@ -680,7 +679,6 @@ bool Position::enpassant_possible(const Color     ac,
     const Square capturedSq = MoveDone  //
                               ? enPassantSq - pawn_spush(ac)
                               : enPassantSq + pawn_spush(ac);
-
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
     if constexpr (MoveDone)
@@ -703,11 +701,9 @@ bool Position::enpassant_possible(const Color     ac,
             return epPawnsBB != 0;
         }
     }
-    else
-    {
-        if (collect)
-            *epPawnsBBp = epPawnsBB;
-    }
+
+    if (collect)
+        *epPawnsBBp = epPawnsBB;
 
     bool epPossible = false;
 
@@ -722,10 +718,10 @@ bool Position::enpassant_possible(const Color     ac,
 
         const bool legal = (attackersBB & slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq)) == 0;
 
-        epPossible |= legal;
-
         if (legal)
         {
+            epPossible = true;
+
             if (!collect)
                 break;
         }
@@ -1030,6 +1026,12 @@ void Position::do_move(const Move                   m,
             move(orgSq, dstSq, dTs);
     }
 
+    if (dPps != nullptr)
+    {
+        dPps->after[WHITE] = pieces_bb(WHITE, PAWN);
+        dPps->after[BLACK] = pieces_bb(BLACK, PAWN);
+    }
+
     // Compute checkers (if move may check)
     if (mayCheck)
     {
@@ -1047,20 +1049,14 @@ void Position::do_move(const Move                   m,
 
     activeColor = ~ac;
 
-    if (is_ok(enPassantSq) && enpassant_possible(active_color(), enPassantSq))
-    {
-        st->enPassantSq = enPassantSq;
-        st->key ^= zobrist().enpassant(enPassantSq);
-    }
-
     set_pinner_blocker();
 
     set_ext_state();
 
-    if (dPps != nullptr)
+    if (is_ok(enPassantSq) && enpassant_possible(active_color(), enPassantSq))
     {
-        dPps->after[WHITE] = pieces_bb(WHITE, PAWN);
-        dPps->after[BLACK] = pieces_bb(BLACK, PAWN);
+        st->enPassantSq = enPassantSq;
+        st->key ^= zobrist().enpassant(enPassantSq);
     }
 
     // Compute the repetition info.
@@ -1075,7 +1071,7 @@ void Position::do_move(const Move                   m,
             preSt = preSt->preSt->preSt;
             if (preSt->key == st->key)
             {
-                st->repetition = preSt->repetition != 0 ? -i : +i;
+                st->repetition = preSt->repetition == 0 ? +i : -i;
                 break;
             }
         }
@@ -1307,6 +1303,8 @@ bool Position::legal(const Move m) const noexcept {
         UNREACHABLE();
     }
 
+    assert(type_of(movedPc) != KING);
+
     const Bitboard checkersBB = checkers_bb();
 
     return (checkersBB == 0
@@ -1467,11 +1465,11 @@ Key Position::non_pawn_key(const Color c) const noexcept {
 }
 
 Key Position::move_key(const Move m) const noexcept {
-    assert(m != Move ::None);
+    assert(m != Move::None);
 
     Key moveKey = st->key ^ zobrist().turn() ^ zobrist().enpassant(en_passant_sq());
 
-    assert(m != Move ::Null);
+    assert(m != Move::Null);
     //if (m == Move::Null)
     //    return moveKey;
 
@@ -1502,7 +1500,7 @@ Key Position::move_key(const Move m) const noexcept {
     {
         assert(movedPc == make_piece(ac, KING));
         assert(capturedPc == make_piece(ac, ROOK));
-
+        //capturedPc = Piece::NO_PIECE;
         return moveKey  //
              ^ zobrist().piece_square(ac, ROOK, dstSq)
              ^ zobrist().piece_square(ac, ROOK, rook_castle_sq(orgSq, dstSq))
@@ -1837,13 +1835,9 @@ bool Position::is_draw(const i16  ply,
 bool Position::has_repeated() const noexcept {
     const State* cSt = st;
 
-    for (auto end = std::min(rule50_count(), null_ply()); end >= 4; --end)
-    {
+    for (auto end = std::min(rule50_count(), null_ply()); end >= 4; --end, cSt = cSt->preSt)
         if (cSt->repetition != 0)
             return true;
-
-        cSt = cSt->preSt;
-    }
 
     return false;
 }
@@ -1878,7 +1872,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
             continue;
 
         Move m = cuckoos()[index].move;
-        assert(m != Move::None);
+        assert(m.is_ok());
 
         // Move path is obstructed
         if ((occupancyBB & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)

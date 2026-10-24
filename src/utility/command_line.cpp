@@ -30,6 +30,8 @@
 namespace DON {
 
 CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
+    if (argc <= 0 || argv == nullptr)
+        return;
 #if defined(_WIN32)
     int w_argc = 0;
     if (LPWSTR* w_argv = ::CommandLineToArgvW(::GetCommandLineW(), &w_argc);  //
@@ -92,32 +94,27 @@ std::string_view CommandLine::operator[](const usize idx) const noexcept {
     return arguments()[idx];
 }
 
-std::string CommandLine::command_line() const noexcept {
-    std::string commandLine;
-    commandLine.reserve(KB / 2);
+std::string CommandLine::join_arguments(const usize beg) const noexcept {
+    std::string join;
 
-    for (const auto& argument : arguments())
-        commandLine.append(argument).push_back(' ');
+    if (beg < size())
+    {
+        join.reserve(KB / 2);
 
-    // Remove trailing space
-    if (!commandLine.empty())
-        commandLine.pop_back();
+        join.append(arguments()[beg]);
 
-    return commandLine;
+        for (usize i = beg + 1; i < size(); ++i)
+        {
+            join.push_back(' ');
+            join.append(arguments()[i]);
+        }
+    }
+
+    return join;
 }
 
-std::string CommandLine::command() const noexcept {
-    std::string command;
-    command.reserve(KB / 2);
+std::string CommandLine::to_string() const noexcept { return join_arguments(0); }
 
-    for (usize i = 1; i < size(); ++i)
-        command.append((*this)[i]).push_back(' ');
-
-    // Remove trailing space
-    if (!command.empty())
-        command.pop_back();
-
-    return command;
-}
+std::string CommandLine::arguments_string() const noexcept { return join_arguments(1); }
 
 }  // namespace DON

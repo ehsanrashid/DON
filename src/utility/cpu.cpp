@@ -22,11 +22,15 @@
 #if defined(X86)
     #if defined(_MSC_VER)
         #include <emmintrin.h>  // _mm_pause() intrinsic
+    #else
+    //#include <xmmintrin.h>  // _mm_pause() intrinsic
     #endif
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(ARM32_V7)
     #if defined(_MSC_VER)
         #include <intrin.h>  // __yield()
     #endif
+#elif defined(__wasm__)
+    #include <emscripten/threading.h>
 #elif defined(_WIN32)
     #include "../utility/platform_win.h"  // YieldProcessor()
 #endif
@@ -40,6 +44,7 @@ void cpu_relax() noexcept {
     #if defined(_MSC_VER)
     ::_mm_pause();  // MSVC intrinsic
     #else
+    //_mm_pause();           // Standard SSE intrinsic portable across GCC/Clang/Intel
     __builtin_ia32_pause();  // GCC / Clang intrinsic
     #endif
     // ARM64 / AArch64
@@ -48,34 +53,38 @@ void cpu_relax() noexcept {
     #if defined(_MSC_VER)
     __yield();  // MSVC intrinsic
     #elif defined(CLANG_OR_GCC)
-    __asm__ __volatile__("yield");
+    __asm__ __volatile__("yield" ::: "memory");
     #endif
     // ARM32 (ARMv7+)
 #elif defined(ARM32_V7)
     #if defined(_MSC_VER)
     __yield();
     #elif defined(CLANG_OR_GCC)
-    __asm__ __volatile__("yield");
+    // Ensure backward-compatible hint space mapping on older ARMv7 cores
+    __asm__ __volatile__("yield" ::: "memory");
     #endif
-    // RISC-V
 #elif defined(__riscv)
     #if defined(__riscv_zihintpause)
     __builtin_riscv_pause();  // Zihintpause extension
-    #else  // Compiler-barrier fallback
-    __asm__ __volatile__("" ::: "memory");
+    #else
+    // Standard RISC-V industrial fallback instruction sequence for pause
+    __asm__ __volatile__("fence rw,rw" ::: "memory");
     #endif
+#elif defined(__wasm__)
+    // Native WebAssembly relax execution block
+    __builtin_wasm_memory_atomic_wait32(nullptr, 0, 0);
     // PowerPC / POWER
 #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(_ARCH_PPC)
-    __asm__ __volatile__("or 27,27,27");  // Low-priority dispatch hint
+    __asm__ __volatile__("or 27,27,27" ::: "memory");  // Low-priority dispatch hint
     // MIPS (ISA revision 2 or later)
 #elif defined(__mips__) && defined(__mips_isa_rev) && (__mips_isa_rev >= 2)
-    __asm__ __volatile__("pause");
+    __asm__ __volatile__("pause" ::: "memory");
     // SPARC
 #elif defined(__sparc__)
-    __asm__ __volatile__("rd %%ccr, %%g0");
+    __asm__ __volatile__("rd %%ccr, %%g0" ::: "memory");
     // IBM S/390 / z
 #elif defined(__s390__) || defined(__s390x__)
-    __asm__ __volatile__("bcr 14, 0");  // Branch-on-condition hint
+    __asm__ __volatile__("bcr 14, 0" ::: "memory");  // Branch-on-condition hint
     // Elbrus 2000 (e2k)
 #elif defined(__e2k__)
     __asm__ __volatile__("" ::: "memory");

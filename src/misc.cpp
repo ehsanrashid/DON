@@ -18,15 +18,12 @@
 #include "misc.h"
 
 #include <charconv>      // from_chars()
-#include <cinttypes>     // PRIX32, PRIX64, PRIu64
-#include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
-#include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
 #include <iostream>      // cout, cin
 #include <system_error>  // errc
 #include <vector>        // vector<>
 
-#include "utility/color.h"
+#include "utility/console.h"
 #include "utility/functions.h"
 
 namespace DON {
@@ -42,13 +39,6 @@ std::string compiler_version(const u32 major, const u32 minor, const u32 patch) 
 }
 
 }  // namespace
-
-void set_console_utf8() noexcept {
-#if defined(_WIN32)
-    ::SetConsoleCP(CP_UTF8);
-    ::SetConsoleOutputCP(CP_UTF8);
-#endif
-}
 
 std::string build_date() noexcept {
 #if defined(BUILD_DATE)
@@ -98,58 +88,59 @@ std::string engine_info(const bool uci) noexcept {
 std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
-    // clang-format off
     const auto border = [&logo](const std::string_view sv) noexcept {
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += sv;
-        logo += Color::RESET;
+        logo += ConsoleColor::RESET;
         logo += '\n';
     };
     const auto mid1 = [&logo](const std::string_view sv, const char* const c1) noexcept {
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "  ║";
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
         logo += c1;
         logo += sv;
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "║  ";
-        logo += Color::RESET;
+        logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    const auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) noexcept {
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+    const auto mid2 = [&logo](const std::string_view sv, const char* const c1,
+                              const char* const c2) noexcept {
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "  ║";
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
         logo += c1;
         logo += c2;
         logo += sv;
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "║  ";
-        logo += Color::RESET;
+        logo += ConsoleColor::RESET;
         logo += '\n';
     };
 
+    // clang-format off
     border("  ╔══════════════════════════════╗  ");
-         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", Color::RED);
-         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", Color::BRIGHT_RED, Color::STRIKETHROUGH);
-         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", Color::BRIGHT_RED, Color::STRIKETHROUGH);
-         mid2("  ██║  ██║██║   ██║██║╚████║  ", Color::BRIGHT_RED, Color::STRIKETHROUGH);
-         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", Color::RED);
-         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", Color::RED);
+         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
+         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
+         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
     border("  ╚══════════════════════════════╝  ");
     // clang-format on
 
@@ -355,38 +346,6 @@ std::string compiler_info() noexcept {
     return compiler;
 }
 
-std::string format_time(const SystemClock::time_point& timePoint) noexcept {
-    constexpr i64 UsecPerSec = 1'000'000;
-
-    const std::time_t time = SystemClock::to_time_t(timePoint);
-
-    const auto totalUsec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count();
-    const u64  usec      = u64((totalUsec % UsecPerSec + UsecPerSec) % UsecPerSec);
-
-    std::tm tm{};
-#if defined(_WIN32)  // Windows
-    localtime_s(&tm, &time);
-#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Unix-like systems / macOS)
-    localtime_r(&time, &tm);
-#else
-    // Fallback (not thread-safe)
-    const auto* const localTm = std::localtime(&time);
-    assert(localTm != nullptr);
-    tm = *localTm;
-#endif
-
-    Array<char, 32> buffer{};
-
-    usize writtenSize;
-    // Format the date and time: YYYY.MM.DD-HH:MM:SS
-    writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
-    // Append microseconds
-    writtenSize += usize(
-      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec));
-
-    return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
-}
-
 usize CaseInsensitiveHash::operator()(const std::string_view sv) const noexcept {
     return std::hash<std::string_view>{}(lower_case(std::string{sv}));
 }
@@ -445,186 +404,6 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     os.write(fixedText.c_str(), static_cast<std::streamsize>(fixedText.size()));
 
     return os;
-}
-
-StringBuf::StringBuf(const std::string_view sv) noexcept {
-    // std::streambuf requires char* for the get area.
-    // The buffer is read-only; no characters are modified.
-    auto* const p    = const_cast<char*>(sv.data());
-    const usize size = sv.size();
-    setg(p, p, p + size);  // Only GET area (reading enabled)
-    // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
-}
-
-MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
-    setg(p, p, p + size);  // Set GET area (reading enabled)
-    setp(p, p + size);     // Set PUT area (writing enabled)
-}
-
-TieBuf::TieBuf(std::streambuf* const pBf, std::streambuf* const mBf) noexcept :
-    pBuf(pBf),
-    mBuf(mBf) {}
-
-int TieBuf::sync() {
-    const int pR = pBuf != nullptr ? pBuf->pubsync() : 0;
-    const int mR = mBuf != nullptr ? mBuf->pubsync() : 0;
-
-    return pR == 0 && mR == 0 ? 0 : -1;
-}
-
-TieBuf::int_type TieBuf::underflow() {
-    if (pBuf == nullptr)
-        return traits_type::eof();
-
-    return pBuf->sgetc();
-}
-
-TieBuf::int_type TieBuf::overflow(const int_type ch) {
-    if (pBuf == nullptr)
-        return traits_type::eof();
-
-    if (traits_type::eq_int_type(ch, traits_type::eof()))
-        return traits_type::not_eof(ch);
-
-    int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
-
-    if (traits_type::eq_int_type(putCh, traits_type::eof()))
-        return putCh;
-
-    return mirror_put_with_prefix(putCh, "<< ", opreCh);
-}
-
-TieBuf::int_type TieBuf::uflow() {
-    if (pBuf == nullptr)
-        return traits_type::eof();
-
-    int_type ch = pBuf->sbumpc();
-
-    if (traits_type::eq_int_type(ch, traits_type::eof()))
-        return ch;
-
-    return mirror_put_with_prefix(ch, ">> ", ipreCh);
-}
-
-std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize count) {
-    if (pBuf == nullptr)
-        return 0;
-
-    const std::streamsize written = pBuf->sputn(s, count);
-
-    if (mBuf == nullptr)
-        return written;
-
-    if (written <= 0)
-        return written;
-
-    if (opreCh == '\n')
-        mBuf->sputn("<< ", 3);
-
-    mBuf->sputn(s, written);
-
-    opreCh = s[written - 1];
-
-    return written;
-}
-
-std::streambuf* TieBuf::pbuf() const noexcept { return pBuf; }
-
-std::streambuf* TieBuf::mbuf() const noexcept { return mBuf; }
-
-TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
-                                                const std::string_view prefix,
-                                                char_type&             preCh) noexcept {
-    if (mBuf == nullptr)
-        return traits_type::not_eof(ch);
-
-    if (preCh == '\n')
-        mBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
-
-    char_type c = traits_type::to_char_type(ch);
-    preCh       = c;
-
-    int_type r = mBuf->sputc(c);
-    return traits_type::eq_int_type(r, traits_type::eof()) ? traits_type::eof()
-                                                           : traits_type::not_eof(ch);
-}
-
-bool Logger::start(const fs::path& logPath) noexcept {
-    std::lock_guard lockGuard{instance().mutex};
-
-    return instance().open(logPath);
-}
-
-void Logger::stop() noexcept {
-    std::lock_guard lockGuard{instance().mutex};
-
-    instance().close();
-}
-
-Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
-    is(isRef),
-    os(osRef),
-    isBuf(is.rdbuf()),
-    osBuf(os.rdbuf()),
-    itBuf(is.rdbuf(), ofs.rdbuf()),
-    otBuf(os.rdbuf(), ofs.rdbuf()) {}
-
-Logger::~Logger() noexcept { close(); }
-
-Logger& Logger::instance() noexcept {
-    static Logger logger(std::cin, std::cout);
-
-    return logger;
-}
-
-bool Logger::open(const fs::path& logPath) noexcept {
-    if (filename == logPath.string() && is_open())
-        return true;  // Already open
-
-    close();
-
-    if (logPath.empty())
-        return true;
-
-    filename = logPath.string();
-
-    ofs.open(filename, std::ios::out | std::ios::app);
-
-    if (!is_open())
-    {
-        DEBUG_LOG("Unable to open Log file: " << filename);
-        return false;
-    }
-
-    write_timestamp("->");
-
-    is.rdbuf(&itBuf);
-    os.rdbuf(&otBuf);
-
-    return true;
-}
-
-void Logger::close() noexcept {
-    if (!is_open())
-        return;
-
-    is.rdbuf(isBuf);
-    os.rdbuf(osBuf);
-
-    write_timestamp("<-");
-
-    ofs.close();
-
-    filename.clear();
-}
-
-bool Logger::is_open() const noexcept { return ofs.is_open(); }
-
-void Logger::write_timestamp(std::string_view suffix) noexcept {
-    if (!ofs)
-        return;
-
-    ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << std::endl;
 }
 
 void print_info_string(const std::string_view info) noexcept {

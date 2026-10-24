@@ -197,8 +197,8 @@ int main() {
     CHECK(singlyList.empty());
 
     singlyList.push_front(a);
-    CHECK(singlyList.insert_after(a, b));
-    CHECK(singlyList.insert_after(b, c));
+    CHECK(singlyList.insert_after(b, a));
+    CHECK(singlyList.insert_after(c, b));
     CHECK(singlyList.size() == 3);
     CHECK(singlyList.erase(b));
     CHECK(singlyList.size() == 2);

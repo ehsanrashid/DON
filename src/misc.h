@@ -24,11 +24,9 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <initializer_list>
-#include <mutex>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -59,8 +57,6 @@ namespace DON {
 using NumaIndex = u16;
 using CpuIndex  = u16;
 
-void set_console_utf8() noexcept;
-
 std::string build_date() noexcept;
 
 std::string build_time() noexcept;
@@ -89,10 +85,6 @@ std::string version_info() noexcept;
 // Returns a string trying to describe the compiler used
 std::string compiler_info() noexcept;
 
-using SteadyClock = std::chrono::steady_clock;
-using SystemClock = std::chrono::system_clock;
-using Us          = std::chrono::microseconds;
-using Ms          = std::chrono::milliseconds;
 
 using TimePoint = Ms::rep;  // A value in milliseconds
 static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
@@ -100,8 +92,6 @@ static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes"
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<Ms>(SteadyClock::now().time_since_epoch()).count();
 }
-
-std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
 // PrefetchAccess for explicit call-site control
 enum class PrefetchAccess : u8 {
@@ -546,99 +536,6 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
     }
     return h;
 }
-
-// Custom streambuf that wraps std::string_view
-class StringBuf final: public std::streambuf {
-   public:
-    explicit StringBuf(std::string_view sv) noexcept;
-};
-
-// Custom streambuf that wraps memory stream
-class MemoryBuf final: public std::streambuf {
-   public:
-    MemoryBuf(char* p, usize size) noexcept;
-};
-
-// TieBuf (Fancy logging facility).
-// Replaces std::cin.rdbuf() and std::cout.rdbuf() with two TieBuf objects
-// that preserve normal I/O while optionally mirroring input and output to a
-// secondary stream buffer.
-// Logging of std::cin and std::cout can be toggled at runtime without changing
-// their usual I/O usage.
-// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-// MSVC requires separate stream buffers for std::cin and std::cout.
-//
-// Forwards I/O to the primary buffer and mirrors it to the secondary buffer
-// with line prefixes.
-class TieBuf final: public std::streambuf {
-   public:
-    TieBuf() noexcept = default;
-    TieBuf(std::streambuf* pBf, std::streambuf* mBf) noexcept;
-
-   protected:
-    // Synchronizes both the primary and mirror buffers.
-    int sync() override;
-    // Reads the next character from the primary buffer without consuming it.
-    int_type underflow() override;
-    // Writes one character to the primary buffer and mirrors it with an output prefix.
-    int_type overflow(int_type ch) override;
-    // Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
-    int_type uflow() override;
-    // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
-    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
-
-    [[nodiscard]] std::streambuf* pbuf() const noexcept;
-    [[nodiscard]] std::streambuf* mbuf() const noexcept;
-
-   private:
-    // Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
-    int_type
-    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
-
-    std::streambuf *pBuf = nullptr, *mBuf = nullptr;
-
-    char_type opreCh = '\n', ipreCh = '\n';
-};
-
-// Logger
-//
-// Manages runtime logging by redirecting std::cin and std::cout through
-// TieBuf objects to mirror I/O to a log file.
-class Logger final {
-   public:
-    // Starts logging to the specified file.
-    // Returns true on success and false if the log file cannot be opened.
-    static bool start(const fs::path& logPath) noexcept;
-    // Stops logging, restores the original streams, and closes the log file.
-    static void stop() noexcept;
-
-   private:
-    Logger() noexcept = delete;
-    // Initializes the logger with the streams to be redirected and mirrored.
-    Logger(std::istream& isRef, std::ostream& osRef) noexcept;
-    // Stops logging and restores the original streams.
-    ~Logger() noexcept;
-    // Returns the single shared Logger instance.
-    static Logger& instance() noexcept;
-    // Opens the specified log file and redirects the streams through TieBuf.
-    // Caller must hold 'mutex'.
-    bool open(const fs::path& logPath) noexcept;
-    // Restores the original streams and closes the log file.
-    // Caller must hold 'mutex'.
-    void close() noexcept;
-    // Returns true if the log file is open.
-    [[nodiscard]] bool is_open() const noexcept;
-    // Writes a timestamped marker to the log file.
-    void write_timestamp(std::string_view suffix) noexcept;
-
-    std::mutex      mutex;
-    std::ofstream   ofs;
-    std::istream&   is;
-    std::ostream&   os;
-    std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-    TieBuf          itBuf, otBuf;
-    std::string     filename;
-};
 
 inline bool InfoStopped = false;
 

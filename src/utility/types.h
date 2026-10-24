@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -75,6 +76,11 @@ __extension__ using i128 = signed __int128;
 
 using uptr = std::uintptr_t;
 using iptr = std::intptr_t;
+
+using SteadyClock = std::chrono::steady_clock;
+using SystemClock = std::chrono::system_clock;
+using Us          = std::chrono::microseconds;
+using Ms          = std::chrono::milliseconds;
 
 namespace _internal {
 

@@ -59,9 +59,6 @@ class SinglyIntrusiveList final {
         assert(&pos != &node);
         assert(node.next == nullptr);
 
-        if (&pos == &node || node.next != nullptr)
-            return false;
-
         node.next = pos.next;
         pos.next  = &node;
         ++size_;
@@ -146,32 +143,38 @@ class DoublyIntrusiveList final {
     [[nodiscard]] bool empty() const noexcept {
         assert((front() == nullptr) == (size() == 0));
         assert((back() == nullptr) == (size() == 0));
+
         return size() == 0;
     }
 
-    [[nodiscard]] T* next(const T& node) noexcept {
+    [[nodiscard]] T* next(T& node) noexcept {
         assert(is_linked(node));
+
         return node.next;
     }
 
     [[nodiscard]] const T* next(const T& node) const noexcept {
         assert(is_linked(node));
+
         return node.next;
     }
 
     [[nodiscard]] T* prev(T& node) noexcept {
         assert(is_linked(node));
+
         return node.prev;
     }
 
     [[nodiscard]] const T* prev(const T& node) const noexcept {
         assert(is_linked(node));
+
         return node.prev;
     }
 
     bool push_front(T& node) noexcept {
         assert(!is_linked(node));
-        assert(node.prev == nullptr && node.next == nullptr);
+        assert(node.prev == nullptr);
+        assert(node.next == nullptr);
 
         if (node.prev != nullptr || node.next != nullptr)
             return false;
@@ -183,7 +186,8 @@ class DoublyIntrusiveList final {
 
     bool push_back(T& node) noexcept {
         assert(!is_linked(node));
-        assert(node.prev == nullptr && node.next == nullptr);
+        assert(node.prev == nullptr);
+        assert(node.next == nullptr);
 
         if (node.prev != nullptr || node.next != nullptr)
             return false;
@@ -197,7 +201,8 @@ class DoublyIntrusiveList final {
         assert(&node != &pos);
         assert(!is_linked(node));
         assert(is_linked(pos));
-        assert(node.prev == nullptr && node.next == nullptr);
+        assert(node.prev == nullptr);
+        assert(node.next == nullptr);
 
         if (&node == &pos || node.prev != nullptr || node.next != nullptr)
             return false;
@@ -211,7 +216,8 @@ class DoublyIntrusiveList final {
         assert(&node != &pos);
         assert(!is_linked(node));
         assert(is_linked(pos));
-        assert(node.prev == nullptr && node.next == nullptr);
+        assert(node.prev == nullptr);
+        assert(node.next == nullptr);
 
         if (&node == &pos || node.prev != nullptr || node.next != nullptr)
             return false;
@@ -280,10 +286,8 @@ class DoublyIntrusiveList final {
             return nullptr;
 
         T* const node = front_;
-
         unlink(*node);
         --size_;
-
         return node;
     }
 
@@ -292,11 +296,21 @@ class DoublyIntrusiveList final {
             return nullptr;
 
         T* const node = back_;
-
         unlink(*node);
         --size_;
-
         return node;
+    }
+
+    void clear() noexcept {
+        while (pop_back() != nullptr)
+        {}
+    }
+
+    // O(1): Does not reset the links in individual nodes.
+    void clear_fast() noexcept {
+        front_ = nullptr;
+        back_  = nullptr;
+        size_  = 0;
     }
 
    private:
@@ -310,7 +324,7 @@ class DoublyIntrusiveList final {
         if (empty())
             return false;
 
-        for (auto* current = front_; current != nullptr; current = current->next)
+        for (const T* current = front_; current != nullptr; current = current->next)
         {
             if (current == &node)
                 return true;
@@ -399,6 +413,9 @@ template<typename T>
 class OwnedDoublyIntrusiveList final {
    public:
     struct Node {
+        explicit Node(T* dataPtr = nullptr) noexcept :
+            data(dataPtr) {}
+
         Node*                     prev  = nullptr;
         Node*                     next  = nullptr;
         OwnedDoublyIntrusiveList* owner = nullptr;
@@ -411,14 +428,12 @@ class OwnedDoublyIntrusiveList final {
     OwnedDoublyIntrusiveList(OwnedDoublyIntrusiveList&&) noexcept            = delete;
     OwnedDoublyIntrusiveList& operator=(OwnedDoublyIntrusiveList&&) noexcept = delete;
 
-    [[nodiscard]] T* front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
-
+    [[nodiscard]] T*       front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
     [[nodiscard]] const T* front() const noexcept {
         return front_ != nullptr ? front_->data : nullptr;
     }
 
-    [[nodiscard]] T* back() noexcept { return back_ != nullptr ? back_->data : nullptr; }
-
+    [[nodiscard]] T*       back() noexcept { return back_ != nullptr ? back_->data : nullptr; }
     [[nodiscard]] const T* back() const noexcept {
         return back_ != nullptr ? back_->data : nullptr;
     }
@@ -432,47 +447,41 @@ class OwnedDoublyIntrusiveList final {
         return size() == 0;
     }
 
-    [[nodiscard]] T* next(const T& item) noexcept {
+    [[nodiscard]] T* next(T& item) noexcept {
         assert(item.node.owner == this);
-        if (item.node.owner != this)
-            return nullptr;
 
-        const Node* node = item.node.next;
+        Node* const node = item.node.next;
+
         return node != nullptr ? node->data : nullptr;
     }
-
     [[nodiscard]] const T* next(const T& item) const noexcept {
         assert(item.node.owner == this);
-        if (item.node.owner != this)
-            return nullptr;
 
-        const Node* node = item.node.next;
+        const Node* const node = item.node.next;
+
         return node != nullptr ? node->data : nullptr;
     }
 
     [[nodiscard]] T* prev(T& item) noexcept {
         assert(item.node.owner == this);
-        if (item.node.owner != this)
-            return nullptr;
 
-        const Node* node = item.node.prev;
+        Node* const node = item.node.prev;
+
         return node != nullptr ? node->data : nullptr;
     }
-
     [[nodiscard]] const T* prev(const T& item) const noexcept {
         assert(item.node.owner == this);
-        if (item.node.owner != this)
-            return nullptr;
 
-        const Node* node = item.node.prev;
+        const Node* const node = item.node.prev;
+
         return node != nullptr ? node->data : nullptr;
     }
 
     bool push_front(Node& node) noexcept {
         assert(node.owner == nullptr);
         assert(node.data != nullptr);
-        if (node.owner != nullptr || node.data == nullptr)
-            return false;
+        assert(node.prev == nullptr);
+        assert(node.next == nullptr);
 
         attach_front(node);
 
@@ -482,8 +491,8 @@ class OwnedDoublyIntrusiveList final {
     bool push_back(Node& node) noexcept {
         assert(node.owner == nullptr);
         assert(node.data != nullptr);
-        if (node.owner != nullptr || node.data == nullptr)
-            return false;
+        assert(node.prev == nullptr);
+        assert(node.next == nullptr);
 
         attach_back(node);
 
@@ -492,14 +501,11 @@ class OwnedDoublyIntrusiveList final {
 
     bool move_front(Node& node) noexcept {
         assert(node.owner == this);
-        if (node.owner != this)
-            return false;
 
         if (front_ == &node)
             return true;
 
         unlink(node);
-
         attach_front(node);
 
         return true;
@@ -507,14 +513,11 @@ class OwnedDoublyIntrusiveList final {
 
     bool move_back(Node& node) noexcept {
         assert(node.owner == this);
-        if (node.owner != this)
-            return false;
 
         if (back_ == &node)
             return true;
 
         unlink(node);
-
         attach_back(node);
 
         return true;
@@ -522,12 +525,44 @@ class OwnedDoublyIntrusiveList final {
 
     bool erase(Node& node) noexcept {
         assert(node.owner == this);
-        if (node.owner != this)
-            return false;
 
         detach(node);
 
         return true;
+    }
+
+    Node* pop_front() noexcept {
+        if (front_ == nullptr)
+            return nullptr;
+
+        Node* const node = front_;
+
+        detach(*node);
+
+        return node;
+    }
+
+    Node* pop_back() noexcept {
+        if (back_ == nullptr)
+            return nullptr;
+
+        Node* const node = back_;
+
+        detach(*node);
+
+        return node;
+    }
+
+    void clear() noexcept {
+        while (pop_back() != nullptr)
+        {}
+    }
+
+    // O(1): Does not reset the links in individual nodes.
+    void clear_fast() noexcept {
+        front_ = nullptr;
+        back_  = nullptr;
+        size_  = 0;
     }
 
    private:

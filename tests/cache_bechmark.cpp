@@ -26,10 +26,11 @@ g++ -std=c++17 -O0 -g -fno-omit-frame-pointer -I./src \
 #include "utility/cpu.h"
 #include "utility/arc_cache.h"
 #include "utility/lfu_cache.h"
+#include "utility/lirs_cache.h"
 #include "utility/lru_cache.h"
+#include "utility/sieve_cache.h"
 #include "utility/mutex.h"
 #include "utility/types.h"
-
 
 namespace DON::CacheBenchmark {
 
@@ -145,87 +146,119 @@ template<typename T, usize N>
 }
 
 
-template<typename LruCache, typename LfuCache, typename ArcCache>
+template<typename LruCache, typename LfuCache, typename ArcCache, typename LirsCache>
 void benchmark_workload(const char* name, Workload workload, usize hotAccessesPerFive = 0) {
     const std::vector<u64> keys = make_workload(workload, hotAccessesPerFive);
 
     Array<double, Repetitions> lruTimes{};
     Array<double, Repetitions> lfuTimes{};
     Array<double, Repetitions> arcTimes{};
+    Array<double, Repetitions> lirsTimes{};
 
     u64 lruChecksum = 0;
     u64 lfuChecksum = 0;
     u64 arcChecksum = 0;
+    u64 lirsChecksum = 0;
 
     // Warm-up all implementations.
     (void) run_once<LruCache>(keys);
     (void) run_once<LfuCache>(keys);
     (void) run_once<ArcCache>(keys);
+    (void) run_once<LirsCache>(keys);
 
     for (usize i = 0; i < Repetitions; ++i)
     {
         Result lruResult{};
         Result lfuResult{};
         Result arcResult{};
+        Result lirsResult{};
 
         // Rotate execution order to reduce order bias.
-        switch (i % 3)
+        switch (i % 4)
         {
         case 0 :
             lruResult = run_once<LruCache>(keys);
             lfuResult = run_once<LfuCache>(keys);
             arcResult = run_once<ArcCache>(keys);
+            lirsResult = run_once<LirsCache>(keys);
             break;
 
         case 1 :
             lfuResult = run_once<LfuCache>(keys);
             arcResult = run_once<ArcCache>(keys);
+            lirsResult = run_once<LirsCache>(keys);
             lruResult = run_once<LruCache>(keys);
             break;
 
-        default :
+        case 2 :
             arcResult = run_once<ArcCache>(keys);
+            lirsResult = run_once<LirsCache>(keys);
             lruResult = run_once<LruCache>(keys);
             lfuResult = run_once<LfuCache>(keys);
+            break;
+
+        default :
+            lirsResult = run_once<LirsCache>(keys);
+            lruResult = run_once<LruCache>(keys);
+            lfuResult = run_once<LfuCache>(keys);
+            arcResult = run_once<ArcCache>(keys);
             break;
         }
 
         lruTimes[i] = lruResult.nsPerOperation;
         lfuTimes[i] = lfuResult.nsPerOperation;
         arcTimes[i] = arcResult.nsPerOperation;
+        lirsTimes[i] = lirsResult.nsPerOperation;
 
         lruChecksum = lruResult.checksum;
         lfuChecksum = lfuResult.checksum;
         arcChecksum = arcResult.checksum;
+        lirsChecksum = lirsResult.checksum;
     }
 
     const double lruNs = median(lruTimes);
     const double lfuNs = median(lfuTimes);
     const double arcNs = median(arcTimes);
+    const double lirsNs = median(lirsTimes);
 
     std::printf("\n%s (%zu operations)\n", name, keys.size());
-    std::printf("%-12s %12s %12s %16s\n", "Cache", "ns/op", "Mops/s", "Checksum");
+    std::printf("%-15s %12s %12s %16s\n", "Cache", "ns/op", "Mops/s", "Checksum");
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLRU", lruNs, 1000.0 / lruNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatLRU", lruNs, 1000.0 / lruNs,
                 static_cast<unsigned long long>(lruChecksum));
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatLFU", lfuNs, 1000.0 / lfuNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatLFU", lfuNs, 1000.0 / lfuNs,
                 static_cast<unsigned long long>(lfuChecksum));
 
-    std::printf("%-12s %12.3f %12.3f %16llu\n", "PoolFlatARC", arcNs, 1000.0 / arcNs,
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatARC", arcNs, 1000.0 / arcNs,
                 static_cast<unsigned long long>(arcChecksum));
 
-    std::printf("LFU vs LRU: %+.2f%% %s\n", (lruNs - lfuNs) * 100.0 / lruNs,
+    //std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatLIRS", lirsNs, 1000.0 / lirsNs,
+    //            static_cast<unsigned long long>(lirsChecksum));
+    std::printf("%-15s %12.3f %12.3f %16llu\n", "PoolFlatSIEVE", lirsNs, 1000.0 / lirsNs,
+                static_cast<unsigned long long>(lirsChecksum));
+
+    std::printf("LFU   vs LRU: %+.2f%% %s\n", (lruNs - lfuNs) * 100.0 / lruNs,
                 lfuNs < lruNs   ? "faster"
                 : lfuNs > lruNs ? "slower"
                                 : "equal");
 
-    std::printf("ARC vs LRU: %+.2f%% %s\n", (lruNs - arcNs) * 100.0 / lruNs,
+    std::printf("ARC   vs LRU: %+.2f%% %s\n", (lruNs - arcNs) * 100.0 / lruNs,
                 arcNs < lruNs   ? "faster"
                 : arcNs > lruNs ? "slower"
                                 : "equal");
 
-    if (lruChecksum != lfuChecksum || lruChecksum != arcChecksum)
+    // std::printf("LIRS  vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
+    //             lirsNs < lruNs   ? "faster"
+    //             : lirsNs > lruNs ? "slower"
+    //                              : "equal");
+
+    std::printf("SIEVE vs LRU: %+.2f%% %s\n", (lruNs - lirsNs) * 100.0 / lruNs,
+            lirsNs < lruNs   ? "faster"
+            : lirsNs > lruNs ? "slower"
+                                : "equal");
+
+    if (lruChecksum != lfuChecksum || lruChecksum != arcChecksum || lruChecksum != lirsChecksum)
         std::printf("WARNING: checksums differ!\n");
 }
 
@@ -263,34 +296,59 @@ template<typename Cache>
     return survivingHotKeys;
 }
 
-template<typename LruCache, typename LfuCache>
+template<typename LruCache, typename LfuCache, typename ArcCache, typename LirsCache>
 void benchmark_small_hot_set_survival() {
     Array<double, Repetitions> lruResults{};
     Array<double, Repetitions> lfuResults{};
+    Array<double, Repetitions> arcResults{};
+    Array<double, Repetitions> lirsResults{};
 
     // Warm-up.
     (void) run_small_hot_set_survival<LruCache>();
     (void) run_small_hot_set_survival<LfuCache>();
+    (void) run_small_hot_set_survival<ArcCache>();
+    (void) run_small_hot_set_survival<LirsCache>();
 
     for (usize i = 0; i < Repetitions; ++i)
     {
-        if (i % 2 == 0)
+        switch (i % 4)
         {
+        case 0 :
             lruResults[i] = static_cast<double>(run_small_hot_set_survival<LruCache>());
             lfuResults[i] = static_cast<double>(run_small_hot_set_survival<LfuCache>());
-        }
-        else
-        {
+            arcResults[i] = static_cast<double>(run_small_hot_set_survival<ArcCache>());
+            lirsResults[i] = static_cast<double>(run_small_hot_set_survival<LirsCache>());
+            break;
+        case 1 :
             lfuResults[i] = static_cast<double>(run_small_hot_set_survival<LfuCache>());
+            arcResults[i] = static_cast<double>(run_small_hot_set_survival<ArcCache>());
+            lirsResults[i] = static_cast<double>(run_small_hot_set_survival<LirsCache>());
             lruResults[i] = static_cast<double>(run_small_hot_set_survival<LruCache>());
+            break;
+        case 2 :
+            arcResults[i] = static_cast<double>(run_small_hot_set_survival<ArcCache>());
+            lirsResults[i] = static_cast<double>(run_small_hot_set_survival<LirsCache>());
+            lruResults[i] = static_cast<double>(run_small_hot_set_survival<LruCache>());
+            lfuResults[i] = static_cast<double>(run_small_hot_set_survival<LfuCache>());
+            break;
+        default :
+            lirsResults[i] = static_cast<double>(run_small_hot_set_survival<LirsCache>());
+            lruResults[i] = static_cast<double>(run_small_hot_set_survival<LruCache>());
+            lfuResults[i] = static_cast<double>(run_small_hot_set_survival<LfuCache>());
+            arcResults[i] = static_cast<double>(run_small_hot_set_survival<ArcCache>());
+            break;
         }
     }
 
     const double lruSurvivors = median(lruResults);
     const double lfuSurvivors = median(lfuResults);
+    const double arcSurvivors = median(arcResults);
+    const double lirsSurvivors = median(lirsResults);
 
     const double lruRate = percentage(static_cast<usize>(lruSurvivors + 0.5), TestHotKeyCount);
     const double lfuRate = percentage(static_cast<usize>(lfuSurvivors + 0.5), TestHotKeyCount);
+    const double arcRate = percentage(static_cast<usize>(arcSurvivors + 0.5), TestHotKeyCount);
+    const double lirsRate = percentage(static_cast<usize>(lirsSurvivors + 0.5), TestHotKeyCount);
 
     std::printf("\nSmall hot-set survival (capacity=%zu, %zu hot, %zu cold)\n", TestCapacity,
                 TestHotKeyCount, TestColdKeyCount);
@@ -298,8 +356,12 @@ void benchmark_small_hot_set_survival() {
     std::printf("%-12s %12s %12s\n", "Cache", "Survivors", "Survival");
     std::printf("%-12s %12.1f %11.2f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
     std::printf("%-12s %12.1f %11.2f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
+    std::printf("%-12s %12.1f %11.2f%%\n", "PoolFlatARC", arcSurvivors, arcRate);
+    std::printf("%-12s %12.1f %11.2f%%\n", "PoolFlatLIRS", lirsSurvivors, lirsRate);
 
-    std::printf("LFU advantage: %+.2f percentage points\n", lfuRate - lruRate);
+    std::printf("LFU vs LRU: %+.2f percentage points\n", lfuRate - lruRate);
+    std::printf("ARC vs LRU: %+.2f percentage points\n", arcRate - lruRate);
+    std::printf("LIRS vs LRU: %+.2f percentage points\n", lirsRate - lruRate);
 }
 
 // Main hot-set survival workload.
@@ -333,37 +395,49 @@ template<typename Cache>
     return survivingHotKeys;
 }
 
-template<typename LruCache, typename LfuCache, typename ArcCache>
+template<typename LruCache, typename LfuCache, typename ArcCache, typename LirsCache>
 void benchmark_hot_set_survival() {
     Array<double, Repetitions> lruResults{};
     Array<double, Repetitions> lfuResults{};
     Array<double, Repetitions> arcResults{};
+    Array<double, Repetitions> lirsResults{};
 
     // Warm-up.
     (void) run_hot_set_survival<LruCache>();
     (void) run_hot_set_survival<LfuCache>();
     (void) run_hot_set_survival<ArcCache>();
+    (void) run_hot_set_survival<LirsCache>();
 
     for (usize i = 0; i < Repetitions; ++i)
     {
-        switch (i % 3)
+        switch (i % 4)
         {
         case 0 :
             lruResults[i] = static_cast<double>(run_hot_set_survival<LruCache>());
             lfuResults[i] = static_cast<double>(run_hot_set_survival<LfuCache>());
             arcResults[i] = static_cast<double>(run_hot_set_survival<ArcCache>());
+            lirsResults[i] = static_cast<double>(run_hot_set_survival<LirsCache>());
             break;
 
         case 1 :
             lfuResults[i] = static_cast<double>(run_hot_set_survival<LfuCache>());
             arcResults[i] = static_cast<double>(run_hot_set_survival<ArcCache>());
+            lirsResults[i] = static_cast<double>(run_hot_set_survival<LirsCache>());
             lruResults[i] = static_cast<double>(run_hot_set_survival<LruCache>());
             break;
 
-        default :
+        case 2 :
             arcResults[i] = static_cast<double>(run_hot_set_survival<ArcCache>());
+            lirsResults[i] = static_cast<double>(run_hot_set_survival<LirsCache>());
             lruResults[i] = static_cast<double>(run_hot_set_survival<LruCache>());
             lfuResults[i] = static_cast<double>(run_hot_set_survival<LfuCache>());
+            break;
+
+        default :
+            lirsResults[i] = static_cast<double>(run_hot_set_survival<LirsCache>());
+            lruResults[i] = static_cast<double>(run_hot_set_survival<LruCache>());
+            lfuResults[i] = static_cast<double>(run_hot_set_survival<LfuCache>());
+            arcResults[i] = static_cast<double>(run_hot_set_survival<ArcCache>());
             break;
         }
     }
@@ -371,47 +445,53 @@ void benchmark_hot_set_survival() {
     const double lruSurvivors = median(lruResults);
     const double lfuSurvivors = median(lfuResults);
     const double arcSurvivors = median(arcResults);
+    const double lirsSurvivors = median(lirsResults);
 
     const double lruRate = percentage(static_cast<usize>(lruSurvivors + 0.5), SurvivalHotKeyCount);
     const double lfuRate = percentage(static_cast<usize>(lfuSurvivors + 0.5), SurvivalHotKeyCount);
     const double arcRate = percentage(static_cast<usize>(arcSurvivors + 0.5), SurvivalHotKeyCount);
+    const double lirsRate = percentage(static_cast<usize>(lirsSurvivors + 0.5), SurvivalHotKeyCount);
 
     std::printf("\nHot-set survival (capacity=%zu, %zu hot, %zu cold)\n", SurvivalCapacity,
                 SurvivalHotKeyCount, SurvivalColdKeyCount);
 
-    std::printf("%-12s %12s %12s\n", "Cache", "Survivors", "Survival");
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
-    std::printf("%-12s %12.1f %11.3f%%\n", "PoolFlatARC", arcSurvivors, arcRate);
+    std::printf("%-15s %12s %12s\n", "Cache", "Survivors", "Survival");
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatLRU", lruSurvivors, lruRate);
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatLFU", lfuSurvivors, lfuRate);
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatARC", arcSurvivors, arcRate);
+    //std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatLIRS", lirsSurvivors, lirsRate);
+    std::printf("%-15s %12.1f %11.3f%%\n", "PoolFlatSIEVE", lirsSurvivors, lirsRate);
 
     std::printf("LFU vs LRU: %+.3f percentage points\n", lfuRate - lruRate);
     std::printf("ARC vs LRU: %+.3f percentage points\n", arcRate - lruRate);
+    //std::printf("LIRS vs LRU: %+.3f percentage points\n", lirsRate - lruRate);
+    std::printf("SIEVE vs LRU: %+.3f percentage points\n", lirsRate - lruRate);
 }
 
-template<typename LruCache, typename LfuCache, typename ArcCache>
+template<typename LruCache, typename LfuCache, typename ArcCache, typename LirsCache>
 void run() {
     std::printf("Cache benchmark: capacity=%zu, repetitions=%zu\n", Capacity, Repetitions);
 
-    benchmark_workload<LruCache, LfuCache, ArcCache>("Hits", Workload::Hits);
+    benchmark_workload<LruCache, LfuCache, ArcCache, LirsCache>("Hits", Workload::Hits);
 
-    benchmark_workload<LruCache, LfuCache, ArcCache>("Misses + eviction", Workload::Misses);
+    benchmark_workload<LruCache, LfuCache, ArcCache, LirsCache>("Misses + eviction", Workload::Misses);
 
-    benchmark_workload<LruCache, LfuCache, ArcCache>("Mixed (80%% hot / 20%% cold)",
-                                                     Workload::Mixed, 4);
+    benchmark_workload<LruCache, LfuCache, ArcCache, LirsCache>("Mixed (80%% hot / 20%% cold)",
+                                                                Workload::Mixed, 4);
 
-    benchmark_workload<LruCache, LfuCache, ArcCache>("Mixed (60%% hot / 40%% cold)",
-                                                     Workload::Mixed, 3);
+    benchmark_workload<LruCache, LfuCache, ArcCache, LirsCache>("Mixed (60%% hot / 40%% cold)",
+                                                                Workload::Mixed, 3);
 
-    benchmark_workload<LruCache, LfuCache, ArcCache>("Mixed (40%% hot / 60%% cold)",
-                                                     Workload::Mixed, 2);
+    benchmark_workload<LruCache, LfuCache, ArcCache, LirsCache>("Mixed (40%% hot / 60%% cold)",
+                                                                Workload::Mixed, 2);
 
-    benchmark_workload<LruCache, LfuCache, ArcCache>("Mixed (20%% hot / 80%% cold)",
-                                                     Workload::Mixed, 1);
+    benchmark_workload<LruCache, LfuCache, ArcCache, LirsCache>("Mixed (20%% hot / 80%% cold)",
+                                                                Workload::Mixed, 1);
 
     // Optional small-scale test.
-    // Update benchmark_small_hot_set_survival() similarly if enabling it.
+    // benchmark_small_hot_set_survival<LruCache, LfuCache, ArcCache, LirsCache>();
 
-    benchmark_hot_set_survival<LruCache, LfuCache, ArcCache>();
+    benchmark_hot_set_survival<LruCache, LfuCache, ArcCache, LirsCache>();
 }
 
 }  // namespace DON::CacheBenchmark
@@ -422,7 +502,9 @@ int main() {
 
     CacheBenchmark::run<PoolFlatLRUCache<u64, u64, SpinMutex>,  //
                         PoolFlatLFUCache<u64, u64, SpinMutex>,  //
-                        PoolFlatARCCache<u64, u64, SpinMutex>>();
+                        //PoolFlatLIRSCache<u64, u64, SpinMutex>,
+                        PoolFlatARCCache<u64, u64, SpinMutex>,
+                        PoolFlatSIEVECache<u64, u64, SpinMutex>>();
 
     return 0;
 }

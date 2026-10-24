@@ -49,10 +49,12 @@ struct CommandLine final {
 
     std::string_view operator[](usize idx) const noexcept;
 
-    [[nodiscard]] std::string command_line() const noexcept;
-    [[nodiscard]] std::string command() const noexcept;
+    [[nodiscard]] std::string to_string() const noexcept;
+    [[nodiscard]] std::string arguments_string() const noexcept;
 
    private:
+    [[nodiscard]] std::string join_arguments(usize beg) const noexcept;
+
 #if defined(_WIN32)
     std::vector<std::string> utf8_arguments;
 #endif
