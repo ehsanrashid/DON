@@ -108,6 +108,8 @@ week_day(const u32 year, const u32 month, const u32 day) noexcept {
 // Format time HH:MM:SS -> HHMMSS
 [[nodiscard]] std::string format_time(std::string_view time) noexcept;
 
+[[nodiscard]] std::string format_time(const SystemClock::time_point& timePoint) noexcept;
+
 [[nodiscard]] constexpr bool starts_with(const std::string_view sv,
                                          const std::string_view prefix) noexcept {
     return sv.size() >= prefix.size()  //

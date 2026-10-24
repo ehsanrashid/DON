@@ -116,6 +116,38 @@ std::string format_time(const std::string_view time) noexcept {
     return std::string{buffer.data(), buffer.size()};
 }
 
+std::string format_time(const SystemClock::time_point& timePoint) noexcept {
+    constexpr i64 UsecPerSec = 1'000'000;
+
+    const std::time_t time = SystemClock::to_time_t(timePoint);
+
+    const auto totalUsec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count();
+    const u64  usec      = u64((totalUsec % UsecPerSec + UsecPerSec) % UsecPerSec);
+
+    std::tm tm{};
+#if defined(_WIN32)  // Windows
+    localtime_s(&tm, &time);
+#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Unix-like systems / macOS)
+    localtime_r(&time, &tm);
+#else
+    // Fallback (not thread-safe)
+    const auto* const localTm = std::localtime(&time);
+    assert(localTm != nullptr);
+    tm = *localTm;
+#endif
+
+    Array<char, 32> buffer{};
+
+    usize writtenSize;
+    // Format the date and time: YYYY.MM.DD-HH:MM:SS
+    writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
+    // Append microseconds
+    writtenSize += usize(
+      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec));
+
+    return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
+}
+
 std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](const char ch) noexcept -> char { return lower_case(ch); });

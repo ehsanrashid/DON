@@ -33,6 +33,7 @@
 #include "utility/command_line.h"
 #include "utility/error.h"
 #include "utility/functions.h"
+#include "utility/logger.h"
 
 namespace DON {
 
