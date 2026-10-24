@@ -54,7 +54,7 @@ std::mutex& get_ostream_mutex(std::ostream* const os) noexcept {
 
 }  // namespace
 
-SyncOStream::SyncOStream(std::ostream& osRef) :
+SyncOStream::SyncOStream(std::ostream& osRef) noexcept :
     os{&osRef},
     uniqueLock{get_ostream_mutex(os)} {}
 
@@ -92,6 +92,6 @@ SyncOStream&& SyncOStream::operator<<(OStreamManip manip) && {
 
 // ----------------------------------
 
-SyncOStream sync_os(std::ostream& os) { return SyncOStream(os); }
+SyncOStream sync_os(std::ostream& os) noexcept { return SyncOStream(os); }
 
 }  // namespace DON
