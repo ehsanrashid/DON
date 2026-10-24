@@ -19,23 +19,22 @@
 #define UTILITY_STREAMBUF_H_INCLUDED
 
 #include <ios>
-#include <streambuf>
 #include <string_view>
 
 #include "../utility/types.h"
 
 namespace DON {
 
-// Custom streambuf that wraps std::string_view
-class StringBuf final: public std::streambuf {
-   public:
-    explicit StringBuf(std::string_view sv) noexcept;
-};
-
 // Custom streambuf that wraps memory stream
 class MemoryBuf final: public std::streambuf {
    public:
     MemoryBuf(char* p, usize size) noexcept;
+};
+
+// Custom streambuf that wraps std::string_view
+class StringBuf final: public std::streambuf {
+   public:
+    explicit StringBuf(std::string_view sv) noexcept;
 };
 
 // TieBuf (Fancy logging facility).

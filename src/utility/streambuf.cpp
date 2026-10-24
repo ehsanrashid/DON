@@ -23,6 +23,13 @@
 
 namespace DON {
 
+MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
+    setg(p, p, p + size);  // Set GET area (reading enabled)
+    setp(p, p + size);     // Set PUT area (writing enabled)
+}
+
+// ------------------
+
 StringBuf::StringBuf(const std::string_view sv) noexcept {
     // std::streambuf requires char* for the get area.
     // The buffer is read-only; no characters are modified.
@@ -30,13 +37,6 @@ StringBuf::StringBuf(const std::string_view sv) noexcept {
     const usize size = sv.size();
     setg(p, p, p + size);  // Only GET area (reading enabled)
     // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
-}
-
-// ------------------
-
-MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
-    setg(p, p, p + size);  // Set GET area (reading enabled)
-    setp(p, p + size);     // Set PUT area (writing enabled)
 }
 
 // ------------------
