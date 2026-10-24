@@ -184,7 +184,6 @@ void Xoroshiro128ss::long_jump() noexcept {
 
 void Xoroshiro128ss::update() noexcept {
     state[1] ^= state[0];
-
     state[0] = rotl(state[0], 24) ^ state[1] ^ (state[1] << 16);
     state[1] = rotl(state[1], 37);
 }
@@ -263,14 +262,11 @@ void Xoshiro256ss::long_jump() noexcept {
 
 void Xoshiro256ss::update() noexcept {
     const u64 tmp = state[1] << 17;
-
     state[2] ^= state[0];
     state[3] ^= state[1];
     state[1] ^= state[2];
     state[0] ^= state[3];
-
     state[2] ^= tmp;
-
     state[3] = rotl(state[3], 45);
 }
 
@@ -348,7 +344,6 @@ void Xoshiro512ss::long_jump() noexcept {
 
 void Xoshiro512ss::update() noexcept {
     const u64 tmp = state[1] << 11;
-
     state[2] ^= state[0];
     state[5] ^= state[1];
     state[1] ^= state[2];
@@ -357,9 +352,7 @@ void Xoshiro512ss::update() noexcept {
     state[4] ^= state[5];
     state[0] ^= state[6];
     state[6] ^= state[7];
-
     state[6] ^= tmp;
-
     state[7] = rotl(state[7], 21);
 }
 
@@ -373,5 +366,97 @@ u64 Xoshiro512ss::rand64() noexcept {
 
     return rand;
 }
+
+// ------------------
+
+Xoshiro1024ss::Xoshiro1024ss(u64 seed) noexcept {
+    SplitMix64 seeder{seed};
+
+    std::generate(state.begin(), state.end(),
+                  [&seeder]() noexcept -> u64 { return seeder.next(); });
+
+    if (UNLIKELY(std::all_of(state.begin(), state.end(),
+                             [](const u64 s) noexcept -> bool { return s == 0; })))
+        state = DefaultState;
+}
+
+void Xoshiro1024ss::jump() noexcept {
+    constexpr State Jump = {u64{0x931197d8e3177f17}, u64{0xb59422e0b9138c5f},  //
+                            u64{0xf06a6afb49d668bb}, u64{0xacb8a6412c8a1401},  //
+                            u64{0x12304ec85f0b3468}, u64{0xb7dfe7079209891e},  //
+                            u64{0x405b7eec77d9eb14}, u64{0x34ead68280c44e4a},  //
+                            u64{0xe0e4ba3e0ac9e366}, u64{0x8f46eda8348905b7},  //
+                            u64{0x328bf4dbad90d6ff}, u64{0xc8fd6fb31c9effc3},  //
+                            u64{0xe899d452d4b67652}, u64{0x45f387286ade3205},  //
+                            u64{0x03864f454a8920bd}, u64{0xa68fa28725b1b384}};
+
+    State tmpState = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    for (const u64 jump : Jump)
+    {
+        for (u8 b = 0; b < 64; ++b)
+        {
+            if ((jump & bit(b)) != 0)
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[(p + i) & StateMask];
+
+            // Advance the state through the underlying linear recurrence.
+            update();
+        }
+    }
+
+    for (usize i = 0; i < StateSize; ++i)
+        state[(p + i) & StateMask] = tmpState[i];
+}
+
+void Xoshiro1024ss::long_jump() noexcept {
+    constexpr State LongJump = {u64{0x7374156360bbf00f}, u64{0x4630c2efa3b3c1f6},  //
+                                u64{0x6654183a892786b1}, u64{0x94f7bfcbfb0f1661},  //
+                                u64{0x27d8243d3d13eb2d}, u64{0x9701730f3dfb300f},  //
+                                u64{0x2f293baae6f604ad}, u64{0xa661831cb60cd8b6},  //
+                                u64{0x68280c77d9fe008c}, u64{0x50554160f5ba9459},  //
+                                u64{0x2fc20b17ec7b2a9a}, u64{0x49189bbdc8ec9f8f},  //
+                                u64{0x92a65bca41852cc1}, u64{0xf46820dd0509c12a},  //
+                                u64{0x52b00c35fbf92185}, u64{0x1e5b3b7f589e03c1}};
+
+    State tmpState = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    for (const u64 longJump : LongJump)
+    {
+        for (u8 b = 0; b < 64; ++b)
+        {
+            if ((longJump & bit(b)) != 0)
+                for (usize i = 0; i < StateSize; ++i)
+                    tmpState[i] ^= state[(p + i) & StateMask];
+
+            // Advance the state through the underlying linear recurrence.
+            update();
+        }
+    }
+
+    for (usize i = 0; i < StateSize; ++i)
+        state[(p + i) & StateMask] = tmpState[i];
+}
+
+void Xoshiro1024ss::update() noexcept {
+    const usize q = p;
+    p             = (p + 1) & StateMask;
+    state[q] ^= state[p];
+    state[q] = rotl(state[p], 25) ^ state[q] ^ (state[q] << 27);
+    state[p] = rotl(state[q], 36);
+}
+
+u64 Xoshiro1024ss::mix() const noexcept { return rotl(state[(p + 1) & StateMask] * 5, 7) * 9; }
+
+u64 Xoshiro1024ss::rand64() noexcept {
+    // Generate the output before advancing the state.
+    const u64 rand = mix();
+
+    update();
+
+    return rand;
+}
+
+// ------------------
 
 }  // namespace DON
