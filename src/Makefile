@@ -1032,7 +1032,8 @@ endif
 ifeq ($(vsx),yes)
 CXXFLAGS += -mvsx
 ifneq ($(filter gcc,$(COMP)),)
-CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
+CPPFLAGS += -DNO_WARN_X86_INTRINSICS
+CXXFLAGS += -DUSE_SSE2
 endif
 endif
 
@@ -1092,12 +1093,12 @@ endif
 
 ### NNUE embedding
 ifeq ($(embedding),no)
-CXXFLAGS += -DNO_NNUE_EMBEDDING
+CPPFLAGS += -DNO_NNUE_EMBEDDING
 endif
 
 ### Syzygy tablebases
 ifeq ($(tablebases),no)
-CXXFLAGS += -DNO_TABLEBASES
+CPPFLAGS += -DNO_TABLEBASES
 endif
 
 ### 3.8.1 Include architecture when specified
@@ -1684,10 +1685,8 @@ icx-profile-use:
 	@echo Generating dependencies...
 	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > '$@.tmp' || { rm -f '$@.tmp'; exit 1; }
 	@sed -E \
-		-e 's@([^[:space:]]*/)?DON/src/nnue/features/\.\./\.\./@ @g' \
 		-e 's@nnue/features/\.\./\.\./@@g' \
 		-e 's@nnue/features/\.\./@nnue/@g' \
-		-e 's@([^[:space:]]*/)?DON/src/nnue/layers/\.\./\.\./@ @g' \
 		-e 's@nnue/layers/\.\./\.\./@@g' \
 		-e 's@nnue/layers/\.\./@nnue/@g' \
 		-e 's@([^[:space:]]*/)?DON/src/nnue/@nnue/@g' \
@@ -1699,8 +1698,9 @@ icx-profile-use:
 		-e 's@([^[:space:]]*/)?DON/src/utility/@utility/@g' \
 		-e 's@utility/\.\./@@g' \
 		-e 's@([^[:space:]]*/)?DON/src/@@g' \
-		'$@.tmp' > '$@'
-	@rm -f '$@.tmp'
+		'$@.tmp' > '$@.tmp.sed' || { rm -f '$@.tmp.sed' '$@.tmp'; exit 1; }
+	@mv '$@.tmp.sed' '$@.tmp' || { rm -f '$@.tmp.sed' '$@.tmp'; exit 1; }
+	@mv '$@.tmp' '$@' || { rm -f '$@.tmp'; exit 1; }
 
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend when at least one non-excluded goal is requested
