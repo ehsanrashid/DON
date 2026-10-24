@@ -382,12 +382,12 @@ usize WriterSharedMutex::waiting_writer_count() const noexcept {
 
 // ------------------
 
-FairSharedMutex::Waiter::Waiter(bool writer_) noexcept :
-    writer(writer_) {
+FairSharedMutex::Waiter::Waiter(bool isWrite) noexcept :
+    isWriter(isWrite) {
     node.data = this;
 }
 
-bool FairSharedMutex::Waiter::is_writer() const noexcept { return writer; }
+bool FairSharedMutex::Waiter::is_writer() const noexcept { return isWriter; }
 
 void FairSharedMutex::lock() noexcept {
     Waiter writer(true);

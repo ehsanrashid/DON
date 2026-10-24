@@ -223,16 +223,16 @@ class LOCKABLE FairSharedMutex final {
    private:
     // A node in the wait queue representing a waiting thread.
     struct Waiter final {
-        explicit Waiter(bool writer_ = false) noexcept;
+        Waiter() noexcept = delete;
+
+        explicit Waiter(bool isWrite) noexcept;
 
         bool is_writer() const noexcept;
 
         OwnedDoublyIntrusiveList<Waiter>::Node node;
 
        private:
-        Waiter() noexcept = delete;
-
-        const bool writer;
+        const bool isWriter;
     };
 
    public:

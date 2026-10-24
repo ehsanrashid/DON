@@ -502,6 +502,7 @@ int main() {
 
     CacheBenchmark::run<PoolFlatLRUCache<u64, u64, SpinMutex>,  //
                         PoolFlatLFUCache<u64, u64, SpinMutex>,  //
+                        //PoolFlatLIRSCache<u64, u64, SpinMutex>,
                         PoolFlatARCCache<u64, u64, SpinMutex>,
                         PoolFlatSIEVECache<u64, u64, SpinMutex>>();
 
