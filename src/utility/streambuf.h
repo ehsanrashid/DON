@@ -71,15 +71,15 @@ class TieBuf final: public std::streambuf {
     int_type uflow() override;
 
     // Reads a block from the primary buffer and mirrors the read characters with an input prefix.
-    std::streamsize xsgetn(char_type* s, std::streamsize count) override;
+    std::streamsize xsgetn(char_type* ptr, std::streamsize count) override;
 
     // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
-    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
+    std::streamsize xsputn(const char_type* ptr, std::streamsize count) override;
 
    private:
     // Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
     int_type
-    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
+    mirror_write_with_prefix(int_type readed, std::string_view prefix, char_type& preCh) noexcept;
 
     std::streambuf *primBuf = nullptr, *mirrBuf = nullptr;
 
@@ -89,7 +89,9 @@ class TieBuf final: public std::streambuf {
 class ColorBuf final: public std::streambuf {
    public:
     ColorBuf() noexcept = default;
-    ColorBuf(std::streambuf* const pBf, const char* const color) noexcept;
+    ColorBuf(std::streambuf* bufPtr, const char* clr) noexcept;
+
+    void set(std::streambuf* bufPtr, const char* clr) noexcept;
 
     [[nodiscard]] std::streambuf* buf() const noexcept;
 

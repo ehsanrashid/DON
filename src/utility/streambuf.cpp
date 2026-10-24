@@ -51,10 +51,10 @@ std::streambuf* TieBuf::prim_buf() const noexcept { return primBuf; }
 std::streambuf* TieBuf::mirr_buf() const noexcept { return mirrBuf; }
 
 int TieBuf::sync() {
-    const int pR = primBuf != nullptr ? primBuf->pubsync() : 0;
-    const int mR = mirrBuf != nullptr ? mirrBuf->pubsync() : 0;
+    const int primR = primBuf != nullptr ? primBuf->pubsync() : 0;
+    const int mirrR = mirrBuf != nullptr ? mirrBuf->pubsync() : 0;
 
-    return pR == 0 && mR == 0 ? 0 : -1;
+    return primR == 0 && mirrR == 0 ? 0 : -1;
 }
 
 TieBuf::int_type TieBuf::underflow() {
@@ -76,26 +76,26 @@ TieBuf::int_type TieBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(written, traits_type::eof()))
         return traits_type::eof();
 
-    return mirror_put_with_prefix(written, "<< ", oPreCh);
+    return mirror_write_with_prefix(written, "<< ", oPreCh);
 }
 
 TieBuf::int_type TieBuf::uflow() {
     if (primBuf == nullptr)
         return traits_type::eof();
 
-    const int_type ch = primBuf->sbumpc();
+    const int_type extracted = primBuf->sbumpc();
 
-    if (traits_type::eq_int_type(ch, traits_type::eof()))
-        return ch;
+    if (traits_type::eq_int_type(extracted, traits_type::eof()))
+        return extracted;
 
-    return mirror_put_with_prefix(ch, ">> ", iPreCh);
+    return mirror_write_with_prefix(extracted, ">> ", iPreCh);
 }
 
-std::streamsize TieBuf::xsgetn(char_type* const s, const std::streamsize count) {
+std::streamsize TieBuf::xsgetn(char_type* const ptr, const std::streamsize count) {
     if (primBuf == nullptr || count <= 0)
         return 0;
 
-    const std::streamsize read = primBuf->sgetn(s, count);
+    const std::streamsize read = primBuf->sgetn(ptr, count);
 
     if (mirrBuf == nullptr || read <= 0)
         return read;
@@ -103,18 +103,18 @@ std::streamsize TieBuf::xsgetn(char_type* const s, const std::streamsize count) 
     if (iPreCh == '\n')
         mirrBuf->sputn(">> ", 3);
 
-    mirrBuf->sputn(s, read);
+    mirrBuf->sputn(ptr, read);
 
-    iPreCh = s[read - 1];
+    iPreCh = ptr[read - 1];
 
     return read;
 }
 
-std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize count) {
+std::streamsize TieBuf::xsputn(const char_type* const ptr, const std::streamsize count) {
     if (primBuf == nullptr || count <= 0)
         return 0;
 
-    const std::streamsize written = primBuf->sputn(s, count);
+    const std::streamsize written = primBuf->sputn(ptr, count);
 
     if (mirrBuf == nullptr || written <= 0)
         return written;
@@ -122,36 +122,41 @@ std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize c
     if (oPreCh == '\n')
         mirrBuf->sputn("<< ", 3);
 
-    mirrBuf->sputn(s, written);
+    mirrBuf->sputn(ptr, written);
 
-    oPreCh = s[written - 1];
+    oPreCh = ptr[written - 1];
 
     return written;
 }
 
-TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
-                                                const std::string_view prefix,
-                                                char_type&             preCh) noexcept {
+TieBuf::int_type TieBuf::mirror_write_with_prefix(const int_type         readed,
+                                                  const std::string_view prefix,
+                                                  char_type&             preCh) noexcept {
     if (mirrBuf == nullptr)
-        return traits_type::not_eof(ch);
+        return traits_type::not_eof(readed);
 
     if (preCh == '\n')
-        mirrBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
+        mirrBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
 
-    const char_type c = traits_type::to_char_type(ch);
-    preCh             = c;
+    const char_type ch = traits_type::to_char_type(readed);
+    preCh              = ch;
 
-    const int_type r = mirrBuf->sputc(c);
+    const int_type written = mirrBuf->sputc(ch);
 
-    return traits_type::eq_int_type(r, traits_type::eof()) ? traits_type::eof()
-                                                           : traits_type::not_eof(ch);
+    return traits_type::eq_int_type(written, traits_type::eof()) ? traits_type::eof()
+                                                                 : traits_type::not_eof(readed);
 }
 
 // ------------------
 
-ColorBuf::ColorBuf(std::streambuf* const pBf, const char* const c) noexcept :
-    buf_(pBf),
-    color(c) {}
+ColorBuf::ColorBuf(std::streambuf* const bufPtr, const char* const clr) noexcept {
+    set(bufPtr, clr);
+}
+
+void ColorBuf::set(std::streambuf* const bufPtr, const char* const clr) noexcept {
+    buf_  = bufPtr;
+    color = clr;
+}
 
 std::streambuf* ColorBuf::buf() const noexcept { return buf_; }
 
@@ -207,7 +212,7 @@ bool ColorBuf::write_reset() noexcept {
     if (buf_ == nullptr)
         return false;
 
-    constexpr auto*           reset  = ConsoleColor::RESET;
+    constexpr const char*     reset  = ConsoleColor::RESET;
     constexpr std::streamsize length = traits_type::length(reset);
 
     return buf_->sputn(reset, length) == length;

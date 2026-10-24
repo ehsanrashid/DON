@@ -44,8 +44,8 @@ ConsoleColors::~ConsoleColors() noexcept { restore_colors(); }
 
 void ConsoleColors::set_colors(const char* const outColor, const char* const errColor) noexcept {
     // Recover the underlying stream buffers
-    auto* const outBuffer = outColorBuf != nullptr ? outColorBuf->buf() : std::cout.rdbuf();
-    auto* const errBuffer = errColorBuf != nullptr ? errColorBuf->buf() : std::cerr.rdbuf();
+    auto* const outBuffer = outColorActive ? outColorBuf.buf() : std::cout.rdbuf();
+    auto* const errBuffer = errColorActive ? errColorBuf.buf() : std::cerr.rdbuf();
 
     // Restore the underlying stream buffers and destroy the existing color buffers
     restore_colors();
@@ -70,29 +70,31 @@ void ConsoleColors::set_colors(const char* const outColor, const char* const err
     // Create and install the new color buffers
     if (outColor != nullptr)
     {
-        outColorBuf = std::make_unique<ColorBuf>(outBuffer, outColor);
-        std::cout.rdbuf(outColorBuf.get());
+        outColorBuf.set(outBuffer, outColor);
+        std::cout.rdbuf(&outColorBuf);
+        outColorActive = true;
     }
 
     if (errColor != nullptr)
     {
-        errColorBuf = std::make_unique<ColorBuf>(errBuffer, errColor);
-        std::cerr.rdbuf(errColorBuf.get());
+        errColorBuf.set(errBuffer, errColor);
+        std::cerr.rdbuf(&errColorBuf);
+        errColorActive = true;
     }
 }
 
 // Restores the underlying stream buffers and destroys the color buffers
 void ConsoleColors::restore_colors() noexcept {
-    if (outColorBuf != nullptr)
+    if (outColorActive)
     {
-        std::cout.rdbuf(outColorBuf->buf());
-        outColorBuf.reset();
+        outColorActive = false;
+        std::cout.rdbuf(outColorBuf.buf());
     }
 
-    if (errColorBuf != nullptr)
+    if (errColorActive)
     {
-        std::cerr.rdbuf(errColorBuf->buf());
-        errColorBuf.reset();
+        errColorActive = false;
+        std::cerr.rdbuf(errColorBuf.buf());
     }
 }
 
