@@ -209,16 +209,13 @@ split(const std::string_view sv, const std::string_view delimiter, bool trimPart
 
     std::vector<std::string_view> parts;
 
-    for (usize pos = 0, next;; pos = next + delimiter.size())
+    for (usize pos = 0, next = 0; next != std::string_view::npos; pos = next + delimiter.size())
     {
         next = sv.find(delimiter, pos);
 
         const auto part = sv.substr(pos, next - pos);
 
         parts.push_back(trimPart ? trim(part) : part);
-
-        if (next == std::string_view::npos)
-            break;
     }
 
     return parts;
