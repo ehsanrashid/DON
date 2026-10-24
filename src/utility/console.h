@@ -20,8 +20,6 @@
 
 #include <memory>
 
-#include "../utility/streambuf.h"
-
 namespace DON {
 namespace ConsoleColor {
 
@@ -70,6 +68,8 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 }  // namespace ConsoleColor
 
 void set_console_utf8() noexcept;
+
+class ColorBuf;
 
 class ConsoleColors final {
    public:

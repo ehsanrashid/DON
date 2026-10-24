@@ -53,9 +53,9 @@ class TieBuf final: public std::streambuf {
     TieBuf() noexcept = default;
     TieBuf(std::streambuf* pBf, std::streambuf* mBf) noexcept;
 
-    [[nodiscard]] std::streambuf* pbuf() const noexcept;
+    [[nodiscard]] std::streambuf* prim_buf() const noexcept;
 
-    [[nodiscard]] std::streambuf* mbuf() const noexcept;
+    [[nodiscard]] std::streambuf* mirr_buf() const noexcept;
 
    protected:
     // Synchronizes both the primary and mirror buffers.
@@ -81,7 +81,7 @@ class TieBuf final: public std::streambuf {
     int_type
     mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
 
-    std::streambuf *pBuf = nullptr, *mBuf = nullptr;
+    std::streambuf *primBuf = nullptr, *mirrBuf = nullptr;
 
     char_type oPreCh = '\n', iPreCh = '\n';
 };
@@ -91,7 +91,7 @@ class ColorBuf final: public std::streambuf {
     ColorBuf() noexcept = default;
     ColorBuf(std::streambuf* const pBf, const char* const color) noexcept;
 
-    [[nodiscard]] std::streambuf* buffer() const noexcept;
+    [[nodiscard]] std::streambuf* buf() const noexcept;
 
    protected:
     // Synchronizes the underlying buffer.
@@ -110,8 +110,8 @@ class ColorBuf final: public std::streambuf {
     // Writes the color reset escape sequence.
     bool write_reset() noexcept;
 
-    std::streambuf* buffer_ = nullptr;
-    const char*     color   = nullptr;
+    std::streambuf* buf_  = nullptr;
+    const char*     color = nullptr;
 };
 
 }  // namespace DON
