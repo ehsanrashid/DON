@@ -31,8 +31,8 @@ char StringReader::peek() const noexcept { return cur != end ? *cur : Null; }
 bool StringReader::is_not_space() const noexcept { return cur != end && !is_space(*cur); }
 
 void StringReader::skip_spaces() noexcept {
-    for (; cur != end && is_space(*cur); ++cur)
-    {}
+    while (cur != end && is_space(*cur))
+        ++cur;
 }
 
 void StringReader::advance() noexcept {
@@ -51,8 +51,8 @@ bool StringReader::get_int(int& out) noexcept {
 
     int        val = 0;
     const auto p   = cur;
-    for (; cur != end && is_cdigit(*cur); ++cur)
-        val = 10 * val + char_to_digit(*cur);
+    while (cur != end && is_cdigit(*cur))
+        val = 10 * val + char_to_digit(*cur++);
 
     if (p == cur)
         return false;
