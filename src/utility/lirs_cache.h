@@ -58,9 +58,10 @@ class PoolLIRSCache final {
         Link*  next  = nullptr;
     };
 
-    using list_type    = DoublyIntrusiveList<Link>;
-    using map_type     = std::unordered_map<Key, Entry*>;
-    using map_iterator = typename map_type::iterator;
+    using list_value_type = Link;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
+    using map_type        = std::unordered_map<Key, Entry*>;
+    using map_iterator    = typename map_type::iterator;
 
     struct Entry final {
         explicit Entry(const Key& key) noexcept :
@@ -100,7 +101,9 @@ class PoolLIRSCache final {
 
     ~PoolLIRSCache() noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_clear();
+
         pool.release();
     }
 
@@ -112,27 +115,32 @@ class PoolLIRSCache final {
     template<typename... Args>
     Return read_or_write(const Key& key, Args&&... args) noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_write(key, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
     Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
     }
 
     void evict_excess(const usize size) noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_evict_excess(size);
     }
 
     void evict_excess() noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_evict_excess(capacity);
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return capacity;
     }
 
@@ -156,30 +164,35 @@ class PoolLIRSCache final {
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
-        const auto      mapItr = map.find(key);
+
+        const auto mapItr = map.find(key);
         return mapItr != map.end() && mapItr->second != nullptr
             && nolock_is_resident(mapItr->second);
     }
 
     [[nodiscard]] bool contains_ghost(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
-        const auto      mapItr = map.find(key);
+
+        const auto mapItr = map.find(key);
         return mapItr != map.end() && mapItr->second != nullptr
             && !nolock_is_resident(mapItr->second);
     }
 
     [[nodiscard]] usize size() const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_resident_size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_resident_size() == 0;
     }
 
     [[nodiscard]] bool remove(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_remove(key);
     }
 
@@ -204,14 +217,14 @@ class PoolLIRSCache final {
     }
 
    private:
-    [[nodiscard]] inline usize nolock_hir_capacity() const noexcept {
+    [[nodiscard]] usize nolock_hir_capacity() const noexcept {
         if (capacity == 0)
             return 0;
         const usize hirCapacity = capacity / 20 + (capacity % 20 != 0);
         return std::min(capacity, std::max(usize{1}, hirCapacity));
     }
 
-    [[nodiscard]] inline usize nolock_lir_capacity() const noexcept {
+    [[nodiscard]] usize nolock_lir_capacity() const noexcept {
         return capacity - nolock_hir_capacity();
     }
 
@@ -233,13 +246,11 @@ class PoolLIRSCache final {
         nolock_reserve_map(capacity);
     }
 
-    [[nodiscard]] inline bool nolock_is_resident(const Entry* entry) const noexcept {
+    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
         return entry != nullptr && entry->value.has_value();
     }
 
-    [[nodiscard]] inline usize nolock_resident_size() const noexcept {
-        return lirSize + queueQ.size();
-    }
+    [[nodiscard]] usize nolock_resident_size() const noexcept { return lirSize + queueQ.size(); }
 
     [[nodiscard]] Return nolock_read(const Entry* entry) const noexcept {
         if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -248,7 +259,7 @@ class PoolLIRSCache final {
             return **entry->value;
     }
 
-    inline void nolock_hir_stack_push_front(Entry& entry) noexcept {
+    void nolock_hir_stack_push_front(Entry& entry) noexcept {
         if (!entry.inHirStack)
         {
             hirStack.push_front(entry.hLink);
@@ -256,14 +267,12 @@ class PoolLIRSCache final {
         }
     }
 
-    inline void nolock_hir_stack_move_front(Entry& entry) noexcept {
+    void nolock_hir_stack_move_front(Entry& entry) noexcept {
         if (entry.inHirStack)
-        {
             hirStack.move_front(entry.hLink);
-        }
     }
 
-    inline void nolock_hir_stack_remove(Entry& entry) noexcept {
+    void nolock_hir_stack_remove(Entry& entry) noexcept {
         if (entry.inHirStack)
         {
             hirStack.erase(entry.hLink);
@@ -277,9 +286,7 @@ class PoolLIRSCache final {
             stackS.push_front(entry.sLink);
             entry.inStack = true;
             if (!entry.isLir)
-            {
                 nolock_hir_stack_push_front(entry);
-            }
         }
     }
 
@@ -289,25 +296,23 @@ class PoolLIRSCache final {
             nolock_stack_push_front(entry);
             return;
         }
+
         stackS.move_front(entry.sLink);
+
         if (!entry.isLir)
-        {
             nolock_hir_stack_move_front(entry);
-        }
     }
 
     void nolock_stack_remove(Entry& entry) noexcept {
         if (!entry.inStack)
             return;
         if (!entry.isLir)
-        {
             nolock_hir_stack_remove(entry);
-        }
         stackS.erase(entry.sLink);
         entry.inStack = false;
     }
 
-    inline void nolock_queue_push_back(Entry& entry) noexcept {
+    void nolock_queue_push_back(Entry& entry) noexcept {
         if (!entry.inQueue)
         {
             queueQ.push_back(entry.qLink);
@@ -315,7 +320,7 @@ class PoolLIRSCache final {
         }
     }
 
-    inline void nolock_queue_move_back(Entry& entry) noexcept {
+    void nolock_queue_move_back(Entry& entry) noexcept {
         if (!entry.inQueue)
         {
             queueQ.push_back(entry.qLink);
@@ -324,7 +329,7 @@ class PoolLIRSCache final {
         queueQ.move_back(entry.qLink);
     }
 
-    inline void nolock_queue_remove(Entry& entry) noexcept {
+    void nolock_queue_remove(Entry& entry) noexcept {
         if (entry.inQueue)
         {
             queueQ.erase(entry.qLink);
@@ -332,7 +337,7 @@ class PoolLIRSCache final {
         }
     }
 
-    inline void nolock_destroy_unlinked_entry(Entry& entry) noexcept {
+    void nolock_destroy_unlinked_entry(Entry& entry) noexcept {
         map.erase(entry.key);
         pool.destroy(&entry);
     }
@@ -359,7 +364,7 @@ class PoolLIRSCache final {
         }
     }
 
-    // Bug Fixed: Clean execution bounding without scan traps
+    // Clean execution bounding without scan traps
     void nolock_trim_stack_limit() noexcept {
         const usize maxSize = capacity > std::numeric_limits<usize>::max() / 2
                               ? std::numeric_limits<usize>::max()
@@ -381,7 +386,8 @@ class PoolLIRSCache final {
             }
         }
     }
-    [[nodiscard]] inline Entry* nolock_bottom_lir(Entry* except = nullptr) noexcept {
+
+    [[nodiscard]] Entry* nolock_bottom_lir(Entry* except = nullptr) noexcept {
         Link* tail = stackS.back();
         if (tail == nullptr)
             return nullptr;
@@ -395,6 +401,7 @@ class PoolLIRSCache final {
         }
         return entry->isLir ? entry : nullptr;
     }
+
     void nolock_demote_bottom_lir(Entry* except = nullptr) noexcept {
         Entry* const entry = nolock_bottom_lir(except);
         if (entry == nullptr)
@@ -406,6 +413,7 @@ class PoolLIRSCache final {
         nolock_queue_push_back(*entry);
         nolock_stack_prune();
     }
+
     [[nodiscard]] bool nolock_evict_oldest_hir() noexcept {
         Link* const front = queueQ.front();
         if (front == nullptr)
@@ -414,11 +422,10 @@ class PoolLIRSCache final {
         nolock_queue_remove(*entry);
         entry->value.reset();
         if (!entry->inStack)
-        {
             nolock_destroy_unlinked_entry(*entry);
-        }
         return true;
     }
+
     [[nodiscard]] bool nolock_remove_bottom_lir() noexcept {
         Entry* const entry = nolock_bottom_lir();
         if (entry == nullptr)
@@ -429,6 +436,7 @@ class PoolLIRSCache final {
         nolock_stack_prune();
         return true;
     }
+
     [[nodiscard]] bool nolock_make_room() noexcept {
         if (capacity == 0)
             return false;
@@ -440,14 +448,14 @@ class PoolLIRSCache final {
             return nolock_resident_size() < capacity;
         return false;
     }
+
     void nolock_touch_lir(Entry& entry) noexcept {
         const bool wasStackBottom = stackS.back() == &entry.sLink;
         nolock_stack_move_front(entry);
         if (wasStackBottom)
-        {
             nolock_stack_prune();
-        }
     }
+
     void nolock_touch_hir(Entry& entry) noexcept {
         const bool wasInStack = entry.inStack;
         if (wasInStack && nolock_lir_capacity() != 0)
@@ -458,13 +466,9 @@ class PoolLIRSCache final {
             ++lirSize;
             nolock_stack_move_front(entry);
             if (lirSize > nolock_lir_capacity())
-            {
                 nolock_demote_bottom_lir(&entry);
-            }
             else
-            {
                 nolock_stack_prune();
-            }
         }
         else
         {
@@ -472,34 +476,28 @@ class PoolLIRSCache final {
             nolock_queue_move_back(entry);
             nolock_stack_move_front(entry);
             if (wasStackBottom)
-            {
                 nolock_stack_prune();
-            }
         }
+
         if (!wasInStack)
-        {
             nolock_trim_stack_limit();
-        }
     }
+
     void nolock_reactivate_hir(Entry& entry, const bool wasInStack) noexcept {
         const bool promoteToLir = wasInStack && nolock_lir_capacity() != 0;
         if (promoteToLir)
-        {
             nolock_hir_stack_remove(entry);
-        }
+
         entry.isLir = promoteToLir;
+
         if (entry.isLir)
         {
             ++lirSize;
             nolock_stack_move_front(entry);
             if (lirSize > nolock_lir_capacity())
-            {
                 nolock_demote_bottom_lir(&entry);
-            }
             else
-            {
                 nolock_stack_prune();
-            }
         }
         else
         {
@@ -507,11 +505,11 @@ class PoolLIRSCache final {
             nolock_queue_push_back(entry);
             nolock_stack_prune();
         }
+
         if (!wasInStack)
-        {
             nolock_trim_stack_limit();
-        }
     }
+
     void nolock_admit_new(Entry& entry) noexcept {
         if (lirSize < nolock_lir_capacity())
         {
@@ -525,12 +523,13 @@ class PoolLIRSCache final {
             nolock_stack_push_front(entry);
             nolock_queue_push_back(entry);
         }
+
         if (lirSize == 0)
-        {
             nolock_stack_prune();
-        }
+
         nolock_trim_stack_limit();
     }
+
     void nolock_clamp_lir_size() noexcept {
         const usize limit = nolock_lir_capacity();
         while (lirSize > limit)
@@ -541,6 +540,7 @@ class PoolLIRSCache final {
                 break;
         }
     }
+
     void nolock_evict_excess(const usize targetSize) noexcept {
         while (nolock_resident_size() > targetSize)
         {
@@ -549,6 +549,7 @@ class PoolLIRSCache final {
         }
         nolock_trim_stack_limit();
     }
+
     [[nodiscard]] bool nolock_remove(const Key& key) noexcept {
         const auto mapItr = map.find(key);
         if (mapItr == map.end() || mapItr->second == nullptr)
@@ -563,6 +564,7 @@ class PoolLIRSCache final {
         nolock_stack_prune();
         return true;
     }
+
     void nolock_clear() noexcept {
         for (auto& [key, entry] : map)
         {
@@ -576,25 +578,33 @@ class PoolLIRSCache final {
         hirStack.clear();
         lirSize = 0;
     }
+
     template<typename... Args>
     Return nolock_insert_new_after_room(const Key& key, Args&&... args) noexcept {
         auto [mapItr, inserted] = map.try_emplace(key, nullptr);
         if (!inserted)
             return nolock_write(key, std::forward<Args>(args)...);
+
         Entry* const entry = pool.create_object(key);
+
         entry->emplaceValue(std::forward<Args>(args)...);
+
         mapItr->second = entry;
+
         nolock_admit_new(*entry);
         return nolock_read(entry);
     }
+
     template<typename... Args>
     Return nolock_insert_new(const Key& key, Args&&... args) noexcept {
         if (!nolock_make_room())
             return Return{std::forward<Args>(args)...};
+
         return nolock_insert_new_after_room(key, std::forward<Args>(args)...);
     }
+
     template<typename... Args>
-    inline Return nolock_reactivate_direct(Entry* const entry, Args&&... args) noexcept {
+    Return nolock_reactivate_direct(Entry* const entry, Args&&... args) noexcept {
         if (!nolock_make_room())
             return Return{std::forward<Args>(args)...};
         const bool wasInStack = entry->inStack;
@@ -602,14 +612,19 @@ class PoolLIRSCache final {
         nolock_reactivate_hir(*entry, wasInStack);
         return nolock_read(entry);
     }
+
     template<typename... Args>
     Return nolock_reactivate(const Key& key, Args&&... args) noexcept {
         if (!nolock_make_room())
             return Return{std::forward<Args>(args)...};
+
         const auto mapItr = map.find(key);
+
         if (mapItr == map.end() || mapItr->second == nullptr)
             return nolock_insert_new_after_room(key, std::forward<Args>(args)...);
+
         Entry* const entry = mapItr->second;
+
         if (nolock_is_resident(entry))
         {
             if (entry->isLir)
@@ -618,16 +633,21 @@ class PoolLIRSCache final {
                 nolock_touch_hir(*entry);
             return nolock_read(entry);
         }
+
         return nolock_reactivate_direct(entry, std::forward<Args>(args)...);
     }
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
+
         const auto mapItr = map.find(key);
+
         if (mapItr != map.end() && mapItr->second != nullptr)
         {
             Entry* const entry = mapItr->second;
+
             if (nolock_is_resident(entry))
             {
                 if (entry->isLir)
@@ -636,31 +656,40 @@ class PoolLIRSCache final {
                     nolock_touch_hir(*entry);
                 return nolock_read(entry);
             }
+
             return nolock_reactivate_direct(entry, std::forward<Args>(args)...);
         }
+
         return nolock_insert_new(key, std::forward<Args>(args)...);
     }
+
     template<typename Builder, typename... Args>
     Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         if (capacity == 0)
             return Return{std::forward(builder)(std::forward<Args>(args)...)};
+
         const auto mapItr = map.find(key);
-        if (mapItr != map.end() && mapItr->second != nullptr && nolock_is_resident(mapItr->second))
-        {
-            Entry* const entry = mapItr->second;
-            if (entry->isLir)
-                nolock_touch_lir(*entry);
-            else
-                nolock_touch_hir(*entry);
-            return nolock_read(entry);
-        }
-        Value value = std::forward(builder)(std::forward<Args>(args)...);
+
         if (mapItr != map.end() && mapItr->second != nullptr)
         {
-            return nolock_reactivate_direct(mapItr->second, std::move(value));
+            Entry* const entry = mapItr->second;
+
+            if (nolock_is_resident(entry))
+            {
+                if (entry->isLir)
+                    nolock_touch_lir(*entry);
+                else
+                    nolock_touch_hir(*entry);
+                return nolock_read(entry);
+            }
+
+            return nolock_reactivate_direct(entry,
+                                            std::forward(builder)(std::forward<Args>(args)...));
         }
-        return nolock_insert_new_after_room(key, std::move(value));
+
+        return nolock_insert_new(key, std::forward(builder)(std::forward<Args>(args)...));
     }
+
     const usize   defaultCapacity;
     const usize   reserveCount;
     const float   maxLoadFactor;
@@ -691,9 +720,10 @@ class PoolFlatLIRSCache final {
         Link*  next  = nullptr;
     };
 
-    using list_type    = DoublyIntrusiveList<Link>;
-    using map_type     = ankerl::unordered_dense::map<Key, Entry*>;
-    using map_iterator = typename map_type::iterator;
+    using list_value_type = Link;
+    using list_type       = DoublyIntrusiveList<list_value_type>;
+    using map_type        = ankerl::unordered_dense::map<Key, Entry*>;
+    using map_iterator    = typename map_type::iterator;
 
     struct Entry final {
         explicit Entry(const Key& key) noexcept :
@@ -733,7 +763,9 @@ class PoolFlatLIRSCache final {
 
     ~PoolFlatLIRSCache() noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_clear();
+
         pool.release();
     }
 
@@ -745,27 +777,32 @@ class PoolFlatLIRSCache final {
     template<typename... Args>
     Return read_or_write(const Key& key, Args&&... args) noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_write(key, std::forward<Args>(args)...);
     }
 
     template<typename Builder, typename... Args>
     Return read_or_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_write_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...);
     }
 
     void evict_excess(const usize size) noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_evict_excess(size);
     }
 
     void evict_excess() noexcept {
         std::lock_guard lockGuard{mutex};
+
         nolock_evict_excess(capacity);
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return capacity;
     }
 
@@ -789,30 +826,35 @@ class PoolFlatLIRSCache final {
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
-        const auto      mapItr = map.find(key);
+
+        const auto mapItr = map.find(key);
         return mapItr != map.end() && mapItr->second != nullptr
             && nolock_is_resident(mapItr->second);
     }
 
     [[nodiscard]] bool contains_ghost(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
-        const auto      mapItr = map.find(key);
+
+        const auto mapItr = map.find(key);
         return mapItr != map.end() && mapItr->second != nullptr
             && !nolock_is_resident(mapItr->second);
     }
 
     [[nodiscard]] usize size() const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_resident_size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_resident_size() == 0;
     }
 
     [[nodiscard]] bool remove(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
+
         return nolock_remove(key);
     }
 
@@ -837,14 +879,14 @@ class PoolFlatLIRSCache final {
     }
 
    private:
-    [[nodiscard]] inline usize nolock_hir_capacity() const noexcept {
+    [[nodiscard]] usize nolock_hir_capacity() const noexcept {
         if (capacity == 0)
             return 0;
         const usize hirCapacity = capacity / 20 + (capacity % 20 != 0);
         return std::min(capacity, std::max(usize{1}, hirCapacity));
     }
 
-    [[nodiscard]] inline usize nolock_lir_capacity() const noexcept {
+    [[nodiscard]] usize nolock_lir_capacity() const noexcept {
         return capacity - nolock_hir_capacity();
     }
 
@@ -866,13 +908,11 @@ class PoolFlatLIRSCache final {
         nolock_reserve_map(capacity);
     }
 
-    [[nodiscard]] inline bool nolock_is_resident(const Entry* entry) const noexcept {
+    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
         return entry != nullptr && entry->value.has_value();
     }
 
-    [[nodiscard]] inline usize nolock_resident_size() const noexcept {
-        return lirSize + queueQ.size();
-    }
+    [[nodiscard]] usize nolock_resident_size() const noexcept { return lirSize + queueQ.size(); }
 
     [[nodiscard]] Return nolock_read(const Entry* entry) const noexcept {
         if constexpr (sizeof(Value) <= InlineValueThreshold)
@@ -881,7 +921,7 @@ class PoolFlatLIRSCache final {
             return **entry->value;
     }
 
-    inline void nolock_hir_stack_push_front(Entry& entry) noexcept {
+    void nolock_hir_stack_push_front(Entry& entry) noexcept {
         if (!entry.inHirStack)
         {
             hirStack.push_front(entry.hLink);
@@ -889,14 +929,12 @@ class PoolFlatLIRSCache final {
         }
     }
 
-    inline void nolock_hir_stack_move_front(Entry& entry) noexcept {
+    void nolock_hir_stack_move_front(Entry& entry) noexcept {
         if (entry.inHirStack)
-        {
             hirStack.move_front(entry.hLink);
-        }
     }
 
-    inline void nolock_hir_stack_remove(Entry& entry) noexcept {
+    void nolock_hir_stack_remove(Entry& entry) noexcept {
         if (entry.inHirStack)
         {
             hirStack.erase(entry.hLink);
@@ -910,9 +948,7 @@ class PoolFlatLIRSCache final {
             stackS.push_front(entry.sLink);
             entry.inStack = true;
             if (!entry.isLir)
-            {
                 nolock_hir_stack_push_front(entry);
-            }
         }
     }
 
@@ -922,25 +958,23 @@ class PoolFlatLIRSCache final {
             nolock_stack_push_front(entry);
             return;
         }
+
         stackS.move_front(entry.sLink);
+
         if (!entry.isLir)
-        {
             nolock_hir_stack_move_front(entry);
-        }
     }
 
     void nolock_stack_remove(Entry& entry) noexcept {
         if (!entry.inStack)
             return;
         if (!entry.isLir)
-        {
             nolock_hir_stack_remove(entry);
-        }
         stackS.erase(entry.sLink);
         entry.inStack = false;
     }
 
-    inline void nolock_queue_push_back(Entry& entry) noexcept {
+    void nolock_queue_push_back(Entry& entry) noexcept {
         if (!entry.inQueue)
         {
             queueQ.push_back(entry.qLink);
@@ -948,7 +982,7 @@ class PoolFlatLIRSCache final {
         }
     }
 
-    inline void nolock_queue_move_back(Entry& entry) noexcept {
+    void nolock_queue_move_back(Entry& entry) noexcept {
         if (!entry.inQueue)
         {
             queueQ.push_back(entry.qLink);
@@ -957,7 +991,7 @@ class PoolFlatLIRSCache final {
         queueQ.move_back(entry.qLink);
     }
 
-    inline void nolock_queue_remove(Entry& entry) noexcept {
+    void nolock_queue_remove(Entry& entry) noexcept {
         if (entry.inQueue)
         {
             queueQ.erase(entry.qLink);
@@ -965,7 +999,7 @@ class PoolFlatLIRSCache final {
         }
     }
 
-    inline void nolock_destroy_unlinked_entry(Entry& entry) noexcept {
+    void nolock_destroy_unlinked_entry(Entry& entry) noexcept {
         map.erase(entry.key);
         pool.destroy(&entry);
     }
@@ -992,7 +1026,7 @@ class PoolFlatLIRSCache final {
         }
     }
 
-    // Bug Fixed: Clean execution bounding without scan traps
+    // Clean execution bounding without scan traps
     void nolock_trim_stack_limit() noexcept {
         const usize maxSize = capacity > std::numeric_limits<usize>::max() / 2
                               ? std::numeric_limits<usize>::max()
@@ -1014,7 +1048,8 @@ class PoolFlatLIRSCache final {
             }
         }
     }
-    [[nodiscard]] inline Entry* nolock_bottom_lir(Entry* except = nullptr) noexcept {
+
+    [[nodiscard]] Entry* nolock_bottom_lir(Entry* except = nullptr) noexcept {
         Link* tail = stackS.back();
         if (tail == nullptr)
             return nullptr;
@@ -1028,6 +1063,7 @@ class PoolFlatLIRSCache final {
         }
         return entry->isLir ? entry : nullptr;
     }
+
     void nolock_demote_bottom_lir(Entry* except = nullptr) noexcept {
         Entry* const entry = nolock_bottom_lir(except);
         if (entry == nullptr)
@@ -1039,6 +1075,7 @@ class PoolFlatLIRSCache final {
         nolock_queue_push_back(*entry);
         nolock_stack_prune();
     }
+
     [[nodiscard]] bool nolock_evict_oldest_hir() noexcept {
         Link* const front = queueQ.front();
         if (front == nullptr)
@@ -1047,11 +1084,10 @@ class PoolFlatLIRSCache final {
         nolock_queue_remove(*entry);
         entry->value.reset();
         if (!entry->inStack)
-        {
             nolock_destroy_unlinked_entry(*entry);
-        }
         return true;
     }
+
     [[nodiscard]] bool nolock_remove_bottom_lir() noexcept {
         Entry* const entry = nolock_bottom_lir();
         if (entry == nullptr)
@@ -1062,6 +1098,7 @@ class PoolFlatLIRSCache final {
         nolock_stack_prune();
         return true;
     }
+
     [[nodiscard]] bool nolock_make_room() noexcept {
         if (capacity == 0)
             return false;
@@ -1073,14 +1110,14 @@ class PoolFlatLIRSCache final {
             return nolock_resident_size() < capacity;
         return false;
     }
+
     void nolock_touch_lir(Entry& entry) noexcept {
         const bool wasStackBottom = stackS.back() == &entry.sLink;
         nolock_stack_move_front(entry);
         if (wasStackBottom)
-        {
             nolock_stack_prune();
-        }
     }
+
     void nolock_touch_hir(Entry& entry) noexcept {
         const bool wasInStack = entry.inStack;
         if (wasInStack && nolock_lir_capacity() != 0)
@@ -1091,13 +1128,9 @@ class PoolFlatLIRSCache final {
             ++lirSize;
             nolock_stack_move_front(entry);
             if (lirSize > nolock_lir_capacity())
-            {
                 nolock_demote_bottom_lir(&entry);
-            }
             else
-            {
                 nolock_stack_prune();
-            }
         }
         else
         {
@@ -1105,34 +1138,28 @@ class PoolFlatLIRSCache final {
             nolock_queue_move_back(entry);
             nolock_stack_move_front(entry);
             if (wasStackBottom)
-            {
                 nolock_stack_prune();
-            }
         }
+
         if (!wasInStack)
-        {
             nolock_trim_stack_limit();
-        }
     }
+
     void nolock_reactivate_hir(Entry& entry, const bool wasInStack) noexcept {
         const bool promoteToLir = wasInStack && nolock_lir_capacity() != 0;
         if (promoteToLir)
-        {
             nolock_hir_stack_remove(entry);
-        }
+
         entry.isLir = promoteToLir;
+
         if (entry.isLir)
         {
             ++lirSize;
             nolock_stack_move_front(entry);
             if (lirSize > nolock_lir_capacity())
-            {
                 nolock_demote_bottom_lir(&entry);
-            }
             else
-            {
                 nolock_stack_prune();
-            }
         }
         else
         {
@@ -1140,11 +1167,11 @@ class PoolFlatLIRSCache final {
             nolock_queue_push_back(entry);
             nolock_stack_prune();
         }
+
         if (!wasInStack)
-        {
             nolock_trim_stack_limit();
-        }
     }
+
     void nolock_admit_new(Entry& entry) noexcept {
         if (lirSize < nolock_lir_capacity())
         {
@@ -1158,12 +1185,13 @@ class PoolFlatLIRSCache final {
             nolock_stack_push_front(entry);
             nolock_queue_push_back(entry);
         }
+
         if (lirSize == 0)
-        {
             nolock_stack_prune();
-        }
+
         nolock_trim_stack_limit();
     }
+
     void nolock_clamp_lir_size() noexcept {
         const usize limit = nolock_lir_capacity();
         while (lirSize > limit)
@@ -1174,6 +1202,7 @@ class PoolFlatLIRSCache final {
                 break;
         }
     }
+
     void nolock_evict_excess(const usize targetSize) noexcept {
         while (nolock_resident_size() > targetSize)
         {
@@ -1182,6 +1211,7 @@ class PoolFlatLIRSCache final {
         }
         nolock_trim_stack_limit();
     }
+
     [[nodiscard]] bool nolock_remove(const Key& key) noexcept {
         const auto mapItr = map.find(key);
         if (mapItr == map.end() || mapItr->second == nullptr)
@@ -1196,6 +1226,7 @@ class PoolFlatLIRSCache final {
         nolock_stack_prune();
         return true;
     }
+
     void nolock_clear() noexcept {
         for (auto& [key, entry] : map)
         {
@@ -1209,25 +1240,33 @@ class PoolFlatLIRSCache final {
         hirStack.clear();
         lirSize = 0;
     }
+
     template<typename... Args>
     Return nolock_insert_new_after_room(const Key& key, Args&&... args) noexcept {
         auto [mapItr, inserted] = map.try_emplace(key, nullptr);
         if (!inserted)
             return nolock_write(key, std::forward<Args>(args)...);
+
         Entry* const entry = pool.create_object(key);
+
         entry->emplaceValue(std::forward<Args>(args)...);
+
         mapItr->second = entry;
+
         nolock_admit_new(*entry);
         return nolock_read(entry);
     }
+
     template<typename... Args>
     Return nolock_insert_new(const Key& key, Args&&... args) noexcept {
         if (!nolock_make_room())
             return Return{std::forward<Args>(args)...};
+
         return nolock_insert_new_after_room(key, std::forward<Args>(args)...);
     }
+
     template<typename... Args>
-    inline Return nolock_reactivate_direct(Entry* const entry, Args&&... args) noexcept {
+    Return nolock_reactivate_direct(Entry* const entry, Args&&... args) noexcept {
         if (!nolock_make_room())
             return Return{std::forward<Args>(args)...};
         const bool wasInStack = entry->inStack;
@@ -1235,14 +1274,19 @@ class PoolFlatLIRSCache final {
         nolock_reactivate_hir(*entry, wasInStack);
         return nolock_read(entry);
     }
+
     template<typename... Args>
     Return nolock_reactivate(const Key& key, Args&&... args) noexcept {
         if (!nolock_make_room())
             return Return{std::forward<Args>(args)...};
+
         const auto mapItr = map.find(key);
+
         if (mapItr == map.end() || mapItr->second == nullptr)
             return nolock_insert_new_after_room(key, std::forward<Args>(args)...);
+
         Entry* const entry = mapItr->second;
+
         if (nolock_is_resident(entry))
         {
             if (entry->isLir)
@@ -1251,16 +1295,21 @@ class PoolFlatLIRSCache final {
                 nolock_touch_hir(*entry);
             return nolock_read(entry);
         }
+
         return nolock_reactivate_direct(entry, std::forward<Args>(args)...);
     }
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
         if (capacity == 0)
             return Return{std::forward<Args>(args)...};
+
         const auto mapItr = map.find(key);
+
         if (mapItr != map.end() && mapItr->second != nullptr)
         {
             Entry* const entry = mapItr->second;
+
             if (nolock_is_resident(entry))
             {
                 if (entry->isLir)
@@ -1269,31 +1318,40 @@ class PoolFlatLIRSCache final {
                     nolock_touch_hir(*entry);
                 return nolock_read(entry);
             }
+
             return nolock_reactivate_direct(entry, std::forward<Args>(args)...);
         }
+
         return nolock_insert_new(key, std::forward<Args>(args)...);
     }
+
     template<typename Builder, typename... Args>
     Return nolock_write_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         if (capacity == 0)
             return Return{std::forward(builder)(std::forward<Args>(args)...)};
+
         const auto mapItr = map.find(key);
-        if (mapItr != map.end() && mapItr->second != nullptr && nolock_is_resident(mapItr->second))
-        {
-            Entry* const entry = mapItr->second;
-            if (entry->isLir)
-                nolock_touch_lir(*entry);
-            else
-                nolock_touch_hir(*entry);
-            return nolock_read(entry);
-        }
-        Value value = std::forward(builder)(std::forward<Args>(args)...);
+
         if (mapItr != map.end() && mapItr->second != nullptr)
         {
-            return nolock_reactivate_direct(mapItr->second, std::move(value));
+            Entry* const entry = mapItr->second;
+
+            if (nolock_is_resident(entry))
+            {
+                if (entry->isLir)
+                    nolock_touch_lir(*entry);
+                else
+                    nolock_touch_hir(*entry);
+                return nolock_read(entry);
+            }
+
+            return nolock_reactivate_direct(entry,
+                                            std::forward(builder)(std::forward<Args>(args)...));
         }
-        return nolock_insert_new_after_room(key, std::move(value));
+
+        return nolock_insert_new(key, std::forward(builder)(std::forward<Args>(args)...));
     }
+
     const usize   defaultCapacity;
     const usize   reserveCount;
     const float   maxLoadFactor;

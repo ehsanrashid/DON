@@ -69,10 +69,8 @@ class PoolSIEVECache final {
     using list_value_type = Entry;
     using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
-
-    // FIX 1: Aligned map templates to prevent pointer degradation overhead
-    using map_type     = std::unordered_map<Key, list_iterator>;
-    using map_iterator = typename map_type::iterator;
+    using map_type        = std::unordered_map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
    public:
     explicit PoolSIEVECache(const usize cap        = 2 * KB,
@@ -241,10 +239,17 @@ class PoolSIEVECache final {
 
         MapGuard<map_type> mapGuard{map, mapItr};
 
-        Entry* const entry = pool.create(1, key);
+        Entry* const entry = pool.create_object(key);
+
+        if (entry == nullptr)
+            return Return{std::forward<Args>(args)...};
+
         entry->emplace_value(std::forward<Args>(args)...);
+
         nolock_link_new_entry(*entry);
+
         mapItr->second = entry;
+
         mapGuard.commit();
 
         assert(nolock_consistency_check());
@@ -271,10 +276,17 @@ class PoolSIEVECache final {
 
         MapGuard<map_type> mapGuard{map, mapItr};
 
-        Entry* const entry = pool.create(1, key);
+        Entry* const entry = pool.create_object(key);
+
+        if (entry == nullptr)
+            return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
+
         entry->emplace_value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
         nolock_link_new_entry(*entry);
+
         mapItr->second = entry;
+
         mapGuard.commit();
 
         assert(nolock_consistency_check());
@@ -284,6 +296,7 @@ class PoolSIEVECache final {
     [[nodiscard]] list_iterator nolock_touch(list_iterator entry) noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
+
         entry->visited = true;
         return entry;
     }
@@ -320,19 +333,15 @@ class PoolSIEVECache final {
 
         const bool removingHand = hand == entry;
         if (removingHand)
-        {
             hand = list.prev(*entry);
-        }
 
         // Unlink from the intrusive list while pointers are completely stable
         [[maybe_unused]]  //
         const bool erased = list.erase(*entry);
         assert(erased);
 
-        if (removingHand && hand == nullptr)
-        {
+        if (hand == nullptr)
             hand = list.back();
-        }
 
         // Safe vector-pop map erasure by Key name
         map.erase(targetKey);
@@ -347,11 +356,11 @@ class PoolSIEVECache final {
         if (hand == nullptr)
             hand = list.back();
 
-        const usize scanCount = list.size();
+        const usize listSize = list.size();
 
         for (usize pass = 0; pass < 2; ++pass)
         {
-            for (usize scanned = 0; scanned < scanCount; ++scanned)
+            for (usize scanned = 0; scanned < listSize; ++scanned)
             {
                 if (hand == nullptr)
                     hand = list.back();
@@ -460,10 +469,8 @@ class PoolFlatSIEVECache final {
     using list_value_type = Entry;
     using list_type       = DoublyIntrusiveList<list_value_type>;
     using list_iterator   = list_value_type*;
-
-    // FIX 1: Aligned map templates to prevent pointer degradation overhead
-    using map_type     = ankerl::unordered_dense::map<Key, list_iterator>;
-    using map_iterator = typename map_type::iterator;
+    using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
+    using map_iterator    = typename map_type::iterator;
 
    public:
     explicit PoolFlatSIEVECache(const usize cap        = 2 * KB,
@@ -559,11 +566,16 @@ class PoolFlatSIEVECache final {
     [[nodiscard]] usize size() const noexcept {
         std::lock_guard lockGuard{mutex};
 
+        assert(map.size() == list.size());
+        assert(list.size() <= capacity);
+
         return list.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
         std::lock_guard lockGuard{mutex};
+
+        assert(map.empty() == list.empty());
 
         return list.empty();
     }
@@ -625,10 +637,17 @@ class PoolFlatSIEVECache final {
         const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
         assert(inserted);
 
+        MapGuard<map_type> mapGuard{map, mapItr};
+
         Entry* const entry = pool.create(1, key);
+
         entry->emplace_value(std::forward<Args>(args)...);
+
         nolock_link_new_entry(*entry);
+
         mapItr->second = entry;
+
+        mapGuard.commit();
 
         assert(nolock_consistency_check());
         return nolock_read(entry);
@@ -652,10 +671,17 @@ class PoolFlatSIEVECache final {
         const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
         assert(inserted);
 
+        MapGuard<map_type> mapGuard{map, mapItr};
+
         Entry* const entry = pool.create(1, key);
+
         entry->emplace_value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
         nolock_link_new_entry(*entry);
+
         mapItr->second = entry;
+
+        mapGuard.commit();
 
         assert(nolock_consistency_check());
         return nolock_read(entry);
@@ -664,6 +690,7 @@ class PoolFlatSIEVECache final {
     [[nodiscard]] list_iterator nolock_touch(list_iterator entry) noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
+
         entry->visited = true;
         return entry;
     }
@@ -700,19 +727,15 @@ class PoolFlatSIEVECache final {
 
         const bool removingHand = hand == entry;
         if (removingHand)
-        {
             hand = list.prev(*entry);
-        }
 
         // Unlink from the intrusive list while pointers are completely stable
         [[maybe_unused]]  //
         const bool erased = list.erase(*entry);
         assert(erased);
 
-        if (removingHand && hand == nullptr)
-        {
+        if (hand == nullptr)
             hand = list.back();
-        }
 
         // Safe vector-pop map erasure by Key name
         map.erase(targetKey);
@@ -727,14 +750,16 @@ class PoolFlatSIEVECache final {
         if (hand == nullptr)
             hand = list.back();
 
-        const usize scanCount = list.size();
+        const usize listSize = list.size();
 
         for (usize pass = 0; pass < 2; ++pass)
         {
-            for (usize scanned = 0; scanned < scanCount; ++scanned)
+            for (usize scanned = 0; scanned < listSize; ++scanned)
             {
                 if (hand == nullptr)
                     hand = list.back();
+
+                assert(hand != nullptr);
 
                 Entry* const candidate = hand;
                 hand                   = list.prev(*candidate);
@@ -750,6 +775,10 @@ class PoolFlatSIEVECache final {
 
                 // Erase safely using the index wrapper
                 nolock_erase(mapItr);
+
+                if (hand == nullptr)
+                    hand = list.back();
+
                 return;
             }
         }
