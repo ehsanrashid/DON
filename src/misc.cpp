@@ -18,10 +18,7 @@
 #include "misc.h"
 
 #include <charconv>      // from_chars()
-#include <cinttypes>     // PRIX32, PRIX64, PRIu64
-#include <cstdio>        // snprintf()
 #include <cstdlib>       // exit(), EXIT_FAILURE
-#include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
 #include <iostream>      // cout, cin
 #include <system_error>  // errc
 #include <vector>        // vector<>

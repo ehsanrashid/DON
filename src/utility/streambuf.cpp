@@ -17,6 +17,8 @@
 
 #include "../utility/streambuf.h"
 
+#include <string>
+
 #include "../utility/types.h"
 
 namespace DON {

@@ -1307,6 +1307,8 @@ bool Position::legal(const Move m) const noexcept {
         UNREACHABLE();
     }
 
+    assert(type_of(movedPc) != KING);
+
     const Bitboard checkersBB = checkers_bb();
 
     return (checkersBB == 0

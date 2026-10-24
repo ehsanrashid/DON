@@ -18,6 +18,7 @@
 #ifndef UTILITY_STREAMBUF_H_INCLUDED
 #define UTILITY_STREAMBUF_H_INCLUDED
 
+#include <ios>
 #include <streambuf>
 #include <string_view>
 

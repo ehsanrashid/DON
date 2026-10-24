@@ -631,20 +631,23 @@ ALWAYS_INLINE Bitboard Position::acc_attacks_bb(PieceType pt) const noexcept {
 
     return st->accAttacksBB[pt];
 }
+
 ALWAYS_INLINE Bitboard Position::all_attacks_bb() const noexcept {
     if (st->accAttacksBB[ALL] == 0)
         set_all_attacks_bb();
 
     return st->accAttacksBB[ALL];
 }
+
 ALWAYS_INLINE Bitboard Position::less_attacks_bb(const PieceType pt) const noexcept {
     if (st->accAttacksBB[NO_PIECE_TYPE] == FULL_BB)
         set_acc_attacks_bb();
 
     return st->accAttacksBB[pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
+
 ALWAYS_INLINE Bitboard Position::threats_bb() const noexcept {
-    return acc_attacks_bb(KING) & ~all_attacks_bb();
+    return ~all_attacks_bb() & acc_attacks_bb(KING);
 }
 
 ALWAYS_INLINE Key Position::raw_key() const noexcept { return st->key; }

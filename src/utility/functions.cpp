@@ -19,8 +19,11 @@
 
 #include <algorithm>  // min()/max(), transform(), remove_if()
 #include <charconv>   // from_chars(), from_chars_result()
+#include <chrono>     // chrono::duration_cast
 #include <cinttypes>  // PRIX32, PRIX64, PRIu64
 #include <cstdio>     // snprintf()
+#include <ctime>      // time_t, localtime_r(), localtime_s(), strftime()
+#include <cwchar>     // tm
 #include <fstream>
 #include <limits>        // numeric_limits<>
 #include <system_error>  // errc
@@ -406,7 +409,7 @@ std::string error_to_string(const DWORD errorId) noexcept {
     // Ask Win32 to give us the string version of that message ID.
     // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    const usize size = FormatMessage(
+    const usize size = ::FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
       nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
