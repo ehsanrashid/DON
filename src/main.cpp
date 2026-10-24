@@ -59,7 +59,7 @@ int main(const int argc, const char* const argv[]) noexcept {
     Tune::init(uci.options());
 
     commandLine.size() > 1  //
-      ? uci.execute(commandLine.command())
+      ? uci.execute(commandLine.arguments_string())
       : uci.process_input(std::cin);
 
     uci.execute(QUIT_CMD);
