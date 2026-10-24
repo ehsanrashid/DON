@@ -110,7 +110,7 @@ class PoolLIRSCache final {
 
         nolock_clear();
 
-        pool.release();
+        nolock_release_pool();
     }
 
     template<typename... Args>
@@ -216,9 +216,10 @@ class PoolLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-        pool.release();
 
-        map.clear();
+        nolock_release_pool();
+
+        map.rehash(0);
 
         capacity = defaultCapacity;
         lirSize  = 0;
@@ -682,6 +683,8 @@ class PoolLIRSCache final {
         map.clear();
         lirSize = 0;
     }
+
+    void nolock_release_pool() noexcept { pool.release(); }
 
     template<typename... Args>
     Return nolock_insert_new_after_room(const Key& key, Args&&... args) noexcept {
@@ -897,7 +900,7 @@ class PoolFlatLIRSCache final {
 
         nolock_clear();
 
-        pool.release();
+        nolock_release_pool();
     }
 
     template<typename... Args>
@@ -1003,9 +1006,10 @@ class PoolFlatLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-        pool.release();
 
-        map.clear();
+        nolock_release_pool();
+
+        map.rehash(0);
 
         capacity = defaultCapacity;
         lirSize  = 0;
@@ -1469,6 +1473,8 @@ class PoolFlatLIRSCache final {
         map.clear();
         lirSize = 0;
     }
+
+    void nolock_release_pool() noexcept { pool.release(); }
 
     template<typename... Args>
     Return nolock_insert_new_after_room(const Key& key, Args&&... args) noexcept {

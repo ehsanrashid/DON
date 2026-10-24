@@ -323,16 +323,13 @@ class PoolSIEVECache final {
             return **entry->value;
     }
 
-    // FIX 2: Rewritten to isolate hand references before map mutations execute
     void nolock_erase(map_iterator mapItr) noexcept {
+        assert(mapItr != map.end());
+
         Entry* const entry = mapItr->second;
         assert(entry != nullptr);
 
-        // Capture a clean stack copy of the key for safe map erasure later
-        const Key targetKey = entry->key;
-
-        const bool removingHand = hand == entry;
-        if (removingHand)
+        if (hand == entry)
             hand = list.prev(*entry);
 
         // Unlink from the intrusive list while pointers are completely stable
@@ -340,12 +337,14 @@ class PoolSIEVECache final {
         const bool erased = list.erase(*entry);
         assert(erased);
 
+        // Erase the index entry without copying or hashing its key.
+        map.erase(mapItr);
+
+        pool.destroy(entry);
+
+        // The hand must never point to a destroyed entry.
         if (hand == nullptr)
             hand = list.back();
-
-        // Safe vector-pop map erasure by Key name
-        map.erase(targetKey);
-        pool.destroy(entry);
     }
 
     void nolock_evict_one() noexcept {
@@ -419,12 +418,35 @@ class PoolSIEVECache final {
         map.reserve(reserveCount);
     }
 
+#if !defined(NDEBUG)
     [[nodiscard]] bool nolock_consistency_check() const noexcept {
         return true;
+
         if (map.size() != list.size() || list.size() > capacity)
             return false;
-        return true;
+
+        usize count     = 0;
+        bool  handFound = hand == nullptr;
+
+        for (const Entry* entry = list.front(); entry != nullptr; entry = list.next(*entry))
+        {
+            ++count;
+
+            if (!entry->value.has_value())
+                return false;
+
+            const auto mapItr = map.find(entry->key);
+
+            if (mapItr == map.end() || mapItr->second != entry)
+                return false;
+
+            if (entry == hand)
+                handFound = true;
+        }
+
+        return count == list.size() && handFound && (list.empty() == (hand == nullptr));
     }
+#endif
 
     const usize defaultCapacity;
     const usize reserveCount;
@@ -717,16 +739,13 @@ class PoolFlatSIEVECache final {
             return **entry->value;
     }
 
-    // FIX 2: Rewritten to isolate hand references before map mutations execute
     void nolock_erase(map_iterator mapItr) noexcept {
+        assert(mapItr != map.end());
+
         Entry* const entry = mapItr->second;
         assert(entry != nullptr);
 
-        // Capture a clean stack copy of the key for safe map erasure later
-        const Key targetKey = entry->key;
-
-        const bool removingHand = hand == entry;
-        if (removingHand)
+        if (hand == entry)
             hand = list.prev(*entry);
 
         // Unlink from the intrusive list while pointers are completely stable
@@ -734,12 +753,14 @@ class PoolFlatSIEVECache final {
         const bool erased = list.erase(*entry);
         assert(erased);
 
+        // Erase the index entry without copying or hashing its key.
+        map.erase(mapItr);
+
+        pool.destroy(entry);
+
+        // The hand must never point to a destroyed entry.
         if (hand == nullptr)
             hand = list.back();
-
-        // Safe vector-pop map erasure by Key name
-        map.erase(targetKey);
-        pool.destroy(entry);
     }
 
     void nolock_evict_one() noexcept {
@@ -813,12 +834,35 @@ class PoolFlatSIEVECache final {
         map.reserve(reserveCount);
     }
 
+#if !defined(NDEBUG)
     [[nodiscard]] bool nolock_consistency_check() const noexcept {
         return true;
+
         if (map.size() != list.size() || list.size() > capacity)
             return false;
-        return true;
+
+        usize count     = 0;
+        bool  handFound = hand == nullptr;
+
+        for (const Entry* entry = list.front(); entry != nullptr; entry = list.next(*entry))
+        {
+            ++count;
+
+            if (!entry->value.has_value())
+                return false;
+
+            const auto mapItr = map.find(entry->key);
+
+            if (mapItr == map.end() || mapItr->second != entry)
+                return false;
+
+            if (entry == hand)
+                handFound = true;
+        }
+
+        return count == list.size() && handFound && (list.empty() == (hand == nullptr));
     }
+#endif
 
     const usize defaultCapacity;
     const usize reserveCount;

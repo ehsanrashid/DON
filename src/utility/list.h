@@ -59,9 +59,6 @@ class SinglyIntrusiveList final {
         assert(&pos != &node);
         assert(node.next == nullptr);
 
-        if (&pos == &node || node.next != nullptr)
-            return false;
-
         node.next = pos.next;
         pos.next  = &node;
         ++size_;

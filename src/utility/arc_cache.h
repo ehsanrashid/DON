@@ -109,7 +109,8 @@ class PoolARCCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-        pool.release();
+
+        nolock_release_pool();
     }
 
     template<typename... Args>
@@ -241,7 +242,9 @@ class PoolARCCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-        pool.release();
+
+        nolock_release_pool();
+
         map.rehash(0);
 
         capacity = defaultCapacity;
@@ -919,12 +922,14 @@ class PoolARCCache final {
         assert(nolock_consistency_check());
     }
 
+    void nolock_release_pool() noexcept { pool.release(); }
+
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         nolock_reserve_map(capacity);
     }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
     [[nodiscard]] bool nolock_consistency_check() const noexcept {
         return true;
 
@@ -1098,7 +1103,8 @@ class PoolFlatARCCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-        pool.release();
+
+        nolock_release_pool();
     }
 
     template<typename... Args>
@@ -1230,7 +1236,9 @@ class PoolFlatARCCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-        pool.release();
+
+        nolock_release_pool();
+
         map.rehash(0);
 
         capacity = defaultCapacity;
@@ -1908,12 +1916,14 @@ class PoolFlatARCCache final {
         assert(nolock_consistency_check());
     }
 
+    void nolock_release_pool() noexcept { pool.release(); }
+
     void nolock_configure() noexcept {
         map.max_load_factor(maxLoadFactor);
         nolock_reserve_map(capacity);
     }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
     [[nodiscard]] bool nolock_consistency_check() const noexcept {
         return true;
 
