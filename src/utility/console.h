@@ -15,12 +15,15 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_COLOR_H_INCLUDED
-#define UTILITY_COLOR_H_INCLUDED
+#ifndef UTILITY_CONSOLE_H_INCLUDED
+#define UTILITY_CONSOLE_H_INCLUDED
 
-#include "../utility/types.h"
+#include <memory>
 
-namespace DON::Color {
+#include "../utility/streambuf.h"
+
+namespace DON {
+namespace ConsoleColor {
 
 // Reset
 inline constexpr const char* RESET = "\033[0m";
@@ -64,6 +67,33 @@ inline constexpr const char* BG_MAGENTA = "\033[45m";
 inline constexpr const char* BG_CYAN    = "\033[46m";
 inline constexpr const char* BG_WHITE   = "\033[47m";
 
-}  // namespace DON::Color
+}  // namespace ConsoleColor
 
-#endif  // UTILITY_COLOR_H_INCLUDED
+void set_console_utf8() noexcept;
+
+class ConsoleColors final {
+   public:
+    /*
+    explicit ConsoleColors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
+                           const char* errColor = ConsoleColor::BRIGHT_RED) noexcept;
+
+    ConsoleColors(const ConsoleColors&)            = delete;
+    ConsoleColors& operator=(const ConsoleColors&) = delete;
+    ConsoleColors(ConsoleColors&&)                 = delete;
+    ConsoleColors& operator=(ConsoleColors&&)      = delete;
+
+    ~ConsoleColors() noexcept;
+
+    void set_colors(const char* coutColor = ConsoleColor::BRIGHT_BLUE,
+                    const char* cerrColor = ConsoleColor::BRIGHT_RED) noexcept;
+
+    void restore_colors() noexcept;
+    */
+   private:
+    std::unique_ptr<ColorBuf> outColorBuf;
+    std::unique_ptr<ColorBuf> errColorBuf;
+};
+
+}  // namespace DON
+
+#endif  // UTILITY_CONSOLE_H_INCLUDED

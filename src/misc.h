@@ -57,8 +57,6 @@ namespace DON {
 using NumaIndex = u16;
 using CpuIndex  = u16;
 
-void set_console_utf8() noexcept;
-
 std::string build_date() noexcept;
 
 std::string build_time() noexcept;

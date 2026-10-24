@@ -56,16 +56,24 @@ class TieBuf final: public std::streambuf {
    protected:
     // Synchronizes both the primary and mirror buffers.
     int sync() override;
+
     // Reads the next character from the primary buffer without consuming it.
     int_type underflow() override;
+
     // Writes one character to the primary buffer and mirrors it with an output prefix.
     int_type overflow(int_type ch) override;
-    // Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
+
+    // Reads and consumes one character from the primary buffer and mirrors it with an input prefix.
     int_type uflow() override;
+
+    // Reads a block from the primary buffer and mirrors the read characters with an input prefix.
+    std::streamsize xsgetn(char_type* s, std::streamsize count) override;
+
     // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
     std::streamsize xsputn(const char_type* s, std::streamsize count) override;
 
     [[nodiscard]] std::streambuf* pbuf() const noexcept;
+
     [[nodiscard]] std::streambuf* mbuf() const noexcept;
 
    private:
@@ -75,7 +83,35 @@ class TieBuf final: public std::streambuf {
 
     std::streambuf *pBuf = nullptr, *mBuf = nullptr;
 
-    char_type opreCh = '\n', ipreCh = '\n';
+    char_type oPreCh = '\n', iPreCh = '\n';
+};
+
+class ColorBuf final: public std::streambuf {
+   public:
+    ColorBuf() noexcept = default;
+    ColorBuf(std::streambuf* const pBf, const char* const color) noexcept;
+
+    [[nodiscard]] std::streambuf* buffer() const noexcept;
+
+   protected:
+    // Synchronizes the underlying buffer.
+    int sync() override;
+
+    // Writes one character to the underlying buffer with color handling.
+    int_type overflow(int_type ch) override;
+
+    // Writes a block of characters to the underlying buffer with color handling.
+    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
+
+   private:
+    // Writes the configured color escape sequence.
+    bool write_color() noexcept;
+
+    // Writes the color reset escape sequence.
+    bool write_reset() noexcept;
+
+    std::streambuf* pBuf  = nullptr;
+    const char*     color = nullptr;
 };
 
 }  // namespace DON

@@ -23,7 +23,7 @@
 #include <system_error>  // errc
 #include <vector>        // vector<>
 
-#include "utility/color.h"
+#include "utility/console.h"
 #include "utility/functions.h"
 
 namespace DON {
@@ -39,13 +39,6 @@ std::string compiler_version(const u32 major, const u32 minor, const u32 patch) 
 }
 
 }  // namespace
-
-void set_console_utf8() noexcept {
-#if defined(_WIN32)
-    ::SetConsoleCP(CP_UTF8);
-    ::SetConsoleOutputCP(CP_UTF8);
-#endif
-}
 
 std::string build_date() noexcept {
 #if defined(BUILD_DATE)
@@ -95,58 +88,59 @@ std::string engine_info(const bool uci) noexcept {
 std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
-    // clang-format off
     const auto border = [&logo](const std::string_view sv) noexcept {
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += sv;
-        logo += Color::RESET;
+        logo += ConsoleColor::RESET;
         logo += '\n';
     };
     const auto mid1 = [&logo](const std::string_view sv, const char* const c1) noexcept {
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "  ║";
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
         logo += c1;
         logo += sv;
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "║  ";
-        logo += Color::RESET;
+        logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    const auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) noexcept {
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+    const auto mid2 = [&logo](const std::string_view sv, const char* const c1,
+                              const char* const c2) noexcept {
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "  ║";
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
         logo += c1;
         logo += c2;
         logo += sv;
-        logo += Color::RESET;
-        logo += Color::BG_BLACK;
-        logo += Color::BRIGHT_YELLOW;
-        logo += Color::BLINK;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
         logo += "║  ";
-        logo += Color::RESET;
+        logo += ConsoleColor::RESET;
         logo += '\n';
     };
 
+    // clang-format off
     border("  ╔══════════════════════════════╗  ");
-         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", Color::RED);
-         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", Color::BRIGHT_RED, Color::STRIKETHROUGH);
-         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", Color::BRIGHT_RED, Color::STRIKETHROUGH);
-         mid2("  ██║  ██║██║   ██║██║╚████║  ", Color::BRIGHT_RED, Color::STRIKETHROUGH);
-         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", Color::RED);
-         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", Color::RED);
+         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
+         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
+         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
     border("  ╚══════════════════════════════╝  ");
     // clang-format on
 
