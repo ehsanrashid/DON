@@ -62,7 +62,7 @@ Thread::Thread(ThreadContext                 threadCxt,
 Thread::~Thread() noexcept {
     assert(!busy);
 
-    terminate();
+    destroy();
 }
 
 void Thread::create() noexcept {
@@ -91,7 +91,7 @@ void Thread::create() noexcept {
     condVar.wait(uniqueLock, [this]() noexcept -> bool { return !busy || dead; });
 }
 
-void Thread::terminate() noexcept {
+void Thread::destroy() noexcept {
     {
         std::lock_guard lockGuard{mutex};
         // Mark the thread as dead.
@@ -151,7 +151,7 @@ void Thread::ensure_network_replicated() const noexcept { worker->ensure_network
 void Threads::set(const NumaConfig&             numaConfig,
                   SharedState&                  sharedState,
                   const Manager::UpdateContext& updateContext) noexcept {
-    destroy();
+    clear();
 
     u16 threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);
@@ -231,7 +231,9 @@ void Threads::set(const NumaConfig&             numaConfig,
     std::unordered_map<NumaIndex, u16> numaIds;
     numaIds.reserve(numaThreadCounts.size());
 
-    reserve(threadCount);
+    std::unique_lock uniqueLock{mutex};
+
+    threads.reserve(threadCount);
 
     for (u16 threadId = 0; threadId < threadCount; ++threadId)
     {
@@ -255,11 +257,7 @@ void Threads::set(const NumaConfig&             numaConfig,
             auto newThread = std::make_unique<Thread>(std::move(threadContext), nodeBinder,
                                                       sharedState, std::move(manager));
             // Mutate threads list under write lock to avoid races
-            {
-                std::lock_guard lockGuard{mutex};
-
-                threads.emplace_back(std::move(newThread));
-            }
+            threads.emplace_back(std::move(newThread));
         };
 
         // Create thread on its target NUMA node for proper memory affinity
@@ -268,6 +266,8 @@ void Threads::set(const NumaConfig&             numaConfig,
         else
             create_thread();
     }
+
+    uniqueLock.unlock();
 
     reset();
 }

@@ -132,10 +132,9 @@ class Thread final {
     //     or termination is requested, ensuring that the thread is fully initialized before returning.
     void create() noexcept;
 
-    // Safely terminates the thread by setting the 'dead' flag,
-    // waking it if necessary, and joining the native thread.
-    // If a job is currently running, waits for it to finish.
-    void terminate() noexcept;
+    // Safely shuts down the thread by setting the 'dead' flag, waking it if necessary,
+    // and joining the native thread. Waits for any running job to finish.
+    void destroy() noexcept;
 
     void ensure_network_replicated() const noexcept;
 
@@ -256,28 +255,17 @@ class Threads final {
 
         return u16(threads.size());
     }
+
     [[nodiscard]] bool empty() const noexcept {
         std::shared_lock sharedLock{mutex};
 
         return threads.empty();
     }
 
-    void reserve(const u16 threadCount) noexcept {
-        std::lock_guard lockGuard{mutex};
+    // Clears any existing thread(s).
+    void clear() noexcept;
 
-        threads.reserve(threadCount);
-    }
-
-    void clear() noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        threads.clear();
-    }
-
-    // Destroy any existing thread(s).
-    void destroy() noexcept;
-
-    // Destroys/Creates threads to match the thread-count.
+    // Clears/Creates threads to match the thread-count.
     // Created and launched threads will immediately go to sleep in idle_func.
     // Upon resizing, threads are recreated to allow for binding if necessary.
     void set(const NumaConfig&             numaConfig,
@@ -426,9 +414,9 @@ class Threads final {
     std::vector<NumaIndex>    threadBoundNumaNodes;
 };
 
-ALWAYS_INLINE Threads::~Threads() noexcept { destroy(); }
+ALWAYS_INLINE Threads::~Threads() noexcept { clear(); }
 
-ALWAYS_INLINE void Threads::destroy() noexcept {
+ALWAYS_INLINE void Threads::clear() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main-thread
     {

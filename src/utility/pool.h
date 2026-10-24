@@ -18,7 +18,8 @@
 #ifndef UTILITY_POOL_H_INCLUDED
 #define UTILITY_POOL_H_INCLUDED
 
-#include <cassert>
+#include <algorithm>    // min()/max()
+#include <cassert>      // assert()
 #include <cstddef>      // std::byte, offsetof()
 #include <exception>    // terminate()
 #include <limits>       // numeric_limits<>
@@ -196,6 +197,9 @@ class Pool final {
             std::terminate();
 
         const usize size = block_size(requiredSize);
+
+        if (size == 0 || size > MaxBlockSize)
+            std::terminate();
 
         blocks.push_back(Block{std::make_unique<Slot[]>(size), size});
 
