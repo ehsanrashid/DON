@@ -100,8 +100,6 @@ inline constexpr const char* RESET_SUPERSCRIPT_SUBSCRIPT = "\033[75m";
 
 void set_console_utf8() noexcept;
 
-class ColorBuf;
-
 class ConsoleColors final {
    public:
     explicit ConsoleColors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
