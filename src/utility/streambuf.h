@@ -53,6 +53,10 @@ class TieBuf final: public std::streambuf {
     TieBuf() noexcept = default;
     TieBuf(std::streambuf* pBf, std::streambuf* mBf) noexcept;
 
+    [[nodiscard]] std::streambuf* pbuf() const noexcept;
+
+    [[nodiscard]] std::streambuf* mbuf() const noexcept;
+
    protected:
     // Synchronizes both the primary and mirror buffers.
     int sync() override;
@@ -71,10 +75,6 @@ class TieBuf final: public std::streambuf {
 
     // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
     std::streamsize xsputn(const char_type* s, std::streamsize count) override;
-
-    [[nodiscard]] std::streambuf* pbuf() const noexcept;
-
-    [[nodiscard]] std::streambuf* mbuf() const noexcept;
 
    private:
     // Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
@@ -110,8 +110,8 @@ class ColorBuf final: public std::streambuf {
     // Writes the color reset escape sequence.
     bool write_reset() noexcept;
 
-    std::streambuf* pBuf  = nullptr;
-    const char*     color = nullptr;
+    std::streambuf* buffer_ = nullptr;
+    const char*     color   = nullptr;
 };
 
 }  // namespace DON

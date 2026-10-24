@@ -59,6 +59,10 @@ int main(const int argc, const char* const argv[]) noexcept {
 
     Tune::init(uci.options());
 
+#if defined(ENABLE_CONSOLE_COLORS)
+    ConsoleColors consoleColors;
+#endif
+
     commandLine.size() > 1  //
       ? uci.execute(commandLine.arguments_string())
       : uci.process_input(std::cin);

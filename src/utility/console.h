@@ -73,7 +73,6 @@ void set_console_utf8() noexcept;
 
 class ConsoleColors final {
    public:
-    /*
     explicit ConsoleColors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
                            const char* errColor = ConsoleColor::BRIGHT_RED) noexcept;
 
@@ -84,11 +83,11 @@ class ConsoleColors final {
 
     ~ConsoleColors() noexcept;
 
-    void set_colors(const char* coutColor = ConsoleColor::BRIGHT_BLUE,
-                    const char* cerrColor = ConsoleColor::BRIGHT_RED) noexcept;
+    void set_colors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
+                    const char* errColor = ConsoleColor::BRIGHT_RED) noexcept;
 
     void restore_colors() noexcept;
-    */
+
    private:
     std::unique_ptr<ColorBuf> outColorBuf;
     std::unique_ptr<ColorBuf> errColorBuf;

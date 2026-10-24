@@ -1265,6 +1265,10 @@ CXXFLAGS += -fPIE
 LDFLAGS  += -pie
 endif
 
+ifeq ($(ENABLE_CONSOLE_COLORS),yes)
+    CPPFLAGS += -DENABLE_CONSOLE_COLORS
+endif
+
 ### ==========================================================================
 ### Section 4. Public Targets
 ### ==========================================================================
