@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstddef>      // std::byte, offsetof()
 #include <exception>    // terminate()
+#include <limits>       // numeric_limits<>
 #include <memory>       // unique_ptr, make_unique
 #include <new>          // placement new
 #include <type_traits>  // is_nothrow_destructible_v, if used
@@ -170,22 +171,14 @@ class Pool final {
     [[nodiscard]] usize block_size(usize requiredSize) noexcept {
         usize size = nextBlockSize;
 
-        while (size < requiredSize && size < BaseBlockSize)
-        {
-            if (size > BaseBlockSize / 2)
-            {
-                size = BaseBlockSize;
-                break;
-            }
-
-            size *= 2;
-        }
+        while (size < std::min(requiredSize, BaseBlockSize))
+            size = std::min(2 * size, BaseBlockSize);
 
         if (size < requiredSize)
             size = requiredSize;
 
         if (size < BaseBlockSize)
-            nextBlockSize = size > BaseBlockSize / 2 ? BaseBlockSize : size * 2;
+            nextBlockSize = std::min(2 * size, BaseBlockSize);
 
         return size;
     }
@@ -193,10 +186,15 @@ class Pool final {
     // Allocate and retain a stable Slot array, then put every slot on the free list.
     // With StaticVector, exceeding BlockMax retained blocks terminates the process.
     void allocate_block(usize requiredSize) {
+        constexpr usize MaxBlockSize = usize(std::numeric_limits<isize>::max()) / sizeof(Slot);
+
 #if defined(USE_STATIC_VECTOR)
         if (blocks.full())
             std::terminate();
 #endif
+        if (requiredSize > MaxBlockSize)
+            std::terminate();
+
         const usize size = block_size(requiredSize);
 
         blocks.push_back(Block{std::make_unique<Slot[]>(size), size});
