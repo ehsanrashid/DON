@@ -306,11 +306,9 @@ class PoolSIEVECache final {
         assert(entry.prev == nullptr && entry.next == nullptr);
         assert(entry.value.has_value());
 
-        if (list.push_front(entry))
-            return;
-
-        assert(false);
-        UNREACHABLE();
+        [[maybe_unused]]  //
+        const bool linked = list.push_front(entry);
+        assert(linked);
     }
 
     Return nolock_read(const list_iterator entry) const noexcept {
@@ -366,8 +364,8 @@ class PoolSIEVECache final {
 
                 assert(hand != nullptr);
 
-                Entry* const candidate = hand;
-                hand                   = list.prev(*candidate);
+                list_iterator const candidate = hand;
+                hand                          = list.prev(*candidate);
 
                 if (candidate->visited)
                 {
@@ -722,11 +720,9 @@ class PoolFlatSIEVECache final {
         assert(entry.prev == nullptr && entry.next == nullptr);
         assert(entry.value.has_value());
 
-        if (list.push_front(entry))
-            return;
-
-        assert(false);
-        UNREACHABLE();
+        [[maybe_unused]]  //
+        const bool linked = list.push_front(entry);
+        assert(linked);
     }
 
     Return nolock_read(const list_iterator entry) const noexcept {
@@ -782,8 +778,8 @@ class PoolFlatSIEVECache final {
 
                 assert(hand != nullptr);
 
-                Entry* const candidate = hand;
-                hand                   = list.prev(*candidate);
+                list_iterator const candidate = hand;
+                hand                          = list.prev(*candidate);
 
                 if (candidate->visited)
                 {

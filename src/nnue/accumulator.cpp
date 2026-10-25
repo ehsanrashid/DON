@@ -236,7 +236,7 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
 
 namespace {
 
-constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
+constexpr usize Dimensions = FeatureTransformer::OutputDimensions;
 
 namespace {
 #if defined(VECTOR)
@@ -269,7 +269,7 @@ template<Op op>
 ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize      vl     = __riscv_vsetvl_e16m8(Dimensions - j);
-    vint16m8_t srcVec = __riscv_vle16_v_i16m8(src + j, vl);
+    vint16m8_t srcVec = __riscv_vle16_v_i16m8(src, vl);
     if constexpr (op == Op::Add)
         tile = __riscv_vadd_vv_i16m8(tile, srcVec, vl);
     else
@@ -280,7 +280,7 @@ template<Op op>
 ALWAYS_INLINE void apply_single(const i8* data, const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     usize     vl        = __riscv_vsetvl_e16m8(Dimensions - j);
-    vint8m4_t weightVec = __riscv_vle8_v_i8m4(data + j, vl);
+    vint8m4_t weightVec = __riscv_vle8_v_i8m4(data, vl);
     if constexpr (op == Op::Add)
         tile = __riscv_vwadd_wv_i16m8(tile, weightVec, vl);
     else
@@ -313,9 +313,10 @@ ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& tile) n
 ALWAYS_INLINE void increment_index(Index& j) noexcept { j += Tiling::TileHeight; }
 
 template<Op op>
-ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexcept {
+ALWAYS_INLINE void
+apply(const i16* const src, [[maybe_unused]] const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    const auto* column = reinterpret_cast<const SIMD::vec_t*>(src + j);
+    const auto* column = reinterpret_cast<const SIMD::vec_t*>(src);
     for (Index k = 0; k < Tiling::RegCount; ++k)
         if constexpr (op == Op::Add)
             tile[k] = vec_add_16(tile[k], column[k]);
@@ -324,12 +325,13 @@ ALWAYS_INLINE void apply(const i16* const src, const Index j, Tile& tile) noexce
 }
 
 template<Op op>
-ALWAYS_INLINE void apply_single(const i8* src, const Index j, Tile& tile) noexcept {
+ALWAYS_INLINE void
+apply_single(const i8* src, [[maybe_unused]] const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    [[maybe_unused]] const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(src + j);
+    [[maybe_unused]] const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(src);
 
     #if defined(USE_NEON)
-    for (Index k = 0; k + Index{1} < Tiling::RegCount; k += 2)
+    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
         if constexpr (op == Op::Add)
         {
@@ -343,7 +345,7 @@ ALWAYS_INLINE void apply_single(const i8* src, const Index j, Tile& tile) noexce
         }
     }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-    for (Index k = 0; k + Index{1} < Tiling::RegCount; k += 2)
+    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
         const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
 
@@ -361,9 +363,14 @@ ALWAYS_INLINE void apply_single(const i8* src, const Index j, Tile& tile) noexce
     #elif defined(USE_PAIRED_WIDENING_ADD)
     static_assert(Tiling::RegCount % 2 == 0);
     const SIMD::vec_t zero = vec_zero();
+        #if defined(__clang__)
+            #pragma clang loop unroll(full)
+        #elif defined(__GNUC__)
+            #pragma GCC unroll(Tiling::RegCount / 2)
+        #endif
     for (Index k = 0; k < Tiling::RegCount; k += 2)
     {
-        const SIMD::vec_t weight = vec_load(reinterpret_cast<const SIMD::vec_t*>(src + j) + k / 2);
+        const SIMD::vec_t weight = vec_load(reinterpret_cast<const SIMD::vec_t*>(src) + k / 2);
         const SIMD::vec_t lo     = vec_srai_16(vec_unpacklo_8(zero, weight), 8);
         const SIMD::vec_t hi     = vec_srai_16(vec_unpackhi_8(zero, weight), 8);
 
@@ -391,16 +398,19 @@ ALWAYS_INLINE void apply_single(const i8* src, const Index j, Tile& tile) noexce
 
     #if defined(USE_PAIRED_WIDENING_ADD)
 template<Op op>
-ALWAYS_INLINE void apply_pair(const i8* src0, const i8* src1, Index j, Tile& tile) noexcept {
+ALWAYS_INLINE void apply_pair(const i8* src0, const i8* src1, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     static_assert(Tiling::RegCount % 2 == 0);
-
     const SIMD::vec_t ones = vec_set_8(1);
-
-    for (Index k = 0; k + Index{1} < Tiling::RegCount; k += 2)
+        #if defined(__clang__)
+            #pragma clang loop unroll(full)
+        #elif defined(__GNUC__)
+            #pragma GCC unroll(Tiling::RegCount / 2)
+        #endif
+    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
-        const SIMD::vec_t w0 = vec_load(reinterpret_cast<const SIMD::vec_t*>(src0 + j) + k / 2);
-        const SIMD::vec_t w1 = vec_load(reinterpret_cast<const SIMD::vec_t*>(src1 + j) + k / 2);
+        const SIMD::vec_t w0 = vec_load(reinterpret_cast<const SIMD::vec_t*>(src0) + k / 2);
+        const SIMD::vec_t w1 = vec_load(reinterpret_cast<const SIMD::vec_t*>(src1) + k / 2);
         const SIMD::vec_t lo = vec_maddubs_16(ones, vec_unpacklo_8(w0, w1));
         const SIMD::vec_t hi = vec_maddubs_16(ones, vec_unpackhi_8(w0, w1));
 
@@ -419,49 +429,91 @@ ALWAYS_INLINE void apply_pair(const i8* src0, const i8* src1, Index j, Tile& til
     #endif
 #endif
 
-// The int8 weight rows (piece-square, threat and pawn-pair features alike)
-// that have to be added to or removed from an accumulator. Resolving the
-// feature indices to row pointers once, outside the tile loop, also lets
-// rows of different feature sets be processed together in pairs.
-template<int RowMax>
-class WeightRows final {
-   public:
-    void append_psq(const Features::K32Q2::IndexList& in, const FeatureTransformer& ft) noexcept {
-        assert(count + in.size() <= RowMax);
-
-        for (Index i = 0; i < in.size(); ++i)
-            rows[count++] = &ft.weights[in[i] * Dimensions];
-    }
-
-    void append_threat(const Features::FullThreats::IndexList& in,
-                       const FeatureTransformer&               ft) noexcept {
-        assert(count + in.size() <= RowMax);
-
-        for (Index i = 0; i < in.size(); ++i)
-            rows[count++] = &ft.threatAndPpWeights[in[i] * Dimensions];
-    }
-
-    template<Op op>
-    ALWAYS_INLINE void apply(Index j, Tile& tile) const noexcept {
-        static_assert(op == Op::Add || op == Op::Sub);
-
-        Index i = 0;
-#if defined(USE_PAIRED_WIDENING_ADD)
-        for (; i + Index{1} < count; i += 2)
-            apply_pair<op>(rows[i], rows[i + 1], j, tile);
+///////////////////////////////////////////////////////////////////////////////
+// The weight-table base already includes the tile offset.
+template<Op op, bool Incremental = false>
+ALWAYS_INLINE void
+apply_features(const u16* indices, Index size, const i8* weights, Index j, Tile& tile) noexcept {
+    static_assert(op == Op::Add || op == Op::Sub);
+    if constexpr (Incremental)
+    {
+        assert(0 <= size && size <= 2);
+#if defined(VECTOR) || defined(USE_RVV)
+    #if defined(USE_PAIRED_WIDENING_ADD)
+        if (size == 2)
+        {
+            apply_pair<op>(&weights[usize(indices[0]) * Dimensions],
+                           &weights[usize(indices[1]) * Dimensions], tile);
+            return;
+        }
+    #endif
+        if (size > 0)
+            apply_single<op>(&weights[usize(indices[0]) * Dimensions], j, tile);
+        if (size > 1)
+            apply_single<op>(&weights[usize(indices[1]) * Dimensions], j, tile);
+        return;
 #endif
-        for (; i < count; ++i)
-            apply_single<op>(rows[i], j, tile);
     }
 
-   private:
-    const i8* rows[RowMax];
-    Index     count = 0;
-};
+    Index i = 0;
+#if defined(USE_PAIRED_WIDENING_ADD)
+    for (; i + 1 < size; i += 2)
+        apply_pair<op>(&weights[usize(indices[i + 0]) * Dimensions],
+                       &weights[usize(indices[i + 1]) * Dimensions], tile);
+#endif
+    for (; i < size; ++i)
+        apply_single<op>(&weights[usize(indices[i]) * Dimensions], j, tile);
+}
 
-using PsqWeightRows = WeightRows<Features::K32Q2::MaxActiveDimensions>;
-using AllWeightRows = WeightRows<Features::K32Q2::MaxActiveDimensions  //
-                                 + Features::FullThreats::MaxActiveDimensions>;
+template<Op op>
+ALWAYS_INLINE void apply_psq_features(const Features::K32Q2::IndexList& psqList,
+                                      const FeatureTransformer&         ft,
+                                      Index                             j,
+                                      Tile&                             tile) noexcept {
+    apply_features<op>(psqList.begin(), psqList.size(), &ft.weights[j], j, tile);
+}
+
+template<Op op>
+ALWAYS_INLINE void apply_threat_features(const Features::FullThreats::IndexList& thrList,
+                                         const FeatureTransformer&               ft,
+                                         Index                                   j,
+                                         Tile&                                   tile) noexcept {
+    apply_features<op>(thrList.begin(), thrList.size(), &ft.threatAndPpWeights[j], j, tile);
+}
+
+template<Op op, bool Incremental = false>
+ALWAYS_INLINE void apply_combined_features(const Features::K32Q2::IndexList&       psqList,
+                                           const Features::FullThreats::IndexList& thrList,
+                                           const FeatureTransformer&               ft,
+                                           Index                                   j,
+                                           Tile&                                   tile) noexcept {
+    if constexpr (Incremental)
+        assert(psqList.size() == 1 || psqList.size() == 2);
+
+    const auto* psqWeights = &ft.weights[j];
+    const auto* thrWeights = &ft.threatAndPpWeights[j];
+    Index       psqCount   = psqList.size();
+    Index       thrBegin   = 0;
+#if defined(USE_PAIRED_WIDENING_ADD)
+    // Keep the last odd psq row paired with the first threat/pp row of the same sign.
+    if (psqCount % 2 != 0 && thrList.size() != 0)
+    {
+        --psqCount;
+        thrBegin = 1;
+    }
+#endif
+
+    apply_features<op, Incremental>(psqList.begin(), psqCount, psqWeights, j, tile);
+#if defined(USE_PAIRED_WIDENING_ADD)
+    if (thrBegin != 0)
+        apply_pair<op>(&psqWeights[psqList[psqCount] * Dimensions],
+                       &thrWeights[thrList[0] * Dimensions], tile);
+#endif
+    apply_features<op>(thrList.begin() + thrBegin,
+                       thrBegin < thrList.size() ? thrList.size() - thrBegin : 0, thrWeights, j,
+                       tile);
+}
+
 }  // namespace
 
 Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
@@ -660,37 +712,26 @@ void update_hybrid(const Color               perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    PsqWeightRows newEntryRemoved, newEntryAdded;
-    newEntryRemoved.append_psq(newRemove, featureTransformer);
-    newEntryAdded.append_psq(newAdd, featureTransformer);
-
-    // The old entry's removed psq features have to be added back, its added ones removed
-    AllWeightRows removed, added;
-    added.append_psq(oldRemove, featureTransformer);
-    added.append_threat(thrAdded, featureTransformer);
-    removed.append_psq(oldAdd, featureTransformer);
-    removed.append_threat(thrRemoved, featureTransformer);
-
     Tile tile;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
         load_tile(newEntry.accumulation.data(), j, tile);
 
-        newEntryRemoved.apply<Op::Sub>(j, tile);
-        newEntryAdded.apply<Op::Add>(j, tile);
+        apply_psq_features<Op::Sub>(newRemove, featureTransformer, j, tile);
+        apply_psq_features<Op::Add>(newAdd, featureTransformer, j, tile);
 
         store_tile(newEntry.accumulation.data(), j, tile);
 
         // adding the old accumulator adds (most of) the threats and pp weights that needed
-        apply<Op::Add>(srcAccm.data(), j, tile);
+        apply<Op::Add>(&srcAccm[j], j, tile);
         // But have added a whole bunch of psq weights for the wrong king bucket which
         // need to remove first remove the cached psq accumulation for the old king position...
-        apply<Op::Sub>(oldEntry.accumulation.data(), j, tile);
+        apply<Op::Sub>(&oldEntry.accumulation[j], j, tile);
 
         // ... then adjust
-        removed.apply<Op::Sub>(j, tile);
-        added.apply<Op::Add>(j, tile);
+        apply_combined_features<Op::Sub>(oldAdd, thrRemoved, featureTransformer, j, tile);
+        apply_combined_features<Op::Add>(oldRemove, thrAdded, featureTransformer, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }
@@ -735,24 +776,18 @@ void update_refresh_cache(const Color               perspective,
 
     dstAcc.computed[perspective] = true;
 
-    PsqWeightRows entryRemoved, entryAdded;
-    AllWeightRows activeThreats;
-    entryRemoved.append_psq(removed, featureTransformer);
-    entryAdded.append_psq(added, featureTransformer);
-    activeThreats.append_threat(active, featureTransformer);
-
     Tile tile;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
         load_tile(entry.accumulation.data(), j, tile);
 
-        entryRemoved.apply<Op::Sub>(j, tile);
-        entryAdded.apply<Op::Add>(j, tile);
+        apply_psq_features<Op::Sub>(removed, featureTransformer, j, tile);
+        apply_psq_features<Op::Add>(added, featureTransformer, j, tile);
 
         store_tile(entry.accumulation.data(), j, tile);
 
-        activeThreats.apply<Op::Add>(j, tile);
+        apply_threat_features<Op::Add>(active, featureTransformer, j, tile);
 
         store_tile(dstAcc.accumulation[perspective].data(), j, tile);
     }
@@ -769,20 +804,14 @@ void apply_combined(Color                                   perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    AllWeightRows removed, added;
-    removed.append_psq(psqRemoved, featureTransformer);
-    removed.append_threat(thrRemoved, featureTransformer);
-    added.append_psq(psqAdded, featureTransformer);
-    added.append_threat(thrAdded, featureTransformer);
-
     Tile tile;
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
         load_tile(srcAccm.data(), j, tile);
 
-        removed.apply<Op::Sub>(j, tile);
-        added.apply<Op::Add>(j, tile);
+        apply_combined_features<Op::Sub, true>(psqRemoved, thrRemoved, featureTransformer, j, tile);
+        apply_combined_features<Op::Add, true>(psqAdded, thrAdded, featureTransformer, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }

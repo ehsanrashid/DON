@@ -88,46 +88,54 @@ std::string engine_info(const bool uci) noexcept {
 std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
-    const auto border = [&logo](const std::string_view sv) noexcept {
-        logo += ConsoleColor::BG_BLACK;
-        logo += ConsoleColor::BRIGHT_YELLOW;
-        logo += ConsoleColor::BLINK;
+
+    constexpr const char* const BG_COLOR     = ConsoleColor::BG_BLACK;
+    constexpr const char* const BORDER_COLOR = ConsoleColor::BRIGHT_MAGENTA;
+    constexpr const char* const BORDER_STYLE = ConsoleColor::BLINK;
+    constexpr const char* const BODY_COLOR_1 = ConsoleColor::RED;
+    constexpr const char* const BODY_COLOR_2 = ConsoleColor::BRIGHT_RED;
+    constexpr const char* const BODY_STYLE   = ConsoleColor::DOUBLE_UNDERLINE;
+
+    const auto border = [&](const std::string_view sv) noexcept {
+        logo += BG_COLOR;
+        logo += BORDER_COLOR;
+        logo += BORDER_STYLE;
         logo += sv;
         logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    const auto mid1 = [&logo](const std::string_view sv, const char* const c1) noexcept {
-        logo += ConsoleColor::BG_BLACK;
-        logo += ConsoleColor::BRIGHT_YELLOW;
-        logo += ConsoleColor::BLINK;
+    const auto mid1 = [&](const std::string_view sv, const char* const c1) noexcept {
+        logo += BG_COLOR;
+        logo += BORDER_COLOR;
+        logo += BORDER_STYLE;
         logo += "  ║";
         logo += ConsoleColor::RESET;
-        logo += ConsoleColor::BG_BLACK;
+        logo += BG_COLOR;
         logo += c1;
         logo += sv;
         logo += ConsoleColor::RESET;
-        logo += ConsoleColor::BG_BLACK;
-        logo += ConsoleColor::BRIGHT_YELLOW;
-        logo += ConsoleColor::BLINK;
+        logo += BG_COLOR;
+        logo += BORDER_COLOR;
+        logo += BORDER_STYLE;
         logo += "║  ";
         logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    const auto mid2 = [&logo](const std::string_view sv, const char* const c1,
-                              const char* const c2) noexcept {
-        logo += ConsoleColor::BG_BLACK;
-        logo += ConsoleColor::BRIGHT_YELLOW;
-        logo += ConsoleColor::BLINK;
+    const auto mid2 = [&](const std::string_view sv, const char* const c1,
+                          const char* const c2) noexcept {
+        logo += BG_COLOR;
+        logo += BORDER_COLOR;
+        logo += BORDER_STYLE;
         logo += "  ║";
         logo += ConsoleColor::RESET;
-        logo += ConsoleColor::BG_BLACK;
+        logo += BG_COLOR;
         logo += c1;
         logo += c2;
         logo += sv;
         logo += ConsoleColor::RESET;
-        logo += ConsoleColor::BG_BLACK;
-        logo += ConsoleColor::BRIGHT_YELLOW;
-        logo += ConsoleColor::BLINK;
+        logo += BG_COLOR;
+        logo += BORDER_COLOR;
+        logo += BORDER_STYLE;
         logo += "║  ";
         logo += ConsoleColor::RESET;
         logo += '\n';
@@ -135,12 +143,12 @@ std::string engine_logo() noexcept {
 
     // clang-format off
     border("  ╔══════════════════════════════╗  ");
-         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
-         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
-         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
-         mid2("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
-         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
-         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
+         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", BODY_COLOR_1);
+         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", BODY_COLOR_2, BODY_STYLE);
+         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", BODY_COLOR_2, BODY_STYLE);
+         mid2("  ██║  ██║██║   ██║██║╚████║  ", BODY_COLOR_2, BODY_STYLE);
+         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", BODY_COLOR_1);
+         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", BODY_COLOR_1);
     border("  ╚══════════════════════════════╝  ");
     // clang-format on
 
@@ -401,7 +409,7 @@ FixedText& FixedText::write(const int v) noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
-    os.write(fixedText.c_str(), static_cast<std::streamsize>(fixedText.size()));
+    os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
 
     return os;
 }

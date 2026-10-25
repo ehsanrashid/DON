@@ -24,77 +24,77 @@ namespace DON {
 namespace ConsoleColor {
 
 // Reset
-inline constexpr const char* RESET = "\033[0m";
+inline constexpr const char* const RESET = "\033[0m";
 
 // Default foreground and background colors
-inline constexpr const char* DEFAULT_FOREGROUND = "\033[39m";
-inline constexpr const char* DEFAULT_BACKGROUND = "\033[49m";
+inline constexpr const char* const DEFAULT_FOREGROUND = "\033[39m";
+inline constexpr const char* const DEFAULT_BACKGROUND = "\033[49m";
 
 // Foreground colors
-inline constexpr const char* BLACK   = "\033[30m";
-inline constexpr const char* RED     = "\033[31m";
-inline constexpr const char* GREEN   = "\033[32m";
-inline constexpr const char* YELLOW  = "\033[33m";
-inline constexpr const char* BLUE    = "\033[34m";
-inline constexpr const char* MAGENTA = "\033[35m";
-inline constexpr const char* CYAN    = "\033[36m";
-inline constexpr const char* WHITE   = "\033[37m";
+inline constexpr const char* const BLACK   = "\033[30m";
+inline constexpr const char* const RED     = "\033[31m";
+inline constexpr const char* const GREEN   = "\033[32m";
+inline constexpr const char* const YELLOW  = "\033[33m";
+inline constexpr const char* const BLUE    = "\033[34m";
+inline constexpr const char* const MAGENTA = "\033[35m";
+inline constexpr const char* const CYAN    = "\033[36m";
+inline constexpr const char* const WHITE   = "\033[37m";
 
 // Bright foreground colors
-inline constexpr const char* BRIGHT_BLACK   = "\033[90m";
-inline constexpr const char* BRIGHT_RED     = "\033[91m";
-inline constexpr const char* BRIGHT_GREEN   = "\033[92m";
-inline constexpr const char* BRIGHT_YELLOW  = "\033[93m";
-inline constexpr const char* BRIGHT_BLUE    = "\033[94m";
-inline constexpr const char* BRIGHT_MAGENTA = "\033[95m";
-inline constexpr const char* BRIGHT_CYAN    = "\033[96m";
-inline constexpr const char* BRIGHT_WHITE   = "\033[97m";
+inline constexpr const char* const BRIGHT_BLACK   = "\033[90m";
+inline constexpr const char* const BRIGHT_RED     = "\033[91m";
+inline constexpr const char* const BRIGHT_GREEN   = "\033[92m";
+inline constexpr const char* const BRIGHT_YELLOW  = "\033[93m";
+inline constexpr const char* const BRIGHT_BLUE    = "\033[94m";
+inline constexpr const char* const BRIGHT_MAGENTA = "\033[95m";
+inline constexpr const char* const BRIGHT_CYAN    = "\033[96m";
+inline constexpr const char* const BRIGHT_WHITE   = "\033[97m";
 
 // Background colors
-inline constexpr const char* BG_BLACK   = "\033[40m";
-inline constexpr const char* BG_RED     = "\033[41m";
-inline constexpr const char* BG_GREEN   = "\033[42m";
-inline constexpr const char* BG_YELLOW  = "\033[43m";
-inline constexpr const char* BG_BLUE    = "\033[44m";
-inline constexpr const char* BG_MAGENTA = "\033[45m";
-inline constexpr const char* BG_CYAN    = "\033[46m";
-inline constexpr const char* BG_WHITE   = "\033[47m";
+inline constexpr const char* const BG_BLACK   = "\033[40m";
+inline constexpr const char* const BG_RED     = "\033[41m";
+inline constexpr const char* const BG_GREEN   = "\033[42m";
+inline constexpr const char* const BG_YELLOW  = "\033[43m";
+inline constexpr const char* const BG_BLUE    = "\033[44m";
+inline constexpr const char* const BG_MAGENTA = "\033[45m";
+inline constexpr const char* const BG_CYAN    = "\033[46m";
+inline constexpr const char* const BG_WHITE   = "\033[47m";
 
 // Bright background colors
-inline constexpr const char* BG_BRIGHT_BLACK   = "\033[100m";
-inline constexpr const char* BG_BRIGHT_RED     = "\033[101m";
-inline constexpr const char* BG_BRIGHT_GREEN   = "\033[102m";
-inline constexpr const char* BG_BRIGHT_YELLOW  = "\033[103m";
-inline constexpr const char* BG_BRIGHT_BLUE    = "\033[104m";
-inline constexpr const char* BG_BRIGHT_MAGENTA = "\033[105m";
-inline constexpr const char* BG_BRIGHT_CYAN    = "\033[106m";
-inline constexpr const char* BG_BRIGHT_WHITE   = "\033[107m";
+inline constexpr const char* const BG_BRIGHT_BLACK   = "\033[100m";
+inline constexpr const char* const BG_BRIGHT_RED     = "\033[101m";
+inline constexpr const char* const BG_BRIGHT_GREEN   = "\033[102m";
+inline constexpr const char* const BG_BRIGHT_YELLOW  = "\033[103m";
+inline constexpr const char* const BG_BRIGHT_BLUE    = "\033[104m";
+inline constexpr const char* const BG_BRIGHT_MAGENTA = "\033[105m";
+inline constexpr const char* const BG_BRIGHT_CYAN    = "\033[106m";
+inline constexpr const char* const BG_BRIGHT_WHITE   = "\033[107m";
 
 // Text styles
-inline constexpr const char* BOLD             = "\033[1m";
-inline constexpr const char* DIM              = "\033[2m";
-inline constexpr const char* ITALIC           = "\033[3m";
-inline constexpr const char* UNDERLINE        = "\033[4m";
-inline constexpr const char* BLINK            = "\033[5m";
-inline constexpr const char* REVERSE          = "\033[7m";
-inline constexpr const char* STRIKETHROUGH    = "\033[9m";
-inline constexpr const char* DOUBLE_UNDERLINE = "\033[21m";
-inline constexpr const char* FRAMED           = "\033[51m";
-inline constexpr const char* ENCIRCLED        = "\033[52m";
-inline constexpr const char* OVERLINE         = "\033[53m";
-inline constexpr const char* SUPERSCRIPT      = "\033[73m";
-inline constexpr const char* SUBSCRIPT        = "\033[74m";
+inline constexpr const char* const BOLD             = "\033[1m";
+inline constexpr const char* const DIM              = "\033[2m";
+inline constexpr const char* const ITALIC           = "\033[3m";
+inline constexpr const char* const UNDERLINE        = "\033[4m";
+inline constexpr const char* const BLINK            = "\033[5m";
+inline constexpr const char* const REVERSE          = "\033[7m";
+inline constexpr const char* const STRIKETHROUGH    = "\033[9m";
+inline constexpr const char* const DOUBLE_UNDERLINE = "\033[21m";
+inline constexpr const char* const FRAMED           = "\033[51m";
+inline constexpr const char* const ENCIRCLED        = "\033[52m";
+inline constexpr const char* const OVERLINE         = "\033[53m";
+inline constexpr const char* const SUPERSCRIPT      = "\033[73m";
+inline constexpr const char* const SUBSCRIPT        = "\033[74m";
 
 // Individual style resets
-inline constexpr const char* RESET_BOLD_DIM              = "\033[22m";
-inline constexpr const char* RESET_ITALIC                = "\033[23m";
-inline constexpr const char* RESET_UNDERLINE             = "\033[24m";
-inline constexpr const char* RESET_BLINK                 = "\033[25m";
-inline constexpr const char* RESET_REVERSE               = "\033[27m";
-inline constexpr const char* RESET_STRIKETHROUGH         = "\033[29m";
-inline constexpr const char* RESET_FRAME_ENCIRCLED       = "\033[54m";
-inline constexpr const char* RESET_OVERLINE              = "\033[55m";
-inline constexpr const char* RESET_SUPERSCRIPT_SUBSCRIPT = "\033[75m";
+inline constexpr const char* const RESET_BOLD_DIM              = "\033[22m";
+inline constexpr const char* const RESET_ITALIC                = "\033[23m";
+inline constexpr const char* const RESET_UNDERLINE             = "\033[24m";
+inline constexpr const char* const RESET_BLINK                 = "\033[25m";
+inline constexpr const char* const RESET_REVERSE               = "\033[27m";
+inline constexpr const char* const RESET_STRIKETHROUGH         = "\033[29m";
+inline constexpr const char* const RESET_FRAME_ENCIRCLED       = "\033[54m";
+inline constexpr const char* const RESET_OVERLINE              = "\033[55m";
+inline constexpr const char* const RESET_SUPERSCRIPT_SUBSCRIPT = "\033[75m";
 
 }  // namespace ConsoleColor
 

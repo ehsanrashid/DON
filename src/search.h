@@ -47,6 +47,7 @@
 #include "book/polyglot.h"
 #include "nnue/accumulator.h"
 #include "tablebase/syzygy.h"
+#include "utility/atomic.h"
 #include "utility/attributes.h"
 #include "utility/static_vector.h"
 #include "utility/types.h"

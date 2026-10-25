@@ -369,13 +369,13 @@ inline void mum(std::uint64_t* a, std::uint64_t* b) {
 [[maybe_unused]] [[nodiscard]] inline auto hash_bytes(void const* key, std::size_t len)
   -> std::uint64_t {
     static constexpr auto secret = std::array{
-      UINT64_C(0xa0761d6478bd642f), UINT64_C(0xe7037ed1a0b428db), UINT64_C(0x8ebc6af09c88c6e3),
-      UINT64_C(0x589965cc75374cc3), UINT64_C(0x2d358dccaa6c78a5), UINT64_C(0x8bb84b93962eacc9),
-      UINT64_C(0x4b33a62ed433d4a3), UINT64_C(0xa693c93927d87217), UINT64_C(0x2b63728e53473c2b),
-      UINT64_C(0x696cb2a95635a3c5), UINT64_C(0xa9ccd81ed1b29359), UINT64_C(0x5c2d66ace48db84d),
-      UINT64_C(0x69a99c5c53b4ca2d), UINT64_C(0x9a9c5a1b27d10f69), UINT64_C(0x2b27f02dc3d4360f),
-      UINT64_C(0x2b39665c8d2d5553), UINT64_C(0x966cd8878bb4b187), UINT64_C(0xc6351e99932b1ee1),
-      UINT64_C(0xd1c5d24d63c959c9), UINT64_C(0x56c54d9c955aca2b), UINT64_C(0xd136d27872563559)};
+      UINT64_C(0xA0761D6478BD642F), UINT64_C(0xE7037ED1A0B428DB), UINT64_C(0x8EBC6AF09C88C6E3),
+      UINT64_C(0x589965CC75374CC3), UINT64_C(0x2D358DCCAA6C78A5), UINT64_C(0x8BB84B93962EACC9),
+      UINT64_C(0x4B33A62ED433D4A3), UINT64_C(0xA693C93927D87217), UINT64_C(0x2B63728E53473C2B),
+      UINT64_C(0x696CB2A95635A3C5), UINT64_C(0xA9CCD81ED1B29359), UINT64_C(0x5C2D66ACE48DB84D),
+      UINT64_C(0x69A99C5C53B4CA2D), UINT64_C(0x9A9C5A1B27D10F69), UINT64_C(0x2B27F02DC3D4360F),
+      UINT64_C(0x2B39665C8D2D5553), UINT64_C(0x966CD8878BB4B187), UINT64_C(0xC6351E99932B1EE1),
+      UINT64_C(0xD1C5D24D63C959C9), UINT64_C(0x56C54D9C955ACA2B), UINT64_C(0xD136D27872563559)};
 
     auto const*   p    = static_cast<std::uint8_t const*>(key);
     std::uint64_t seed = secret[0];
@@ -619,7 +619,7 @@ inline constexpr std::uint64_t hash_version = 1;
 // One step of folding a value into an id. Compile time only; nothing on a lookup path calls it.
 [[nodiscard]] ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK constexpr auto
 fold_format_id(std::uint64_t h, std::uint64_t v) -> std::uint64_t {
-    h = (h ^ v) * UINT64_C(0x100000001b3);
+    h = (h ^ v) * UINT64_C(0x100000001B3);
     return h ^ (h >> 29U);
 }
 
@@ -789,7 +789,7 @@ struct tuple_hash_helper
 
     [[nodiscard]] ANKERL_UNORDERED_DENSE_DISABLE_UBSAN_UNSIGNED_INTEGER_CHECK static auto
     mix64(std::uint64_t state, std::uint64_t v) -> std::uint64_t {
-        return detail::hash_impl::mix(state + v, std::uint64_t{0x9ddfea08eb382d69});
+        return detail::hash_impl::mix(state + v, std::uint64_t{0x9DDFEA08EB382D69});
     }
 
     // Creates a buffer that holds all the data from each element of the tuple. If possible we memcpy the data directly. If
@@ -1332,9 +1332,9 @@ class segmented_vector {
     // Last block first, like destroy_tail() below.
     void dealloc() {
         auto ba = Allocator(m_blocks.get_allocator());
-        for (auto it = m_blocks.rbegin(); it != m_blocks.rend(); ++it)
+        for (auto itr = m_blocks.rbegin(); itr != m_blocks.rend(); ++itr)
         {
-            std::allocator_traits<Allocator>::deallocate(ba, *it, num_elements_in_block);
+            std::allocator_traits<Allocator>::deallocate(ba, *itr, num_elements_in_block);
         }
     }
 
@@ -2305,7 +2305,7 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
             if constexpr (sizeof(decltype(m_hash(key))) < sizeof(std::uint64_t))
             {
                 // 32bit hash and is_avalanching => multiply with a constant to avalanche bits upwards
-                return m_hash(key) * UINT64_C(0x9ddfea08eb382d69);
+                return m_hash(key) * UINT64_C(0x9DDFEA08EB382D69);
             }
             else
             {
@@ -4019,11 +4019,11 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
 
         while (first != last)
         {
-            auto n  = std::size_t{0};
-            auto it = first;
-            for (; n < bulk && it != last; ++n, ++it)
+            auto n   = std::size_t{0};
+            auto itr = first;
+            for (; n < bulk && itr != last; ++n, ++itr)
             {
-                auto const mh = mixed_hash(*it);
+                auto const mh = mixed_hash(*itr);
                 word[n]       = fingerprint_word(mh);
                 home[n]       = group_idx_from_hash(mh);
                 block[n]      = groups + std::size_t{home[n]};
@@ -4104,8 +4104,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
 
     template<typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto do_at(K const& key) -> mapped_ref<Q> {
-        if (auto it = find(key); ANKERL_UNORDERED_DENSE_LIKELY(end() != it))
-            ANKERL_UNORDERED_DENSE_LIKELY_ATTR { return it->second; }
+        if (auto itr = find(key); ANKERL_UNORDERED_DENSE_LIKELY(end() != itr))
+            ANKERL_UNORDERED_DENSE_LIKELY_ATTR { return itr->second; }
         on_error_key_not_found();
     }
 
@@ -4116,8 +4116,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
 
     template<typename K, typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
     auto do_at(K const& key, precomputed_hash ph) -> mapped_ref<Q> {
-        if (auto it = find(key, ph); ANKERL_UNORDERED_DENSE_LIKELY(end() != it))
-            ANKERL_UNORDERED_DENSE_LIKELY_ATTR { return it->second; }
+        if (auto itr = find(key, ph); ANKERL_UNORDERED_DENSE_LIKELY(end() != itr))
+            ANKERL_UNORDERED_DENSE_LIKELY_ATTR { return itr->second; }
         on_error_key_not_found();
     }
 
@@ -5063,13 +5063,13 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
     }
 
     auto equal_range(Key const& key) -> std::pair<iterator, iterator> {
-        auto it = do_find(key);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     auto equal_range(const Key& key) const -> std::pair<const_iterator, const_iterator> {
-        auto it = do_find(key);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     template<class K,
@@ -5077,8 +5077,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
              class KE                                        = KeyEqual,
              std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key) -> std::pair<iterator, iterator> {
-        auto it = do_find(key);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     template<class K,
@@ -5086,8 +5086,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
              class KE                                        = KeyEqual,
              std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key) const -> std::pair<const_iterator, const_iterator> {
-        auto it = do_find(key);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     // lookup with a precomputed hash /////////////////////////////////////////
@@ -5098,7 +5098,7 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
     // for:
     //
     //     auto const h = map.hash_for("some-long-key"); // once
-    //     auto it = map.find("some-long-key", h);       // as often as you like
+    //     auto itr = map.find("some-long-key", h);      // as often as you like
     //
     // The key is still needed, because a lookup that found a bucket still has to compare keys to
     // know it found the right one. What is saved is the hashing, not the comparison.
@@ -5224,14 +5224,14 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
     }
 
     auto equal_range(Key const& key, precomputed_hash ph) -> std::pair<iterator, iterator> {
-        auto it = do_find(key, ph);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key, ph);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     auto equal_range(Key const& key, precomputed_hash ph) const
       -> std::pair<const_iterator, const_iterator> {
-        auto it = do_find(key, ph);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key, ph);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     template<class K,
@@ -5239,8 +5239,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
              class KE                                        = KeyEqual,
              std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key, precomputed_hash ph) -> std::pair<iterator, iterator> {
-        auto it = do_find(key, ph);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key, ph);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     template<class K,
@@ -5249,8 +5249,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
              std::enable_if_t<is_transparent_v<H, KE>, bool> = true>
     auto equal_range(K const& key, precomputed_hash ph) const
       -> std::pair<const_iterator, const_iterator> {
-        auto it = do_find(key, ph);
-        return {it, it == end() ? end() : it + 1};
+        auto itr = do_find(key, ph);
+        return {itr, itr == end() ? end() : itr + 1};
     }
 
     template<typename Q = T, std::enable_if_t<is_map_v<Q>, bool> = true>
@@ -5342,17 +5342,15 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
     [[nodiscard]] auto verify(verify_level level = verify_level::spot) const -> bool {
         auto const n          = m_values.size();
         auto       consistent = [&](std::size_t i) -> bool {
-            auto it = find(get_key(m_values[i]));
-            return it != end() && static_cast<std::size_t>(it - begin()) == i;
+            auto itr = find(get_key(m_values[i]));
+            return itr != end() && static_cast<std::size_t>(itr - begin()) == i;
         };
         if (level == verify_level::full)
         {
             for (std::size_t i = 0; i < n; ++i)
             {
                 if (!consistent(i))
-                {
                     return false;
-                }
             }
             return true;
         }
@@ -5361,9 +5359,7 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
         {
             // floor(j * n / spots) without the product, which can overflow
             if (!consistent((j * (n / spots)) + ((j * (n % spots)) / spots)))
-            {
                 return false;
-            }
         }
         return true;
     }
@@ -5455,11 +5451,11 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
         }
         for (auto const& b_entry : b)
         {
-            auto it = a.find(get_key(b_entry));
+            auto itr = a.find(get_key(b_entry));
             if constexpr (is_map_v<T>)
             {
                 // map: check that key is here, then also check that value is the same
-                if (a.end() == it || !(b_entry.second == it->second))
+                if (a.end() == itr || !(b_entry.second == itr->second))
                 {
                     return false;
                 }
@@ -5467,7 +5463,7 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
             else
             {
                 // set: only check that the key is here
-                if (a.end() == it)
+                if (a.end() == itr)
                 {
                     return false;
                 }
@@ -5674,10 +5670,10 @@ auto erase_if(ankerl::unordered_dense::detail::
     while (idx)
     {
         --idx;
-        auto it = map.begin() + static_cast<typename map_t::difference_type>(idx);
-        if (pred(*it))
+        auto itr = map.begin() + static_cast<typename map_t::difference_type>(idx);
+        if (pred(*itr))
         {
-            map.erase(it);
+            map.erase(itr);
         }
     }
 
