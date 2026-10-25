@@ -583,7 +583,7 @@ void Worker::iterative_deepening() noexcept {
                     >= constexpr_ceil(750.0 + 220000.0 / (rootDepth * rootDepth));
 
             // Adjust optimism based on root move's avgValue
-            optimism[ac]  = constexpr_round(114.0 * avgValue / (85.0 + constexpr_abs(avgValue)));
+            optimism[ac]  = constexpr_round(456.0 * avgValue / (85.0 + constexpr_abs(avgValue)));
             optimism[~ac] = -optimism[ac];
 
             // Start with a small aspiration window and, after a fail-high/low,

@@ -45,7 +45,7 @@ inline constexpr Index L2 = 32;
 inline constexpr Index L3 = 32;
 
 // Version of the evaluation file
-inline constexpr u32 FILE_VERSION = 0x6A448AFAu;
+inline constexpr u32 FILE_VERSION = u32{0x6A448AFA};
 
 inline constexpr Index LAYER_STACKS = 32;
 

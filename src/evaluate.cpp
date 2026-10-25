@@ -52,7 +52,7 @@ Value scale_evaluation(const Position& pos, const i32 nnue, const i32 optimism) 
 
     const i32 v = constexpr_round(
       // When winning, boost easy positions, and vice versa
-      (nnue + (nnue + 4 * optimism) * correl / 65536.0)
+      (nnue + (nnue + optimism) * correl / 65536.0)
       // Scale the combined evaluation by total material
       * (1.0 + pos.material_value() / 90649.0)
       // Damp evaluation linearly based on the 50-move rule
