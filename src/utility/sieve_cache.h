@@ -455,10 +455,10 @@ class PoolSIEVECache final {
     mutable Mutex mutex;
     usize         capacity;
 
-    map_type    map;
-    list_type   list;
-    Pool<Entry> pool;
-    Entry*      hand = nullptr;
+    map_type      map;
+    list_type     list;
+    Pool<Entry>   pool;
+    list_iterator hand = nullptr;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -871,10 +871,10 @@ class PoolFlatSIEVECache final {
     mutable Mutex mutex;
     usize         capacity;
 
-    map_type    map;
-    list_type   list;
-    Pool<Entry> pool;
-    Entry*      hand = nullptr;
+    map_type      map;
+    list_type     list;
+    Pool<Entry>   pool;
+    list_iterator hand = nullptr;
 };
 
 }  // namespace DON

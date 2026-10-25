@@ -466,7 +466,7 @@ u8* PairsData::set_sizes(u8* pData, const u8* end) noexcept {
     const usize symLenSize = number<u16, Endian::LITTLE>(pData);
     pData += sizeof(u16);
 
-    if (!fits(pData, symLenSize, sizeof(LR), end))
+    if (symLenSize > SymCount || !fits(pData, symLenSize, sizeof(LR), end))
         return nullptr;
 
     btreeBuf.fill(LR::Default);
@@ -539,12 +539,10 @@ TableData make_table_data(const std::string_view code) noexcept {
 
     // Choose the side with fewer pawns as the leading color;
     // default to WHITE when neither side has pawns.
-    const Color c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK])
-                    ? WHITE
-                    : BLACK;
+    const bool c = pawnCnt[BLACK] != 0 && (pawnCnt[WHITE] == 0 || pawnCnt[BLACK] < pawnCnt[WHITE]);
 
-    tableData.pawnCount[WHITE] = pawnCnt[c];
-    tableData.pawnCount[BLACK] = pawnCnt[~c];
+    tableData.pawnCount[WHITE] = pawnCnt[usize(c)];
+    tableData.pawnCount[BLACK] = pawnCnt[usize(!c)];
 
     err = pos.set(code, BLACK, &st);
     (void) err;
@@ -650,21 +648,21 @@ void* TBTable<T>::init(const Position& pos) noexcept {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").
             Array<std::string, COLOR_NB> pieces{};
 
-            for (Color c : {WHITE, BLACK})
+            for (const Color c : {WHITE, BLACK})
                 for (usize i = PIECE_TYPES.size(); i-- > 0;)
                     pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-            const Color c = key[WHITE] == pos.material_key() ? WHITE : BLACK;
+            const bool c = pos.material_key() != key[WHITE];
 
             std::string base;
             base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-            base.append(pieces[c]).append("v").append(pieces[!c]);
+            base.append(pieces[usize(c)]).append("v").append(pieces[usize(!c)]);
 
-            TBFile tbFile(base, EXTS[T]);
+            const TBFile tbFile(base, EXTS[T]);
 
-            usize size = 0;
-            u8*   data = tbFile.exists() ? map(tbFile.file_name(), &size) : nullptr;
+            usize     size = 0;
+            u8* const data = tbFile.exists() ? map(tbFile.file_name(), &size) : nullptr;
 
             if (data != nullptr && !set(data, (const u8*) mappedPtr + size))
             {
@@ -1482,7 +1480,10 @@ Ret do_probe_table(T*                table,
 
     bool flip = blackSymmetric || blackStronger;
 
-    int activeColor = flip ? ~pos.active_color() : pos.active_color();
+    int activeColor = int(flip) ^ int(pos.active_color());
+
+    u8 flipColor   = u8(int(flip) * PIECE_TYPE_NB);
+    u8 flipSquares = u8(int(flip) * int(SQ_A8));
 
     Array<Square, TB_PIECES_MAX> squares{};
     Array<Piece, TB_PIECES_MAX>  pieces;
@@ -1501,29 +1502,22 @@ Ret do_probe_table(T*                table,
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        Piece pc = table->get(0, FILE_A)->pieces[0];
-        if (flip)
-            pc = flip_color(pc);
+        const Piece pc = Piece(flipColor ^ u8(table->get(0, FILE_A)->pieces[0]));
 
         assert(type_of(pc) == PAWN);
 
         Bitboard b = leadPawnsBB = pos.pieces_bb(color_of(pc), PAWN);
-        while (b != 0)
-        {
-            Square s = pop_lsq(b);
-
-            squares[size] = flip ? flip_rank(s) : s;
-            ++size;
-        }
+        assert(b != 0);
+        do
+            squares[size++] = Square(flipSquares ^ u8(pop_lsq(b)));
+        while (b != 0);
+        assert(size != 0);
 
         leadPawnCnt = size;
 
-        if (leadPawnCnt != 0)
-        {
-            const auto maxItr =
-              std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawn_ascending);
-            std::swap(squares[0], *maxItr);
-        }
+        const auto maxItr =
+          std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawn_ascending);
+        std::swap(squares[0], *maxItr);
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -1540,15 +1534,14 @@ Ret do_probe_table(T*                table,
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
     Bitboard b = pos.pieces_bb() ^ leadPawnsBB;
-    while (b != 0)
+    assert(b != 0);
+    do
     {
-        Square s  = pop_lsq(b);
-        Piece  pc = pos[s];
+        const Square s = pop_lsq(b);
 
-        squares[size] = flip ? flip_rank(s) : s;
-        pieces[size]  = flip ? flip_color(pc) : pc;
-        ++size;
-    }
+        squares[size]  = Square(flipSquares ^ u8(s));
+        pieces[size++] = Piece(flipColor ^ u8(pos[s]));
+    } while (b != 0);
 
     assert(size >= 2);
 

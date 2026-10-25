@@ -317,6 +317,67 @@ class Xoshiro512ss final {
     State state = DefaultState;
 };
 
+// xoshiro1024** Pseudo-Random Number Generator
+//
+// Fast, high-quality 64-bit pseudorandom number generator with a
+// 1024-bit internal state.
+//
+// Characteristics:
+// - Output: 64 bits.
+// - Period: 2^1024 - 1.
+// - Jump function: advances the state by 2^512 steps.
+// - Long-jump function: advances the state by 2^384 steps.
+// - Initialization: SplitMix64 is used to initialize the internal state.
+// - The all-zero state is invalid.
+//
+// Based on:
+//   David Blackman and Sebastiano Vigna,
+//   "Scrambled Linear Pseudorandom Number Generators"
+//   <https://vigna.di.unimi.it/ftp/papers/ScrambledLinear.pdf>
+//
+// Reference implementation:
+//   <https://prng.di.unimi.it/xoshiro1024starstar.c>
+class Xoshiro1024ss final {
+   public:
+    static constexpr usize StateSize = 16;
+    static constexpr usize StateMask = StateSize - 1;
+
+    using State = Array<u64, StateSize>;
+
+    explicit Xoshiro1024ss(u64 seed) noexcept;
+
+    template<typename T>
+    T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Sparse random (1/8 bits set on average).
+    template<typename T>
+    T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // Jump ahead by 2^512 state transitions.
+    void jump() noexcept;
+
+    // Jump ahead by 2^768 state transitions.
+    void long_jump() noexcept;
+
+   private:
+    // Advance the xoshiro1024** state using its linear recurrence.
+    void update() noexcept;
+
+    // Apply the xoshiro1024** output scrambler.
+    u64 mix() const noexcept;
+
+    u64 rand64() noexcept;
+
+    static constexpr State DefaultState = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    State state = DefaultState;
+    usize p     = 0;
+};
+
 }  // namespace DON
 
 #endif  // UTILITY_PRNG_H_INCLUDED

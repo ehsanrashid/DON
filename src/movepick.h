@@ -89,11 +89,14 @@ class MovePicker final {
                const PieceSqHistory**    continuationHist,
                const AtomicHistories*    atomicHists,
                u16                       ply,
-               int                       th = 0) noexcept;
+               int                       threshold = 0) noexcept;
 
     // MovePicker constructor for ProbCut:
     // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
-    MovePicker(const Position& p, Move ttm, const CaptureHistory* captureHist, int th) noexcept;
+    MovePicker(const Position&       p,
+               Move                  ttm,
+               const CaptureHistory* captureHist,
+               int                   threshold) noexcept;
 
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
@@ -107,11 +110,14 @@ class MovePicker final {
     [[nodiscard]] Move next_move() noexcept;
 
     [[nodiscard]] Stage cur_stage() const noexcept;
-    [[nodiscard]] int   threshold_value() const noexcept;
+    [[nodiscard]] int   threshold() const noexcept;
 
     template<typename Predicate>
     void skip_quiets(Predicate pred) noexcept {
         skipQuiets = skipQuiets || pred();
+
+        if (skipQuiets && (curStage == Stage::ENC_GOOD_QUIET || curStage == Stage::ENC_BAD_QUIET))
+            cur = curEnd;  // Discards any quiet moves in the current stage
     }
 
    private:
@@ -142,7 +148,7 @@ class MovePicker final {
     const PieceSqHistory** const    continuationHistory = nullptr;
     const AtomicHistories* const    atomicHistories     = nullptr;
     const u16                       ssPly               = LOW_PLY_SIZE;
-    int                             threshold;
+    int                             threshold_;
 
     Stage initStage;
     Stage curStage;
@@ -155,8 +161,7 @@ class MovePicker final {
       cur           = nullptr,  //
       curEnd        = nullptr,  //
       badCaptureEnd = nullptr,  //
-      badQuietBeg   = nullptr,  //
-      badQuietEnd   = nullptr;
+      badQuietBeg   = nullptr;
 };
 
 }  // namespace DON

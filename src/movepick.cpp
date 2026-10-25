@@ -277,7 +277,7 @@ MovePicker::MovePicker(const Position&                 p,
                        const PieceSqHistory** const    continuationHist,
                        const AtomicHistories* const    atomicHists,
                        const u16                       ply,
-                       const int                       th) noexcept :
+                       const int                       threshold) noexcept :
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
@@ -286,7 +286,7 @@ MovePicker::MovePicker(const Position&                 p,
     continuationHistory{continuationHist},
     atomicHistories{atomicHists},
     ssPly{ply},
-    threshold{th} {
+    threshold_{threshold} {
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -295,10 +295,10 @@ MovePicker::MovePicker(const Position&                 p,
         initStage = Stage::EVA_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
     }
-    else if (threshold < 0)
+    else if (threshold_ < 0)
     {
-        for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
-            assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
+        //for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
+        //    assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
@@ -313,11 +313,11 @@ MovePicker::MovePicker(const Position&                 p,
 MovePicker::MovePicker(const Position&             p,
                        const Move                  ttm,
                        const CaptureHistory* const captureHist,
-                       const int                   th) noexcept :
+                       const int                   threshold) noexcept :
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
-    threshold{th} {
+    threshold_{threshold} {
     assert(pos.checkers_bb() == 0);
     assert(!ttMove.is_ok() || pos.legal(ttMove));
 
@@ -327,14 +327,45 @@ MovePicker::MovePicker(const Position&             p,
 
 template<GenType GT>
 void MovePicker::init() noexcept {
-    MoveList<GT> moveList(pos);
 
-    cur    = moves.data();
-    curEnd = score(moveList);
+    if constexpr (GT == GenType::ENC_CAPTURE)
+    {
+        MoveList<GT> moveList(pos);
 
-    remove(ttMove);
+        assert(cur == nullptr);
+        assert(curEnd == nullptr);
 
-    adaptive_stable_sort(cur, curEnd);
+        cur    = moves.data();
+        curEnd = score(moveList);
+
+        remove(ttMove);
+
+        adaptive_stable_sort(cur, curEnd);
+    }
+    else if constexpr (GT == GenType::ENC_QUIET)
+    {
+        MoveList<GT> moveList(pos);
+
+        assert(badCaptureEnd != nullptr);
+
+        cur    = badCaptureEnd;
+        curEnd = score(moveList);
+
+        remove(ttMove);
+
+        partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
+    }
+    else if constexpr (GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
+    {
+        MoveList<GT> moveList(pos);
+
+        cur    = moves.data();
+        curEnd = score(moveList);
+
+        remove(ttMove);
+
+        insertion_sort(cur, curEnd);
+    }
 }
 
 template<>
@@ -489,13 +520,13 @@ bool MovePicker::remove(const Move m) noexcept {
         return false;
     }
 
-    const auto itr = std::find(cur, curEnd, m);
+    const auto curNew = std::find(cur, curEnd, m);
 
-    if (itr == curEnd)
+    if (curNew == curEnd)
         return false;
 
     // Remove the element while preserving the order and shrinking the range
-    std::copy(itr + 1, curEnd--, itr);
+    std::copy(curNew + 1, curEnd--, curNew);
     return true;
 }
 
@@ -510,7 +541,7 @@ bool MovePicker::select(Predicate pred) noexcept {
 
 Move MovePicker::next_move() noexcept {
 
-STAGE_SWITCH:
+DISPATCH:
     switch (curStage)
     {
     case Stage::TT :
@@ -519,99 +550,66 @@ STAGE_SWITCH:
         return ttMove;
 
     case Stage::INIT :
+        initStage == Stage::EVA_CAPTURE ? init<GenType::EVA_CAPTURE>()
+                                        : init<GenType::ENC_CAPTURE>();
+
+        badCaptureEnd = moves.data();
+
         curStage = initStage;
 
-        if (curStage == Stage::EVA_CAPTURE)
-        {
-            init<GenType::EVA_CAPTURE>();
-        }
-        else
-        {
-            init<GenType::ENC_CAPTURE>();
-
-            if (curStage == Stage::ENC_GOOD_CAPTURE)
-                badCaptureEnd = cur;
-        }
-
         // Init done, now dispatch
-        goto STAGE_SWITCH;
+        goto DISPATCH;
 
     case Stage::ENC_GOOD_CAPTURE :
         if (select([this]() noexcept -> bool { return good_capture_or_store_bad(); }))
             return *cur++;
 
-        if (!skipQuiets)
-        {
-            MoveList<GenType::ENC_QUIET> moveList(pos);
+        if (skipQuiets)
+            goto ENC_BAD_CAPTURE;
 
-            curEnd = score(moveList);
-
-            remove(ttMove);
-
-            badQuietEnd = curEnd;
-
-            partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
-        }
+        init<GenType::ENC_QUIET>();
 
         curStage = Stage::ENC_GOOD_QUIET;
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        if (!skipQuiets)
-        {
-            // Return a good quiet move if available.
-            if (cur != curEnd && cur->value >= GOOD_QUIET_THRESHOLD)
-                return *cur++;
+        // Return a good quiet move if available.
+        if (cur != curEnd && cur->value >= GOOD_QUIET_THRESHOLD)
+            return *cur++;
 
-            // Remaining quiets are bad; mark their beginning
-            badQuietBeg = cur;
-        }
+        // Remaining quiets are bad; mark their beginning
+        badQuietBeg = cur;
 
+ENC_BAD_CAPTURE:
         // Prepare the pointers to loop over the bad captures
-        cur    = moves.data();
-        curEnd = badCaptureEnd;
+        cur = moves.data();
 
         curStage = Stage::ENC_BAD_CAPTURE;
         [[fallthrough]];
 
     case Stage::ENC_BAD_CAPTURE :
-        if (cur != curEnd)
+        if (cur != badCaptureEnd)
             return *cur++;
 
-        if (!skipQuiets)
-        {
-            // Prepare the pointers to loop over the bad quiets
-            cur    = badQuietBeg;
-            curEnd = badQuietEnd;
+        if (skipQuiets)
+            return Move::None;
 
-            adaptive_stable_sort(cur, curEnd);
-        }
+        // Prepare the pointers to loop over the bad quiets
+        cur = badQuietBeg;
+
+        adaptive_stable_sort(cur, curEnd);
 
         curStage = Stage::ENC_BAD_QUIET;
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
-        if (!skipQuiets)
-        {
-            if (cur != curEnd)
-                return *cur++;
-        }
-
-        return Move::None;
+        return cur != curEnd ? *cur++ : Move::None;
 
     case Stage::EVA_CAPTURE :
         if (cur != curEnd)
             return *cur++;
 
-        {
-            MoveList<GenType::EVA_QUIET> moveList(pos);
-
-            curEnd = score(moveList);
-
-            remove(ttMove);
-
-            insertion_sort(cur, curEnd);
-        }
+        init<GenType::EVA_QUIET>();
 
         curStage = Stage::EVA_QUIET;
         [[fallthrough]];
@@ -636,12 +634,12 @@ STAGE_SWITCH:
 
 MovePicker::Stage MovePicker::cur_stage() const noexcept { return curStage; }
 
-int MovePicker::threshold_value() const noexcept { return threshold; }
+int MovePicker::threshold() const noexcept { return threshold_; }
 
 bool MovePicker::good_capture_or_store_bad() noexcept {
-    threshold = constexpr_round(cur->value / 18.0);
+    threshold_ = constexpr_round(cur->value / 18.0);
 
-    if (pos.see(*cur) >= -threshold)
+    if (pos.see(*cur) >= -threshold_)
         return true;
 
     // Store bad captures
@@ -649,6 +647,6 @@ bool MovePicker::good_capture_or_store_bad() noexcept {
     return false;
 }
 
-bool MovePicker::above_threshold_capture() const noexcept { return pos.see(*cur) >= threshold; }
+bool MovePicker::above_threshold_capture() const noexcept { return pos.see(*cur) >= threshold_; }
 
 }  // namespace DON

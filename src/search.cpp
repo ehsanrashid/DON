@@ -1431,7 +1431,7 @@ Value Worker::search(Position&    pos,
                         // SEE based pruning for captures
                         int threshold = 177 * depth + constexpr_round(history * 34.0 / 1024.0);
                         if ((mp.cur_stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
-                             || mp.threshold_value() > threshold)
+                             || mp.threshold() > threshold)
                             && pos.see(move) < -threshold)
                             continue;
                     }
@@ -2100,14 +2100,16 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (!check && move.dst_sq() != preSq && move.type() != Move::Type::PROMOTION
+            if (!check && move.dst_sq() != preSq         //
+                && move.type() != Move::Type::PROMOTION  //
                 && !is_loss(baseFutility))
             {
                 if (moveCount > 2)
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                const int futility = baseFutility + piece_value(pos.captured_pt(move));
+                const int futility = baseFutility  //
+                                   + (capture ? piece_value(pos.captured_pt(move)) : VALUE_ZERO);
 
                 if (futility <= alpha)
                 {
@@ -2806,8 +2808,9 @@ void Manager::handle_time_management(const Worker& worker,
         totalTime = maximumTime;
     // Cap totalTime to either 55% of total time or MaxForcedMoveTime ms in case of forced move for a better viewer experience
     if (worker.rootMoves.size() == 1)
-        totalTime =
-          TimePoint(std::min(0.55 * totalTime, double(worker.options["MaxForcedMoveTime"])));
+        totalTime = TimePoint(std::min(0.55 * totalTime  //
+                                         * std::max<u64>(worker.options["NodesTime"], 1),
+                                       double(worker.options["MaxForcedMoveTime"])));
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 
