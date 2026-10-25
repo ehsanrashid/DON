@@ -277,7 +277,7 @@ MovePicker::MovePicker(const Position&                 p,
                        const PieceSqHistory** const    continuationHist,
                        const AtomicHistories* const    atomicHists,
                        const u16                       ply,
-                       const int                       th) noexcept :
+                       const int                       threshold) noexcept :
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
@@ -286,7 +286,7 @@ MovePicker::MovePicker(const Position&                 p,
     continuationHistory{continuationHist},
     atomicHistories{atomicHists},
     ssPly{ply},
-    threshold{th} {
+    threshold_{threshold} {
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -295,10 +295,10 @@ MovePicker::MovePicker(const Position&                 p,
         initStage = Stage::EVA_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
     }
-    else if (threshold < 0)
+    else if (threshold_ < 0)
     {
-        for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
-            assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
+        //for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
+        //    assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
@@ -313,11 +313,11 @@ MovePicker::MovePicker(const Position&                 p,
 MovePicker::MovePicker(const Position&             p,
                        const Move                  ttm,
                        const CaptureHistory* const captureHist,
-                       const int                   th) noexcept :
+                       const int                   threshold) noexcept :
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
-    threshold{th} {
+    threshold_{threshold} {
     assert(pos.checkers_bb() == 0);
     assert(!ttMove.is_ok() || pos.legal(ttMove));
 
@@ -633,12 +633,12 @@ ENC_BAD_CAPTURE:
 
 MovePicker::Stage MovePicker::cur_stage() const noexcept { return curStage; }
 
-int MovePicker::threshold_value() const noexcept { return threshold; }
+int MovePicker::threshold() const noexcept { return threshold_; }
 
 bool MovePicker::good_capture_or_store_bad() noexcept {
-    threshold = constexpr_round(cur->value / 18.0);
+    threshold_ = constexpr_round(cur->value / 18.0);
 
-    if (pos.see(*cur) >= -threshold)
+    if (pos.see(*cur) >= -threshold_)
         return true;
 
     // Store bad captures
@@ -646,6 +646,6 @@ bool MovePicker::good_capture_or_store_bad() noexcept {
     return false;
 }
 
-bool MovePicker::above_threshold_capture() const noexcept { return pos.see(*cur) >= threshold; }
+bool MovePicker::above_threshold_capture() const noexcept { return pos.see(*cur) >= threshold_; }
 
 }  // namespace DON

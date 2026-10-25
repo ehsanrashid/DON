@@ -1431,7 +1431,7 @@ Value Worker::search(Position&    pos,
                         // SEE based pruning for captures
                         int threshold = 177 * depth + constexpr_round(history * 34.0 / 1024.0);
                         if ((mp.cur_stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
-                             || mp.threshold_value() > threshold)
+                             || mp.threshold() > threshold)
                             && pos.see(move) < -threshold)
                             continue;
                     }
