@@ -34,6 +34,7 @@
 #include "search.h"
 #include "state.h"
 #include "thread_context.h"
+#include "utility/atomic.h"
 #include "utility/attributes.h"
 #include "utility/types.h"
 

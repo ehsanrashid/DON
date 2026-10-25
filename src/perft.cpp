@@ -35,6 +35,7 @@
 #include "position.h"
 #include "state.h"
 #include "thread.h"
+#include "utility/atomic.h"
 
 namespace DON::Perft {
 

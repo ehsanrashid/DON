@@ -25,9 +25,9 @@
 #include <unordered_map>
 
 #include "memory.h"
-#include "misc.h"
 #include "position.h"
 #include "types.h"
+#include "utility/atomic.h"
 #include "utility/multi_array.h"
 #include "utility/types.h"
 

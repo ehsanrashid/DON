@@ -29,6 +29,7 @@
 #include "memory.h"
 #include "misc.h"
 #include "thread.h"
+#include "utility/atomic.h"
 
 namespace DON {
 
