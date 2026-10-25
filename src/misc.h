@@ -18,11 +18,10 @@
 #ifndef MISC_H_INCLUDED
 #define MISC_H_INCLUDED
 
-#include <algorithm>
-#include <atomic>
+#include <algorithm>  // min()/max()
 #include <cassert>
-#include <chrono>
-#include <cstdint>
+#include <chrono>   // chrono::duration
+#include <cstdint>  // SIZE_MAX, UINT64_MAX
 #include <cstring>
 #include <fstream>
 #include <functional>
