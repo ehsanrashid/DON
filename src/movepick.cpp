@@ -328,7 +328,7 @@ MovePicker::MovePicker(const Position&             p,
 template<GenType GT>
 void MovePicker::init() noexcept {
 
-    if constexpr (GT != GenType::ENC_QUIET)
+    if constexpr (GT == GenType::ENC_CAPTURE)
     {
         MoveList<GT> moveList(pos);
 
@@ -339,9 +339,9 @@ void MovePicker::init() noexcept {
 
         adaptive_stable_sort(cur, curEnd);
     }
-    else
+    else if constexpr (GT == GenType::ENC_QUIET)
     {
-        MoveList<GenType::ENC_QUIET> moveList(pos);
+        MoveList<GT> moveList(pos);
 
         cur    = badCaptureEnd;
         curEnd = score(moveList);
@@ -349,6 +349,17 @@ void MovePicker::init() noexcept {
         remove(ttMove);
 
         partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
+    }
+    else if constexpr (GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
+    {
+        MoveList<GT> moveList(pos);
+
+        cur    = moves.data();
+        curEnd = score(moveList);
+
+        remove(ttMove);
+
+        insertion_sort(cur, curEnd);
     }
 }
 
@@ -565,7 +576,7 @@ DISPATCH:
 
     case Stage::ENC_GOOD_QUIET :
         // Return a good quiet move if available.
-        if (cur < curEnd && cur->value >= GOOD_QUIET_THRESHOLD)
+        if (cur != curEnd && cur->value >= GOOD_QUIET_THRESHOLD)
             return *cur++;
 
         // Remaining quiets are bad; mark their beginning
@@ -594,21 +605,13 @@ ENC_BAD_CAPTURE:
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
-        return cur < curEnd ? *cur++ : Move::None;
+        return cur != curEnd ? *cur++ : Move::None;
 
     case Stage::EVA_CAPTURE :
         if (cur != curEnd)
             return *cur++;
 
-        {
-            MoveList<GenType::EVA_QUIET> moveList(pos);
-
-            curEnd = score(moveList);
-
-            remove(ttMove);
-
-            insertion_sort(cur, curEnd);
-        }
+        init<GenType::EVA_QUIET>();
 
         curStage = Stage::EVA_QUIET;
         [[fallthrough]];

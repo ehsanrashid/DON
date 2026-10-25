@@ -117,7 +117,7 @@ class MovePicker final {
         skipQuiets = skipQuiets || pred();
 
         if (skipQuiets && (curStage == Stage::ENC_GOOD_QUIET || curStage == Stage::ENC_BAD_QUIET))
-            curEnd = badCaptureEnd;  // Discards any quiet moves in the current stage
+            cur = curEnd;  // Discards any quiet moves in the current stage
     }
 
    private:
