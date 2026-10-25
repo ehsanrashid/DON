@@ -2100,14 +2100,16 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (!check && move.dst_sq() != preSq && move.type() != Move::Type::PROMOTION
+            if (!check && move.dst_sq() != preSq         //
+                && move.type() != Move::Type::PROMOTION  //
                 && !is_loss(baseFutility))
             {
                 if (moveCount > 2)
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                const int futility = baseFutility + piece_value(pos.captured_pt(move));
+                const int futility = baseFutility  //
+                                   + (capture ? piece_value(pos.captured_pt(move)) : VALUE_ZERO);
 
                 if (futility <= alpha)
                 {

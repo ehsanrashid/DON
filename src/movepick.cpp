@@ -332,6 +332,9 @@ void MovePicker::init() noexcept {
     {
         MoveList<GT> moveList(pos);
 
+        assert(cur == nullptr);
+        assert(curEnd == nullptr);
+
         cur    = moves.data();
         curEnd = score(moveList);
 
@@ -342,6 +345,8 @@ void MovePicker::init() noexcept {
     else if constexpr (GT == GenType::ENC_QUIET)
     {
         MoveList<GT> moveList(pos);
+
+        assert(badCaptureEnd != nullptr);
 
         cur    = badCaptureEnd;
         curEnd = score(moveList);
@@ -515,13 +520,13 @@ bool MovePicker::remove(const Move m) noexcept {
         return false;
     }
 
-    const auto itr = std::find(cur, curEnd, m);
+    const auto curNew = std::find(cur, curEnd, m);
 
-    if (itr == curEnd)
+    if (curNew == curEnd)
         return false;
 
     // Remove the element while preserving the order and shrinking the range
-    std::copy(itr + 1, curEnd--, itr);
+    std::copy(curNew + 1, curEnd--, curNew);
     return true;
 }
 
@@ -545,17 +550,10 @@ DISPATCH:
         return ttMove;
 
     case Stage::INIT :
-        if (initStage == Stage::EVA_CAPTURE)
-        {
-            init<GenType::EVA_CAPTURE>();
-        }
-        else
-        {
-            init<GenType::ENC_CAPTURE>();
+        initStage == Stage::EVA_CAPTURE ? init<GenType::EVA_CAPTURE>()
+                                        : init<GenType::ENC_CAPTURE>();
 
-            if (initStage == Stage::ENC_GOOD_CAPTURE)
-                badCaptureEnd = cur;
-        }
+        badCaptureEnd = moves.data();
 
         curStage = initStage;
 

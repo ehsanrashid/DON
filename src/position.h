@@ -736,7 +736,7 @@ ALWAYS_INLINE bool Position::capture(const Move m) const noexcept {
 
     const auto mt = m.type();
 
-    return (mt == Move::Type::EN_PASSANT)
+    return (mt == Move::Type::EN_PASSANT && !empty(m.dst_sq() - pawn_spush(active_color())))
         || ((mt == Move::Type::NORMAL || mt == Move::Type::PROMOTION) && !empty(m.dst_sq()));
 }
 
