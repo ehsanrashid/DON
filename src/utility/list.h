@@ -152,7 +152,6 @@ class DoublyIntrusiveList final {
 
         return node.next;
     }
-
     [[nodiscard]] const T* next(const T& node) const noexcept {
         assert(is_linked(node));
 
@@ -164,7 +163,6 @@ class DoublyIntrusiveList final {
 
         return node.prev;
     }
-
     [[nodiscard]] const T* prev(const T& node) const noexcept {
         assert(is_linked(node));
 
@@ -428,15 +426,13 @@ class OwnedDoublyIntrusiveList final {
     OwnedDoublyIntrusiveList(OwnedDoublyIntrusiveList&&) noexcept            = delete;
     OwnedDoublyIntrusiveList& operator=(OwnedDoublyIntrusiveList&&) noexcept = delete;
 
+    // clang-format off
     [[nodiscard]] T*       front() noexcept { return front_ != nullptr ? front_->data : nullptr; }
-    [[nodiscard]] const T* front() const noexcept {
-        return front_ != nullptr ? front_->data : nullptr;
-    }
+    [[nodiscard]] const T* front() const noexcept { return front_ != nullptr ? front_->data : nullptr; }
 
     [[nodiscard]] T*       back() noexcept { return back_ != nullptr ? back_->data : nullptr; }
-    [[nodiscard]] const T* back() const noexcept {
-        return back_ != nullptr ? back_->data : nullptr;
-    }
+    [[nodiscard]] const T* back() const noexcept { return back_ != nullptr ? back_->data : nullptr; }
+    // clang-format on
 
     [[nodiscard]] usize size() const noexcept { return size_; }
 

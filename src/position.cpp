@@ -588,10 +588,7 @@ void Position::set_pinner_blocker(const Color c) const noexcept {
         {
             st->blockersBB[c] |= blockerBB;
 
-            if ((blockerBB & attackersBB) != 0)
-                st->pinnersBB[c] |= xSniperSq;
-            else
-                st->pinnersBB[~c] |= xSniperSq;
+            st->pinnersBB[c ^ ((blockerBB & attackersBB) == 0)] |= xSniperSq;
         }
     }
 }
@@ -802,11 +799,11 @@ void Position::do_move(const Move                   m,
     const auto   mt         = m.type();
     Piece        movedPc    = piece(orgSq);
     auto         movedPt    = type_of(movedPc);
-    Piece        capturedPc = piece(mt != Move::Type::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
+    Piece        capturedPc = piece(dstSq - pawn_spush(ac) * int(mt == Move::Type::EN_PASSANT));
     Piece        promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
-           || (color_of(capturedPc) == (mt != Move::Type::CASTLING ? ~ac : ac)
+           || (color_of(capturedPc) == (ac ^ (mt != Move::Type::CASTLING))
                && type_of(capturedPc) != KING));
 
     auto* const dP   = dirties != nullptr ? &dirties->dirtyPiece : nullptr;
@@ -1480,12 +1477,12 @@ Key Position::move_key(const Move m) const noexcept {
     const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     const auto   mt         = m.type();
     const Piece  movedPc    = piece(orgSq);
-    const Square capturedSq = mt != Move::Type::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
+    const Square capturedSq = dstSq - pawn_spush(ac) * int(mt == Move::Type::EN_PASSANT);
     const Piece  capturedPc = piece(capturedSq);
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
-           || color_of(capturedPc) == (mt != Move::Type::CASTLING ? ~ac : ac));
-    assert(type_of(capturedPc) != KING);
+           || (color_of(capturedPc) == (ac ^ (mt != Move::Type::CASTLING))
+               && type_of(capturedPc) != KING));
 
     const auto movedPt = type_of(movedPc);
 

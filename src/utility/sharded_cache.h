@@ -58,7 +58,7 @@ class ShardedCache final {
     }
 
     [[nodiscard]] usize shard_index(const Key& key) const noexcept {
-        return std::hash<Key>{}(key) &ShardMask;
+        return (std::hash<Key>{}(key)) & ShardMask;
     }
 
    public:

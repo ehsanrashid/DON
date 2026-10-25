@@ -2806,8 +2806,9 @@ void Manager::handle_time_management(const Worker& worker,
         totalTime = maximumTime;
     // Cap totalTime to either 55% of total time or MaxForcedMoveTime ms in case of forced move for a better viewer experience
     if (worker.rootMoves.size() == 1)
-        totalTime =
-          TimePoint(std::min(0.55 * totalTime, double(worker.options["MaxForcedMoveTime"])));
+        totalTime = TimePoint(std::min(0.55 * totalTime  //
+                                         * std::max<u64>(worker.options["NodesTime"], 1),
+                                       double(worker.options["MaxForcedMoveTime"])));
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 

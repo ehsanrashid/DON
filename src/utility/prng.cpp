@@ -67,7 +67,9 @@ Xorshift64s::Xorshift64s(const u64 seed) noexcept {
 
 void Xorshift64s::jump() noexcept {
     // Polynomial for advancing the (12, 25, 27) recurrence by 2^32 steps.
-    constexpr State Jump = {u64{0xBBD5E1C3A495E3E0}};
+    constexpr State Jump = {
+      u64{0xBBD5E1C3A495E3E0}  //
+    };
 
     State tmpState = {0};
 
@@ -89,7 +91,9 @@ void Xorshift64s::jump() noexcept {
 
 void Xorshift64s::long_jump() noexcept {
     // Polynomial for advancing the (12, 25, 27) recurrence by 2^48 steps.
-    constexpr State LongJump = {u64{0x76C6208C83EE6437}};
+    constexpr State LongJump = {
+      u64{0x76C6208C83EE6437}  //
+    };
 
     State tmpState = {0};
 
@@ -141,7 +145,9 @@ Xoroshiro128ss::Xoroshiro128ss(const u64 seed) noexcept {
 }
 
 void Xoroshiro128ss::jump() noexcept {
-    constexpr State Jump = {u64{0xDF900294D8F554A5}, u64{0x170865DF4B3201FC}};
+    constexpr State Jump = {
+      u64{0xDF900294D8F554A5}, u64{0x170865DF4B3201FC}  //
+    };
 
     State tmpState = {0, 0};
 
@@ -162,7 +168,9 @@ void Xoroshiro128ss::jump() noexcept {
 }
 
 void Xoroshiro128ss::long_jump() noexcept {
-    constexpr State LongJump = {u64{0xD2A98B26625EEE7B}, u64{0xDDDF9B1090AA7AC1}};
+    constexpr State LongJump = {
+      u64{0xD2A98B26625EEE7B}, u64{0xDDDF9B1090AA7AC1}  //
+    };
 
     State tmpState = {0, 0};
 
@@ -217,8 +225,10 @@ Xoshiro256ss::Xoshiro256ss(const u64 seed) noexcept {
 }
 
 void Xoshiro256ss::jump() noexcept {
-    constexpr State Jump = {u64{0x180EC6D33CFD0ABA}, u64{0xD5A61266F0C9392C},
-                            u64{0xA9582618E03FC9AA}, u64{0x39ABDC4529B1661C}};
+    constexpr State Jump = {
+      u64{0x180EC6D33CFD0ABA}, u64{0xD5A61266F0C9392C},  //
+      u64{0xA9582618E03FC9AA}, u64{0x39ABDC4529B1661C}   //
+    };
 
     State tmpState = {0, 0, 0, 0};
 
@@ -239,8 +249,10 @@ void Xoshiro256ss::jump() noexcept {
 }
 
 void Xoshiro256ss::long_jump() noexcept {
-    constexpr State LongJump = {u64{0x76E15D3EFEFDCBBF}, u64{0xC5004E441C522FB3},
-                                u64{0x77710069854EE241}, u64{0x39109BB02ACBE635}};
+    constexpr State LongJump = {
+      u64{0x76E15D3EFEFDCBBF}, u64{0xC5004E441C522FB3},  //
+      u64{0x77710069854EE241}, u64{0x39109BB02ACBE635}   //
+    };
 
     State tmpState = {0, 0, 0, 0};
 
@@ -295,10 +307,12 @@ Xoshiro512ss::Xoshiro512ss(const u64 seed) noexcept {
 }
 
 void Xoshiro512ss::jump() noexcept {
-    constexpr State Jump = {u64{0x33ED89B6E7A353F9}, u64{0x760083D7955323BE},
-                            u64{0x2837F2FBB5F22FAE}, u64{0x4B8C5674D309511C},
-                            u64{0xB11AC47A7BA28C25}, u64{0xF1BE7667092BCC1C},
-                            u64{0x53851EFDB6DF0AAF}, u64{0x1EBBC8B23EAF25DB}};
+    constexpr State Jump = {
+      u64{0x33ED89B6E7A353F9}, u64{0x760083D7955323BE},  //
+      u64{0x2837F2FBB5F22FAE}, u64{0x4B8C5674D309511C},  //
+      u64{0xB11AC47A7BA28C25}, u64{0xF1BE7667092BCC1C},  //
+      u64{0x53851EFDB6DF0AAF}, u64{0x1EBBC8B23EAF25DB}   //
+    };
 
     State tmpState = {0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -319,10 +333,12 @@ void Xoshiro512ss::jump() noexcept {
 }
 
 void Xoshiro512ss::long_jump() noexcept {
-    constexpr State LongJump = {u64{0x11467FEF8F921D28}, u64{0xA2A819F2E79C8EA8},
-                                u64{0xA8299FC284B3959A}, u64{0xB4D347340CA63EE1},
-                                u64{0x1CB0940BEDBFF6CE}, u64{0xD956C5C4FA1F8E17},
-                                u64{0x915E38FD4EDA93BC}, u64{0x5B3CCDFA5D7DACA5}};
+    constexpr State LongJump = {
+      u64{0x11467FEF8F921D28}, u64{0xA2A819F2E79C8EA8},  //
+      u64{0xA8299FC284B3959A}, u64{0xB4D347340CA63EE1},  //
+      u64{0x1CB0940BEDBFF6CE}, u64{0xD956C5C4FA1F8E17},  //
+      u64{0x915E38FD4EDA93BC}, u64{0x5B3CCDFA5D7DACA5}   //
+    };
 
     State tmpState = {0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -381,14 +397,16 @@ Xoshiro1024ss::Xoshiro1024ss(u64 seed) noexcept {
 }
 
 void Xoshiro1024ss::jump() noexcept {
-    constexpr State Jump = {u64{0x931197d8e3177f17}, u64{0xb59422e0b9138c5f},  //
-                            u64{0xf06a6afb49d668bb}, u64{0xacb8a6412c8a1401},  //
-                            u64{0x12304ec85f0b3468}, u64{0xb7dfe7079209891e},  //
-                            u64{0x405b7eec77d9eb14}, u64{0x34ead68280c44e4a},  //
-                            u64{0xe0e4ba3e0ac9e366}, u64{0x8f46eda8348905b7},  //
-                            u64{0x328bf4dbad90d6ff}, u64{0xc8fd6fb31c9effc3},  //
-                            u64{0xe899d452d4b67652}, u64{0x45f387286ade3205},  //
-                            u64{0x03864f454a8920bd}, u64{0xa68fa28725b1b384}};
+    constexpr State Jump = {
+      u64{0x931197D8E3177F17}, u64{0xB59422E0B9138C5F},  //
+      u64{0xF06A6AFB49D668BB}, u64{0xACB8A6412C8A1401},  //
+      u64{0x12304EC85F0B3468}, u64{0xB7DFE7079209891E},  //
+      u64{0x405B7EEC77D9EB14}, u64{0x34EAD68280C44E4A},  //
+      u64{0xE0E4BA3E0AC9E366}, u64{0x8F46EDA8348905B7},  //
+      u64{0x328BF4DBAD90D6FF}, u64{0xC8FD6FB31C9EFFC3},  //
+      u64{0xE899D452D4B67652}, u64{0x45F387286ADE3205},  //
+      u64{0x03864F454A8920BD}, u64{0xA68FA28725B1B384}   //
+    };
 
     State tmpState = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -410,14 +428,16 @@ void Xoshiro1024ss::jump() noexcept {
 }
 
 void Xoshiro1024ss::long_jump() noexcept {
-    constexpr State LongJump = {u64{0x7374156360bbf00f}, u64{0x4630c2efa3b3c1f6},  //
-                                u64{0x6654183a892786b1}, u64{0x94f7bfcbfb0f1661},  //
-                                u64{0x27d8243d3d13eb2d}, u64{0x9701730f3dfb300f},  //
-                                u64{0x2f293baae6f604ad}, u64{0xa661831cb60cd8b6},  //
-                                u64{0x68280c77d9fe008c}, u64{0x50554160f5ba9459},  //
-                                u64{0x2fc20b17ec7b2a9a}, u64{0x49189bbdc8ec9f8f},  //
-                                u64{0x92a65bca41852cc1}, u64{0xf46820dd0509c12a},  //
-                                u64{0x52b00c35fbf92185}, u64{0x1e5b3b7f589e03c1}};
+    constexpr State LongJump = {
+      u64{0x7374156360BBF00F}, u64{0x4630C2EFA3B3C1F6},  //
+      u64{0x6654183A892786B1}, u64{0x94F7BFCBFB0F1661},  //
+      u64{0x27D8243D3D13EB2D}, u64{0x9701730F3DFB300F},  //
+      u64{0x2F293BAAE6F604AD}, u64{0xA661831CB60CD8B6},  //
+      u64{0x68280C77D9FE008C}, u64{0x50554160F5BA9459},  //
+      u64{0x2FC20B17EC7B2A9A}, u64{0x49189BBDC8EC9F8F},  //
+      u64{0x92A65BCA41852CC1}, u64{0xF46820DD0509C12A},  //
+      u64{0x52B00C35FBF92185}, u64{0x1E5B3B7F589E03C1}   //
+    };
 
     State tmpState = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 

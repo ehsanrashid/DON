@@ -112,6 +112,9 @@ class MovePicker final {
     template<typename Predicate>
     void skip_quiets(Predicate pred) noexcept {
         skipQuiets = skipQuiets || pred();
+
+        if (skipQuiets && (curStage == Stage::ENC_GOOD_QUIET || curStage == Stage::ENC_BAD_QUIET))
+            curEnd = badCaptureEnd;
     }
 
    private:
@@ -155,8 +158,7 @@ class MovePicker final {
       cur           = nullptr,  //
       curEnd        = nullptr,  //
       badCaptureEnd = nullptr,  //
-      badQuietBeg   = nullptr,  //
-      badQuietEnd   = nullptr;
+      badQuietBeg   = nullptr;
 };
 
 }  // namespace DON
