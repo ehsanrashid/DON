@@ -4,10 +4,10 @@ Steps:
 
 mkdir -p build
 
-g++ -std=c++17 -O1 -I./src tests/segment_tree_rmq.cpp -o build/segment_tree_rmq
-g++ -std=c++17 -O1 -DNDEBUG -I./src tests/segment_tree_rmq.cpp -o build/segment_tree_rmq
+g++ -std=c++17 -O1 -I./src tests/segment_tree.cpp -o build/segment_tree
+g++ -std=c++17 -O1 -DNDEBUG -I./src tests/segment_tree.cpp -o build/segment_tree
 
-./build/segment_tree_rmq
+./build/segment_tree
 */
 
 #include <algorithm>
@@ -19,7 +19,7 @@ g++ -std=c++17 -O1 -DNDEBUG -I./src tests/segment_tree_rmq.cpp -o build/segment_
 #include <vector>
 #include <iostream>
 
-#include "utility/segment_tree_rmq.h"
+#include "utility/segment_tree.h"
 
 using namespace DON;
 

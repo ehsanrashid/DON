@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_SEGMENT_TREE_RMQ_H_INCLUDED
-#define UTILITY_SEGMENT_TREE_RMQ_H_INCLUDED
+#ifndef UTILITY_SEGMENT_TREE_H_INCLUDED
+#define UTILITY_SEGMENT_TREE_H_INCLUDED
 
 #include <algorithm>
 #include <limits>
@@ -102,32 +102,26 @@ class SegmentTreeRMQ final {
 
     static constexpr value_type Infinity = std::numeric_limits<value_type>::max();
 
-    usize N = 0;
-    usize H = 0;
-    usize M = 0;
-
-    std::vector<value_type> st;
-
     explicit SegmentTreeRMQ(const usize n) :
         N(n),
         H(leaf_count(n)),
         M(checked_tree_size(H)),
-        st(M, Infinity) {}
+        tree(M, Infinity) {}
 
     explicit SegmentTreeRMQ(const std::vector<value_type>& values) :
         SegmentTreeRMQ(values.size()) {
-        std::copy(values.begin(), values.end(), st.begin() + H);
+        std::copy(values.begin(), values.end(), tree.begin() + H);
 
         for (usize i = H; i-- > 1;)
             propagate(i);
     }
 
     // Update the value at position pos.
-    void update(usize pos, value_type value) {
+    void update(usize pos, value_type value) noexcept {
         check_position(pos);
 
         usize i = H + pos;
-        st[i]   = value;
+        tree[i] = value;
 
         while ((i >>= 1) != 0)
             propagate(i);
@@ -149,10 +143,10 @@ class SegmentTreeRMQ final {
         while (l < r)
         {
             if (l & 1)
-                result = std::min(result, st[l++]);
+                result = std::min(result, tree[l++]);
 
             if (r & 1)
-                result = std::min(result, st[--r]);
+                result = std::min(result, tree[--r]);
 
             l >>= 1;
             r >>= 1;
@@ -176,6 +170,10 @@ class SegmentTreeRMQ final {
 
         return lastle_(1, 0, H, l + 1, value);
     }
+
+    [[nodiscard]] value_type& operator[](const usize i) noexcept { return tree[i]; }
+
+    [[nodiscard]] const value_type& operator[](const usize i) const noexcept { return tree[i]; }
 
    private:
     [[nodiscard]] static usize leaf_count(const usize n) {
@@ -209,11 +207,11 @@ class SegmentTreeRMQ final {
             throw std::out_of_range("SegmentTreeRMQ: invalid position");
     }
 
-    void propagate(usize i) noexcept { st[i] = std::min(st[2 * i], st[2 * i + 1]); }
+    void propagate(usize i) noexcept { tree[i] = std::min(tree[2 * i], tree[2 * i + 1]); }
 
     [[nodiscard]] isize firstle_(
       usize node, usize left, usize right, usize queryLeft, value_type value) const noexcept {
-        if (right <= queryLeft || st[node] > value)
+        if (right <= queryLeft || tree[node] > value)
             return -1;
 
         if (right - left == 1)
@@ -231,7 +229,7 @@ class SegmentTreeRMQ final {
 
     [[nodiscard]] isize lastle_(
       usize node, usize left, usize right, usize queryRight, value_type value) const noexcept {
-        if (left >= queryRight || st[node] > value)
+        if (left >= queryRight || tree[node] > value)
             return -1;
 
         if (right - left == 1)
@@ -246,8 +244,14 @@ class SegmentTreeRMQ final {
 
         return lastle_(node * 2, left, mid, queryRight, value);
     }
+
+    usize N = 0;
+    usize H = 0;
+    usize M = 0;
+
+    std::vector<value_type> tree;
 };
 
 }  // namespace DON
 
-#endif  // UTILITY_SEGMENT_TREE_RMQ_H_INCLUDED
+#endif  // UTILITY_SEGMENT_TREE_H_INCLUDED
