@@ -295,7 +295,7 @@ class Matrix final {
 
         check_index(i, j);
 
-        Matrix<M - 1, N - 1, T> result{};
+        Matrix<M - 1, N - 1, T> subMatrix{};
 
         usize subRow = 0;
 
@@ -311,13 +311,13 @@ class Matrix final {
                 if (c == j)
                     continue;
 
-                result(subRow, subCol++) = (*this)(r, c);
+                subMatrix(subRow, subCol++) = (*this)(r, c);
             }
 
             ++subRow;
         }
 
-        return result;
+        return subMatrix;
     }
 
     // Minor: determinant of the submatrix.
@@ -347,7 +347,7 @@ class Matrix final {
 
         if constexpr (M == 1)
         {
-            return data[0][0];
+            return (*this)(0, 0);
         }
         else
         {
