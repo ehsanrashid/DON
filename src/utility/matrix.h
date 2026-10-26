@@ -45,69 +45,100 @@ class Matrix final {
 
     // Initialize all elements to the same value.
     constexpr explicit Matrix(const T& value) noexcept {
-        for (usize row = 0; row < M; ++row)
-            data[row].fill(value);
+        for (usize i = 0; i < M; ++i)
+            data[i].fill(value);
     }
 
-    // Initialize elements in row-major order.
-    template<typename... Args, typename = std::enable_if_t<sizeof...(Args) == Size>>
+    // Initialize elements in i-major order.
+    //template<typename... Args, typename = std::enable_if_t<sizeof...(Args) == Size>>
+    //constexpr Matrix(Args&&... args) noexcept {
+    //    usize index = 0;
+    //    ((data[index / N][index % N] = static_cast<T>(std::forward<Args>(args)), ++index), ...);
+    //}
+    template<typename... Args,
+             std::enable_if_t<sizeof...(Args) == Size && (std::is_convertible_v<Args&&, T> && ...),
+                              int> = 0>
     constexpr Matrix(Args&&... args) noexcept {
         usize index = 0;
+
         ((data[index / N][index % N] = static_cast<T>(std::forward<Args>(args)), ++index), ...);
     }
 
-    // Element access: unchecked.
-    [[nodiscard]] constexpr T& operator()(usize row, usize col) noexcept { return data[row][col]; }
+    Matrix(std::initializer_list<std::initializer_list<T>> matrix) {
+        if (matrix.size() != M)
+            throw std::invalid_argument("Matrix: incorrect number of rows");
 
-    [[nodiscard]] constexpr const T& operator()(usize row, usize col) const noexcept {
-        return data[row][col];
+        usize i = 0;
+
+        for (const auto& row : matrix)
+        {
+            if (row.size() != N)
+                throw std::invalid_argument("Matrix: incorrect number of columns");
+
+            usize j = 0;
+
+            for (const T& value : row)
+            {
+                data[i][j] = value;
+                ++j;
+            }
+
+            ++i;
+        }
+    }
+
+    // Element access: unchecked.
+    [[nodiscard]] constexpr T& operator()(usize i, usize j) noexcept { return data[i][j]; }
+
+    [[nodiscard]] constexpr const T& operator()(usize i, usize j) const noexcept {
+        return data[i][j];
     }
 
     // Element access: checked.
-    [[nodiscard]] constexpr T& at(usize row, usize col) {
-        check_index(row, col);
-        return data[row][col];
+    [[nodiscard]] constexpr T& at(usize i, usize j) {
+        check_index(i, j);
+        return data[i][j];
     }
 
-    [[nodiscard]] constexpr const T& at(usize row, usize col) const {
-        check_index(row, col);
-        return data[row][col];
+    [[nodiscard]] constexpr const T& at(usize i, usize j) const {
+        check_index(i, j);
+        return data[i][j];
     }
 
     // Addition.
-    [[nodiscard]] constexpr Matrix operator+(const Matrix& other) const noexcept {
+    [[nodiscard]] constexpr Matrix operator+(const Matrix& matrix) const noexcept {
         Matrix result;
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = (*this)(row, col) + other(row, col);
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = (*this)(i, j) + matrix(i, j);
 
         return result;
     }
 
-    constexpr Matrix& operator+=(const Matrix& other) noexcept {
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                (*this)(row, col) += other(row, col);
+    constexpr Matrix& operator+=(const Matrix& matrix) noexcept {
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                (*this)(i, j) += matrix(i, j);
 
         return *this;
     }
 
     // Subtraction.
-    [[nodiscard]] constexpr Matrix operator-(const Matrix& other) const noexcept {
+    [[nodiscard]] constexpr Matrix operator-(const Matrix& matrix) const noexcept {
         Matrix result;
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = (*this)(row, col) - other(row, col);
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = (*this)(i, j) - matrix(i, j);
 
         return result;
     }
 
-    constexpr Matrix& operator-=(const Matrix& other) noexcept {
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                (*this)(row, col) -= other(row, col);
+    constexpr Matrix& operator-=(const Matrix& matrix) noexcept {
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                (*this)(i, j) -= matrix(i, j);
 
         return *this;
     }
@@ -118,22 +149,23 @@ class Matrix final {
     [[nodiscard]] constexpr Matrix operator-() const noexcept {
         Matrix result;
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = -(*this)(row, col);
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = -(*this)(i, j);
 
         return result;
     }
 
     // Matrix multiplication.
     template<usize P>
-    [[nodiscard]] constexpr Matrix<M, P, T> operator*(const Matrix<N, P, T>& other) const noexcept {
+    [[nodiscard]] constexpr Matrix<M, P, T>
+    operator*(const Matrix<N, P, T>& matrix) const noexcept {
         Matrix<M, P, T> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < P; ++col)
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < P; ++j)
                 for (usize k = 0; k < N; ++k)
-                    result(row, col) += (*this)(row, k) * other(k, col);
+                    result(i, j) += (*this)(i, k) * matrix(k, j);
 
         return result;
     }
@@ -146,9 +178,9 @@ class Matrix final {
 
         Matrix<M, N, R> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = static_cast<R>((*this)(row, col)) * scalar;
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = static_cast<R>((*this)(i, j)) * scalar;
 
         return result;
     }
@@ -169,25 +201,25 @@ class Matrix final {
 
         Matrix<M, N, R> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = static_cast<R>((*this)(row, col)) / scalar;
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = static_cast<R>((*this)(i, j)) / scalar;
 
         return result;
     }
 
     // Element-wise division. This is not standard matrix division.
-    [[nodiscard]] Matrix operator/(const Matrix& other) const {
+    [[nodiscard]] Matrix operator/(const Matrix& matrix) const {
         Matrix result;
 
-        for (usize row = 0; row < M; ++row)
+        for (usize i = 0; i < M; ++i)
         {
-            for (usize col = 0; col < N; ++col)
+            for (usize j = 0; j < N; ++j)
             {
-                if (other(row, col) == T{})
+                if (matrix(i, j) == T{})
                     throw std::domain_error("Matrix element-wise division by zero");
 
-                result(row, col) = (*this)(row, col) / other(row, col);
+                result(i, j) = (*this)(i, j) / matrix(i, j);
             }
         }
 
@@ -196,9 +228,9 @@ class Matrix final {
 
     // Compound scalar multiplication.
     constexpr Matrix& operator*=(const T& scalar) noexcept {
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                (*this)(row, col) *= scalar;
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                (*this)(i, j) *= scalar;
 
         return *this;
     }
@@ -208,34 +240,34 @@ class Matrix final {
         if (scalar == T{})
             throw std::domain_error("Matrix division by zero");
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                (*this)(row, col) /= scalar;
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                (*this)(i, j) /= scalar;
 
         return *this;
     }
 
     // Equality.
-    [[nodiscard]] constexpr bool operator==(const Matrix& other) const noexcept {
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                if ((*this)(row, col) != other(row, col))
+    [[nodiscard]] constexpr bool operator==(const Matrix& matrix) const noexcept {
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                if ((*this)(i, j) != matrix(i, j))
                     return false;
 
         return true;
     }
 
-    [[nodiscard]] constexpr bool operator!=(const Matrix& other) const noexcept {
-        return !(*this == other);
+    [[nodiscard]] constexpr bool operator!=(const Matrix& matrix) const noexcept {
+        return !(*this == matrix);
     }
 
     // Transpose: Matrix<M, N> -> Matrix<N, M>.
     [[nodiscard]] constexpr Matrix<N, M, T> transpose() const noexcept {
         Matrix<N, M, T> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(col, row) = (*this)(row, col);
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(j, i) = (*this)(i, j);
 
         return result;
     }
@@ -256,12 +288,12 @@ class Matrix final {
         return result;
     }
 
-    // Submatrix: remove the specified row and column.
-    [[nodiscard]] auto submatrix(usize row, usize col) const {
+    // Submatrix: remove the specified i and column.
+    [[nodiscard]] auto submatrix(usize i, usize j) const {
         static_assert(M == N, "Submatrix requires a square matrix");
         static_assert(M > 1, "Cannot create a zero-sized submatrix");
 
-        check_index(row, col);
+        check_index(i, j);
 
         Matrix<M - 1, N - 1, T> result{};
 
@@ -269,14 +301,14 @@ class Matrix final {
 
         for (usize r = 0; r < M; ++r)
         {
-            if (r == row)
+            if (r == i)
                 continue;
 
             usize subCol = 0;
 
             for (usize c = 0; c < N; ++c)
             {
-                if (c == col)
+                if (c == j)
                     continue;
 
                 result(subRow, subCol++) = (*this)(r, c);
@@ -289,10 +321,10 @@ class Matrix final {
     }
 
     // Minor: determinant of the submatrix.
-    [[nodiscard]] T minor(usize row, usize col) const {
+    [[nodiscard]] T minor(usize i, usize j) const {
         static_assert(M == N, "Minor requires a square matrix");
 
-        check_index(row, col);
+        check_index(i, j);
 
         if constexpr (M == 1)
         {
@@ -300,16 +332,16 @@ class Matrix final {
         }
         else
         {
-            return submatrix(row, col).determinant();
+            return submatrix(i, j).determinant();
         }
     }
 
-    // Cofactor: C(row, col) = (-1)^(row+col) * minor(row, col).
-    [[nodiscard]] T cofactor(usize row, usize col) const {
-        return ((row + col) % 2 == 0 ? T{1} : T{-1}) * minor(row, col);
+    // Cofactor: C(i, j) = (-1)^(i+j) * minor(i, j).
+    [[nodiscard]] T cofactor(usize i, usize j) const {
+        return ((i + j) % 2 == 0 ? T{1} : T{-1}) * minor(i, j);
     }
 
-    // Determinant: recursive Laplace expansion along the first row.
+    // Determinant: recursive Laplace expansion along the first i.
     [[nodiscard]] T determinant() const {
         static_assert(M == N, "Determinant requires a square matrix");
 
@@ -321,8 +353,8 @@ class Matrix final {
         {
             T result{};
 
-            for (usize col = 0; col < N; ++col)
-                result += (*this)(0, col) * cofactor(0, col);
+            for (usize j = 0; j < N; ++j)
+                result += (*this)(0, j) * cofactor(0, j);
 
             return result;
         }
@@ -338,19 +370,19 @@ class Matrix final {
 
         oss << "[";
 
-        for (usize row = 0; row < M; ++row)
+        for (usize i = 0; i < M; ++i)
         {
-            if (row != 0)
+            if (i != 0)
                 oss << "\n ";
 
             oss << "[ ";
 
-            for (usize col = 0; col < N; ++col)
+            for (usize j = 0; j < N; ++j)
             {
-                if (col != 0)
+                if (j != 0)
                     oss << ", ";
 
-                oss << (*this)(row, col);
+                oss << (*this)(i, j);
             }
 
             oss << " ]";
@@ -363,19 +395,19 @@ class Matrix final {
         //        []
 
         /*
-        for (usize row = 0; row < M; ++row)
+        for (usize i = 0; i < M; ++i)
         {
-            if (row != 0)
+            if (i != 0)
                 oss << "\n";
 
             oss << "[ ";
 
-            for (usize col = 0; col < N; ++col)
+            for (usize j = 0; j < N; ++j)
             {
-                if (col != 0)
+                if (j != 0)
                     oss << ", ";
 
-                oss << (*this)(row, col);
+                oss << (*this)(i, j);
             }
 
             oss << " ]";
@@ -393,9 +425,9 @@ class Matrix final {
 
         Matrix<M, N, R> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = static_cast<R>((*this)(row, col)) + scalar;
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = static_cast<R>((*this)(i, j)) + scalar;
 
         return result;
     }
@@ -408,9 +440,9 @@ class Matrix final {
 
         Matrix<M, N, R> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = static_cast<R>((*this)(row, col)) - scalar;
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = static_cast<R>((*this)(i, j)) - scalar;
 
         return result;
     }
@@ -430,9 +462,9 @@ class Matrix final {
 
         Matrix<M, N, R> result{};
 
-        for (usize row = 0; row < M; ++row)
-            for (usize col = 0; col < N; ++col)
-                result(row, col) = static_cast<R>(scalar) - static_cast<R>(matrix(row, col));
+        for (usize i = 0; i < M; ++i)
+            for (usize j = 0; j < N; ++j)
+                result(i, j) = static_cast<R>(scalar) - static_cast<R>(matrix(i, j));
 
         return result;
     }
@@ -443,8 +475,8 @@ class Matrix final {
     }
 
    private:
-    static void check_index(usize row, usize col) {
-        if (row >= M || col >= N)
+    static void check_index(usize i, usize j) {
+        if (i >= M || j >= N)
             throw std::out_of_range("Matrix index out of range");
     }
 };

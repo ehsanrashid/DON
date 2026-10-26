@@ -71,5 +71,13 @@ int main() {
     std::cout << "\nMatrix D (3x2):\n" << d << '\n';
     std::cout << "\nTranspose D (2x3):\n" << d.transpose() << '\n';
 
+    Matrix<2, 3, int> e{
+        {1, 2, 3},
+        {4, 5, 9}
+    };
+
+    std::cout << "\nMatrix E (2x3):\n" << e << '\n';
+    std::cout << "\nTranspose E (3x2):\n" << e.transpose() << '\n';
+
     return 0;
 }
