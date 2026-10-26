@@ -19,7 +19,7 @@ using namespace DON;
 int main() {
     using DON::Matrix;
 
-    Matrix<2, 2, double> a;
+    Matrix<2, 2, double> a(3);
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(1, 0) = 3.0;

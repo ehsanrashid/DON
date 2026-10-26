@@ -45,8 +45,9 @@ class Matrix final {
 
     // Initialize all elements to the same value.
     constexpr explicit Matrix(const T& value) noexcept {
-        for (usize i = 0; i < M; ++i)
-            data[i].fill(value);
+        Array<T, N> row{};
+        row.fill(value);
+        data.fill(row);
     }
 
     // Initialize elements in i-major order.
@@ -107,13 +108,13 @@ class Matrix final {
 
     // Addition.
     [[nodiscard]] constexpr Matrix operator+(const Matrix& matrix) const noexcept {
-        Matrix result;
+        Matrix mat;
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = (*this)(i, j) + matrix(i, j);
+                mat(i, j) = (*this)(i, j) + matrix(i, j);
 
-        return result;
+        return mat;
     }
 
     constexpr Matrix& operator+=(const Matrix& matrix) noexcept {
@@ -126,13 +127,13 @@ class Matrix final {
 
     // Subtraction.
     [[nodiscard]] constexpr Matrix operator-(const Matrix& matrix) const noexcept {
-        Matrix result;
+        Matrix mat;
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = (*this)(i, j) - matrix(i, j);
+                mat(i, j) = (*this)(i, j) - matrix(i, j);
 
-        return result;
+        return mat;
     }
 
     constexpr Matrix& operator-=(const Matrix& matrix) noexcept {
@@ -147,27 +148,27 @@ class Matrix final {
     [[nodiscard]] constexpr Matrix operator+() const noexcept { return *this; }
 
     [[nodiscard]] constexpr Matrix operator-() const noexcept {
-        Matrix result;
+        Matrix mat;
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = -(*this)(i, j);
+                mat(i, j) = -(*this)(i, j);
 
-        return result;
+        return mat;
     }
 
     // Matrix multiplication.
     template<usize P>
     [[nodiscard]] constexpr Matrix<M, P, T>
     operator*(const Matrix<N, P, T>& matrix) const noexcept {
-        Matrix<M, P, T> result{};
+        Matrix<M, P, T> mat{};
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < P; ++j)
                 for (usize k = 0; k < N; ++k)
-                    result(i, j) += (*this)(i, k) * matrix(k, j);
+                    mat(i, j) += (*this)(i, k) * matrix(k, j);
 
-        return result;
+        return mat;
     }
 
     // Scalar multiplication.
@@ -176,13 +177,13 @@ class Matrix final {
       -> Matrix<M, N, std::common_type_t<T, U>> {
         using R = std::common_type_t<T, U>;
 
-        Matrix<M, N, R> result{};
+        Matrix<M, N, R> mat{};
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = static_cast<R>((*this)(i, j)) * scalar;
+                mat(i, j) = static_cast<R>((*this)(i, j)) * scalar;
 
-        return result;
+        return mat;
     }
 
     template<typename U, typename = std::enable_if_t<std::is_arithmetic_v<U>>>
@@ -199,18 +200,18 @@ class Matrix final {
 
         using R = std::common_type_t<T, U>;
 
-        Matrix<M, N, R> result{};
+        Matrix<M, N, R> mat{};
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = static_cast<R>((*this)(i, j)) / scalar;
+                mat(i, j) = R((*this)(i, j)) / scalar;
 
-        return result;
+        return mat;
     }
 
     // Element-wise division. This is not standard matrix division.
     [[nodiscard]] Matrix operator/(const Matrix& matrix) const {
-        Matrix result;
+        Matrix mat;
 
         for (usize i = 0; i < M; ++i)
         {
@@ -219,11 +220,11 @@ class Matrix final {
                 if (matrix(i, j) == T{})
                     throw std::domain_error("Matrix element-wise division by zero");
 
-                result(i, j) = (*this)(i, j) / matrix(i, j);
+                mat(i, j) = (*this)(i, j) / matrix(i, j);
             }
         }
 
-        return result;
+        return mat;
     }
 
     // Compound scalar multiplication.
@@ -263,13 +264,13 @@ class Matrix final {
 
     // Transpose: Matrix<M, N> -> Matrix<N, M>.
     [[nodiscard]] constexpr Matrix<N, M, T> transpose() const noexcept {
-        Matrix<N, M, T> result{};
+        Matrix<N, M, T> transpose{};
 
-        for (usize i = 0; i < M; ++i)
-            for (usize j = 0; j < N; ++j)
-                result(j, i) = (*this)(i, j);
+        for (usize i = 0; i < N; ++i)
+            for (usize j = 0; j < M; ++j)
+                transpose(i, j) = (*this)(j, i);
 
-        return result;
+        return transpose;
     }
 
     // Adjoint for real-valued matrices.
@@ -280,12 +281,12 @@ class Matrix final {
     [[nodiscard]] static constexpr Matrix identity() noexcept {
         static_assert(M == N, "Identity matrix must be square");
 
-        Matrix result{};
+        Matrix identity{};
 
         for (usize i = 0; i < M; ++i)
-            result(i, i) = T{1};
+            identity(i, i) = T{1};
 
-        return result;
+        return identity;
     }
 
     // Submatrix: remove the specified i and column.
@@ -328,7 +329,7 @@ class Matrix final {
 
         if constexpr (M == 1)
         {
-            return T{1};
+            return T{0};
         }
         else
         {
@@ -338,7 +339,7 @@ class Matrix final {
 
     // Cofactor: C(i, j) = (-1)^(i+j) * minor(i, j).
     [[nodiscard]] T cofactor(usize i, usize j) const {
-        return ((i + j) % 2 == 0 ? T{1} : T{-1}) * minor(i, j);
+        return ((i + j) % 2 == 0 ? T{+1} : T{-1}) * minor(i, j);
     }
 
     // Determinant: recursive Laplace expansion along the first i.
@@ -351,12 +352,12 @@ class Matrix final {
         }
         else
         {
-            T result{};
+            T determinant{};
 
             for (usize j = 0; j < N; ++j)
-                result += (*this)(0, j) * cofactor(0, j);
+                determinant += (*this)(0, j) * cofactor(0, j);
 
-            return result;
+            return determinant;
         }
     }
 
@@ -423,13 +424,13 @@ class Matrix final {
       -> Matrix<M, N, std::common_type_t<T, U>> {
         using R = std::common_type_t<T, U>;
 
-        Matrix<M, N, R> result{};
+        Matrix<M, N, R> mat{};
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = static_cast<R>((*this)(i, j)) + scalar;
+                mat(i, j) = static_cast<R>((*this)(i, j)) + scalar;
 
-        return result;
+        return mat;
     }
 
     // Scalar subtraction.
@@ -438,13 +439,13 @@ class Matrix final {
       -> Matrix<M, N, std::common_type_t<T, U>> {
         using R = std::common_type_t<T, U>;
 
-        Matrix<M, N, R> result{};
+        Matrix<M, N, R> mat{};
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = static_cast<R>((*this)(i, j)) - scalar;
+                mat(i, j) = static_cast<R>((*this)(i, j)) - scalar;
 
-        return result;
+        return mat;
     }
 
     // Scalar-left addition.
@@ -460,13 +461,13 @@ class Matrix final {
       -> Matrix<M, N, std::common_type_t<T, U>> {
         using R = std::common_type_t<T, U>;
 
-        Matrix<M, N, R> result{};
+        Matrix<M, N, R> mat{};
 
         for (usize i = 0; i < M; ++i)
             for (usize j = 0; j < N; ++j)
-                result(i, j) = static_cast<R>(scalar) - static_cast<R>(matrix(i, j));
+                mat(i, j) = static_cast<R>(scalar) - static_cast<R>(matrix(i, j));
 
-        return result;
+        return mat;
     }
 
     // Stream output.
