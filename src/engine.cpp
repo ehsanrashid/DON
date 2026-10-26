@@ -79,8 +79,8 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("SyzygyPVExtend",    Option::check(true));
     options().add("EvalFile",          Option::string(EvalFileDefaultName, [this](const Option& o) { load_network(utf8_to_path(o)); return std::nullopt; }));
     options().add("MinimalInfo",       Option::check(false));
-    options().add("LogFile",           Option::string("", [](const Option& o) { return Logger::start(utf8_to_path(o)) ? "Logger started" : "Logger not started"; }));
-    options().add("Stop Logger",       Option::button([](const Option&) { Logger::stop(); return std::nullopt; }));
+    options().add("LogFile",           Option::string("", [](const Option& o) { return logger().start(utf8_to_path(o)) ? "Logger started" : "Logger not started"; }));
+    options().add("Stop Logger",       Option::button([](const Option&) { logger().stop(); return std::nullopt; }));
     // clang-format on
 
     set_history_max_load_factor();

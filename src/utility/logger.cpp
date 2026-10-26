@@ -25,37 +25,31 @@
 
 namespace DON {
 
-bool Logger::start(const fs::path& logPath) noexcept {
-    std::lock_guard lockGuard{instance().mutex};
-
-    return instance().open(logPath);
-}
-
-void Logger::stop() noexcept {
-    std::lock_guard lockGuard{instance().mutex};
-
-    instance().close();
-}
-
 Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
     is(isRef),
     os(osRef),
     isBuf(is.rdbuf()),
     osBuf(os.rdbuf()),
-    itBuf(is.rdbuf(), ofs.rdbuf()),
-    otBuf(os.rdbuf(), ofs.rdbuf()) {}
+    itBuf(isBuf, ofs.rdbuf()),
+    otBuf(osBuf, ofs.rdbuf()) {}
 
 Logger::~Logger() noexcept { close(); }
 
-Logger& Logger::instance() noexcept {
-    static Logger logger(std::cin, std::cout);
+bool Logger::start(const fs::path& logPath) noexcept {
+    std::lock_guard lockGuard{mutex};
 
-    return logger;
+    return open(logPath);
+}
+
+void Logger::stop() noexcept {
+    std::lock_guard lockGuard{mutex};
+
+    close();
 }
 
 bool Logger::open(const fs::path& logPath) noexcept {
-    if (filename == logPath.string() && is_open())
-        return true;  // Already open
+    if (is_open() && filename == logPath.string())
+        return true;
 
     close();
 
@@ -64,11 +58,14 @@ bool Logger::open(const fs::path& logPath) noexcept {
 
     filename = logPath.string();
 
+    ofs.clear();
     ofs.open(filename, std::ios::out | std::ios::app);
 
     if (!is_open())
     {
         DEBUG_LOG("Unable to open Log file: " << filename);
+
+        filename.clear();
         return false;
     }
 
@@ -76,20 +73,25 @@ bool Logger::open(const fs::path& logPath) noexcept {
 
     is.rdbuf(&itBuf);
     os.rdbuf(&otBuf);
+    redirected = true;
 
     return true;
 }
 
 void Logger::close() noexcept {
-    if (!is_open())
-        return;
+    if (redirected)
+    {
+        is.rdbuf(isBuf);
+        os.rdbuf(osBuf);
 
-    is.rdbuf(isBuf);
-    os.rdbuf(osBuf);
+        redirected = false;
+    }
 
-    write_timestamp("<-");
-
-    ofs.close();
+    if (is_open())
+    {
+        write_timestamp("<-");
+        ofs.close();
+    }
 
     filename.clear();
 }
@@ -97,10 +99,17 @@ void Logger::close() noexcept {
 bool Logger::is_open() const noexcept { return ofs.is_open(); }
 
 void Logger::write_timestamp(std::string_view suffix) noexcept {
-    if (!ofs)
+    if (!ofs.is_open())
         return;
 
-    ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << std::endl;
+    ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << '\n';
+
+    ofs.flush();
+}
+
+Logger& logger() noexcept {
+    static Logger logger(std::cin, std::cout);
+    return logger;
 }
 
 }  // namespace DON

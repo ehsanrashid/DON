@@ -41,7 +41,7 @@ __attribute__((used))  // keep main alive
 
 int main(const int argc, const char* const argv[]) noexcept {
 
-    set_console_utf8();
+    (void) console().set_utf8();
 
     std::cout << engine_info() << std::endl;
     std::cout << build_timestamp() << std::endl;
@@ -60,7 +60,7 @@ int main(const int argc, const char* const argv[]) noexcept {
     Tune::init(uci.options());
 
 #if defined(ENABLE_CONSOLE_COLORS)
-    ConsoleColors consoleColors;
+    console().set_colors();
 #endif
 
     commandLine.size() > 1  //

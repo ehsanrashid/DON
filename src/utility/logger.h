@@ -29,6 +29,7 @@
 
 namespace DON {
 
+/*
 // Logger
 //
 // Manages runtime logging by redirecting std::cin and std::cout through
@@ -74,6 +75,48 @@ class Logger final {
     TieBuf          itBuf, otBuf;
     std::string     filename;
 };
+*/
+
+// Logger
+//
+// Manages runtime logging by redirecting std::cin and std::cout through
+// TieBuf objects to mirror I/O to a log file.
+class Logger final {
+   public:
+    Logger(std::istream& isRef, std::ostream& osRef) noexcept;
+
+    Logger(const Logger&)            = delete;
+    Logger& operator=(const Logger&) = delete;
+    Logger(Logger&&)                 = delete;
+    Logger& operator=(Logger&&)      = delete;
+    ~Logger() noexcept;
+
+    [[nodiscard]] bool start(const fs::path& logPath) noexcept;
+    void               stop() noexcept;
+
+   private:
+    // Opens the specified log file and redirects the streams through TieBuf.
+    [[nodiscard]] bool open(const fs::path& logPath) noexcept;
+    // Restores the original streams and closes the log file.
+    void close() noexcept;
+    // Returns true if the log file is open.
+    [[nodiscard]] bool is_open() const noexcept;
+
+    void write_timestamp(std::string_view suffix) noexcept;
+
+    std::mutex      mutex;
+    std::ofstream   ofs;
+    std::istream&   is;
+    std::ostream&   os;
+    std::streambuf* isBuf = nullptr;
+    std::streambuf* osBuf = nullptr;
+    TieBuf          itBuf;
+    TieBuf          otBuf;
+    std::string     filename;
+    bool            redirected = false;
+};
+
+Logger& logger() noexcept;
 
 }  // namespace DON
 
