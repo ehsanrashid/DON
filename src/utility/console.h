@@ -18,6 +18,10 @@
 #ifndef UTILITY_CONSOLE_H_INCLUDED
 #define UTILITY_CONSOLE_H_INCLUDED
 
+#if defined(_WIN32)
+    #include "../utility/platform_win.h"
+#endif
+
 #include "../utility/streambuf.h"
 
 namespace DON {
@@ -98,32 +102,58 @@ inline constexpr const char* const RESET_SUPERSCRIPT_SUBSCRIPT = "\033[75m";
 
 }  // namespace ConsoleColor
 
-void set_console_utf8() noexcept;
-
-class ConsoleColors final {
+class Console final {
    public:
-    explicit ConsoleColors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
-                           const char* errColor = ConsoleColor::BRIGHT_RED) noexcept;
+    Console() noexcept;
+    ~Console() noexcept;
 
-    ConsoleColors(const ConsoleColors&)            = delete;
-    ConsoleColors& operator=(const ConsoleColors&) = delete;
-    ConsoleColors(ConsoleColors&&)                 = delete;
-    ConsoleColors& operator=(ConsoleColors&&)      = delete;
+    Console(const Console&) noexcept            = delete;
+    Console& operator=(const Console&) noexcept = delete;
+    Console(Console&&) noexcept                 = delete;
+    Console& operator=(Console&&) noexcept      = delete;
 
-    ~ConsoleColors() noexcept;
+    // Console initialization and configuration.
+    [[nodiscard]] bool initialize() noexcept;
+    void               restore() noexcept;
 
+    // Terminal capabilities.
+    [[nodiscard]] bool is_terminal() const noexcept;
+
+    // Encoding.
+    [[nodiscard]] bool set_utf8() noexcept;
+
+    void enable_virtual_terminal() noexcept;
+
+    // Color control.
     void set_colors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
                     const char* errColor = ConsoleColor::BRIGHT_RED) noexcept;
-
     void restore_colors() noexcept;
 
+
    private:
+    bool initialized = false;
+    bool utf8Enabled = false;
+
     ColorBuf outColorBuf;
     ColorBuf errColorBuf;
 
     bool outColorActive = false;
     bool errColorActive = false;
+
+#if defined(_WIN32)
+    UINT  inputCodePage  = 0;
+    UINT  outputCodePage = 0;
+    DWORD outputMode     = 0;
+    DWORD errorMode      = 0;
+
+    bool inputCodePageSaved  = false;
+    bool outputCodePageSaved = false;
+    bool outputModeSaved     = false;
+    bool errorModeSaved      = false;
+#endif
 };
+
+Console& console() noexcept;
 
 }  // namespace DON
 

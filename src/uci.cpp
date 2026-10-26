@@ -265,9 +265,9 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(const std::string_view command) noexcept {
 
-    StringBuf streambuf{command};
+    StringBuf stringBuf{command};
 
-    std::istream is{&streambuf};
+    std::istream is{&stringBuf};
 
     std::string token;
     if (!(is >> token))

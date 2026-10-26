@@ -451,18 +451,19 @@ apply_features(const u16* indices, Index size, const i8* weights, Index j, Tile&
             apply_single<op>(&weights[usize(indices[0]) * Dimensions], j, tile);
         if (size > 1)
             apply_single<op>(&weights[usize(indices[1]) * Dimensions], j, tile);
-        return;
 #endif
     }
-
-    Index i = 0;
+    else
+    {
+        Index i = 0;
 #if defined(USE_PAIRED_WIDENING_ADD)
-    for (; i + 1 < size; i += 2)
-        apply_pair<op>(&weights[usize(indices[i + 0]) * Dimensions],
-                       &weights[usize(indices[i + 1]) * Dimensions], tile);
+        for (; i + 1 < size; i += 2)
+            apply_pair<op>(&weights[usize(indices[i + 0]) * Dimensions],
+                           &weights[usize(indices[i + 1]) * Dimensions], tile);
 #endif
-    for (; i < size; ++i)
-        apply_single<op>(&weights[usize(indices[i]) * Dimensions], j, tile);
+        for (; i < size; ++i)
+            apply_single<op>(&weights[usize(indices[i]) * Dimensions], j, tile);
+    }
 }
 
 template<Op op>

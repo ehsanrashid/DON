@@ -56,7 +56,7 @@ int main() {
 
     std::cout << "Minor(0, 0): " << c.minor(0, 0) << '\n';
     std::cout << "Cofactor(0, 0): " << c.cofactor(0, 0) << '\n';
-    std::cout << "Determinant B: " << c.determinant() << '\n';
+    std::cout << "Determinant C: " << c.determinant() << '\n';
 
     std::cout << "\nSubmatrix(0, 0):\n" << c.submatrix(0, 0) << '\n';
 
