@@ -17,10 +17,9 @@
 
 #include "../utility/streambuf.h"
 
-#include <string>
 #include <algorithm>
+#include <cctype>
 #include <cstring>
-#include <streambuf>
 #include <string>
 #include <string_view>
 

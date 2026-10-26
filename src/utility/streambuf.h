@@ -19,6 +19,7 @@
 #define UTILITY_STREAMBUF_H_INCLUDED
 
 #include <ios>
+#include <string>
 #include <string_view>
 
 #include "../utility/types.h"
