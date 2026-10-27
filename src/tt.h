@@ -84,7 +84,7 @@ class TTWriter final {
 struct ProbResult final {
    public:
     TTData   data;
-    TTWriter writter;
+    TTWriter writer;
 };
 
 class Threads;

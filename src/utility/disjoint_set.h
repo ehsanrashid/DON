@@ -19,6 +19,7 @@
 #define UTILITY_DISJOINT_SET_H_INCLUDED
 
 #include <numeric>
+
 #include "../utility/types.h"
 
 namespace DON {
@@ -27,13 +28,17 @@ namespace DON {
 // This is a good candidate for a standalone reusable class.
 class DisjointSet final {
    public:
+    DisjointSet() noexcept = default;
+
     explicit DisjointSet(const usize n) noexcept { reset(n); }
 
     void reset(const usize n) noexcept {
         parents.resize(n);
-        std::iota(parents.begin(), parents.end(), 0);
         ranks.assign(n, 0);
+        sizes.assign(n, 1);
         components_ = n;
+
+        std::iota(parents.begin(), parents.end(), 0);
     }
 
     [[nodiscard]] usize find(const usize x) noexcept {
@@ -54,6 +59,7 @@ class DisjointSet final {
             std::swap(px, py);
 
         parents[py] = px;
+        sizes[px] += sizes[py];
 
         ranks[px] += (ranks[px] == ranks[py]);
 
@@ -66,12 +72,15 @@ class DisjointSet final {
         return find(x) == find(y);
     }
 
+    [[nodiscard]] usize size(const usize x) noexcept { return sizes[find(x)]; }
+
     [[nodiscard]] usize components() const noexcept { return components_; }
 
    private:
     std::vector<usize> parents;
     std::vector<usize> ranks;
-    usize              components_;
+    std::vector<usize> sizes;
+    usize              components_ = 0;
 };
 
 }  // namespace DON

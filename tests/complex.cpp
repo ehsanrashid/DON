@@ -10,7 +10,6 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src tests/complex.cpp -o build/complex
 ./build/complex
 */
 
-
 #include <iostream>
 
 #include "utility/complex.h"

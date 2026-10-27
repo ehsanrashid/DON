@@ -521,6 +521,9 @@ void Worker::iterative_deepening() noexcept {
       limit.depth != DEPTH_ZERO && limit.depth < DEPTH_MAX ? limit.depth : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= maxDepth; ++rootDepth)
     {
+        // Do not tune these values. They are not intended for playing strength.
+        const int seekMateThreshold = constexpr_ceil(750.0 + 220000.0 / (rootDepth * rootDepth));
+
         // Signal the start of a new iteration
         if (manager != nullptr)
             manager->pvShown = false;
@@ -578,9 +581,11 @@ void Worker::iterative_deepening() noexcept {
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
-            // Do not tune these values. They are not intended for playing strength.
-            seekMate = constexpr_abs(rootMoves[pvIdx].value)
-                    >= constexpr_ceil(750.0 + 220000.0 / (rootDepth * rootDepth));
+            // For multiPV we use previousScore because score is often -VALUE_INFINITE
+            Value seekMateScore = pvIdx != 0 ? rootMoves[pvIdx].preValue : rootMoves[pvIdx].value;
+
+            seekMate = seekMateScore != -VALUE_INFINITE  //
+                    && constexpr_abs(seekMateScore) >= seekMateThreshold;
 
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = constexpr_round(456.0 * avgValue / (85.0 + constexpr_abs(avgValue)));
@@ -589,7 +594,7 @@ void Worker::iterative_deepening() noexcept {
             // Start with a small aspiration window and, after a fail-high/low,
             // progressively enlarge the window until the search no longer fails high/low.
 
-            // Decrease fail-high recovery.
+            // Decrease fail-high recovery
             if (pvIdx == 0)
                 failHighRecovery = failHighRecovery > 2 ? failHighRecovery - 2 : 0;
 

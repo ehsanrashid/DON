@@ -171,14 +171,16 @@ class SegmentTreeMin final {
         return lastle_(1, 0, H, l + 1, value);
     }
 
-    [[nodiscard]] value_type& operator[](const usize i) noexcept { return tree[i]; }
+    [[nodiscard]] usize size() const noexcept { return N; }
 
-    [[nodiscard]] const value_type& operator[](const usize i) const noexcept { return tree[i]; }
+    [[nodiscard]] value_type& operator[](const usize i) noexcept { return tree[H + i]; }
+
+    [[nodiscard]] const value_type& operator[](const usize i) const noexcept { return tree[H + i]; }
 
    private:
     [[nodiscard]] static usize leaf_count(const usize n) {
         if (n > static_cast<usize>(std::numeric_limits<isize>::max()))
-            throw std::length_error("SegmentTreeMin: size exceeds ptrdiff_t");
+            throw std::length_error("SegmentTreeMin: size exceeds isize");
 
         usize h = 1;
 
@@ -310,11 +312,11 @@ class SegmentTreeSum final {
         return resultLeft + resultRight;
     }
 
+    [[nodiscard]] usize size() const noexcept { return N; }
+
     [[nodiscard]] value_type operator[](const usize i) const noexcept { return tree[H + i]; }
 
     [[nodiscard]] value_type& operator[](const usize i) noexcept { return tree[H + i]; }
-
-    [[nodiscard]] usize size() const noexcept { return N; }
 
    private:
     [[nodiscard]] static usize leaf_count(const usize n) {
