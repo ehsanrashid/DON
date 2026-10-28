@@ -26,6 +26,7 @@
 #include <system_error>
 #include <vector>
 
+#include "bitboard.h"
 #include "memory.h"
 #include "misc.h"
 #include "thread.h"
@@ -43,14 +44,18 @@ constexpr u8 BOUND_MASK      = u8{3} << BOUND_SHIFT;
 constexpr u8 PV_SHIFT        = BOUND_SHIFT + 2;
 constexpr u8 PV_MASK         = u8{1} << PV_SHIFT;
 
-//constexpr int KEY_BITS = 21;
-//constexpr u32 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+constexpr int KEY21_BITS = 21;
+constexpr u32 KEY21_MASK = (u64{1} << KEY21_BITS) - 1;
 
-constexpr u16 compress_key(const Key key) noexcept {
-    return ((key >> 00) & u16{0xFFFF})  //
-         ^ ((key >> 16) & u16{0x0FFF})  //
-         ^ ((key >> 32) & u16{0x00FF})  //
-         ^ ((key >> 48) & u16{0x000F});
+constexpr u64 KEY21_LSB = u64{1} << 0 * KEY21_BITS  //
+                        | u64{1} << 1 * KEY21_BITS  //
+                        | u64{1} << 2 * KEY21_BITS;
+constexpr u64 KEY21_MSB = KEY21_LSB << (KEY21_BITS - 1);
+
+constexpr u32 compress_key21(const Key key) noexcept {
+    return ((key >> 0 * KEY21_BITS) & (KEY21_MASK >> 0 * KEY21_BITS / 3))  //
+         ^ ((key >> 1 * KEY21_BITS) & (KEY21_MASK >> 1 * KEY21_BITS / 3))
+         ^ ((key >> 2 * KEY21_BITS) & (KEY21_MASK >> 2 * KEY21_BITS / 3));
 }
 
 }  // namespace
@@ -78,7 +83,6 @@ struct TTEntry final {
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
     // clang-format off
-    [[nodiscard]] u16   key() const noexcept { return key16; }
     [[nodiscard]] bool  occupied() const noexcept { return depth8 != 0; }
     [[nodiscard]] Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
     [[nodiscard]] Move  move() const noexcept { return move16; }
@@ -95,14 +99,13 @@ struct TTEntry final {
 
     i16 worth(u8 gen) const noexcept;
 
-    void save(u16 k, Move m, Value v, Value ev, Depth d, Bound b, bool pv, u8 gen) noexcept;
+    void save(bool new_, Move m, Value v, Value ev, Depth d, Bound b, bool pv, u8 gen) noexcept;
 
     void penalize(u8 penalty) noexcept;
 
     void reset() noexcept;
 
    private:
-    RelaxedAtomic<u16>   key16;
     RelaxedAtomic<Move>  move16;
     RelaxedAtomic<Value> value16;
     RelaxedAtomic<Value> evalue16;
@@ -110,7 +113,7 @@ struct TTEntry final {
     RelaxedAtomic<u8>    meta8;
 };
 
-static_assert(sizeof(TTEntry) == 10, "TTEntry size must be 10 bytes");
+static_assert(sizeof(TTEntry) == 8, "TTEntry size must be 8 bytes");
 
 // Convert internal bit fields to TTData
 TTData TTEntry::read() const noexcept {
@@ -128,7 +131,7 @@ i16 TTEntry::worth(const u8 gen) const noexcept { return depth8 - 8 * relative_a
 
 // Populates the TTEntry with a new node's data, possibly overwriting an old position.
 // The update is non-atomic and can be racy. Convert external types to internal bitfields.
-void TTEntry::save(const u16   k,
+void TTEntry::save(bool        new_,
                    const Move  m,
                    const Value v,
                    const Value ev,
@@ -141,13 +144,12 @@ void TTEntry::save(const u16   k,
     assert(gen <= GENERATION_MASK);
 
     // Preserve the old move if don't have a new one
-    if (key() != k || m.is_ok())
+    if (new_ || m.is_ok())
         move16 = m;
 
     // Overwrite less valuable entries (cheapest checks first)
-    if (key() != k || b == Bound::EXACT || depth() < 4 + d + int(pv) * 2 || relative_age(gen) != 0)
+    if (new_ || b == Bound::EXACT || depth() < 4 + d + int(pv) * 2 || relative_age(gen) != 0)
     {
-        key16    = k;
         value16  = v;
         evalue16 = ev;
         depth8   = d - DEPTH_OFFSET;
@@ -204,19 +206,51 @@ struct TTCluster final {
     TTCluster(TTCluster&&) noexcept                 = delete;
     TTCluster& operator=(TTCluster&&) noexcept      = delete;
 
+    u8 key_index(u32 key21) const noexcept;
+
+    bool key_exists(u32 key21) const noexcept;
+
+    bool key_equals(u32 key21, u8 index) const noexcept;
+
+    void save_key(u32 key21, u8 index) noexcept;
+
     static constexpr u8 EntryCount = 3;
 
+    RelaxedAtomic<u64>         keys;
     Array<TTEntry, EntryCount> entries;
-    Array<char, 2>             padding;  // Pad to 32 bytes
 };
 
 constexpr usize TT_CLUSTER_SIZE = sizeof(TTCluster);
 static_assert(TT_CLUSTER_SIZE == 32, "TTCluster size must be 32 bytes");
 
-TTWriter::TTWriter(TTCluster* const tc, const u8 idx, const u16 k, const u8 gen) noexcept :
+u8 TTCluster::key_index(const u32 key21) const noexcept {
+    assert((key21 & ~KEY21_MASK) == 0);
+
+    const u64 diffKeys  = keys ^ (KEY21_LSB * key21);
+    const u64 matchBits = (diffKeys - KEY21_LSB) & ~diffKeys & KEY21_MSB;
+
+    return matchBits != 0 ? u8(lsq(matchBits) / KEY21_BITS) : EntryCount;
+}
+
+bool TTCluster::key_exists(const u32 key21) const noexcept { return key_index(key21) < EntryCount; }
+
+bool TTCluster::key_equals(const u32 key21, const u8 index) const noexcept {
+    return ((keys >> (index * KEY21_BITS)) & KEY21_MASK) == key21;
+}
+
+void TTCluster::save_key(const u32 key21, const u8 index) noexcept {
+    assert((key21 & ~KEY21_MASK) == 0);
+    assert(index < EntryCount);
+
+    const u8 shift = index * KEY21_BITS;
+
+    keys = (keys & ~(u64{KEY21_MASK} << shift)) | (u64{key21} << shift);
+}
+
+TTWriter::TTWriter(TTCluster* const tc, const u8 idx, const u32 k21, const u8 gen) noexcept :
     ttc(tc),
     index(idx),
-    key(k),
+    key21(k21),
     generation(gen) {}
 
 // Find an entry to be replaced according to the replacement strategy
@@ -227,8 +261,8 @@ u8 TTWriter::prepare_replacement() const noexcept {
         if (ttc->entries[replacement].worth(generation) > ttc->entries[i].worth(generation))
             replacement = i;
 
-    for (; replacement != 0 && ttc->entries[replacement - 1].key() == key; --replacement)
-        ttc->entries[replacement].reset();
+    while (replacement != 0 && ttc->key_equals(key21, replacement - 1))
+        ttc->entries[replacement--].reset();
 
     return replacement;
 }
@@ -239,10 +273,13 @@ void TTWriter::write(const Move  m,
                      const Depth d,
                      const Bound b,
                      const bool  pv) noexcept {
-    if (index >= TTCluster::EntryCount)
+    const bool new_ = index >= TTCluster::EntryCount;
+
+    if (new_)
         index = prepare_replacement();
 
-    ttc->entries[index].save(key, m, v, ev, d, b, pv, generation);
+    ttc->entries[index].save(new_, m, v, ev, d, b, pv, generation);
+    ttc->save_key(key21, index);
 }
 
 void TTWriter::penalize(const u8 penalty) noexcept {
@@ -335,13 +372,13 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const u16 key16 = compress_key(key);
+    const u32 key21 = compress_key21(key);
 
-    for (u8 i = 0; i < TTCluster::EntryCount; ++i)
-        if (ttc->entries[i].key() == key16)
-            return {ttc->entries[i].read(), TTWriter{ttc, i, key16, generation8}};
+    const u8 idx = ttc->key_index(key21);
 
-    return {TTData::empty(), TTWriter{ttc, TTCluster::EntryCount, key16, generation8}};
+    return idx < TTCluster::EntryCount
+           ? ProbResult{ttc->entries[idx].read(), TTWriter{ttc, idx, key21, generation8}}
+           : ProbResult{TTData::empty(), TTWriter{ttc, TTCluster::EntryCount, key21, generation8}};
 }
 
 u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {

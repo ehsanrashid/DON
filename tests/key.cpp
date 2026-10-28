@@ -21,12 +21,12 @@ using namespace DON;
 using Key = u64;
 
 /*
-constexpr int KEY_BITS = 32;
-constexpr u32 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+constexpr int KEY32_BITS = 32;
+constexpr u32 KEY32_MASK = (u64{1} << KEY32_BITS) - 1;
 
 constexpr u32 compress_key(const Key key) noexcept {
-    return ((key >> 0 * KEY_BITS) & (KEY_MASK >> 0 * KEY_BITS / 2))  //
-         ^ ((key >> 1 * KEY_BITS) & (KEY_MASK >> 1 * KEY_BITS / 2));
+    return ((key >> 0 * KEY32_BITS) & (KEY32_MASK >> 0 * KEY32_BITS / 2))  //
+         ^ ((key >> 1 * KEY32_BITS) & (KEY32_MASK >> 1 * KEY32_BITS / 2));
 }
 
 // Independent reference:
@@ -36,13 +36,13 @@ constexpr u32 reference_compress_key(const Key key) noexcept {
 }
 */
 /*
-constexpr int KEY_BITS = 21;
-constexpr u32 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+constexpr int KEY21_BITS = 21;
+constexpr u32 KEY21_MASK = (u64{1} << KEY21_BITS) - 1;
 
 constexpr u32 compress_key(const Key key) noexcept {
-    return ((key >> 0 * KEY_BITS) & (KEY_MASK >> 0 * KEY_BITS / 3))  //
-         ^ ((key >> 1 * KEY_BITS) & (KEY_MASK >> 1 * KEY_BITS / 3))
-         ^ ((key >> 2 * KEY_BITS) & (KEY_MASK >> 2 * KEY_BITS / 3));
+    return ((key >> 0 * KEY21_BITS) & (KEY21_MASK >> 0 * KEY21_BITS / 3))  //
+         ^ ((key >> 1 * KEY21_BITS) & (KEY21_MASK >> 1 * KEY21_BITS / 3))
+         ^ ((key >> 2 * KEY21_BITS) & (KEY21_MASK >> 2 * KEY21_BITS / 3));
 }
 
 // Independent reference:
@@ -100,11 +100,11 @@ int main() {
 }
 */
 
-constexpr u64 KEY_BITS = 21;
-constexpr u64 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+constexpr u64 KEY21_BITS = 21;
+constexpr u64 KEY21_MASK = (u64{1} << KEY21_BITS) - 1;
 
 constexpr u64 extract_key(const Key key, const usize index) noexcept {
-    return (key >> (index * KEY_BITS)) & KEY_MASK;
+    return (key >> (index * KEY21_BITS)) & KEY21_MASK;
 }
 
 // Independent reference implementation.

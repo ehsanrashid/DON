@@ -41,12 +41,12 @@ namespace DON::Perft {
 
 namespace {
 
-constexpr int KEY_BITS = 32;
-constexpr u32 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+constexpr int KEY32_BITS = 32;
+constexpr u32 KEY32_MASK = (u64{1} << KEY32_BITS) - 1;
 
-constexpr u32 compress_key(const Key key) noexcept {
-    return ((key >> 0 * KEY_BITS) & (KEY_MASK >> 0 * KEY_BITS / 2))  //
-         ^ ((key >> 1 * KEY_BITS) & (KEY_MASK >> 1 * KEY_BITS / 2));
+constexpr u32 compress_key32(const Key key) noexcept {
+    return ((key >> 0 * KEY32_BITS) & (KEY32_MASK >> 0 * KEY32_BITS / 2))  //
+         ^ ((key >> 1 * KEY32_BITS) & (KEY32_MASK >> 1 * KEY32_BITS / 2));
 }
 
 struct PerftData final {
@@ -372,7 +372,7 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
     auto* const ptc = cluster(key);
 
-    const u32 key32 = compress_key(key);
+    const u32 key32 = compress_key32(key);
 
     for (u8 i = 0; i < PTCluster::EntryCount; ++i)
         if (ptc->entries[i].key() == key32 && ptc->entries[i].depth() == depth)
