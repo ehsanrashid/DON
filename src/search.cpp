@@ -575,17 +575,14 @@ void Worker::iterative_deepening() noexcept {
 
             const auto avgValue    = rmIdx.avgValue;
             const auto avgSqrValue = rmIdx.avgSqrValue;
+            const auto preValue    = rmIdx.preValue;
 
             // Reset aspiration window starting size
             int delta = 5 + thread_id() % 8 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10193.0);
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
-            // For multiPV we use previousScore because score is often -VALUE_INFINITE
-            Value seekMateScore = pvIdx != 0 ? rootMoves[pvIdx].preValue : rootMoves[pvIdx].value;
-
-            seekMate = seekMateScore != -VALUE_INFINITE  //
-                    && constexpr_abs(seekMateScore) >= seekMateThreshold;
+            seekMate = preValue != -VALUE_INFINITE && constexpr_abs(preValue) >= seekMateThreshold;
 
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = constexpr_round(456.0 * avgValue / (85.0 + constexpr_abs(avgValue)));
@@ -1184,9 +1181,10 @@ Value Worker::search(Position&    pos,
     {
         assert(preMove != Move::Null);
 
-        const int evalDiff = constexpr_ceil((ss->evalue - beta) / 256.0);
+        const int evalDiff = constexpr_round((ss->evalue - beta) / 256.0);
         // Null move dynamic reduction
-        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0);
+        // Odd threads reduce one ply less
+        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - Depth(thread_id() & 1);
         R -= int(seekMate) * R / 2;
 
         do_null_move(pos, st, ss);

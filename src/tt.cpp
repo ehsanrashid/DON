@@ -248,9 +248,6 @@ void TTWriter::write(const Move  m,
 void TTWriter::penalize(const u8 penalty) noexcept {
     assert(index < TTCluster::EntryCount);
 
-    if (index >= TTCluster::EntryCount || ttc->entries[index].key() != key)
-        index = prepare_replacement();
-
     ttc->entries[index].penalize(penalty);
 }
 

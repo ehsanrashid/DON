@@ -55,7 +55,6 @@ struct TTData final {
     bool  pv;
 };
 
-struct TTEntry;
 struct TTCluster;
 
 // Used to make racy, non-atomic writes to the global TT.
