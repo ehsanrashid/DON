@@ -43,6 +43,16 @@ constexpr u8 BOUND_MASK      = u8{3} << BOUND_SHIFT;
 constexpr u8 PV_SHIFT        = BOUND_SHIFT + 2;
 constexpr u8 PV_MASK         = u8{1} << PV_SHIFT;
 
+//constexpr int KEY_BITS = 21;
+//constexpr u32 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+
+constexpr u16 compress_key(const Key key) noexcept {
+    return ((key >> 00) & u16{0xFFFF})  //
+         ^ ((key >> 16) & u16{0x0FFF})  //
+         ^ ((key >> 32) & u16{0x00FF})  //
+         ^ ((key >> 48) & u16{0x000F});
+}
+
 }  // namespace
 
 // TTEntry is the 10 bytes transposition table entry
@@ -194,7 +204,7 @@ struct TTCluster final {
     TTCluster(TTCluster&&) noexcept                 = delete;
     TTCluster& operator=(TTCluster&&) noexcept      = delete;
 
-    static constexpr usize EntryCount = 3;
+    static constexpr u8 EntryCount = 3;
 
     Array<TTEntry, EntryCount> entries;
     Array<char, 2>             padding;  // Pad to 32 bytes
@@ -203,11 +213,25 @@ struct TTCluster final {
 constexpr usize TT_CLUSTER_SIZE = sizeof(TTCluster);
 static_assert(TT_CLUSTER_SIZE == 32, "TTCluster size must be 32 bytes");
 
-TTWriter::TTWriter(TTEntry* const te, TTCluster* const tc, const u16 k, const u8 gen) noexcept :
-    tte(te),
+TTWriter::TTWriter(TTCluster* const tc, const u8 idx, const u16 k, const u8 gen) noexcept :
     ttc(tc),
+    index(idx),
     key(k),
     generation(gen) {}
+
+// Find an entry to be replaced according to the replacement strategy
+u8 TTWriter::prepare_replacement() const noexcept {
+    u8 replacement = 0;
+
+    for (u8 i = 1; i < TTCluster::EntryCount; ++i)
+        if (ttc->entries[replacement].worth(generation) > ttc->entries[i].worth(generation))
+            replacement = i;
+
+    for (; replacement != 0 && ttc->entries[replacement - 1].key() == key; --replacement)
+        ttc->entries[replacement].reset();
+
+    return replacement;
+}
 
 void TTWriter::write(const Move  m,
                      const Value v,
@@ -215,24 +239,20 @@ void TTWriter::write(const Move  m,
                      const Depth d,
                      const Bound b,
                      const bool  pv) noexcept {
-    if (tte->key() != key)
-    {
-        // Find an entry to be replaced according to the replacement strategy
-        tte = ttc->entries.data();
+    if (index >= TTCluster::EntryCount || ttc->entries[index].key() != key)
+        index = prepare_replacement();
 
-        for (usize i = 1; i < TTCluster::EntryCount; ++i)
-            if (tte->worth(generation) > ttc->entries[i].worth(generation))
-                tte = &ttc->entries[i];
-    }
-
-    for (const auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
-        tte->reset();
-
-    tte->save(key, m, v, ev, d, b, pv, generation);
+    ttc->entries[index].save(key, m, v, ev, d, b, pv, generation);
 }
 
-void TTWriter::penalize(const u8 penalty) noexcept { tte->penalize(penalty); }
+void TTWriter::penalize(const u8 penalty) noexcept {
+    assert(index < TTCluster::EntryCount);
 
+    if (index >= TTCluster::EntryCount || ttc->entries[index].key() != key)
+        index = prepare_replacement();
+
+    ttc->entries[index].penalize(penalty);
+}
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
@@ -318,13 +338,13 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const u16 key16 = compress_key16(key);
+    const u16 key16 = compress_key(key);
 
-    for (const auto& entry : ttc->entries)
-        if (entry.key() == key16)
-            return {entry.read(), TTWriter{const_cast<TTEntry*>(&entry), ttc, key16, generation8}};
+    for (u8 i = 0; i < TTCluster::EntryCount; ++i)
+        if (ttc->entries[i].key() == key16)
+            return {ttc->entries[i].read(), TTWriter{ttc, i, key16, generation8}};
 
-    return {TTData::empty(), TTWriter{ttc->entries.data(), ttc, key16, generation8}};
+    return {TTData::empty(), TTWriter{ttc, TTCluster::EntryCount, key16, generation8}};
 }
 
 u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {

@@ -41,6 +41,14 @@ namespace DON::Perft {
 
 namespace {
 
+constexpr int KEY_BITS = 32;
+constexpr u32 KEY_MASK = (u64{1} << KEY_BITS) - 1;
+
+constexpr u32 compress_key(const Key key) noexcept {
+    return ((key >> 0 * KEY_BITS) & (KEY_MASK >> 0 * KEY_BITS / 2))  //
+         ^ ((key >> 1 * KEY_BITS) & (KEY_MASK >> 1 * KEY_BITS / 2));
+}
+
 struct PerftData final {
 
     void classify(Position& pos, Move m) noexcept;
@@ -176,7 +184,9 @@ struct PTCluster final {
     PTCluster(PTCluster&&) noexcept                 = delete;
     PTCluster& operator=(PTCluster&&) noexcept      = delete;
 
-    Array<PTEntry, 4> entries;
+    static constexpr u8 EntryCount = 4;
+
+    Array<PTEntry, EntryCount> entries;
 };
 
 constexpr usize PT_CLUSTER_SIZE = sizeof(PTCluster);
@@ -184,7 +194,7 @@ static_assert(PT_CLUSTER_SIZE == 64, "PTCluster size must be 64 bytes");
 
 struct ProbResult final {
    public:
-    bool           hit;
+    const bool     hit;
     PTEntry* const entry;
 };
 
@@ -283,7 +293,7 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
     const auto* const ptc = cluster(key);
 
-    const u32 key32 = compress_key32(key);
+    const u32 key32 = compress_key(key);
 
     for (const auto& entry : ptc->entries)
         if (entry.key() == key32 && entry.depth() == depth)
@@ -292,18 +302,21 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
     const auto* fte = ptc->entries.data();
     const auto* rte = fte;
 
-    for (usize i = 1; i < ptc->entries.size(); ++i)
+    for (usize i = 1; i < PTCluster::EntryCount; ++i)
         if (rte->depth() > ptc->entries[i].depth())
             rte = &ptc->entries[i];
 
     return {false,
-            const_cast<PTEntry*>(rte->depth() <= depth ? rte : fte + ptc->entries.size() - 1)};
+            const_cast<PTEntry*>(rte->depth() <= depth ? rte : fte + PTCluster::EntryCount - 1)};
 }
-
-PerftTable PerftTable_;
 
 constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
     return false && !detail && depth >= 4;
+}
+
+PerftTable& perft_table() noexcept {
+    static PerftTable perftTable;
+    return perftTable;
 }
 
 // Utility to verify move generation.
@@ -372,7 +385,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                 {
                     const Key key = pos.raw_key();
 
-                    auto [ptHit, pte] = PerftTable_.probe(key, depth - 1);
+                    auto [ptHit, pte] = perft_table().probe(key, depth - 1);
 
                     if (ptHit)
                     {
@@ -382,7 +395,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
+                        pte->save(compress_key(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else
@@ -461,12 +474,12 @@ u64 perft(const Position& pos,
     Position p{pos};
 
     if (use_perft_table(depth, detail))
-        PerftTable_.resize(ptSize, threads);
+        perft_table().resize(ptSize, threads);
 
     u64 nodes = perft<true>(p, depth, detail).nodes;
 
     if (use_perft_table(depth, detail))
-        PerftTable_.free();
+        perft_table().free();
 
     return nodes;
 }

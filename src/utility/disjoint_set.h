@@ -34,11 +34,10 @@ class DisjointSet final {
 
     void reset(const usize n) noexcept {
         parents.resize(n);
+        std::iota(parents.begin(), parents.end(), 0);
         ranks.assign(n, 0);
         sizes.assign(n, 1);
         components_ = n;
-
-        std::iota(parents.begin(), parents.end(), 0);
     }
 
     [[nodiscard]] usize find(const usize x) noexcept {

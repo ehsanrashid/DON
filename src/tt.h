@@ -63,7 +63,7 @@ struct TTCluster;
 // later write may decide that the new data is less important than the existing data.
 class TTWriter final {
    public:
-    TTWriter(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept;
+    TTWriter(TTCluster* tc, u8 idx, u16 k, u8 gen) noexcept;
     TTWriter() noexcept                           = delete;
     TTWriter& operator=(const TTWriter&) noexcept = delete;
     TTWriter(const TTWriter&) noexcept            = delete;
@@ -75,8 +75,10 @@ class TTWriter final {
     void penalize(u8 penalty) noexcept;
 
    private:
-    TTEntry*         tte;
+    u8 prepare_replacement() const noexcept;
+
     TTCluster* const ttc;
+    u8               index;
     const u16        key;
     const u8         generation;
 };
