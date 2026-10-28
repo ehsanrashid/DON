@@ -239,7 +239,7 @@ void TTWriter::write(const Move  m,
                      const Depth d,
                      const Bound b,
                      const bool  pv) noexcept {
-    if (index >= TTCluster::EntryCount || ttc->entries[index].key() != key)
+    if (index >= TTCluster::EntryCount)
         index = prepare_replacement();
 
     ttc->entries[index].save(key, m, v, ev, d, b, pv, generation);

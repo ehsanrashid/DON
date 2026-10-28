@@ -198,7 +198,7 @@ static_assert(sizeof(PTEntry) == 16, "PTEntry size must be 16 bytes");
 
 void PTEntry::save(const u32 k, const u64 n, const Depth d) noexcept {
 
-    if ((key32 != k || depth16 < d) && nodes64 < 10000 + n)
+    if (key() != k || nodes() < 10000 + n || depth() < d)
     {
         key32   = k;
         nodes64 = n;
@@ -268,7 +268,7 @@ void PTWriter::write(const u64 n, const Depth d) noexcept {
     if (index >= PTCluster::EntryCount || ptc->entries[index].key() != key)
         index = prepare_replacement();
 
-    ptc->entries[index].save(key, d, n);
+    ptc->entries[index].save(key, n, d);
 }
 
 struct ProbResult final {

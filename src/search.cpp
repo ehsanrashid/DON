@@ -1182,9 +1182,8 @@ Value Worker::search(Position&    pos,
         assert(preMove != Move::Null);
 
         const int evalDiff = constexpr_round((ss->evalue - beta) / 256.0);
-        // Null move dynamic reduction
-        // Odd threads reduce one ply less
-        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - Depth(thread_id() & 1);
+        // Null move dynamic reduction. Odd threads reduce one ply less
+        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - (thread_id() & 1);
         R -= int(seekMate) * R / 2;
 
         do_null_move(pos, st, ss);
