@@ -382,7 +382,7 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 }
 
 constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
-    return false && !detail && depth >= 4;
+    return !detail && depth >= 4;
 }
 
 PerftTable& perft_table() noexcept {
@@ -548,9 +548,6 @@ u64 perft(const Position& pos,
         perft_table().resize(ptSize, threads);
 
     u64 nodes = perft<true>(p, depth, detail).nodes;
-
-    if (use_perft_table(depth, detail))
-        perft_table().free();
 
     return nodes;
 }
