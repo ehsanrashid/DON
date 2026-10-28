@@ -21,7 +21,7 @@ using namespace DON;
 using Key = u64;
 
 /*
-constexpr int KEY32_BITS = 32;
+constexpr u8  KEY32_BITS = u8{32};
 constexpr u32 KEY32_MASK = (u64{1} << KEY32_BITS) - 1;
 
 constexpr u32 compress_key(const Key key) noexcept {
@@ -36,7 +36,7 @@ constexpr u32 reference_compress_key(const Key key) noexcept {
 }
 */
 /*
-constexpr int KEY21_BITS = 21;
+constexpr u8  KEY21_BITS = u8{21};
 constexpr u32 KEY21_MASK = (u64{1} << KEY21_BITS) - 1;
 
 constexpr u32 compress_key(const Key key) noexcept {
@@ -100,7 +100,7 @@ int main() {
 }
 */
 
-constexpr u64 KEY21_BITS = 21;
+constexpr u8  KEY21_BITS = u8{21};
 constexpr u64 KEY21_MASK = (u64{1} << KEY21_BITS) - 1;
 
 constexpr u64 extract_key(const Key key, const usize index) noexcept {

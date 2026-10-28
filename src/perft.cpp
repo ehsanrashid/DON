@@ -41,7 +41,7 @@ namespace DON::Perft {
 
 namespace {
 
-constexpr int KEY32_BITS = 32;
+constexpr u8  KEY32_BITS = u8{32};
 constexpr u32 KEY32_MASK = (u64{1} << KEY32_BITS) - 1;
 
 constexpr u32 compress_key32(const Key key) noexcept {

@@ -104,12 +104,12 @@ using Array = typename _internal::ArrayDef<T, Size, Sizes...>::type;
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
 
-inline constexpr usize BYTE_BITS = 8;
+inline constexpr u8 BYTE_BITS = u8{8};
 
 inline constexpr usize HEX64_SIZE = 16;
 inline constexpr usize HEX32_SIZE = 8;
 
-inline constexpr usize KB = 1024;
+inline constexpr usize KB = usize{1024};
 inline constexpr usize MB = KB * KB;
 
 inline constexpr usize BLOCK_4  = 4;

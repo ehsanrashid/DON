@@ -44,7 +44,7 @@ constexpr u8 BOUND_MASK      = u8{3} << BOUND_SHIFT;
 constexpr u8 PV_SHIFT        = BOUND_SHIFT + 2;
 constexpr u8 PV_MASK         = u8{1} << PV_SHIFT;
 
-constexpr int KEY21_BITS = 21;
+constexpr u8  KEY21_BITS = u8{21};
 constexpr u32 KEY21_MASK = (u64{1} << KEY21_BITS) - 1;
 
 constexpr u64 KEY21_LSB = u64{1} << 0 * KEY21_BITS  //
