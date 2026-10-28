@@ -88,17 +88,17 @@ int main() {
 
         SegmentTreeSum segTree(values);
 
-        std::cerr << "Sum [0, 5): " << segTree.sum(0, 4) << '\n';  // 3: 5 + -4 + 4 + 3 + -5
+        std::cerr << "Sum [0, 4): " << segTree.sum(0, 4) << '\n';  // 8: 5 + -4 + 4 + 3
 
         std::cerr << "Update [4] = 3\n";
         segTree.update(4, 3);
 
-        std::cerr << "Sum [0, 5): " << segTree.sum(0, 5) << '\n';
+        std::cerr << "Sum [0, 5): " << segTree.sum(0, 5) << '\n';  // 11: 5 + -4 + 4 + 3 + 3
 
         std::cerr << "Update [3] = -1\n";
         segTree.update(3, -1);
 
-        std::cerr << "Sum [0, 5): " << segTree.sum(0, 5) << '\n';
+        std::cerr << "Sum [0, 5): " << segTree.sum(0, 5) << '\n';  // 7: 5 + -4 + 4 + -1 + 3
 
     } catch (const std::exception& e)
     {

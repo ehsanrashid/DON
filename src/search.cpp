@@ -521,6 +521,9 @@ void Worker::iterative_deepening() noexcept {
       limit.depth != DEPTH_ZERO && limit.depth < DEPTH_MAX ? limit.depth : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= maxDepth; ++rootDepth)
     {
+        // Do not tune these values. They are not intended for playing strength.
+        const int seekMateThreshold = constexpr_ceil(750.0 + 220000.0 / (rootDepth * rootDepth));
+
         // Signal the start of a new iteration
         if (manager != nullptr)
             manager->pvShown = false;
@@ -572,15 +575,14 @@ void Worker::iterative_deepening() noexcept {
 
             const auto avgValue    = rmIdx.avgValue;
             const auto avgSqrValue = rmIdx.avgSqrValue;
+            const auto preValue    = rmIdx.preValue;
 
             // Reset aspiration window starting size
             int delta = 5 + thread_id() % 8 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10193.0);
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
-            // Do not tune these values. They are not intended for playing strength.
-            seekMate = constexpr_abs(rootMoves[pvIdx].value)
-                    >= constexpr_ceil(750.0 + 220000.0 / (rootDepth * rootDepth));
+            seekMate = preValue != -VALUE_INFINITE && constexpr_abs(preValue) >= seekMateThreshold;
 
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = constexpr_round(456.0 * avgValue / (85.0 + constexpr_abs(avgValue)));
@@ -589,7 +591,7 @@ void Worker::iterative_deepening() noexcept {
             // Start with a small aspiration window and, after a fail-high/low,
             // progressively enlarge the window until the search no longer fails high/low.
 
-            // Decrease fail-high recovery.
+            // Decrease fail-high recovery
             if (pvIdx == 0)
                 failHighRecovery = failHighRecovery > 2 ? failHighRecovery - 2 : 0;
 
@@ -1179,9 +1181,9 @@ Value Worker::search(Position&    pos,
     {
         assert(preMove != Move::Null);
 
-        const int evalDiff = constexpr_ceil((ss->evalue - beta) / 256.0);
-        // Null move dynamic reduction
-        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0);
+        const int evalDiff = constexpr_round((ss->evalue - beta) / 256.0);
+        // Null move dynamic reduction. Odd threads reduce one ply less
+        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - (thread_id() & 1);
         R -= int(seekMate) * R / 2;
 
         do_null_move(pos, st, ss);

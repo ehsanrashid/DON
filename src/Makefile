@@ -130,9 +130,9 @@ HEADERS := \
     utility/access.h utility/arc_cache.h utility/atomic.h utility/attributes.h utility/call_once.h \
     utility/channel.h utility/command_line.h utility/complex.h utility/concurrent.h utility/console.h \
     utility/cpu.h utility/debug.h utility/disjoint_set.h utility/environment.h utility/error.h utility/functions.h \
-    utility/guard.h utility/lfu_cache.h utility/lirs_cache.h utility/list.h utility/logger.h utility/lru_cache.h \
-    utility/map.h utility/matrix.h utility/multi_array.h utility/mutex.h utility/platform_win.h utility/pool.h \
-    utility/prng.h utility/queue.h utility/reader.h utility/segment_tree.h utility/set.h utility/sharded_cache.h \
+    utility/guard.h utility/graph.h utility/lfu_cache.h utility/lirs_cache.h utility/list.h utility/logger.h \
+    utility/lru_cache.h utility/map.h utility/matrix.h utility/multi_array.h utility/mutex.h utility/platform_win.h \
+    utility/pool.h utility/prng.h utility/queue.h utility/reader.h utility/segment_tree.h utility/set.h utility/sharded_cache.h \
     utility/sieve_cache.h utility/static_vector.h utility/store.h utility/streambuf.h utility/sync_ostream.h \
     utility/thread_attributes.h utility/types.h utility/unordered_map.h \
     utility/ankerl/stl.h utility/ankerl/unordered_dense.h
@@ -1395,7 +1395,7 @@ profile-build: net config-sanity obj-clean profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
-macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' '$(CURDIR)/evaluate.h' | head -1)
+macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' 'evaluate.h' | head -1)
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
@@ -1638,9 +1638,11 @@ config-sanity: net
 		exit 1; \
 	}
 
+ifeq ($(UNIVERSAL_BUILD),no)
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	@echo "\$$MAKE[$$MAKELEVEL]:$$MAKEFLAGS"
 	+$(strip $(CXX) $(LDFLAGS) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(LDLIBS)) -o '$@'
+endif
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c '$<' -o '$@'
@@ -1719,12 +1721,12 @@ endif
 #   make -j profile-build ARCH=x86-64-universal  # PGO (use RUN_PREFIX for intel SDE)
 #   make -j build ARCH=arm64-universal
 
-TEMP_DIR      := $(CURDIR)/temp_builds
-UNIVERSAL_EXE := $(CURDIR)/$(EXE)
+TEMP_DIR      := temp_builds
+UNIVERSAL_EXE := $(EXE)
 
 ifeq ($(UNIVERSAL_BUILD),yes)
 
-UNIVERSAL_SRC_DIR := $(CURDIR)/universal
+UNIVERSAL_SRC_DIR := universal
 NNUE_EMBED_OBJ    := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL      := $(TEMP_DIR)/.net-done
 
@@ -1801,7 +1803,8 @@ endif
 EMBED_DIR_SUPPORTED := $(shell echo "int main(){}" | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 
 ifeq ($(EMBED_DIR_SUPPORTED),1)
-EMBED_DIR = --embed-dir='$(CURDIR)'
+EMBED_DIR      = --embed-dir=.
+ARCH_EMBED_DIR = --embed-dir=../..
 else
 $(info --embed-dir is not supported by $(CXX), using alternative embedding method)
 endif
@@ -1814,7 +1817,7 @@ ARCH_MAIN_CXXFLAGS += -arch x86_64 -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE  # SLIC
 UNIVERSAL_LDFLAGS += -arch x86_64
 endif
 
-ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS)
+ARCH_CXXFLAGS = $(ARCH_EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS)
 
 # Include the normal link flags in the custom universal link flags.
 UNIVERSAL_LDFLAGS += $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
@@ -1853,7 +1856,7 @@ $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 	@rm -rf '$(TEMP_DIR)/$*'
 	@mkdir -p '$(TEMP_DIR)/$*'
-	@$(foreach f,$(TRACKED_TOP),ln -s '$(CURDIR)/$(f)' '$(TEMP_DIR)/$*/$(f)';)
+	@$(foreach f,$(TRACKED_TOP),ln -s '../../$(f)' '$(TEMP_DIR)/$*/$(f)';)
 	@touch '$@'
 
 # Build and prepare the per-architecture DON.o.
@@ -1861,7 +1864,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' IS_UNIVERSAL_SLICE=yes \
-		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
+		ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' NNUE_EMBED_OBJ='../nnue_embed.o'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
 	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'

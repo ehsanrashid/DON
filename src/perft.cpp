@@ -41,6 +41,14 @@ namespace DON::Perft {
 
 namespace {
 
+constexpr u8  KEY32_BITS = u8{32};
+constexpr u32 KEY32_MASK = (u64{1} << KEY32_BITS) - 1;
+
+constexpr u32 compress_key32(const Key key) noexcept {
+    return ((key >> 0 * KEY32_BITS) & (KEY32_MASK >> 0 * KEY32_BITS / 2))  //
+         ^ ((key >> 1 * KEY32_BITS) & (KEY32_MASK >> 1 * KEY32_BITS / 2));
+}
+
 struct PerftData final {
 
     void classify(Position& pos, Move m) noexcept;
@@ -136,6 +144,29 @@ void PerftData::operator+=(const PerftData& perftData) noexcept {
     stalemate += perftData.stalemate;
 }
 
+struct PTData final {
+   public:
+    static PTData empty() noexcept;
+
+    PTData(u64 n, Depth d, bool hit_) noexcept;
+    PTData() noexcept                         = delete;
+    PTData(const PTData&) noexcept            = delete;
+    PTData& operator=(const PTData&) noexcept = delete;
+    PTData(PTData&&) noexcept                 = default;
+    PTData& operator=(PTData&&) noexcept      = delete;
+
+    u64   nodes;
+    Depth depth;
+    bool  hit;
+};
+
+PTData PTData::empty() noexcept { return {0, DEPTH_OFFSET, false}; }
+
+PTData::PTData(const u64 n, const Depth d, const bool hit_) noexcept :
+    nodes(n),
+    depth(d),
+    hit(hit_) {}
+
 struct PTEntry final {
    public:
     PTEntry() noexcept                          = delete;
@@ -145,28 +176,40 @@ struct PTEntry final {
     PTEntry& operator=(PTEntry&&) noexcept      = delete;
 
     [[nodiscard]] u32   key() const noexcept { return key32; }
+    [[nodiscard]] bool  occupied() const noexcept { return depth16 != 0; }
     [[nodiscard]] Depth depth() const noexcept { return depth16; }
     [[nodiscard]] u64   nodes() const noexcept { return nodes64; }
 
-    void save(u32 k, Depth d, u64 n) noexcept {
+    void save(u32 k, u64 n, Depth d) noexcept;
 
-        if ((key32 != k || depth16 < d) && nodes64 < 10000 + n)
-        {
-            key32   = k;
-            depth16 = d;
-            nodes64 = n;
-        }
-    }
+    PTData read() const noexcept;
+
+    void reset() noexcept;
 
    private:
+    RelaxedAtomic<u64>   nodes64;
     RelaxedAtomic<u32>   key32;
     RelaxedAtomic<Depth> depth16;
-    RelaxedAtomic<u64>   nodes64;
 
     friend class PerftTable;
 };
 
 static_assert(sizeof(PTEntry) == 16, "PTEntry size must be 16 bytes");
+
+void PTEntry::save(const u32 k, const u64 n, const Depth d) noexcept {
+
+    if (key() != k || nodes() < 10000 + n || depth() < d)
+    {
+        key32   = k;
+        nodes64 = n;
+        depth16 = d;
+    }
+}
+
+PTData PTEntry::read() const noexcept { return {nodes(), depth(), occupied()}; }
+
+// Reset all entry fields to zero
+void PTEntry::reset() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
 struct PTCluster final {
    public:
@@ -176,16 +219,62 @@ struct PTCluster final {
     PTCluster(PTCluster&&) noexcept                 = delete;
     PTCluster& operator=(PTCluster&&) noexcept      = delete;
 
-    Array<PTEntry, 4> entries;
+    static constexpr u8 EntryCount = 4;
+
+    Array<PTEntry, EntryCount> entries;
 };
 
 constexpr usize PT_CLUSTER_SIZE = sizeof(PTCluster);
 static_assert(PT_CLUSTER_SIZE == 64, "PTCluster size must be 64 bytes");
 
+class PTWriter final {
+   public:
+    PTWriter(PTCluster* tc, u8 idx, u32 k) noexcept;
+    PTWriter() noexcept                           = delete;
+    PTWriter& operator=(const PTWriter&) noexcept = delete;
+    PTWriter(const PTWriter&) noexcept            = delete;
+    PTWriter(PTWriter&&) noexcept                 = default;
+    PTWriter& operator=(PTWriter&&) noexcept      = delete;
+
+    void write(u64 n, Depth d) noexcept;
+
+   private:
+    u8 prepare_replacement() const noexcept;
+
+    PTCluster* const ptc;
+    u8               index;
+    const u32        key;
+};
+
+PTWriter::PTWriter(PTCluster* tc, u8 idx, u32 k) noexcept :
+    ptc(tc),
+    index(idx),
+    key(k) {}
+
+u8 PTWriter::prepare_replacement() const noexcept {
+    u8 replacement = 0;
+
+    for (u8 i = 1; i < PTCluster::EntryCount; ++i)
+        if (ptc->entries[replacement].depth() > ptc->entries[i].depth())
+            replacement = i;
+
+    for (; replacement != 0 && ptc->entries[replacement - 1].key() == key; --replacement)
+        ptc->entries[replacement].reset();
+
+    return replacement;
+}
+
+void PTWriter::write(const u64 n, const Depth d) noexcept {
+    if (index >= PTCluster::EntryCount || ptc->entries[index].key() != key)
+        index = prepare_replacement();
+
+    ptc->entries[index].save(key, n, d);
+}
+
 struct ProbResult final {
    public:
-    bool           hit;
-    PTEntry* const entry;
+    PTData   data;
+    PTWriter writer;
 };
 
 class PerftTable final {
@@ -281,29 +370,24 @@ PTCluster* PerftTable::cluster(const Key key) const noexcept {
 
 ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
-    const auto* const ptc = cluster(key);
+    auto* const ptc = cluster(key);
 
     const u32 key32 = compress_key32(key);
 
-    for (const auto& entry : ptc->entries)
-        if (entry.key() == key32 && entry.depth() == depth)
-            return {true, const_cast<PTEntry*>(&entry)};
+    for (u8 i = 0; i < PTCluster::EntryCount; ++i)
+        if (ptc->entries[i].key() == key32 && ptc->entries[i].depth() == depth)
+            return {ptc->entries[i].read(), PTWriter{ptc, i, key32}};
 
-    const auto* fte = ptc->entries.data();
-    const auto* rte = fte;
-
-    for (usize i = 1; i < ptc->entries.size(); ++i)
-        if (rte->depth() > ptc->entries[i].depth())
-            rte = &ptc->entries[i];
-
-    return {false,
-            const_cast<PTEntry*>(rte->depth() <= depth ? rte : fte + ptc->entries.size() - 1)};
+    return {PTData::empty(), PTWriter{ptc, PTCluster::EntryCount, key32}};
 }
 
-PerftTable PerftTable_;
-
 constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
-    return false && !detail && depth >= 4;
+    return !detail && depth >= 4;
+}
+
+PerftTable& perft_table() noexcept {
+    static PerftTable perftTable;
+    return perftTable;
 }
 
 // Utility to verify move generation.
@@ -372,17 +456,17 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                 {
                     const Key key = pos.raw_key();
 
-                    auto [ptHit, pte] = PerftTable_.probe(key, depth - 1);
+                    auto [ptd, ptw] = perft_table().probe(key, depth - 1);
 
-                    if (ptHit)
+                    if (ptd.hit)
                     {
-                        iPerftData.nodes += pte->nodes();
+                        iPerftData.nodes += ptd.nodes;
                     }
                     else
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
+                        ptw.write(iPerftData.nodes, depth - 1);
                     }
                 }
                 else
@@ -461,12 +545,9 @@ u64 perft(const Position& pos,
     Position p{pos};
 
     if (use_perft_table(depth, detail))
-        PerftTable_.resize(ptSize, threads);
+        perft_table().resize(ptSize, threads);
 
     u64 nodes = perft<true>(p, depth, detail).nodes;
-
-    if (use_perft_table(depth, detail))
-        PerftTable_.free();
 
     return nodes;
 }
