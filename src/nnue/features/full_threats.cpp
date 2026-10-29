@@ -140,6 +140,10 @@ constexpr auto init_threat_luts() noexcept {
 
 constexpr auto THREAT_LUTS = init_threat_luts();
 
+ALWAYS_INLINE constexpr Index threat_index(const Index lut1, const Index lut2) noexcept {
+    return lut1 != Dimensions ? lut1 + lut2 : Dimensions;
+}
+
 // Index of a feature for a given king position and another piece on square
 ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Square kingSq,
@@ -157,9 +161,8 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     unsigned attacker = (+attackerPc) ^ swap;
     unsigned attacked = (+attackedPc) ^ swap;
 
-    const Index lut1 = THREAT_LUTS.lut1[attacker][attacked][org < dst];
-
-    return lut1 == Dimensions ? Dimensions : lut1 + THREAT_LUTS.lut2[type_of(attackerPc)][org][dst];
+    return threat_index(THREAT_LUTS.lut1[attacker][attacked][org < dst],
+                        THREAT_LUTS.lut2[type_of(attackerPc)][org][dst]);
 }
 
 ALWAYS_INLINE void append_pawn_active_indices(Bitboard        attacksBB,
@@ -257,9 +260,7 @@ void append_changed_indices(const Color               perspective,
         const unsigned pair  = u8(raw >> Threat::ThreatenedPcShift);
         const auto&    pLut2 = THREAT_LUTS.lut2[(pair >> 4) & 7];
 
-        const Index lut1 = pLut1[pair ^ pair_swap][org < dst];
-
-        const Index index = lut1 == Dimensions ? lut1 : lut1 + pLut2[org][dst];
+        const Index index = threat_index(pLut1[pair ^ pair_swap][org < dst], pLut2[org][dst]);
 
         if (pfBase != nullptr)
             prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
@@ -297,16 +298,12 @@ void append_changed_indices_both(const Square                wKingSq,
         const unsigned wOrg = org ^ wOrient;
         const unsigned wDst = dst ^ wOrient;
 
-        const Index wLut1 = pLut1[pair][wOrg < wDst];
-
-        const Index wIndex = wLut1 == Dimensions ? wLut1 : wLut1 + pLut2[wOrg][wDst];
+        const Index wIndex = threat_index(pLut1[pair][wOrg < wDst], pLut2[wOrg][wDst]);
 
         const unsigned bOrg = org ^ bOrient;
         const unsigned bDst = dst ^ bOrient;
 
-        const Index bLut1 = pLut1[pair ^ 0x88][bOrg < bDst];
-
-        const Index bIndex = bLut1 == Dimensions ? bLut1 : bLut1 + pLut2[bOrg][bDst];
+        const Index bIndex = threat_index(pLut1[pair ^ 0x88][bOrg < bDst], pLut2[bOrg][bDst]);
 
         if (pfBase != nullptr)
         {

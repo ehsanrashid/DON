@@ -125,14 +125,14 @@ void AccumulatorStack::evaluate(const Color               perspective,
                                 const FeatureTransformer& featureTransformer,
                                 AccumulatorCache&         accCache,
                                 const usize               lastUsableIdx) noexcept {
-    constexpr u8 PC_COUNT_HYBRID_MIN = 15;
+    constexpr u8 HybridMinCount = 15;
 
     if (accumulators[lastUsableIdx].computed[perspective])
         update_incremental_forward(perspective, pos, featureTransformer, lastUsableIdx);
     else
     {
         if (size() >= 2 && accumulators[size() - 2].computed[perspective]
-            && pos.count() >= PC_COUNT_HYBRID_MIN)
+            && pos.count() >= HybridMinCount)
         {
             const auto& dP          = top().dirties.dirtyPiece;
             const auto& beforeBlock = top().beforeBlock;
