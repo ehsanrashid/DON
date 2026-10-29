@@ -62,7 +62,7 @@ inline constexpr Index BlockDimensions = 11 * SQUARE_NB * SQUARE_NB / 2;
 constexpr Index block_offset(const u8 block) { return Index(block) * BlockDimensions; }
 
 // Number of feature dimensions (67,584 piece-squares)
-inline constexpr u32 Dimensions = NumBlocks * BlockDimensions;
+inline constexpr u32 Dimensions = u32(NumBlocks) * BlockDimensions;
 
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 32;

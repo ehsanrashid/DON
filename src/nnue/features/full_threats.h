@@ -39,6 +39,8 @@ inline constexpr u32 Hash = u32{0x2C41EAEA};
 // Number of feature dimensions
 inline constexpr Index Dimensions = 59808;
 
+static_assert(Dimensions < u32{1} << 16);
+
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 256;
 
