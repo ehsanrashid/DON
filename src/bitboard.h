@@ -249,17 +249,18 @@ constexpr u8 constexpr_popcount(const T v) noexcept {
         constexpr u64 K4 = u64{0x0F0F0F0F0F0F0F0F};
         constexpr u64 Kf = u64{0x0101010101010101};
 
-        u64 b = static_cast<u64>(v);
-        b     = b - ((b >> 1) & K1);
-        b     = (b & K2) + ((b >> 2) & K2);
-        b     = (b + (b >> 4)) & K4;
-        return static_cast<u8>((b * Kf) >> 56);
+        u64 b = static_cast<std::make_unsigned_t<T>>(v);
+
+        b = b - ((b >> 1) & K1);
+        b = (b & K2) + ((b >> 2) & K2);
+        b = (b + (b >> 4)) & K4;
+        return u8((b * Kf) >> 56);
     }
     else
     {
         u8 count = 0;
 
-        for (u64 b = v; b != 0; b >>= 1)
+        for (std::make_unsigned_t<T> b = static_cast<std::make_unsigned_t<T>>(v); b != 0; b >>= 1)
         {
             if ((b & 1) != 0)
                 ++count;

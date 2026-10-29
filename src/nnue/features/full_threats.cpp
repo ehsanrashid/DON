@@ -75,21 +75,28 @@ constexpr auto init_threat_luts() {
         {
             const Bitboard pieceAttacks = (pt != PAWN) ? Attacks::pseudo_attacks_bb(pt, org) : 0;
 
+            const Bitboard whiteAttacks = (pt == PAWN) ? Attacks::pseudo_attacks_bb(WHITE, org) : 0;
+
+            const Bitboard blackAttacks = (pt == PAWN) ? Attacks::pseudo_attacks_bb(BLACK, org) : 0;
+
+            u16 count = 0;
+
             for (Square dst = SQ_A1; dst <= SQ_H8; ++dst)
             {
-                const Bitboard pawnAttacks = (dst < org) ? Attacks::pseudo_attacks_bb(BLACK, org)
-                                                         : Attacks::pseudo_attacks_bb(WHITE, org);
+                const Bitboard attacks = (pt != PAWN) ? pieceAttacks
+                                       : (dst < org)  ? blackAttacks
+                                                      : whiteAttacks;
 
-                const Bitboard attacks = (pt != PAWN) ? pieceAttacks : pawnAttacks;
+                threatLuts.lut2[pt][org][dst] = offset + count;
 
-                threatLuts.lut2[pt][org][dst] =
-                  offset + constexpr_popcount(((u64{1} << dst) - 1) & attacks);
+                if ((attacks & (u64{1} << dst)) != 0)
+                    ++count;
             }
 
             if (pt != PAWN)
-                offset += constexpr_popcount(Attacks::pseudo_attacks_bb(pt, org));
+                offset += count;
             else if (SQ_A2 <= org && org <= SQ_H7)
-                offset += constexpr_popcount(Attacks::pseudo_attacks_bb(WHITE, org));
+                offset += constexpr_popcount(whiteAttacks);
         }
 
         offsets[pt] = offset;
@@ -122,6 +129,8 @@ constexpr auto init_threat_luts() {
 
         cumulativeOffset += 2 * targetMax * cumulativePieceOffset;
     }
+
+    assert(cumulativeOffset == Dimensions);
 
     return threatLuts;
 }
