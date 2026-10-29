@@ -20,7 +20,6 @@
 
 #include "../../types.h"
 #include "../../nnue/types.h"
-#include "../../nnue/features/full_threats.h"
 #include "../../utility/static_vector.h"
 #include "../../utility/types.h"
 
@@ -31,17 +30,17 @@ class Position;
 namespace NNUE::Features {
 // Feature PP3Wide:
 namespace PP3Wide {
-inline constexpr u32 Hash = u32{0x86F2B1DD};
+inline constexpr u32 Hash = u32{0x5C80FA69};
 
 inline constexpr Index PawnIds    = 48 * COLOR_NB;
 inline constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
 
 // Pawn pair feature indices are concatenated to threats so this must equal Features::FullThreats::Dimensions;
 // see nnue/feature_transformer.h
-inline constexpr Index IndexBase = FullThreats::Dimensions;
+inline constexpr Index IndexBase = 59808;
 // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
 // The first pawn-pair feature is at index FullThreats::Dimensions.
-static_assert(IndexBase == FullThreats::Dimensions);
+static_assert(IndexBase == 59808);
 
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 256;

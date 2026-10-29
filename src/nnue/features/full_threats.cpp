@@ -209,8 +209,8 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     // Compute perspective-relative squares
     const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
 
-    const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
-    const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
+    const u8 org = u8(orgSq) ^ relOrientation;
+    const u8 dst = u8(dstSq) ^ relOrientation;
 
     // Compute perspective-relative pieces
     const u8 relAttackerPc = +relative_piece(perspective, attackerPc);

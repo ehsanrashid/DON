@@ -2233,7 +2233,7 @@ void Worker::do_move(Position&    pos,
     prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
     prefetch(&(*(ss - 5)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
-    Dirties& dirties = accStack.push();
+    Dirties& dirties = accStack.push(pos);
     pos.do_move(m, st, mayCheck, &atomicHistories, &dirties);
     assert(moveKey == pos.key());
 

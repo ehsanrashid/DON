@@ -26,7 +26,6 @@
 #include "../../position.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
-#include "../../nnue/features/full_threats.h"
 #include "../../utility/attributes.h"
 #include "../../utility/types.h"
 
@@ -45,7 +44,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Square orgSq,
                                          const Square dstSq,
                                          const Color  pairedColor) noexcept {
-    const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+    const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
 
     const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
     const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
@@ -119,7 +118,7 @@ void append_changed_indices(const Color               perspective,
         return;
 
 #if defined(USE_AVX512ICL)
-    const u8      relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+    const u8      relOrientation = relative_sq(perspective, orientation(kingSq));
     const __m512i iota           = ALL_SQUARES;
     const __m512i adjusted       = _mm512_sub_epi8(
       _mm512_xor_si512(iota, _mm512_set1_epi8(relOrientation)), _mm512_set1_epi8(8));

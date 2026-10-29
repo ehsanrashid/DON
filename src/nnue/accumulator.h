@@ -24,6 +24,7 @@
 
 #include "../types.h"
 #include "../nnue/types.h"
+#include "../nnue/features/k32h3.h"
 #include "../utility/types.h"
 
 namespace DON {
@@ -47,10 +48,12 @@ struct Accumulator final: public BaseAccumulator {
    public:
     void clear() noexcept {
         computed.fill(false);
-        dirties = {};
+        dirties     = {};
+        beforeBlock = {};
     }
 
-    Dirties dirties;
+    Dirties                dirties;
+    Features::K32H3::Block beforeBlock;
 };
 
 static_assert(alignof(Accumulator) == CACHE_LINE_SIZE);
@@ -87,15 +90,11 @@ struct AccumulatorCache final {
                     entry.init(network.featureTransformer.biases);
     }
 
-    auto& operator[](const bool opponentHasQueen) noexcept {  //
-        return entries[int(opponentHasQueen)];
-    }
-    const auto& operator[](const bool opponentHasQueen) const noexcept {
-        return entries[int(opponentHasQueen)];
-    }
+    auto&       operator[](const u8 psqBlock) noexcept { return entries[psqBlock]; }
+    const auto& operator[](const u8 psqBlock) const noexcept { return entries[psqBlock]; }
 
    private:
-    Array<Entry, 2, SQUARE_NB, COLOR_NB> entries;
+    Array<Entry, Features::K32H3::NumBlocks, SQUARE_NB, COLOR_NB> entries;
 };
 
 struct AccumulatorStack final {
@@ -104,7 +103,7 @@ struct AccumulatorStack final {
 
     void reset() noexcept;
 
-    Dirties& push() noexcept;
+    Dirties& push(const Position& pos) noexcept;
 
     void pop() noexcept;
 
@@ -129,7 +128,8 @@ struct AccumulatorStack final {
 
     // Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
     // state just before a change that requires full refresh.
-    [[nodiscard]] usize find_last_usable_index(Color perspective) const noexcept;
+    [[nodiscard]] usize find_last_usable_index(Color           perspective,
+                                               const Position& pos) const noexcept;
 
     void update_incremental_forward(Color                     perspective,
                                     const Position&           pos,

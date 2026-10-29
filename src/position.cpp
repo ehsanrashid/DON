@@ -1272,7 +1272,7 @@ bool Position::legal(const Move m) const noexcept {
 
             // For king moves, check whether the destination square is attacked by the enemies.
             if (type_of(movedPc) == KING)
-                return !attackers_exists(dstSq, pieces_bb(~ac), pieces_bb() ^ orgSq);
+                return (acc_attacks_bb(KING) & dstSq) == 0;
         }
         break;
     case Move::Type::PROMOTION :

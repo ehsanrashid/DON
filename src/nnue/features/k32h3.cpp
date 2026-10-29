@@ -15,9 +15,9 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features K32Q2 of NNUE evaluation function
+// Definition of input features K32H3 of NNUE evaluation function
 
-#include "../../nnue/features/k32q2.h"
+#include "../../nnue/features/k32h3.h"
 
 #include <array>
 #include <initializer_list>
@@ -27,13 +27,14 @@
 #endif
 
 #include "../../bitboard.h"
+#include "../../position.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../utility/attributes.h"
 #include "../../utility/types.h"
 
 namespace DON::NNUE::Features {
-namespace K32Q2 {
+namespace K32H3 {
 namespace {
 // Unique number for each piece type on each square
 constexpr Index PS_NONE     = 0;
@@ -75,24 +76,19 @@ alignas(CACHE_LINE_SIZE) constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
 #undef B
 
 alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
-    Array<Index, COLOR_NB, 2, SQUARE_NB, PIECE_NB> offsets{};
+    Array<Index, COLOR_NB, SQUARE_NB, PIECE_NB> offsets{};
 
     for (const Color c : {WHITE, BLACK})
     {
         const Index flip = 56 * c;
 
-        for (const bool q : {false, true})
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            const Index queenOffset = int(q) * PS_NB;
+            const Index orient     = Index(orientation(s)) ^ flip;
+            const Index kingBucket = KING_BUCKETS[u8(s) ^ flip];
 
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            {
-                const Index orient = relative_sq(c, orientation(s));
-
-                for (usize piece = 0; piece < PIECE_NB; ++piece)
-                    offsets[c][q][s][piece] = PIECE_SQUARE_INDICES[c][piece]
-                                            + KING_BUCKETS[u8(s) ^ flip] + queenOffset + orient;
-            }
+            for (usize piece = 0; piece < PIECE_NB; ++piece)
+                offsets[c][s][piece] = PIECE_SQUARE_INDICES[c][piece] + kingBucket + orient;
         }
     }
 
@@ -100,18 +96,23 @@ alignas(CACHE_LINE_SIZE) constexpr auto OFFSETS = []() constexpr noexcept {
 }();
 
 // Index of a feature for king position and piece on square
-ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
-                                         const Square kingSq,
-                                         const bool   opponentHasQueen,
-                                         const Square s,
-                                         const Piece  pc) noexcept {
-    return Index(s) ^ OFFSETS[perspective][int(opponentHasQueen)][kingSq][+pc];
+ALWAYS_INLINE constexpr Index
+make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
+    return Index(s) ^ OFFSETS[perspective][kingSq][+pc];
 }
 }  // namespace
 
+Block block_state(const Position& pos) noexcept {
+    return {{pos.count(WHITE, QUEEN), pos.count(BLACK, QUEEN)},
+            popcount(pos.pieces_bb(QUEEN, ROOK))};
+}
+
+u8 block(const Position& pos, Color perspective) noexcept {
+    return block(block_state(pos), perspective);
+}
+
 void append_map_changed_indices(const Color     perspective,
                                 const Square    kingSq,
-                                bool            opponentHasQueen,
                                 const PieceMap& oldPieceMap,
                                 const PieceMap& newPieceMap,
                                 Bitboard        removedBB,
@@ -127,13 +128,13 @@ void append_map_changed_indices(const Color     perspective,
     // Therefore no carry crosses bit 6, and
     // (s ^ orient) + psi[pc] + bucket == s ^ (psi[pc] + bucket + orient),
     // allowing the orientation to be folded into the per-piece lookup offset.
-    const u16 flip        = 56 * perspective;
-    const u16 orient      = static_cast<u16>(orientation(kingSq)) ^ flip;
-    const u16 queenOffset = opponentHasQueen ? PS_NB : 0;
+    const Index flip       = 56 * perspective;
+    const Index orient     = Index(orientation(kingSq)) ^ flip;
+    const Index kingBucket = KING_BUCKETS[u8(kingSq) ^ flip];
 
     // clang-format off
     const __m512i psi       = _mm512_castsi256_si512(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(PIECE_SQUARE_INDICES[perspective].data())));
-    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(u16(KING_BUCKETS[u8(kingSq) ^ flip] + queenOffset + orient)));
+    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(kingBucket + orient));
 
     __m512i removedSquares = _mm512_maskz_compress_epi8(removedBB, ALL_SQUARES);
     __m512i removedPieces  = _mm512_maskz_compress_epi8(removedBB, oldPieceVec);
@@ -159,52 +160,45 @@ void append_map_changed_indices(const Color     perspective,
     {
         const Square s = pop_lsq(removedBB);
 
-        removed.push_back(make_index(perspective, kingSq, opponentHasQueen, s, oldPieceMap[s]));
+        removed.push_back(make_index(perspective, kingSq, s, oldPieceMap[s]));
     }
     while (addedBB != 0)
     {
         const Square s = pop_lsq(addedBB);
 
-        added.push_back(make_index(perspective, kingSq, opponentHasQueen, s, newPieceMap[s]));
+        added.push_back(make_index(perspective, kingSq, s, newPieceMap[s]));
     }
 #endif
 }
 
 void append_changed_indices(const Color      perspective,
                             const Square     kingSq,
-                            bool             opponentHasQueen,
                             const DirtyType& dP,
                             IndexList&       removed,
                             IndexList&       added) noexcept {
     // clang-format off
-    removed.push_back   (make_index(perspective, kingSq, opponentHasQueen, dP.orgSq, dP.movedPc));
-    added.  push_back_if(make_index(perspective, kingSq, opponentHasQueen, dP.dstSq, dP.movedPc)      , is_ok(dP.dstSq));
-    removed.push_back_if(make_index(perspective, kingSq, opponentHasQueen, dP.removedSq, dP.removedPc), is_ok(dP.removedSq));
-    added.  push_back_if(make_index(perspective, kingSq, opponentHasQueen, dP.addedSq, dP.addedPc)    , is_ok(dP.addedSq));
+    removed.push_back   (make_index(perspective, kingSq, dP.orgSq    , dP.movedPc));
+    added.  push_back_if(make_index(perspective, kingSq, dP.dstSq    , dP.movedPc)  , is_ok(dP.dstSq));
+    removed.push_back_if(make_index(perspective, kingSq, dP.removedSq, dP.removedPc), is_ok(dP.removedSq));
+    added.  push_back_if(make_index(perspective, kingSq, dP.addedSq  , dP.addedPc)  , is_ok(dP.addedSq));
     // clang-format on
 }
 
 void append_changed_indices_both(const Square                wKingSq,
                                  const Square                bKingSq,
-                                 bool                        bHasQueen,
-                                 bool                        wHasQueen,
                                  const DirtyType&            dP,
                                  Array<IndexList, COLOR_NB>& removed,
                                  Array<IndexList, COLOR_NB>& added) noexcept {
-    append_changed_indices(WHITE, wKingSq, bHasQueen, dP, removed[WHITE], added[WHITE]);
-    append_changed_indices(BLACK, bKingSq, wHasQueen, dP, removed[BLACK], added[BLACK]);
+    append_changed_indices(WHITE, wKingSq, dP, removed[WHITE], added[WHITE]);
+    append_changed_indices(BLACK, bKingSq, dP, removed[BLACK], added[BLACK]);
 }
 
-bool refresh_required(const Color perspective, const DirtyType& dP) noexcept {
-    if (dP.movedPc == make_piece(perspective, KING))
-        return true;
-
-    const Color opponent = ~perspective;
-    if ((is_ok(dP.removedSq) && dP.removedPc == make_piece(opponent, QUEEN))
-        || (is_ok(dP.addedPc) && dP.addedPc == make_piece(opponent, QUEEN)))
-        return true;
-
-    return false;
+bool refresh_required(const Color      perspective,
+                      const DirtyType& dP,
+                      const Block&     beforeBlock,
+                      const Block&     afterBlock) noexcept {
+    return dP.movedPc == make_piece(perspective, KING)
+        || block(beforeBlock, perspective) != block(afterBlock, perspective);
 }
-}  // namespace K32Q2
+}  // namespace K32H3
 }  // namespace DON::NNUE::Features
