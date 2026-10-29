@@ -819,8 +819,8 @@ void Position::do_move(const Move                   m,
     }
     if (dPps != nullptr)
     {
-        dPps->before[WHITE] = pieces_bb(WHITE, PAWN);
-        dPps->before[BLACK] = pieces_bb(BLACK, PAWN);
+        dPps->beforeBB[WHITE] = pieces_bb(WHITE, PAWN);
+        dPps->beforeBB[BLACK] = pieces_bb(BLACK, PAWN);
     }
 
     st->key ^= zobrist().turn() ^ zobrist().enpassant(en_passant_sq());
@@ -1025,8 +1025,8 @@ void Position::do_move(const Move                   m,
 
     if (dPps != nullptr)
     {
-        dPps->after[WHITE] = pieces_bb(WHITE, PAWN);
-        dPps->after[BLACK] = pieces_bb(BLACK, PAWN);
+        dPps->afterBB[WHITE] = pieces_bb(WHITE, PAWN);
+        dPps->afterBB[BLACK] = pieces_bb(BLACK, PAWN);
     }
 
     // Compute checkers (if move may check)

@@ -178,9 +178,8 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard        attacksBB,
         const Square orgSq      = dstSq - attackDir;
         const Piece  attackedPc = pos[dstSq];
 
-        const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
-
-        active.push_back_if_lt(index, Dimensions);
+        active.push_back_if_lt(
+          make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc), Dimensions);
     }
 }
 

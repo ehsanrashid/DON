@@ -906,8 +906,8 @@ ALWAYS_INLINE DirtyThreats::Threat* DirtyThreats::make_space(const u8 space) noe
 
 struct DirtyPawnPairs final {
    public:
-    Array<Bitboard, COLOR_NB> before;
-    Array<Bitboard, COLOR_NB> after;
+    Array<Bitboard, COLOR_NB> beforeBB;
+    Array<Bitboard, COLOR_NB> afterBB;
 };
 
 using Threat = DirtyThreats::Threat;
