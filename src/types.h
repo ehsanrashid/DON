@@ -824,8 +824,8 @@ struct DirtyThreats final {
        public:
         static constexpr u8 SqShift           = 0;
         static constexpr u8 ThreatenedSqShift = 8;
-        static constexpr u8 PcShift           = 16;
-        static constexpr u8 ThreatenedPcShift = 20;
+        static constexpr u8 ThreatenedPcShift = 16;
+        static constexpr u8 PcShift           = 20;
         static constexpr u8 AddShift          = 31;
 
         static constexpr u16 SqMask  = (1u << 8) - 1;
@@ -842,9 +842,9 @@ struct DirtyThreats final {
 
         [[nodiscard]] Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqShift) & SqMask); }
 
-        [[nodiscard]] Piece pc() const noexcept { return Piece((data >> PcShift) & PcMask); }
-
         [[nodiscard]] Piece threatened_pc() const noexcept { return Piece((data >> ThreatenedPcShift) & PcMask); }
+
+        [[nodiscard]] Piece pc() const noexcept { return Piece((data >> PcShift) & PcMask); }
 
         [[nodiscard]] bool  add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
 
@@ -887,8 +887,8 @@ ALWAYS_INLINE DirtyThreats::Threat::Threat(const bool   add,
                                            const Square threatenedSq,
                                            const Square sq) noexcept :
     Threat((u32(add) << AddShift)                      //
-           | (u32(threatenedPc) << ThreatenedPcShift)  //
            | (u32(pc) << PcShift)                      //
+           | (u32(threatenedPc) << ThreatenedPcShift)  //
            | (u32(threatenedSq) << ThreatenedSqShift)  //
            | (u32(sq) << SqShift)) {}
 
@@ -897,7 +897,7 @@ ALWAYS_INLINE void DirtyThreats::add(const bool   put,
                                      const Piece  pc,
                                      const Square threatenedSq,
                                      const Square sq) noexcept {
-    threats_.push_back({put, threatenedPc, pc, threatenedSq, sq});
+    threats_.push_back(Threat{put, threatenedPc, pc, threatenedSq, sq});
 }
 
 ALWAYS_INLINE DirtyThreats::Threat* DirtyThreats::make_space(const u8 space) noexcept {

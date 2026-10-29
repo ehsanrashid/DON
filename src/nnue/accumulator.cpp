@@ -225,7 +225,7 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
     const Square wKingSq    = pos.square(WHITE, KING);
     const Square bKingSq    = pos.square(BLACK, KING);
     const u8     whiteBlock = Features::K32H3::block(pos, WHITE);
-    const u8     blackBlock = Features::K32H3::block(pos, WHITE);
+    const u8     blackBlock = Features::K32H3::block(pos, BLACK);
 
     const usize maxBeg = std::max(wBeg, bBeg);
 
@@ -238,7 +238,7 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
                                  accumulators[idx - 1], accumulators[idx]);
 
     for (usize idx = maxBeg + 1; idx < size(); ++idx)
-        update_incremental_both(featureTransformer, wKingSq, bKingSq, blackBlock, blackBlock,
+        update_incremental_both(featureTransformer, wKingSq, bKingSq, whiteBlock, blackBlock,
                                 accumulators[idx - 1], accumulators[idx]);
 
     assert(top().computed[WHITE]);
@@ -743,10 +743,10 @@ void update_hybrid(const Color               perspective,
         apply<Op::Sub>(&oldEntry.accumulation[j], j, tile);
 
         // ... then adjust
-        apply_combined_features<Op::Sub>(oldAdd, thrRemoved, featureTransformer, psqWeights, j,
-                                         tile);
-        apply_combined_features<Op::Add>(oldRemove, thrAdded, featureTransformer, psqWeights, j,
-                                         tile);
+        apply_combined_features<Op::Sub>(  //
+          oldAdd, thrRemoved, featureTransformer, psqWeights, j, tile);
+        apply_combined_features<Op::Add>(  //
+          oldRemove, thrAdded, featureTransformer, psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }
@@ -826,10 +826,10 @@ void apply_combined(Color                                   perspective,
     {
         load_tile(srcAccm.data(), j, tile);
 
-        apply_combined_features<Op::Sub, true>(psqRemoved, thrRemoved, featureTransformer,  //
-                                               psqWeights, j, tile);
-        apply_combined_features<Op::Add, true>(psqAdded, thrAdded, featureTransformer,  //
-                                               psqWeights, j, tile);
+        apply_combined_features<Op::Sub, true>(  //
+          psqRemoved, thrRemoved, featureTransformer, psqWeights, j, tile);
+        apply_combined_features<Op::Add, true>(  //
+          psqAdded, thrAdded, featureTransformer, psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }

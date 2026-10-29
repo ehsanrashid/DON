@@ -974,11 +974,13 @@ Position::update_piece_threats(const Square              s,
     const Bitboard directSlidersBB = pt == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
 
 #if defined(USE_AVX512ICL)
-    write_dirties<Threat::ThreatenedSqShift, Threat::ThreatenedPcShift>(
-      pieceMap, threatenedBB, {put, Piece::NO_PIECE, pc, SQ_ZERO, s}, dTs);
+    write_dirties<Threat::ThreatenedSqShift, Threat::ThreatenedPcShift>(  //
+      pieceMap, threatenedBB,                                             //
+      Threat{put, Piece::NO_PIECE, pc, SQ_ZERO, s}, dTs);
 
-    write_dirties<Threat::SqShift, Threat::PcShift>(pieceMap, incomingThreatsBB | directSlidersBB,
-                                                    {put, pc, Piece::NO_PIECE, s, SQ_ZERO}, dTs);
+    write_dirties<Threat::SqShift, Threat::PcShift>(  //
+      pieceMap, incomingThreatsBB | directSlidersBB,  //
+      Threat{put, pc, Piece::NO_PIECE, s, SQ_ZERO}, dTs);
 
     // For ICL, direct threats were written above
     if constexpr (ComputeRay)

@@ -42,9 +42,10 @@ inline constexpr u32 Hash = u32{0xAB005CEF};
 //  2: the opponent has a queen.
 inline constexpr u8 NumBlocks = 3;
 
-struct Block {
-    u8 queens[COLOR_NB];
-    u8 queensRooks;
+struct Block final {
+   public:
+    Array<u8, COLOR_NB> queens{};
+    u8                  queensRooks = 0;
 };
 
 constexpr u8 block(const Block& m, Color perspective) noexcept {
@@ -58,7 +59,7 @@ u8 block(const Position& pos, Color perspective) noexcept;
 // Number of features per block (22,528 piece-squares)
 inline constexpr Index BlockDimensions = 11 * SQUARE_NB * SQUARE_NB / 2;
 
-constexpr Index block_offset(u8 block) { return Index(block) * BlockDimensions; }
+constexpr Index block_offset(const u8 block) { return Index(block) * BlockDimensions; }
 
 // Number of feature dimensions (67,584 piece-squares)
 inline constexpr u32 Dimensions = NumBlocks * BlockDimensions;

@@ -44,23 +44,23 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Square orgSq,
                                          const Square dstSq,
                                          const Color  pairedColor) noexcept {
-    const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
+    const unsigned orient = u8(orientation(kingSq)) ^ (56 * perspective);
 
-    const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
-    const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
+    const u8 org = u8(orgSq) ^ orient;
+    const u8 dst = u8(dstSq) ^ orient;
 
     assert(SQ_A2 <= org && org <= SQ_H7);
     assert(SQ_A2 <= dst && dst <= SQ_H7);
 
-    const Color relColor       = Color(color ^ perspective);
-    const Color relPairedColor = Color(pairedColor ^ perspective);
+    const Color rColor       = Color(color ^ perspective);
+    const Color rPairedColor = Color(pairedColor ^ perspective);
 
-    const auto id1 = make_pawn_id(relColor, Square{org});
-    const auto id2 = make_pawn_id(relPairedColor, Square{dst});
+    const auto id1 = make_pawn_id(rColor, Square{org});
+    const auto id2 = make_pawn_id(rPairedColor, Square{dst});
     const auto idH = std::max(id1, id2);
     const auto idL = std::min(id1, id2);
 
-    return IndexBase + idH * (idH - 1) / 2 + idL;
+    return IndexBase + idL + idH * (idH - 1) / 2;
 }
 
 #if defined(USE_AVX512ICL)

@@ -60,7 +60,7 @@ alignas(CACHE_LINE_SIZE) constexpr Array<Index, COLOR_NB, PIECE_NB> PIECE_SQUARE
    PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}   //
 }};
 
-#define B(v) (2 * v * PS_NB)
+#define B(v) (v * PS_NB)
 // clang-format off
 alignas(CACHE_LINE_SIZE) constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
     B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
