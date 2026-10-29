@@ -50,17 +50,17 @@ alignas(CACHE_LINE_SIZE) constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MA
   {-1, -1, -1, -1, -1, -1}   //
 }};
 
+constexpr Array<Piece, 12> ALL_PIECES = {
+  Piece::W_PAWN, Piece::W_KNIGHT, Piece::W_BISHOP, Piece::W_ROOK, Piece::W_QUEEN, Piece::W_KING,
+  Piece::B_PAWN, Piece::B_KNIGHT, Piece::B_BISHOP, Piece::B_ROOK, Piece::B_QUEEN, Piece::B_KING,
+};
+
 struct alignas(CACHE_LINE_SIZE) ThreatLUTs final {
    public:
     // [attacker][attacked][from < to]
     Array<Index, PIECE_NB, PIECE_NB, 2> lut1{};
     // [pt][from][to]
     Array<Index, PIECE_TYPE_NB, SQUARE_NB, SQUARE_NB> lut2{};
-};
-
-constexpr Array<Piece, 12> ALL_PIECES = {
-  Piece::W_PAWN, Piece::W_KNIGHT, Piece::W_BISHOP, Piece::W_ROOK, Piece::W_QUEEN, Piece::W_KING,
-  Piece::B_PAWN, Piece::B_KNIGHT, Piece::B_BISHOP, Piece::B_ROOK, Piece::B_QUEEN, Piece::B_KING,
 };
 
 constexpr auto init_threat_luts() {
@@ -73,11 +73,15 @@ constexpr auto init_threat_luts() {
 
         for (Square org = SQ_A1; org <= SQ_H8; ++org)
         {
+            const Bitboard pieceAttacks = (pt != PAWN) ? Attacks::pseudo_attacks_bb(pt, org) : 0;
+
             for (Square dst = SQ_A1; dst <= SQ_H8; ++dst)
             {
-                const Bitboard attacks = (pt != PAWN) ? Attacks::pseudo_attacks_bb(pt, org)
-                                       : (dst < org)  ? Attacks::pseudo_attacks_bb(BLACK, org)
-                                                      : Attacks::pseudo_attacks_bb(WHITE, org);
+                const Bitboard pawnAttacks = (dst < org) ? Attacks::pseudo_attacks_bb(BLACK, org)
+                                                         : Attacks::pseudo_attacks_bb(WHITE, org);
+
+                const Bitboard attacks = (pt != PAWN) ? pieceAttacks : pawnAttacks;
+
                 threatLuts.lut2[pt][org][dst] =
                   offset + constexpr_popcount(((u64{1} << dst) - 1) & attacks);
             }

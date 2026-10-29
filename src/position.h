@@ -925,11 +925,11 @@ Position::update_piece_threats(const Square              s,
                   assert(is_ok(threatenedPc));
 
                   if (slider_can_threaten(threatenedPc, sliderPc))
-                      dTs->add(!put, threatenedPc, sliderPc, threatenedSq, sliderSq);
+                      dTs->add(!put, sliderPc, threatenedPc, sliderSq, threatenedSq);
               }
 
               if (addDirect && slider_can_threaten(pc, sliderPc))
-                  dTs->add(put, pc, sliderPc, s, sliderSq);
+                  dTs->add(put, sliderPc, pc, sliderSq, s);
           }
       };
 
@@ -976,11 +976,11 @@ Position::update_piece_threats(const Square              s,
 #if defined(USE_AVX512ICL)
     write_dirties<Threat::ThreatenedSqShift, Threat::ThreatenedPcShift>(  //
       pieceMap, threatenedBB,                                             //
-      Threat{put, Piece::NO_PIECE, pc, SQ_ZERO, s}, dTs);
+      Threat{put, pc, Piece::NO_PIECE, s, SQ_ZERO}, dTs);
 
     write_dirties<Threat::SqShift, Threat::PcShift>(  //
       pieceMap, incomingThreatsBB | directSlidersBB,  //
-      Threat{put, pc, Piece::NO_PIECE, s, SQ_ZERO}, dTs);
+      Threat{put, Piece::NO_PIECE, pc, SQ_ZERO, s}, dTs);
 
     // For ICL, direct threats were written above
     if constexpr (ComputeRay)
@@ -996,7 +996,7 @@ Position::update_piece_threats(const Square              s,
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dTs->add(put, threatenedPc, pc, threatenedSq, s);
+        dTs->add(put, pc, threatenedPc, s, threatenedSq);
     }
 
     if constexpr (ComputeRay)
@@ -1016,7 +1016,7 @@ Position::update_piece_threats(const Square              s,
         assert(srcSq != s);
         assert(is_ok(srcPc));
 
-        dTs->add(put, pc, srcPc, s, srcSq);
+        dTs->add(put, srcPc, pc, srcSq, s);
     }
 #endif
 }
