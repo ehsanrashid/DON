@@ -15,25 +15,54 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features K32Q2 of NNUE evaluation function
+// Definition of input features K32H3 of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_K32Q2_H_INCLUDED
-#define NNUE_FEATURES_K32Q2_H_INCLUDED
+#ifndef NNUE_FEATURES_K32H3_H_INCLUDED
+#define NNUE_FEATURES_K32H3_H_INCLUDED
 
 #include "../../types.h"
 #include "../../nnue/types.h"
 #include "../../utility/static_vector.h"
 #include "../../utility/types.h"
 
-namespace DON::NNUE::Features {
-// Feature K32Q2: Combination of the position of own king (32 buckets), opponent queen presence (2 states),
-// and piece-square positions. Position mirrored such that king is always on e..h files.
-namespace K32Q2 {
-// Hash value embedded in the evaluation file
-inline constexpr u32 Hash = u32{0x32B5E284};
+namespace DON {
 
-// Number of feature dimensions (45,056 piece-squares)
-inline constexpr Index Dimensions = 11 * SQUARE_NB * SQUARE_NB;
+class Position;
+
+namespace NNUE::Features {
+// Feature K32H3: Combination of the position of own king (32 buckets), a piece-square block (3 states),
+// and piece-square positions. Position mirrored such that king is always on e..h files.
+namespace K32H3 {
+// Hash value embedded in the evaluation file
+inline constexpr u32 Hash = u32{0xAB005CEF};
+
+// Piece-square block of a perspective, in order of increasing heavy material:
+//  0: no rook or queen on the board,
+//  1: some rook or queen on the board, but the opponent has no queen,
+//  2: the opponent has a queen.
+inline constexpr u8 NumBlocks = 3;
+
+struct Block final {
+   public:
+    Array<u8, COLOR_NB> queens{};
+    u8                  queensRooks = 0;
+};
+
+constexpr u8 block(const Block& m, Color perspective) noexcept {
+    return m.queens[~perspective] != 0 ? 2 : m.queensRooks != 0;
+}
+
+Block block_state(const Position& pos) noexcept;
+
+u8 block(const Position& pos, Color perspective) noexcept;
+
+// Number of features per block (22,528 piece-squares)
+inline constexpr Index BlockDimensions = 11 * SQUARE_NB * SQUARE_NB / 2;
+
+constexpr Index block_offset(const u8 block) { return Index(block) * BlockDimensions; }
+
+// Number of feature dimensions (67,584 piece-squares)
+inline constexpr u32 Dimensions = u32(NumBlocks) * BlockDimensions;
 
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 32;
@@ -41,23 +70,9 @@ inline constexpr Index MaxActiveDimensions = 32;
 using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
 using DirtyType = DirtyPiece;
 
-// Mirror square to have king always on e..h files
-// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(const Square s) noexcept {
-    return Square(((file_of(s) >> 2) ^ 1) * FILE_H);
-}
-
-static_assert(K32Q2::orientation(SQ_A1) == SQ_H1);
-static_assert(K32Q2::orientation(SQ_D1) == SQ_H1);
-static_assert(K32Q2::orientation(SQ_E1) == SQ_A1);
-static_assert(K32Q2::orientation(SQ_H1) == SQ_A1);
-static_assert(K32Q2::orientation(SQ_A8) == SQ_H1);
-static_assert(K32Q2::orientation(SQ_H8) == SQ_A1);
-
 // Append lists of indices for recently changed features from the piece map
 void append_map_changed_indices(Color           perspective,
                                 Square          kingSq,
-                                bool            opponentHasQueen,
                                 const PieceMap& oldPieceMap,
                                 const PieceMap& newPieceMap,
                                 Bitboard        removedBB,
@@ -67,22 +82,23 @@ void append_map_changed_indices(Color           perspective,
 // Append lists of indices for recently changed features
 void append_changed_indices(Color            perspective,
                             Square           kingSq,
-                            bool             opponentHasQueen,
                             const DirtyType& dP,
                             IndexList&       removed,
                             IndexList&       added) noexcept;
 
 void append_changed_indices_both(Square                      wKingSq,
                                  Square                      bKingSq,
-                                 bool                        bHasQueen,
-                                 bool                        wHasQueen,
                                  const DirtyType&            dP,
                                  Array<IndexList, COLOR_NB>& removed,
                                  Array<IndexList, COLOR_NB>& added) noexcept;
 
 // Determine if a full refresh is required based on the dirty piece
-bool refresh_required(Color perspective, const DirtyType& dP) noexcept;
-}  // namespace K32Q2
-}  // namespace DON::NNUE::Features
+bool refresh_required(Color            perspective,
+                      const DirtyType& dP,
+                      const Block&     beforeBlock,
+                      const Block&     afterBlock) noexcept;
+}  // namespace K32H3
+}  // namespace NNUE::Features
+}  // namespace DON
 
-#endif  // NNUE_FEATURES_K32Q2_H_INCLUDED
+#endif  // NNUE_FEATURES_K32H3_H_INCLUDED

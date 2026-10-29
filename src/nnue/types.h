@@ -26,6 +26,7 @@
 
 #include "../evaluate.h"
 #include "../misc.h"
+#include "../types.h"
 #include "../utility/types.h"
 #include "../utility/functions.h"
 
@@ -54,6 +55,19 @@ inline constexpr i32 OUTPUT_SCALE      = 16;
 inline constexpr u8  WEIGHT_SCALE_BITS = 6;
 inline constexpr u16 FT_MAX            = 255;
 inline constexpr u16 HIDDEN_ONE        = 128;
+
+// Mirror square to have king always on e..h files
+// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
+constexpr Square orientation(const Square s) noexcept {
+    return Square(((file_of(s) >> 2) ^ 1) * FILE_H);
+}
+
+static_assert(orientation(SQ_A1) == SQ_H1);
+static_assert(orientation(SQ_D1) == SQ_H1);
+static_assert(orientation(SQ_E1) == SQ_A1);
+static_assert(orientation(SQ_H1) == SQ_A1);
+static_assert(orientation(SQ_A8) == SQ_H1);
+static_assert(orientation(SQ_H8) == SQ_A1);
 
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,

@@ -34,29 +34,18 @@ namespace NNUE::Features {
 namespace FullThreats {
 
 // Hash value embedded in the evaluation file
-inline constexpr u32 Hash = u32{0x2E6B9D04};
+inline constexpr u32 Hash = u32{0x2C41EAEA};
 
 // Number of feature dimensions
 inline constexpr Index Dimensions = 59808;
+
+static_assert(Dimensions < u32{1} << 16);
 
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 256;
 
 using IndexList = StaticVector<Index, MaxActiveDimensions, Index>;
 using DirtyType = DirtyThreats;
-
-// Mirror square to have king always on e..h files
-// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(const Square s) noexcept {
-    return Square(((file_of(s) >> 2) ^ 0) * FILE_H);
-}
-
-static_assert(orientation(SQ_A1) == SQ_A1);
-static_assert(orientation(SQ_D1) == SQ_A1);
-static_assert(orientation(SQ_E1) == SQ_H1);
-static_assert(orientation(SQ_H1) == SQ_H1);
-static_assert(orientation(SQ_A8) == SQ_A1);
-static_assert(orientation(SQ_H8) == SQ_H1);
 
 // Append list of indices for active features in ascending order
 void append_active_indices(Color           perspective,  //

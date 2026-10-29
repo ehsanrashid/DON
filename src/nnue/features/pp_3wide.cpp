@@ -26,7 +26,6 @@
 #include "../../position.h"
 #include "../../types.h"
 #include "../../nnue/types.h"
-#include "../../nnue/features/full_threats.h"
 #include "../../utility/attributes.h"
 #include "../../utility/types.h"
 
@@ -45,23 +44,23 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Square orgSq,
                                          const Square dstSq,
                                          const Color  pairedColor) noexcept {
-    const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+    const unsigned orient = u8(orientation(kingSq)) ^ (56 * perspective);
 
-    const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
-    const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
+    const u8 org = u8(orgSq) ^ orient;
+    const u8 dst = u8(dstSq) ^ orient;
 
     assert(SQ_A2 <= org && org <= SQ_H7);
     assert(SQ_A2 <= dst && dst <= SQ_H7);
 
-    const Color relColor       = Color(color ^ perspective);
-    const Color relPairedColor = Color(pairedColor ^ perspective);
+    const Color rColor       = Color(color ^ perspective);
+    const Color rPairedColor = Color(pairedColor ^ perspective);
 
-    const auto id1 = make_pawn_id(relColor, Square{org});
-    const auto id2 = make_pawn_id(relPairedColor, Square{dst});
+    const auto id1 = make_pawn_id(rColor, Square{org});
+    const auto id2 = make_pawn_id(rPairedColor, Square{dst});
     const auto idH = std::max(id1, id2);
     const auto idL = std::min(id1, id2);
 
-    return IndexBase + idH * (idH - 1) / 2 + idL;
+    return IndexBase + idL + idH * (idH - 1) / 2;
 }
 
 #if defined(USE_AVX512ICL)
@@ -112,14 +111,14 @@ void append_changed_indices(const Color               perspective,
                             IndexList&                added,
                             const ThreatWeight* const pfBase,
                             const usize               pfStride) noexcept {
-    const auto& before = dPps.before;
-    const auto& after  = dPps.after;
+    const auto& beforeBB = dPps.beforeBB;
+    const auto& afterBB  = dPps.afterBB;
 
-    if (before[WHITE] == after[WHITE] && before[BLACK] == after[BLACK])
+    if (beforeBB[WHITE] == afterBB[WHITE] && beforeBB[BLACK] == afterBB[BLACK])
         return;
 
 #if defined(USE_AVX512ICL)
-    const u8      relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+    const u8      relOrientation = relative_sq(perspective, orientation(kingSq));
     const __m512i iota           = ALL_SQUARES;
     const __m512i adjusted       = _mm512_sub_epi8(
       _mm512_xor_si512(iota, _mm512_set1_epi8(relOrientation)), _mm512_set1_epi8(8));
@@ -158,7 +157,7 @@ void append_changed_indices(const Color               perspective,
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
                               IndexList& out) noexcept {
         const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
-            const auto index = make_index(perspective, kingSq, color, orgSq, dstSq, pairedColor);
+            const Index index = make_index(perspective, kingSq, color, orgSq, dstSq, pairedColor);
 
             if (pfBase != nullptr)
                 prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
@@ -181,10 +180,10 @@ void append_changed_indices(const Color               perspective,
     };
 #endif
 
-    generate(before[WHITE] & ~after[WHITE], before[BLACK] & ~after[BLACK], before[WHITE],
-             before[BLACK], removed);
-    generate(after[WHITE] & ~before[WHITE], after[BLACK] & ~before[BLACK], after[WHITE],
-             after[BLACK], added);
+    generate(beforeBB[WHITE] & ~afterBB[WHITE], beforeBB[BLACK] & ~afterBB[BLACK], beforeBB[WHITE],
+             beforeBB[BLACK], removed);
+    generate(afterBB[WHITE] & ~beforeBB[WHITE], afterBB[BLACK] & ~beforeBB[BLACK], afterBB[WHITE],
+             afterBB[BLACK], added);
 }
 
 void append_changed_indices_both(const Square                wKingSq,
@@ -198,18 +197,18 @@ void append_changed_indices_both(const Square                wKingSq,
     append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
     append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
 #else
-    const auto& before = dPps.before;
-    const auto& after  = dPps.after;
+    const auto& beforeBB = dPps.beforeBB;
+    const auto& afterBB  = dPps.afterBB;
 
-    if (before[WHITE] == after[WHITE] && before[BLACK] == after[BLACK])
+    if (beforeBB[WHITE] == afterBB[WHITE] && beforeBB[BLACK] == afterBB[BLACK])
         return;
 
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
                               IndexList& wOut, IndexList& bOut) noexcept {
         const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
-            const auto wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
-            const auto bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
+            const Index wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
+            const Index bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
 
             if (pfBase != nullptr)
             {
@@ -237,10 +236,10 @@ void append_changed_indices_both(const Square                wKingSq,
         }
     };
 
-    generate(before[WHITE] & ~after[WHITE], before[BLACK] & ~after[BLACK],  //
-             before[WHITE], before[BLACK], removed[WHITE], removed[BLACK]);
-    generate(after[WHITE] & ~before[WHITE], after[BLACK] & ~before[BLACK],  //
-             after[WHITE], after[BLACK], added[WHITE], added[BLACK]);
+    generate(beforeBB[WHITE] & ~afterBB[WHITE], beforeBB[BLACK] & ~afterBB[BLACK],  //
+             beforeBB[WHITE], beforeBB[BLACK], removed[WHITE], removed[BLACK]);
+    generate(afterBB[WHITE] & ~beforeBB[WHITE], afterBB[BLACK] & ~beforeBB[BLACK],  //
+             afterBB[WHITE], afterBB[BLACK], added[WHITE], added[BLACK]);
 #endif
 }
 }  // namespace PP3Wide

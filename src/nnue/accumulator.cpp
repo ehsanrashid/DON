@@ -29,7 +29,7 @@
 #include "../nnue/simd.h"
 #include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
-#include "../nnue/features/k32q2.h"
+#include "../nnue/features/k32h3.h"
 #include "../nnue/features/pp_3wide.h"
 #include "../utility/attributes.h"
 #include "../utility/types.h"
@@ -49,10 +49,11 @@ void AccumulatorStack::reset() noexcept {
     push_and_clear();
 }
 
-Dirties& AccumulatorStack::push() noexcept {
+Dirties& AccumulatorStack::push(const Position& pos) noexcept {
     assert(size() < Size);
 
     push_and_clear();
+    top().beforeBlock = Features::K32H3::block_state(pos);
     return top().dirties;
 }
 
@@ -88,7 +89,7 @@ void update_refresh_cache(Color                     perspective,
 template<bool Forward>
 void update_incremental(Color                     perspective,
                         Square                    kingSq,
-                        bool                      opponentHasQueen,
+                        const u8                  psqBlock,
                         const FeatureTransformer& featureTransformer,
                         const Accumulator&        srcAcc,
                         Accumulator&              dstAcc) noexcept;
@@ -96,8 +97,8 @@ void update_incremental(Color                     perspective,
 void update_incremental_both(const FeatureTransformer& featureTransformer,
                              Square                    wKingSq,
                              Square                    bKingSq,
-                             bool                      wHasQueen,
-                             bool                      bHasQueen,
+                             u8                        whiteBlock,
+                             u8                        blackBlock,
                              const Accumulator&        srcAcc,
                              Accumulator&              dstAcc) noexcept;
 
@@ -106,8 +107,8 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
 void AccumulatorStack::evaluate(const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
                                 AccumulatorCache&         accCache) noexcept {
-    const auto wlastUsableIdx = find_last_usable_index(WHITE);
-    const auto blastUsableIdx = find_last_usable_index(BLACK);
+    const auto wlastUsableIdx = find_last_usable_index(WHITE, pos);
+    const auto blastUsableIdx = find_last_usable_index(BLACK, pos);
 
     if (accumulators[wlastUsableIdx].computed[WHITE]
         && accumulators[blastUsableIdx].computed[BLACK])
@@ -124,22 +125,24 @@ void AccumulatorStack::evaluate(const Color               perspective,
                                 const FeatureTransformer& featureTransformer,
                                 AccumulatorCache&         accCache,
                                 const usize               lastUsableIdx) noexcept {
-    constexpr u8 PC_COUNT_HYBRID_MIN = 15;
+    constexpr u8 HybridMinCount = 15;
 
     if (accumulators[lastUsableIdx].computed[perspective])
         update_incremental_forward(perspective, pos, featureTransformer, lastUsableIdx);
     else
     {
         if (size() >= 2 && accumulators[size() - 2].computed[perspective]
-            && pos.count() >= PC_COUNT_HYBRID_MIN)
+            && pos.count() >= HybridMinCount)
         {
-            const auto& dP = top().dirties.dirtyPiece;
+            const auto& dP          = top().dirties.dirtyPiece;
+            const auto& beforeBlock = top().beforeBlock;
+            const auto  afterBlock  = Features::K32H3::block_state(pos);
 
             if (dP.movedPc == make_piece(perspective, KING)
-                && dP.removedPc != make_piece(~perspective, QUEEN)
                 && ((u8(dP.orgSq) & u8{4}) == (u8(dP.dstSq) & u8{4}))
-                // excludes castling
-                && !is_ok(dP.addedSq))
+                && Features::K32H3::block(beforeBlock, perspective)
+                     == Features::K32H3::block(afterBlock, perspective)
+                && !is_ok(dP.addedSq))  // excludes castling
             {
                 update_hybrid(perspective, pos, featureTransformer, accumulators[size() - 2], top(),
                               accCache);
@@ -152,17 +155,25 @@ void AccumulatorStack::evaluate(const Color               perspective,
     }
 }
 
-usize AccumulatorStack::find_last_usable_index(const Color perspective) const noexcept {
+usize AccumulatorStack::find_last_usable_index(const Color     perspective,
+                                               const Position& pos) const noexcept {
+    // Backtrack psq block changes
+    auto afterBlock = Features::K32H3::block_state(pos);
 
     for (usize idx = size(); idx-- > 0;)
     {
         if (accumulators[idx].computed[perspective])
             return idx;
 
+        const auto& dirtyPiece  = accumulators[idx].dirties.dirtyPiece;
+        const auto& beforeBlock = accumulators[idx].beforeBlock;
+
         // Threat feature set refreshes require a king move across the center, i.e.,
         // a subset of halfka refreshes
-        if (Features::K32Q2::refresh_required(perspective, accumulators[idx].dirties.dirtyPiece))
+        if (Features::K32H3::refresh_required(perspective, dirtyPiece, beforeBlock, afterBlock))
             return idx;
+
+        afterBlock = beforeBlock;
     }
 
     return 0;
@@ -175,11 +186,11 @@ void AccumulatorStack::update_incremental_forward(const Color               pers
     assert(beg < size() && size() <= Size);
     assert(accumulators[beg].computed[perspective]);
 
-    const Square kingSq           = pos.square(perspective, KING);
-    const bool   opponentHasQueen = pos.pieces_bb(~perspective, QUEEN) != 0;
+    const Square kingSq   = pos.square(perspective, KING);
+    const u8     psqBlock = Features::K32H3::block(pos, perspective);
 
     for (usize idx = beg; ++idx < size();)
-        update_incremental<true>(perspective, kingSq, opponentHasQueen, featureTransformer,
+        update_incremental<true>(perspective, kingSq, psqBlock, featureTransformer,
                                  accumulators[idx - 1], accumulators[idx]);
 
     assert(top().computed[perspective]);
@@ -192,11 +203,11 @@ void AccumulatorStack::update_incremental_backward(const Color               per
     assert(end < size() && size() <= Size);
     assert(top().computed[perspective]);
 
-    const Square kingSq           = pos.square(perspective, KING);
-    const bool   opponentHasQueen = pos.pieces_bb(~perspective, QUEEN) != 0;
+    const Square kingSq   = pos.square(perspective, KING);
+    const u8     psqBlock = Features::K32H3::block(pos, perspective);
 
     for (usize idx = std::max(size(), usize{1}) - 1; idx-- > end;)
-        update_incremental<false>(perspective, kingSq, opponentHasQueen, featureTransformer,
+        update_incremental<false>(perspective, kingSq, psqBlock, featureTransformer,
                                   accumulators[idx + 1], accumulators[idx]);
 
     assert(accumulators[end].computed[perspective]);
@@ -211,23 +222,23 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
     assert(accumulators[wBeg].computed[WHITE]);
     assert(accumulators[bBeg].computed[BLACK]);
 
-    const Square wKingSq   = pos.square(WHITE, KING);
-    const Square bKingSq   = pos.square(BLACK, KING);
-    const bool   bHasQueen = pos.pieces_bb(BLACK, QUEEN) != 0;
-    const bool   wHasQueen = pos.pieces_bb(WHITE, QUEEN) != 0;
+    const Square wKingSq    = pos.square(WHITE, KING);
+    const Square bKingSq    = pos.square(BLACK, KING);
+    const u8     whiteBlock = Features::K32H3::block(pos, WHITE);
+    const u8     blackBlock = Features::K32H3::block(pos, BLACK);
 
     const usize maxBeg = std::max(wBeg, bBeg);
 
     // Catch up the lagging perspective, then traverse the common suffix once.
     for (usize idx = wBeg + 1; idx <= maxBeg; ++idx)
-        update_incremental<true>(WHITE, wKingSq, bHasQueen, featureTransformer,
+        update_incremental<true>(WHITE, wKingSq, whiteBlock, featureTransformer,
                                  accumulators[idx - 1], accumulators[idx]);
     for (usize idx = bBeg + 1; idx <= maxBeg; ++idx)
-        update_incremental<true>(BLACK, bKingSq, wHasQueen, featureTransformer,
+        update_incremental<true>(BLACK, bKingSq, blackBlock, featureTransformer,
                                  accumulators[idx - 1], accumulators[idx]);
 
     for (usize idx = maxBeg + 1; idx < size(); ++idx)
-        update_incremental_both(featureTransformer, wKingSq, bKingSq, bHasQueen, wHasQueen,
+        update_incremental_both(featureTransformer, wKingSq, bKingSq, whiteBlock, blackBlock,
                                 accumulators[idx - 1], accumulators[idx]);
 
     assert(top().computed[WHITE]);
@@ -466,11 +477,11 @@ apply_features(const u16* indices, Index size, const i8* weights, Index j, Tile&
 }
 
 template<Op op>
-ALWAYS_INLINE void apply_psq_features(const Features::K32Q2::IndexList& psqList,
-                                      const FeatureTransformer&         ft,
+ALWAYS_INLINE void apply_psq_features(const Features::K32H3::IndexList& psqList,
+                                      const Weight*                     psqWeights,
                                       Index                             j,
                                       Tile&                             tile) noexcept {
-    apply_features<op>(psqList.begin(), psqList.size(), &ft.weights[j], j, tile);
+    apply_features<op>(psqList.begin(), psqList.size(), &psqWeights[j], j, tile);
 }
 
 template<Op op>
@@ -482,15 +493,16 @@ ALWAYS_INLINE void apply_threat_features(const Features::FullThreats::IndexList&
 }
 
 template<Op op, bool Incremental = false>
-ALWAYS_INLINE void apply_combined_features(const Features::K32Q2::IndexList&       psqList,
+ALWAYS_INLINE void apply_combined_features(const Features::K32H3::IndexList&       psqList,
                                            const Features::FullThreats::IndexList& thrList,
                                            const FeatureTransformer&               ft,
+                                           const Weight*                           psqBase,
                                            Index                                   j,
                                            Tile&                                   tile) noexcept {
     if constexpr (Incremental)
         assert(psqList.size() == 1 || psqList.size() == 2);
 
-    const auto* psqWeights = &ft.weights[j];
+    const auto* psqWeights = &psqBase[j];
     const auto* thrWeights = &ft.threatAndPpWeights[j];
     Index       psqCount   = psqList.size();
     Index       thrBegin   = 0;
@@ -676,14 +688,15 @@ void update_hybrid(const Color               perspective,
     prePieceMap[oldKingSq] = make_piece(perspective, KING);
     prePiecesBB |= square_bb(oldKingSq);
 
-    const bool opponentHasQueen = pos.pieces_bb(~perspective, QUEEN) != 0;
+    const auto psqBlock = Features::K32H3::block(pos, perspective);
 
-    const auto& oldEntry = accCache[opponentHasQueen][oldKingSq][perspective];
-    auto&       newEntry = accCache[opponentHasQueen][newKingSq][perspective];
+    const auto& oldEntry   = accCache[psqBlock][oldKingSq][perspective];
+    auto&       newEntry   = accCache[psqBlock][newKingSq][perspective];
+    const auto* psqWeights = featureTransformer.psq_weights(psqBlock);
 
     // "Remove" means we need to remove them from the cache entry,
     // "Add" means add them to the entry to get the accumulator we want
-    Features::K32Q2::IndexList oldRemove, oldAdd, newRemove, newAdd;
+    Features::K32H3::IndexList oldRemove, oldAdd, newRemove, newAdd;
 
     Bitboard oldChangedBB = changed_bb(oldEntry.pieceMap, prePieceMap);
     Bitboard oldRemovedBB = oldChangedBB & oldEntry.piecesBB;
@@ -693,12 +706,12 @@ void update_hybrid(const Color               perspective,
     Bitboard newRemovedBB = newChangedBB & newEntry.piecesBB;
     Bitboard newAddedBB   = newChangedBB & curPiecesBB;
 
-    Features::K32Q2::append_map_changed_indices(perspective, oldKingSq, opponentHasQueen,
-                                                oldEntry.pieceMap, prePieceMap, oldRemovedBB,
-                                                oldAddedBB, oldRemove, oldAdd);
-    Features::K32Q2::append_map_changed_indices(perspective, newKingSq, opponentHasQueen,
-                                                newEntry.pieceMap, curPieceMap, newRemovedBB,
-                                                newAddedBB, newRemove, newAdd);
+    Features::K32H3::append_map_changed_indices(perspective, oldKingSq, oldEntry.pieceMap,
+                                                prePieceMap, oldRemovedBB, oldAddedBB, oldRemove,
+                                                oldAdd);
+    Features::K32H3::append_map_changed_indices(perspective, newKingSq, newEntry.pieceMap,
+                                                curPieceMap, newRemovedBB, newAddedBB, newRemove,
+                                                newAdd);
 
     Features::FullThreats::IndexList thrRemoved, thrAdded;  // also contain pp indices
 
@@ -718,8 +731,8 @@ void update_hybrid(const Color               perspective,
     {
         load_tile(newEntry.accumulation.data(), j, tile);
 
-        apply_psq_features<Op::Sub>(newRemove, featureTransformer, j, tile);
-        apply_psq_features<Op::Add>(newAdd, featureTransformer, j, tile);
+        apply_psq_features<Op::Sub>(newRemove, psqWeights, j, tile);
+        apply_psq_features<Op::Add>(newAdd, psqWeights, j, tile);
 
         store_tile(newEntry.accumulation.data(), j, tile);
 
@@ -730,8 +743,10 @@ void update_hybrid(const Color               perspective,
         apply<Op::Sub>(&oldEntry.accumulation[j], j, tile);
 
         // ... then adjust
-        apply_combined_features<Op::Sub>(oldAdd, thrRemoved, featureTransformer, j, tile);
-        apply_combined_features<Op::Add>(oldRemove, thrAdded, featureTransformer, j, tile);
+        apply_combined_features<Op::Sub>(  //
+          oldAdd, thrRemoved, featureTransformer, psqWeights, j, tile);
+        apply_combined_features<Op::Add>(  //
+          oldRemove, thrAdded, featureTransformer, psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }
@@ -749,10 +764,11 @@ void update_refresh_cache(const Color               perspective,
                           const FeatureTransformer& featureTransformer,
                           Accumulator&              dstAcc,
                           AccumulatorCache&         accCache) noexcept {
-    const Square kingSq           = pos.square(perspective, KING);
-    const bool   opponentHasQueen = pos.pieces_bb(~perspective, QUEEN) != 0;
+    const Square kingSq   = pos.square(perspective, KING);
+    const u8     psqBlock = Features::K32H3::block(pos, perspective);
 
-    auto& entry = accCache[opponentHasQueen][kingSq][perspective];
+    auto&       entry      = accCache[psqBlock][kingSq][perspective];
+    const auto* psqWeights = featureTransformer.psq_weights(psqBlock);
 
     Features::FullThreats::IndexList active;
     Features::FullThreats::append_active_indices(perspective, pos, active);
@@ -766,10 +782,9 @@ void update_refresh_cache(const Color               perspective,
     const Bitboard removedBB = changedBB & entry.piecesBB;
     const Bitboard addedBB   = changedBB & piecesBB;
 
-    Features::K32Q2::IndexList removed, added;
-    Features::K32Q2::append_map_changed_indices(perspective, kingSq, opponentHasQueen,
-                                                entry.pieceMap, pieceMap, removedBB, addedBB,
-                                                removed, added);
+    Features::K32H3::IndexList removed, added;
+    Features::K32H3::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
+                                                removedBB, addedBB, removed, added);
 
     entry.pieceMap = pieceMap;
     entry.piecesBB = piecesBB;
@@ -782,8 +797,8 @@ void update_refresh_cache(const Color               perspective,
     {
         load_tile(entry.accumulation.data(), j, tile);
 
-        apply_psq_features<Op::Sub>(removed, featureTransformer, j, tile);
-        apply_psq_features<Op::Add>(added, featureTransformer, j, tile);
+        apply_psq_features<Op::Sub>(removed, psqWeights, j, tile);
+        apply_psq_features<Op::Add>(added, psqWeights, j, tile);
 
         store_tile(entry.accumulation.data(), j, tile);
 
@@ -797,10 +812,11 @@ void apply_combined(Color                                   perspective,
                     const FeatureTransformer&               featureTransformer,
                     const Accumulator&                      srcAcc,
                     Accumulator&                            dstAcc,
-                    const Features::K32Q2::IndexList&       psqRemoved,
-                    const Features::K32Q2::IndexList&       psqAdded,
+                    const Features::K32H3::IndexList&       psqRemoved,
+                    const Features::K32H3::IndexList&       psqAdded,
                     const Features::FullThreats::IndexList& thrRemoved,
-                    const Features::FullThreats::IndexList& thrAdded) noexcept {
+                    const Features::FullThreats::IndexList& thrAdded,
+                    const Weight*                           psqWeights) noexcept {
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
@@ -810,31 +826,37 @@ void apply_combined(Color                                   perspective,
     {
         load_tile(srcAccm.data(), j, tile);
 
-        apply_combined_features<Op::Sub, true>(psqRemoved, thrRemoved, featureTransformer, j, tile);
-        apply_combined_features<Op::Add, true>(psqAdded, thrAdded, featureTransformer, j, tile);
+        apply_combined_features<Op::Sub, true>(  //
+          psqRemoved, thrRemoved, featureTransformer, psqWeights, j, tile);
+        apply_combined_features<Op::Add, true>(  //
+          psqAdded, thrAdded, featureTransformer, psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }
 }
 
-void apply_combined_both(
-  const FeatureTransformer&                                featureTransformer,
-  const Accumulator&                                       srcAcc,
-  Accumulator&                                             dstAcc,
-  const Array<Features::K32Q2::IndexList, COLOR_NB>&       psqRemoved,
-  const Array<Features::K32Q2::IndexList, COLOR_NB>&       psqAdded,
-  const Array<Features::FullThreats::IndexList, COLOR_NB>& thrRemoved,
-  const Array<Features::FullThreats::IndexList, COLOR_NB>& thrAdded) noexcept {
+void apply_combined_both(const FeatureTransformer&                          featureTransformer,
+                         const Accumulator&                                 srcAcc,
+                         Accumulator&                                       dstAcc,
+                         const Array<Features::K32H3::IndexList, COLOR_NB>& psqRemoved,
+                         const Array<Features::K32H3::IndexList, COLOR_NB>& psqAdded,
+                         const Array<Features::FullThreats::IndexList, COLOR_NB>& thrRemoved,
+                         const Array<Features::FullThreats::IndexList, COLOR_NB>& thrAdded,
+                         const Weight*                                            wPsqWeights,
+                         const Weight*                                            bPsqWeights)  //
+  noexcept {
     apply_combined(WHITE, featureTransformer, srcAcc, dstAcc,  //
-                   psqRemoved[WHITE], psqAdded[WHITE], thrRemoved[WHITE], thrAdded[WHITE]);
+                   psqRemoved[WHITE], psqAdded[WHITE], thrRemoved[WHITE], thrAdded[WHITE],
+                   wPsqWeights);
     apply_combined(BLACK, featureTransformer, srcAcc, dstAcc,  //
-                   psqRemoved[BLACK], psqAdded[BLACK], thrRemoved[BLACK], thrAdded[BLACK]);
+                   psqRemoved[BLACK], psqAdded[BLACK], thrRemoved[BLACK], thrAdded[BLACK],
+                   bPsqWeights);
 }
 
 template<bool Forward>
 void update_incremental(const Color               perspective,
                         const Square              kingSq,
-                        bool                      opponentHasQueen,
+                        const u8                  psqBlock,
                         const FeatureTransformer& featureTransformer,
                         const Accumulator&        srcAcc,
                         Accumulator&              dstAcc) noexcept {
@@ -845,7 +867,7 @@ void update_incremental(const Color               perspective,
     // That might depend on the feature set and generally relies on the
     // feature set's update cost calculation to be correct and never allow
     // updates with more added/removed features than MaxActiveDimensions.
-    Features::K32Q2::IndexList       psqRemoved, psqAdded;
+    Features::K32H3::IndexList       psqRemoved, psqAdded;
     Features::FullThreats::IndexList thrRemoved, thrAdded;
 
     const auto& dirties = Forward ? dstAcc.dirties : srcAcc.dirties;
@@ -864,12 +886,12 @@ void update_incremental(const Color               perspective,
     Features::PP3Wide::append_changed_indices(perspective, kingSq, dPps,
                                               Forward ? thrRemoved : thrAdded,
                                               Forward ? thrAdded : thrRemoved, pfBase, pfStride);
-    Features::K32Q2::append_changed_indices(perspective, kingSq, opponentHasQueen, dP,  //
+    Features::K32H3::append_changed_indices(perspective, kingSq, dP,  //
                                             Forward ? psqRemoved : psqAdded,
                                             Forward ? psqAdded : psqRemoved);
 
     apply_combined(perspective, featureTransformer, srcAcc, dstAcc, psqRemoved, psqAdded,
-                   thrRemoved, thrAdded);
+                   thrRemoved, thrAdded, featureTransformer.psq_weights(psqBlock));
 
     dstAcc.computed[perspective] = true;
 }
@@ -877,8 +899,8 @@ void update_incremental(const Color               perspective,
 void update_incremental_both(const FeatureTransformer& featureTransformer,
                              const Square              wKingSq,
                              const Square              bKingSq,
-                             bool                      bHasQueen,
-                             bool                      wHasQueen,
+                             const u8                  whiteBlock,
+                             const u8                  blackBlock,
                              const Accumulator&        srcAcc,
                              Accumulator&              dstAcc) noexcept {
     assert(srcAcc.computed[WHITE]);
@@ -886,7 +908,7 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
     assert(!dstAcc.computed[WHITE]);
     assert(!dstAcc.computed[BLACK]);
 
-    Array<Features::K32Q2::IndexList, COLOR_NB>       psqRemoved, psqAdded;
+    Array<Features::K32H3::IndexList, COLOR_NB>       psqRemoved, psqAdded;
     Array<Features::FullThreats::IndexList, COLOR_NB> thrRemoved, thrAdded;
 
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
@@ -896,11 +918,13 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
       wKingSq, bKingSq, dstAcc.dirties.dirtyThreats, thrRemoved, thrAdded, pfBase, pfStride);
     Features::PP3Wide::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPawnPairs,
                                                    thrRemoved, thrAdded, pfBase, pfStride);
-    Features::K32Q2::append_changed_indices_both(wKingSq, bKingSq, bHasQueen, wHasQueen,
-                                                 dstAcc.dirties.dirtyPiece, psqRemoved, psqAdded);
+    Features::K32H3::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPiece,
+                                                 psqRemoved, psqAdded);
 
     apply_combined_both(featureTransformer, srcAcc, dstAcc,  //
-                        psqRemoved, psqAdded, thrRemoved, thrAdded);
+                        psqRemoved, psqAdded, thrRemoved, thrAdded,
+                        featureTransformer.psq_weights(whiteBlock),
+                        featureTransformer.psq_weights(blackBlock));
 
     dstAcc.computed[WHITE] = true;
     dstAcc.computed[BLACK] = true;

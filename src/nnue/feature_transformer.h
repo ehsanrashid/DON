@@ -38,7 +38,7 @@
 #include "../nnue/simd.h"
 #include "../nnue/types.h"
 #include "../nnue/features/full_threats.h"
-#include "../nnue/features/k32q2.h"
+#include "../nnue/features/k32h3.h"
 #include "../nnue/features/pp_3wide.h"
 #include "../utility/types.h"
 
@@ -106,7 +106,7 @@ class FeatureTransformer final {
     // Number of input/output dimensions
     static constexpr usize ThreatInputDimensions = Features::FullThreats::Dimensions;
     static constexpr usize PairInputDimensions   = Features::PP3Wide::Dimensions;
-    static constexpr usize PsqDimensions         = Features::K32Q2::Dimensions;
+    static constexpr usize PsqDimensions         = Features::K32H3::Dimensions;
 
     static constexpr usize ThreatAndPpDimensions = ThreatInputDimensions + PairInputDimensions;
     static constexpr usize InputDimensions       = PsqDimensions + ThreatAndPpDimensions;
@@ -130,7 +130,7 @@ class FeatureTransformer final {
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
         return combine_hashes(
-                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::K32Q2::Hash})
+                 {Features::FullThreats::Hash, Features::PP3Wide::Hash, Features::K32H3::Hash})
              ^ (2 * OutputDimensions);
     }
 
@@ -249,6 +249,10 @@ class FeatureTransformer final {
         write_little_endian(os, copy->weights);
 
         return !os.fail();
+    }
+
+    const Weight* psq_weights(const u8 block) const noexcept {
+        return &weights[usize(Features::K32H3::block_offset(block)) * HalfDimensions];
     }
 
     // Convert input features

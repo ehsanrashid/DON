@@ -50,153 +50,98 @@ alignas(CACHE_LINE_SIZE) constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MA
   {-1, -1, -1, -1, -1, -1}   //
 }};
 
-struct PieceThreat final {
+struct alignas(CACHE_LINE_SIZE) ThreatLUTs final {
    public:
-    Index baseOffset;   // Base index in the global threat table for this piece
-    Index threatCount;  // Total number of threats this piece can generate
+    // [attacker][attacked][from < to]
+    Array<Index, PIECE_NB, PIECE_NB, 2> lut1{};
+    // [pt][from][to]
+    Array<Index, PIECE_TYPE_NB, SQUARE_NB, SQUARE_NB> lut2{};
 };
 
-struct ThreatTable final {
-   public:
-    Array<PieceThreat, PIECE_NB>      pieceThreats;
-    Array<Index, PIECE_NB, SQUARE_NB> squareOffsets;
-};
+constexpr auto init_threat_luts() noexcept {
+    ThreatLUTs                threatLuts{};
+    Array<u16, PIECE_TYPE_NB> offsets{};
 
-alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
-    ThreatTable threatTable{};
+    // Initialize lut2: index within each piece's threat features.
+    for (const auto pt : PIECE_TYPES)
+    {
+        u16 offset = 0;
 
-    Index baseOffset = 0;
-
-    for (const Color c : {WHITE, BLACK})
-        for (const auto pt : PIECE_TYPES)
+        for (Square org = SQ_A1; org <= SQ_H8; ++org)
         {
-            const Piece pc = make_piece(c, pt);
+            const Bitboard pieceAttacks = (pt != PAWN) ? Attacks::pseudo_attacks_bb(pt, org) : 0;
+            const Bitboard whiteAttacks = (pt == PAWN) ? Attacks::pseudo_attacks_bb(WHITE, org) : 0;
+            const Bitboard blackAttacks = (pt == PAWN) ? Attacks::pseudo_attacks_bb(BLACK, org) : 0;
 
-            Index threatCount = 0;
-
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            for (Square dst = SQ_A1; dst <= SQ_H8; ++dst)
             {
-                threatTable.squareOffsets[+pc][s] = threatCount;
+                const Bitboard attacks = (pt != PAWN) ? pieceAttacks
+                                       : (dst < org)  ? blackAttacks
+                                                      : whiteAttacks;
 
-                if (pt != PAWN)
-                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(pt, s));
-                else if (SQ_A2 <= s && s <= SQ_H7)
-                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(c, s));
+                threatLuts.lut2[pt][org][dst] =
+                  offset + constexpr_popcount((square_bb(dst) - 1) & attacks);
             }
 
-            threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
-
-            baseOffset += 2 * TARGET_MAX[pt - 1] * threatCount;
+            if (pt != PAWN)
+                offset += constexpr_popcount(pieceAttacks);
+            else if (SQ_A2 <= org && org <= SQ_H7)
+                offset += constexpr_popcount(whiteAttacks);
         }
 
-    return threatTable;
-}();
+        offsets[pt] = offset;
+    }
 
-constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
-constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
-
-constexpr Index dimensions() noexcept {
-    Index dims = 0;
-    for (const Color c : {WHITE, BLACK})
-        for (const auto pt : PIECE_TYPES)
-            dims += 2 * TARGET_MAX[pt - 1]  //
-                  * PIECE_THREATS[+make_piece(c, pt)].threatCount;
-
-    return dims;
-}
-
-static_assert(Dimensions < (Index{1} << 16));
-static_assert(dimensions() == Dimensions);
-
-struct LutData final {
-    Array<Index, PIECE_NB, PIECE_NB> featureIndices{};
-    Array<bool, PIECE_NB, PIECE_NB>  semiExcluded{};
-};
-
-// LUT for getting feature base index and exclusion info
-// [attackerPc][attackedPc]
-alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
-    LutData lutDatas{};
+    // Initialize lut1: feature base index and exclusion handling.
+    Index cumulativeOffset = 0;
 
     for (const Color attackerC : {WHITE, BLACK})
         for (const auto attackerPt : PIECE_TYPES)
         {
             const Piece attackerPc = make_piece(attackerC, attackerPt);
 
-            const auto& attackerMap = MAP[attackerPt - 1];
-            const auto& pieceThreat = PIECE_THREATS[+attackerPc];
+            const Index pieceOffset = offsets[attackerPt];
+            const Index targetMax   = TARGET_MAX[attackerPt - 1];
 
             for (const Color attackedC : {WHITE, BLACK})
                 for (const auto attackedPt : PIECE_TYPES)
                 {
                     const Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    const auto map = attackerMap[attackedPt - 1];
+                    const auto map = MAP[attackerPt - 1][attackedPt - 1];
 
                     // Excluded
                     if (map < 0)
                     {
-                        lutDatas.featureIndices[+attackerPc][+attackedPc] = Dimensions;
+                        threatLuts.lut1[+attackerPc][+attackedPc][0] = Dimensions;
+                        threatLuts.lut1[+attackerPc][+attackedPc][1] = Dimensions;
                         continue;
                     }
 
-                    const bool enemy = attackerC != attackedC;
+                    const bool semiExcluded = attackerPt == attackedPt  //
+                                           && (attackerC != attackedC || attackerPt != PAWN);
 
-                    lutDatas.semiExcluded[+attackerPc][+attackedPc] =
-                      attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+                    const Index feature = cumulativeOffset  //
+                                        + (attackedC * targetMax + map) * pieceOffset;
 
-                    lutDatas.featureIndices[+attackerPc][+attackedPc] =
-                      pieceThreat.baseOffset
-                      + (attackedC * TARGET_MAX[attackerPt - 1] + map)  //
-                          * pieceThreat.threatCount;
+                    threatLuts.lut1[+attackerPc][+attackedPc][0] = feature;
+                    threatLuts.lut1[+attackerPc][+attackedPc][1] = semiExcluded  //
+                                                                   ? Dimensions
+                                                                   : feature;
                 }
+
+            cumulativeOffset += 2 * targetMax * pieceOffset;
         }
 
-    return lutDatas;
-}();
+    assert(cumulativeOffset == Dimensions);
 
-constexpr auto& LUT_FEATURE_INDICES = LUT_DATAS.featureIndices;
-constexpr auto& LUT_SEMI_EXCLUDED   = LUT_DATAS.semiExcluded;
+    return threatLuts;
+}
 
-// LUT for getting index within piece threats
-// [attackerPt][orgSq][dstSq]
-alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
-    Array<u8, PIECE_TYPE_CNT + 1, SQUARE_NB, SQUARE_NB> lutIndices{};
+constexpr auto THREAT_LUTS = init_threat_luts();
 
-    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-    {
-        const Bitboard whitePawnAttacks = Attacks::pseudo_attacks_bb(WHITE, s1);
-        const Bitboard blackPawnAttacks = Attacks::pseudo_attacks_bb(BLACK, s1);
-        const Bitboard knightAttacks    = Attacks::pseudo_attacks_bb(KNIGHT, s1);
-        const Bitboard bishopAttacks    = Attacks::pseudo_attacks_bb(BISHOP, s1);
-        const Bitboard rookAttacks      = Attacks::pseudo_attacks_bb(ROOK, s1);
-        const Bitboard queenAttacks     = Attacks::pseudo_attacks_bb(QUEEN, s1);
-        const Bitboard kingAttacks      = Attacks::pseudo_attacks_bb(KING, s1);
-
-        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-        {
-            const Bitboard s2MaskBB = square_bb(s2) - 1;
-            // clang-format off
-            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & whitePawnAttacks);
-            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & blackPawnAttacks);
-            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & knightAttacks);
-            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & bishopAttacks);
-            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & rookAttacks);
-            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & queenAttacks);
-            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & kingAttacks);
-            // clang-format on
-        }
-    }
-
-    return lutIndices;
-}();
-
-// Get index within piece threats
-ALWAYS_INLINE constexpr Index lut_index(const Piece pc, const Square s1, const Square s2) noexcept {
-    assert(is_ok(pc) && is_ok(s1) && is_ok(s2));
-
-    return type_of(pc) == PAWN ? LUT_INDICES[color_of(pc)][s1][s2]
-                               : LUT_INDICES[type_of(pc)][s1][s2];
+ALWAYS_INLINE constexpr Index threat_index(const Index lut1, const Index lut2) noexcept {
+    return lut1 != Dimensions ? lut1 + lut2 : Dimensions;
 }
 
 // Index of a feature for a given king position and another piece on square
@@ -207,24 +152,17 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Piece  attackerPc,
                                          const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
-    const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
+    const u8 orient = u8(orientation(kingSq)) ^ (56 * perspective);
 
-    const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
-    const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
+    const u8 org = u8(orgSq) ^ orient;
+    const u8 dst = u8(dstSq) ^ orient;
 
-    // Compute perspective-relative pieces
-    const u8 relAttackerPc = +relative_piece(perspective, attackerPc);
-    const u8 relAttackedPc = +relative_piece(perspective, attackedPc);
+    u8       swap     = 8 * perspective;
+    unsigned attacker = (+attackerPc) ^ swap;
+    unsigned attacked = (+attackedPc) ^ swap;
 
-    // Lookup LUT
-    const Index featureIndex = LUT_FEATURE_INDICES[relAttackerPc][relAttackedPc];
-
-    return featureIndex == Dimensions
-            || (LUT_SEMI_EXCLUDED[relAttackerPc][relAttackedPc] && org < dst)
-           ? Dimensions
-           : featureIndex                                                   //
-               + lut_index(Piece{relAttackerPc}, Square{org}, Square{dst})  //
-               + SQUARE_OFFSETS[relAttackerPc][org];
+    return threat_index(THREAT_LUTS.lut1[attacker][attacked][org < dst],
+                        THREAT_LUTS.lut2[type_of(attackerPc)][org][dst]);
 }
 
 ALWAYS_INLINE void append_pawn_active_indices(Bitboard        attacksBB,
@@ -240,9 +178,8 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard        attacksBB,
         const Square orgSq      = dstSq - attackDir;
         const Piece  attackedPc = pos[dstSq];
 
-        const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
-
-        active.push_back_if_lt(index, Dimensions);
+        active.push_back_if_lt(
+          make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc), Dimensions);
     }
 }
 
@@ -309,21 +246,28 @@ void append_changed_indices(const Color               perspective,
                             IndexList&                added,
                             const ThreatWeight* const pfBase,
                             const usize               pfStride) noexcept {
+    const unsigned orient    = u8(orientation(kingSq)) ^ (56 * perspective);
+    const unsigned pair_swap = 0x88 * perspective;
+
+    const auto* pLut1 = &THREAT_LUTS.lut1[0][0];
+
     for (const auto& dT : dTs)
     {
-        const auto orgSq      = dT.sq();
-        const auto dstSq      = dT.threatened_sq();
-        const auto attackerPc = dT.pc();
-        const auto attackedPc = dT.threatened_pc();
-        const auto add        = dT.add();
+        const u32      raw   = dT.raw();
+        const unsigned org   = u8(raw >> Threat::SqShift) ^ orient;
+        const unsigned dst   = u8(raw >> Threat::ThreatenedSqShift) ^ orient;
+        const unsigned pair  = u8(raw >> Threat::ThreatenedPcShift);
+        const auto&    pLut2 = THREAT_LUTS.lut2[(pair >> 4) & 7];
 
-        auto& insert = add ? added : removed;
-
-        const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+        const Index index = threat_index(pLut1[pair ^ pair_swap][org < dst], pLut2[org][dst]);
 
         if (pfBase != nullptr)
             prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
               reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + index * pfStride));
+
+        const bool add = raw >> 31;
+
+        auto& insert = add ? added : removed;
 
         insert.push_back_if_lt(index, Dimensions);
     }
@@ -336,19 +280,29 @@ void append_changed_indices_both(const Square                wKingSq,
                                  Array<IndexList, COLOR_NB>& added,
                                  const ThreatWeight* const   pfBase,
                                  const usize                 pfStride) noexcept {
+
+    const unsigned wOrient = u8(orientation(wKingSq));
+    const unsigned bOrient = u8(orientation(bKingSq)) ^ 56;
+
+    const auto* pLut1 = &THREAT_LUTS.lut1[0][0];
+
     for (const auto& dT : dTs)
     {
-        const auto orgSq      = dT.sq();
-        const auto dstSq      = dT.threatened_sq();
-        const auto attackerPc = dT.pc();
-        const auto attackedPc = dT.threatened_pc();
-        const auto add        = dT.add();
+        const u32      raw   = dT.raw();
+        const unsigned org   = u8(raw >> Threat::SqShift);
+        const unsigned dst   = u8(raw >> Threat::ThreatenedSqShift);
+        const unsigned pair  = u8(raw >> Threat::ThreatenedPcShift);
+        const auto&    pLut2 = THREAT_LUTS.lut2[(pair >> 4) & 7];
 
-        auto& wInsert = add ? added[WHITE] : removed[WHITE];
-        auto& bInsert = add ? added[BLACK] : removed[BLACK];
+        const unsigned wOrg = org ^ wOrient;
+        const unsigned wDst = dst ^ wOrient;
 
-        const auto wIndex = make_index(WHITE, wKingSq, orgSq, dstSq, attackerPc, attackedPc);
-        const auto bIndex = make_index(BLACK, bKingSq, orgSq, dstSq, attackerPc, attackedPc);
+        const Index wIndex = threat_index(pLut1[pair][wOrg < wDst], pLut2[wOrg][wDst]);
+
+        const unsigned bOrg = org ^ bOrient;
+        const unsigned bDst = dst ^ bOrient;
+
+        const Index bIndex = threat_index(pLut1[pair ^ 0x88][bOrg < bDst], pLut2[bOrg][bDst]);
 
         if (pfBase != nullptr)
         {
@@ -357,6 +311,11 @@ void append_changed_indices_both(const Square                wKingSq,
             prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
               reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + bIndex * pfStride));
         }
+
+        const bool add = raw >> 31;
+
+        auto& wInsert = add ? added[WHITE] : removed[WHITE];
+        auto& bInsert = add ? added[BLACK] : removed[BLACK];
 
         wInsert.push_back_if_lt(wIndex, Dimensions);
         bInsert.push_back_if_lt(bIndex, Dimensions);

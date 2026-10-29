@@ -819,8 +819,8 @@ void Position::do_move(const Move                   m,
     }
     if (dPps != nullptr)
     {
-        dPps->before[WHITE] = pieces_bb(WHITE, PAWN);
-        dPps->before[BLACK] = pieces_bb(BLACK, PAWN);
+        dPps->beforeBB[WHITE] = pieces_bb(WHITE, PAWN);
+        dPps->beforeBB[BLACK] = pieces_bb(BLACK, PAWN);
     }
 
     st->key ^= zobrist().turn() ^ zobrist().enpassant(en_passant_sq());
@@ -1025,8 +1025,8 @@ void Position::do_move(const Move                   m,
 
     if (dPps != nullptr)
     {
-        dPps->after[WHITE] = pieces_bb(WHITE, PAWN);
-        dPps->after[BLACK] = pieces_bb(BLACK, PAWN);
+        dPps->afterBB[WHITE] = pieces_bb(WHITE, PAWN);
+        dPps->afterBB[BLACK] = pieces_bb(BLACK, PAWN);
     }
 
     // Compute checkers (if move may check)
@@ -1272,7 +1272,7 @@ bool Position::legal(const Move m) const noexcept {
 
             // For king moves, check whether the destination square is attacked by the enemies.
             if (type_of(movedPc) == KING)
-                return !attackers_exists(dstSq, pieces_bb(~ac), pieces_bb() ^ orgSq);
+                return (acc_attacks_bb(KING) & dstSq) == 0;
         }
         break;
     case Move::Type::PROMOTION :
