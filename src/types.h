@@ -799,7 +799,7 @@ ALWAYS_INLINE Move::Move(const Square orgSq, const Square dstSq, const PieceType
     assert(DON::is_ok(orgSq) && DON::is_ok(dstSq) && KNIGHT <= promoPt && promoPt <= QUEEN);
 }
 
-// **Define the constexpr static members outside the class**
+// *** Define the const static members outside the class ***
 inline const Move Move::None{0xC000};
 inline const Move Move::Null{0xE000};
 
