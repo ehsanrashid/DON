@@ -300,8 +300,8 @@ class RootMoves final {
         return rootMoves_.emplace(where, std::forward<Args>(args)...);
     }
 
-    void push_back(const value_type& v) { rootMoves_.push_back(v); }
-    void push_back(value_type&& v) { rootMoves_.push_back(std::move(v)); }
+    void push_back(const value_type& rm) { rootMoves_.push_back(rm); }
+    void push_back(value_type&& rm) { rootMoves_.push_back(std::move(rm)); }
 
     void pop_back() noexcept { rootMoves_.pop_back(); }
 
@@ -316,18 +316,18 @@ class RootMoves final {
         return std::find(begin() + beg, begin() + end, m);
     }
     [[nodiscard]] const_iterator
-    find(const size_type beg, const size_type end, const value_type& v) const noexcept {
-        return !v.pv.empty() ? find(beg, end, v.pv[0]) : begin() + end;
+    find(const size_type beg, const size_type end, const value_type& rm) const noexcept {
+        return !rm.pv.empty() ? find(beg, end, rm.pv[0]) : begin() + end;
     }
 
     iterator find(const Move m) noexcept { return std::find(begin(), end(), m); }
-    iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
+    iterator find(const value_type& rm) noexcept { return !rm.pv.empty() ? find(rm.pv[0]) : end(); }
 
     [[nodiscard]] const_iterator find(const Move m) const noexcept {
         return std::find(begin(), end(), m);
     }
-    [[nodiscard]] const_iterator find(const value_type& v) const noexcept {
-        return !v.pv.empty() ? find(v.pv[0]) : end();
+    [[nodiscard]] const_iterator find(const value_type& rm) const noexcept {
+        return !rm.pv.empty() ? find(rm.pv[0]) : end();
     }
 
     template<typename Predicate>
@@ -349,19 +349,19 @@ class RootMoves final {
         return std::find(fstItr, lstItr, m) != lstItr;
     }
     [[nodiscard]] bool
-    contains(const size_type beg, const size_type end, const value_type& v) const noexcept {
+    contains(const size_type beg, const size_type end, const value_type& rm) const noexcept {
         assert(beg <= end && end <= size());
 
-        return v.pv.empty() || contains(beg, end, v.pv[0]);
+        return rm.pv.empty() || contains(beg, end, rm.pv[0]);
     }
 
     [[nodiscard]] bool contains(const Move m) const noexcept { return find(m) != end(); }
-    [[nodiscard]] bool contains(const value_type& v) const noexcept {
-        return v.pv.empty() || contains(v.pv[0]);
+    [[nodiscard]] bool contains(const value_type& rm) const noexcept {
+        return rm.pv.empty() || contains(rm.pv[0]);
     }
 
     iterator remove(const Move m) noexcept { return std::remove(begin(), end(), m); }
-    iterator remove(const value_type& v) noexcept { return std::remove(begin(), end(), v); }
+    iterator remove(const value_type& rm) noexcept { return std::remove(begin(), end(), rm); }
 
     template<typename Predicate>
     iterator remove_if(Predicate&& pred) noexcept {
@@ -380,8 +380,8 @@ class RootMoves final {
         erase(newEnd, end());
         return removed;
     }
-    bool erase(const value_type& v) noexcept {
-        auto newEnd  = remove(v);
+    bool erase(const value_type& rm) noexcept {
+        auto newEnd  = remove(rm);
         bool removed = newEnd != end();
         erase(newEnd, end());
         return removed;

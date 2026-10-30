@@ -390,8 +390,15 @@ void Worker::start_search() noexcept {
             {
                 manager->skill.pick_move(rootMoves, multiPV);
 
-                for (auto&& th : threads)
-                    th->worker->rootMoves.swap_to_front(manager->skill.move());
+                const Move skillMove = manager->skill.move();
+
+                if (skillMove.is_ok() && skillMove != rootMoves[0][0])
+                {
+                    for (auto&& th : threads)
+                        th->worker->rootMoves.swap_to_front(skillMove);
+
+                    manager->pvShown = false;
+                }
             }
             else if (thread_count() > 1)
             {
