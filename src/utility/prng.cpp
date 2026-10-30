@@ -461,9 +461,9 @@ void Xoshiro1024ss::long_jump() noexcept {
 void Xoshiro1024ss::update() noexcept {
     const usize q = p;
     p             = (p + 1) & StateMask;
-    state[q] ^= state[p];
-    state[q] = rotl(state[p], 25) ^ state[q] ^ (state[q] << 27);
-    state[p] = rotl(state[q], 36);
+    const u64 s15 = state[p] ^ state[q];
+    state[q]      = rotl(state[p], 25) ^ s15 ^ (s15 << 27);
+    state[p]      = rotl(s15, 36);
 }
 
 u64 Xoshiro1024ss::mix() const noexcept { return rotl(state[(p + 1) & StateMask] * 5, 7) * 9; }
