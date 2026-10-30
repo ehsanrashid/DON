@@ -79,9 +79,10 @@ bool read_header_(std::istream& is, u32& hash, std::string& netDescription) noex
     netDescription.clear();
 
     Array<char, 4096> buffer;
-    for (usize remaining = descSize; remaining > 0;)
+
+    for (usize remaining = descSize; remaining != 0;)
     {
-        const usize want = std::min(remaining, buffer.size());
+        const usize want = std::min(buffer.size(), remaining);
 
         is.read(buffer.data(), std::streamsize(want));
 

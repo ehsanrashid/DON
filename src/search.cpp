@@ -608,7 +608,7 @@ void Worker::iterative_deepening() noexcept {
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
-                bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
+                bestValue = search<NodeType::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
                 // Bring the best move to the front. A stable sort is critical here because
                 // all moves except the first and, eventually, the new best move have a score of -VALUE_INFINITE.
@@ -811,7 +811,7 @@ void Worker::iterative_deepening() noexcept {
 
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
-template<NT T>
+template<NodeType NT>
 Value Worker::search(Position&    pos,
                      Stack* const ss,
                      Value        alpha,
@@ -819,10 +819,10 @@ Value Worker::search(Position&    pos,
                      Depth        depth,
                      const i16    red,
                      const Move   excludedMove) noexcept {
-    constexpr bool RootNode = T == NT::ROOT;
-    constexpr bool PVNode   = RootNode || T == NT::PV;
-    constexpr bool CutNode  = T == NT::CUT;  // !PVNode
-    constexpr bool AllNode  = T == NT::ALL;  // !PVNode
+    constexpr bool RootNode = NT == NodeType::ROOT;
+    constexpr bool PVNode   = RootNode || NT == NodeType::PV;
+    constexpr bool CutNode  = NT == NodeType::CUT;  // !PVNode
+    constexpr bool AllNode  = NT == NodeType::ALL;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
     assert(ss->ply >= 0);
@@ -1188,7 +1188,7 @@ Value Worker::search(Position&    pos,
 
         do_null_move(pos, st, ss);
 
-        const Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        const Value nullValue = -search<NodeType::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
@@ -1211,7 +1211,7 @@ Value Worker::search(Position&    pos,
             // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            const Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+            const Value verifyValue = search<NodeType::ALL>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -1287,7 +1287,7 @@ Value Worker::search(Position&    pos,
 
             // If the qsearch held, perform the regular search
             if (probCutValue >= probCutBeta && probCutDepth > DEPTH_ZERO)
-                probCutValue = -search<~T>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
+                probCutValue = -search<~NT>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
 
             undo_move(pos, move);
 
@@ -1516,7 +1516,7 @@ Value Worker::search(Position&    pos,
             const Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
-            const Value singularValue = search<~~T>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
+            const Value singularValue = search<~~NT>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
 
             ss->ttHit     = RootNode || ttd.hit;
             ss->ttMove    = ttd.move;
@@ -1643,7 +1643,7 @@ Value Worker::search(Position&    pos,
 
             const i16 reduction = newDepth - redDepth;
 
-            value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
+            value = -search<NodeType::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
             // Shallower searches here don't scales well.
@@ -1658,7 +1658,7 @@ Value Worker::search(Position&    pos,
                 newDepth += int(extend) - int(reduce);
 
                 if (redDepth < newDepth)
-                    value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
+                    value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
 
                 // Post LMR continuation history updates
                 update_continuation_histories(ss, movedPc, dstSq, 1334);
@@ -1671,8 +1671,8 @@ Value Worker::search(Position&    pos,
             r += int(ttmNone) * 1127;
 
             // Reduce search depth if expected reduction is high
-            value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
-                                newDepth - int(r > 5234) - int(r > 5487 && newDepth > 2));
+            value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
+                                 newDepth - int(r > 5234) - int(r > 5487 && newDepth > 2));
         }
 
         // Step 20. For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1692,7 +1692,7 @@ Value Worker::search(Position&    pos,
                         newDepth = 1;
                 }
 
-                value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
+                value = -search<NodeType::PV>(pos, ss + 1, -beta, -alpha, newDepth);
             }
         }
 

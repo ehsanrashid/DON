@@ -253,13 +253,13 @@ constexpr Square& operator-=(Square& s, const Direction dir) noexcept { return s
 
 [[nodiscard]] constexpr bool is_ok(const Square s) noexcept { return (s <= SQ_H8); }
 
-[[nodiscard]] constexpr File file_of(const Square s) noexcept { return File((u8(s) >> 0) & 7); }
-[[nodiscard]] constexpr Rank rank_of(const Square s) noexcept { return Rank((u8(s) >> 3) & 7); }
+[[nodiscard]] constexpr File file_of(const Square s) noexcept { return File((u8(s) >> 0) & 0x7); }
+[[nodiscard]] constexpr Rank rank_of(const Square s) noexcept { return Rank((u8(s) >> 3) & 0x7); }
 
 [[nodiscard]] constexpr Square reverse_sq(const Square s) noexcept { return Square(SQ_H8 - s); }
 
 [[nodiscard]] constexpr bool is_light(const Square s) noexcept {
-    return ((u8(s) ^ u8(rank_of(s))) & 1) != 0;
+    return ((u8(s) ^ u8(rank_of(s))) & 0x1) != 0;
 }
 [[nodiscard]] constexpr bool color_opposite(const Square s1, const Square s2) noexcept {
     return is_light(s1) != is_light(s2);
@@ -326,9 +326,9 @@ constexpr Piece operator^(const Piece pc1, const Piece pc2) noexcept { return Pi
     return Piece((u8(c) << 3) | u8(pt));
 }
 
-constexpr PieceType type_of(const Piece pc) noexcept { return PieceType((+pc >> 0) & 7); }
+constexpr PieceType type_of(const Piece pc) noexcept { return PieceType((+pc >> 0) & 0x7); }
 
-constexpr Color color_of(const Piece pc) noexcept { return Color((+pc >> 3) & 1); }
+constexpr Color color_of(const Piece pc) noexcept { return Color((+pc >> 3) & 0x1); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 [[nodiscard]] constexpr Piece flip_color(const Piece pc) noexcept {

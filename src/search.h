@@ -560,7 +560,7 @@ struct MoveInfo final {
     std::string_view ponderMove;
 };
 
-// MainSearchManager manages the search from the main thread.
+// Manager manages the search from the main thread.
 // It is responsible for keeping track of the time,
 // and storing data strictly related to the main thread.
 class Manager final {
@@ -619,15 +619,15 @@ class Manager final {
     bool   atFirst;
 };
 
-// NT indicates the type of node in the search tree
-enum class NT : u8 {
+// NodeType indicates the type of node in the search tree
+enum class NodeType : u8 {
     ALL  = 0,
     CUT  = 1,
     PV   = 2,
     ROOT = 6,
 };
 
-constexpr NT operator~(const NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
+constexpr NodeType operator~(const NodeType nt) noexcept { return NodeType((u8(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.
@@ -704,7 +704,7 @@ class Worker final {
     void iterative_deepening() noexcept;
 
     // Main search function for NT nodes
-    template<NT T>
+    template<NodeType NT>
     Value search(Position& pos,
                  Stack*    ss,
                  Value     alpha,

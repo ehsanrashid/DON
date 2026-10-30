@@ -957,7 +957,7 @@ void Position::do_move(const Move                   m,
                                   ^ zobrist().piece_count(ac, promotedPt, count(ac, promotedPt));
         }
         // Set en-passant square if the moved pawn can be captured
-        else if ((int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2)
+        else if ((u8(dstSq) ^ u8(orgSq)) == +Direction::NORTH_2)
         {
             assert(relative_rank(ac, orgSq) == RANK_2);
             assert(relative_rank(ac, dstSq) == RANK_4);
@@ -1504,7 +1504,7 @@ Key Position::move_key(const Move m) const noexcept {
              ^ zobrist().mr50(rule50_count() + 1);
     }
 
-    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2
+    if (movedPt == PAWN && (u8(dstSq) ^ u8(orgSq)) == +Direction::NORTH_2
         && enpassant_possible<false>(~ac, dstSq - pawn_spush(ac)))
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
@@ -1566,7 +1566,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
     Bitboard attackersBB = attackers_bb(dstSq, occupancyBB);
 
     Square enPassantSq = SQ_NONE;
-    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2)
+    if (movedPt == PAWN && (u8(dstSq) ^ u8(orgSq)) == +Direction::NORTH_2)
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
         assert(relative_rank(ac, dstSq) == RANK_4);
