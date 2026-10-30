@@ -246,7 +246,8 @@ void append_changed_indices(const Color               perspective,
                             IndexList&                added,
                             const ThreatWeight* const pfBase,
                             const usize               pfStride) noexcept {
-    const u8 orient    = u8(orientation(kingSq)) ^ (56 * perspective);
+    const u8 orient = u8(orientation(kingSq)) ^ (56 * perspective);
+
     const u8 pair_swap = 0x88 * perspective;
 
     const auto* pLut1 = &THREAT_LUTS.lut1[0][0];

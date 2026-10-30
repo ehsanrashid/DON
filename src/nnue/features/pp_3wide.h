@@ -37,10 +37,10 @@ inline constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
 
 // Pawn pair feature indices are concatenated to threats so this must equal Features::FullThreats::Dimensions;
 // see nnue/feature_transformer.h
-inline constexpr Index IndexBase = 59808;
+inline constexpr Index BaseIndex = 59808;
 // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
 // The first pawn-pair feature is at index FullThreats::Dimensions.
-static_assert(IndexBase == 59808);
+static_assert(BaseIndex == 59808);
 
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 256;

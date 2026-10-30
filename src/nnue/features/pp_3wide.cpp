@@ -44,7 +44,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
                                          const Square orgSq,
                                          const Square dstSq,
                                          const Color  pairedColor) noexcept {
-    const unsigned orient = u8(orientation(kingSq)) ^ (56 * perspective);
+    const u8 orient = u8(orientation(kingSq)) ^ (56 * perspective);
 
     const u8 org = u8(orgSq) ^ orient;
     const u8 dst = u8(dstSq) ^ orient;
@@ -60,7 +60,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     const auto idH = std::max(id1, id2);
     const auto idL = std::min(id1, id2);
 
-    return IndexBase + idL + idH * (idH - 1) / 2;
+    return BaseIndex + idL + idH * (idH - 1) / 2;
 }
 
 #if defined(USE_AVX512ICL)
@@ -69,7 +69,7 @@ ALWAYS_INLINE __m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
     const __m256i lo   = _mm256_min_epu16(a, b);
     const __m256i prod = _mm256_mullo_epi16(hi, _mm256_sub_epi16(hi, _mm256_set1_epi16(1)));
     return _mm256_add_epi16(_mm256_add_epi16(_mm256_srli_epi16(prod, 1), lo),
-                            _mm256_set1_epi16(i16(IndexBase)));
+                            _mm256_set1_epi16(BaseIndex));
 }
 #endif
 }  // namespace

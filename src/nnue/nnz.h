@@ -113,7 +113,7 @@ struct NNZ final {
         __m512i indices;
     };
 
-    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
+    Cursor make_cursor(const Color perspective) noexcept { return {*this, perspective}; }
 
     // Indices of non-zero chunks
     u16      bitset[Dimensions / 4];
@@ -183,7 +183,7 @@ struct NNZ final {
         u8* nnzOut;
     };
 
-    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
+    Cursor make_cursor(const Color perspective) noexcept { return {*this, perspective}; }
 
     // Each 8-bit chunk
     alignas(8) u8 bitset[ceil_div(Dimensions, 32)];
