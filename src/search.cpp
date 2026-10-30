@@ -276,7 +276,7 @@ void Worker::reset() noexcept {
 
     ttMoveHistory = 0;
 
-    accCache.init(network[numa_access_token()]);
+    accCache.reset(network[numa_access_token()]);
 }
 
 // Ensure that the neural network is replicated on this NUMA node
@@ -390,8 +390,15 @@ void Worker::start_search() noexcept {
             {
                 manager->skill.pick_move(rootMoves, multiPV);
 
-                for (auto&& th : threads)
-                    th->worker->rootMoves.swap_to_front(manager->skill.move());
+                const Move skillMove = manager->skill.move();
+
+                if (skillMove.is_ok() && skillMove != rootMoves[0][0])
+                {
+                    for (auto&& th : threads)
+                        th->worker->rootMoves.swap_to_front(skillMove);
+
+                    manager->pvShown = false;
+                }
             }
             else if (thread_count() > 1)
             {
@@ -438,9 +445,9 @@ void Worker::iterative_deepening() noexcept {
 
     accStack.reset();
 
-    for (auto& colorQuietHist : quietHistory)
-        for (auto& quietHist : colorQuietHist)
-            quietHist = constexpr_round(quietHist * 729.0 / 1024.0);
+    for (auto& cHist : quietHistory)
+        for (auto& hist : cHist)
+            hist = constexpr_round(hist * 729.0 / 1024.0);
 
     lowPlyQuietHistory.fill(102);
 
@@ -578,7 +585,8 @@ void Worker::iterative_deepening() noexcept {
             const auto preValue    = rmIdx.preValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + thread_id() % 8 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10193.0);
+            int   delta = 5 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10193.0)  //
+                        + int(!is_main()) * 7;
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -608,7 +616,7 @@ void Worker::iterative_deepening() noexcept {
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
-                bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
+                bestValue = search<NodeType::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
                 // Bring the best move to the front. A stable sort is critical here because
                 // all moves except the first and, eventually, the new best move have a score of -VALUE_INFINITE.
@@ -676,34 +684,34 @@ void Worker::iterative_deepening() noexcept {
                 // when pvIdx - 1 is a proven loss.
                 // Moreover, do not trust an exact loss value from an aborted search.
 
-                auto& rmIdx_0 = rootMoves[pvIdx - 0];
-                auto& rmIdx_1 = rootMoves[pvIdx - 1];
+                auto& idx_0_rm = rootMoves[pvIdx - 0];
+                auto& idx_1_rm = rootMoves[pvIdx - 1];
 
-                if (rmIdx_0.is_exact_loss() || (is_loss(rmIdx_1.value) && rmIdx_0 < rmIdx_1))
+                if (idx_0_rm.is_exact_loss() || (is_loss(idx_1_rm.value) && idx_0_rm < idx_1_rm))
                 {
                     // If the previous score is worse than pvIdx - 1, can safely use it.
                     // If it is equal, make sure it cannot overtake pvIdx - 1.
-                    if (rmIdx_0.preValue != -VALUE_INFINITE && rmIdx_0.isExact
-                        && rmIdx_0.preValue <= rmIdx_1.value)
+                    if (idx_0_rm.preValue != -VALUE_INFINITE && idx_0_rm.isExact
+                        && idx_0_rm.preValue <= idx_1_rm.value)
                     {
-                        rmIdx_0.value = rmIdx_0.uciValue = rmIdx_0.preValue;
-                        rmIdx_0.preValue                 = -VALUE_INFINITE;
-                        rmIdx_0.pv                       = rmIdx_0.prePV;
-                        rmIdx_0.reset_bound();
+                        idx_0_rm.value = idx_0_rm.uciValue = idx_0_rm.preValue;
+                        idx_0_rm.preValue                  = -VALUE_INFINITE;
+                        idx_0_rm.pv                        = idx_0_rm.prePV;
+                        idx_0_rm.reset_bound();
                     }
                     // Otherwise, if can, cap the score to the best possible, and mark
                     // the score as a bound (also a valid excuse for the incomplete PV).
                     else
                     {
-                        if (is_loss(rmIdx_1.value))
+                        if (is_loss(idx_1_rm.value))
                         {
-                            rmIdx_0.value = rmIdx_0.uciValue = rmIdx_1.value;
-                            rmIdx_0.preValue                 = -VALUE_INFINITE;
-                            rmIdx_0.shrink_to(std::min(rmIdx_0.size(), rmIdx_1.size()));
-                            rmIdx_0.bound = Bound::UPPER;
+                            idx_0_rm.value = idx_0_rm.uciValue = idx_1_rm.value;
+                            idx_0_rm.preValue                  = -VALUE_INFINITE;
+                            idx_0_rm.shrink_to(std::min(idx_0_rm.size(), idx_1_rm.size()));
+                            idx_0_rm.bound = Bound::UPPER;
                         }
                         else
-                            rmIdx_0.bound = Bound::LOWER;
+                            idx_0_rm.bound = Bound::LOWER;
                     }
                 }
 
@@ -811,7 +819,7 @@ void Worker::iterative_deepening() noexcept {
 
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
-template<NT T>
+template<NodeType NT>
 Value Worker::search(Position&    pos,
                      Stack* const ss,
                      Value        alpha,
@@ -819,10 +827,10 @@ Value Worker::search(Position&    pos,
                      Depth        depth,
                      const i16    red,
                      const Move   excludedMove) noexcept {
-    constexpr bool RootNode = T == NT::ROOT;
-    constexpr bool PVNode   = RootNode || T == NT::PV;
-    constexpr bool CutNode  = T == NT::CUT;  // !PVNode
-    constexpr bool AllNode  = T == NT::ALL;  // !PVNode
+    constexpr bool RootNode = NT == NodeType::ROOT;
+    constexpr bool PVNode   = RootNode || NT == NodeType::PV;
+    constexpr bool CutNode  = NT == NodeType::CUT;  // !PVNode
+    constexpr bool AllNode  = NT == NodeType::ALL;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
     assert(ss->ply >= 0);
@@ -887,10 +895,10 @@ Value Worker::search(Position&    pos,
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        const Value newAplha = mated_in(ss->ply + 0);
+        const Value newAlpha = mated_in(ss->ply + 0);
         const Value newBeta  = mates_in(ss->ply + 1);
-        if (alpha < newAplha)
-            alpha = newAplha;
+        if (alpha < newAlpha)
+            alpha = newAlpha;
         if (beta > newBeta)
             beta = newBeta;
 
@@ -1182,13 +1190,13 @@ Value Worker::search(Position&    pos,
         assert(preMove != Move::Null);
 
         const int evalDiff = constexpr_round((ss->evalue - beta) / 256.0);
-        // Null move dynamic reduction. Odd threads reduce one ply less
-        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - (thread_id() & 1);
+        // Null move dynamic reduction. More threads reduce one ply less
+        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - int(!is_main());
         R -= int(seekMate) * R / 2;
 
         do_null_move(pos, st, ss);
 
-        const Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        const Value nullValue = -search<NodeType::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
@@ -1211,7 +1219,7 @@ Value Worker::search(Position&    pos,
             // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            const Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+            const Value verifyValue = search<NodeType::ALL>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -1287,7 +1295,7 @@ Value Worker::search(Position&    pos,
 
             // If the qsearch held, perform the regular search
             if (probCutValue >= probCutBeta && probCutDepth > DEPTH_ZERO)
-                probCutValue = -search<~T>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
+                probCutValue = -search<~NT>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
 
             undo_move(pos, move);
 
@@ -1516,7 +1524,7 @@ Value Worker::search(Position&    pos,
             const Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
-            const Value singularValue = search<~~T>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
+            const Value singularValue = search<~~NT>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
 
             ss->ttHit     = RootNode || ttd.hit;
             ss->ttMove    = ttd.move;
@@ -1643,7 +1651,7 @@ Value Worker::search(Position&    pos,
 
             const i16 reduction = newDepth - redDepth;
 
-            value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
+            value = -search<NodeType::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
             // Shallower searches here don't scales well.
@@ -1658,7 +1666,7 @@ Value Worker::search(Position&    pos,
                 newDepth += int(extend) - int(reduce);
 
                 if (redDepth < newDepth)
-                    value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
+                    value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
 
                 // Post LMR continuation history updates
                 update_continuation_histories(ss, movedPc, dstSq, 1334);
@@ -1671,8 +1679,8 @@ Value Worker::search(Position&    pos,
             r += int(ttmNone) * 1127;
 
             // Reduce search depth if expected reduction is high
-            value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
-                                newDepth - int(r > 5234) - int(r > 5487 && newDepth > 2));
+            value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
+                                 newDepth - int(r > 5234) - int(r > 5487 && newDepth > 2));
         }
 
         // Step 20. For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1692,7 +1700,7 @@ Value Worker::search(Position&    pos,
                         newDepth = 1;
                 }
 
-                value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
+                value = -search<NodeType::PV>(pos, ss + 1, -beta, -alpha, newDepth);
             }
         }
 
@@ -2266,7 +2274,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     // clang-format on
 }
 
-void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
+void Worker::undo_null_move(Position& pos) noexcept { pos.undo_null_move(); }
 
 // Evaluate the current position of the game tree, from the point of view of the side to move.
 Value Worker::evaluate(const Position& pos) noexcept {

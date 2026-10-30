@@ -449,14 +449,17 @@ std::vector<std::string> bench(std::istream& is, std::string_view currentFen) no
     return commands;
 }
 
+namespace {
+
+// TT_SIZE_PER_THREAD is chosen so that roughly half of the hash
+// is used for positions in the current sequence searched.
+constexpr usize TT_SIZE_PER_THREAD = 128;
+constexpr usize MOVE_TIME          = 150;
+constexpr usize DURATION_S_MAX     = std::numeric_limits<unsigned>::max() / 1000;
+
+}  // namespace
+
 Setup benchmark(std::istream& is) noexcept {
-    // TTSizePerThread is chosen so that roughly half of the hash
-    // is used for positions in the current sequence searched.
-    constexpr usize TTSizePerThread = 128;
-    constexpr usize MoveTime        = 150;
-
-    constexpr unsigned DurationSMax = std::numeric_limits<unsigned>::max() / 1000;
-
     Setup setup;
 
     const auto clamped = [](const std::string_view what, const usize value,  //
@@ -493,18 +496,18 @@ Setup benchmark(std::istream& is) noexcept {
     }
     else
     {
-        setup.ttSize = clamped("Hash", TTSizePerThread * setup.threads, 1, HASH_MAX);
+        setup.ttSize = clamped("Hash", TT_SIZE_PER_THREAD * setup.threads, 1, HASH_MAX);
     }
 
     if (is >> desiredTimeS)
     {
-        desiredTimeS = clamped("Seconds", desiredTimeS, 1, DurationSMax);
+        desiredTimeS = clamped("Seconds", desiredTimeS, 1, DURATION_S_MAX);
 
         setup.originalInvocation.append(std::to_string(desiredTimeS)).push_back(' ');
     }
     else
     {
-        desiredTimeS = MoveTime;
+        desiredTimeS = MOVE_TIME;
     }
 
     if (!setup.originalInvocation.empty())

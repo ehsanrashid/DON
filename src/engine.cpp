@@ -153,11 +153,12 @@ std::optional<Error> Engine::setup(const std::string_view          fen,
 void Engine::reset() noexcept {
     wait_finish();
 
-    Position::reset();
     Tablebase::Syzygy::init(options()["SyzygyPath"]);  // Free mapped files
 
     if (options()["HashRetain"])
         return;
+
+    Position::reset();
 
     threads.reset();
     transpositionTable.reset(threads);

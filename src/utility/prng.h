@@ -45,7 +45,7 @@ constexpr u64 rotr(const u64 x, const u8 k) noexcept {
 //   is explicitly replaced with 1 if necessary.
 //
 // used widely across many modern libraries,
-// (including the Java 8 SplittableRandom and the standard initialization routines by Vigna)
+// (including the Java 8 SplitableRandom and the standard initialization routines by Vigna)
 class SplitMix64 final {
    public:
     explicit SplitMix64(u64 seed) noexcept;

@@ -20,33 +20,7 @@
 
 #include "../utility/environment.h"
 
-#if defined(__INTELLISENSE__)
-    // Dummy thread-safety annotations for IntelliSense
-    // clang-format off
-    #define LOCK_RETURNED(x)
-    #define CAPABILITY(x)
-    #define GUARDED_BY(x)
-    #define PT_GUARDED_BY(x)
-    #define ACQUIRED_BEFORE(...)
-    #define ACQUIRED_AFTER(...)
-    #define ASSERT_CAPABILITY(x)
-    #define ACQUIRE_CAPABILITY(...)
-    #define TRY_ACQUIRE_CAPABILITY(...)
-    #define RELEASE_CAPABILITY(...)
-    #define REQUIRES_CAPABILITY(...)
-    #define ASSERT_SHARED_CAPABILITY(x)
-    #define ACQUIRE_SHARED_CAPABILITY(...)
-    #define TRY_ACQUIRE_SHARED_CAPABILITY(...)
-    #define RELEASE_SHARED_CAPABILITY(...)
-    #define REQUIRES_SHARED_CAPABILITY(...)
-    #define LOCKS_EXCLUDED(...)
-    #define RELEASE_GENERIC_CAPABILITY(...)
-    #define NO_THREAD_SAFETY_ANALYSIS
-    #define REENTRANT_CAPABILITY
-    #define LOCKABLE                            CAPABILITY("mutex")
-    #define SCOPED_LOCKABLE
-    // clang-format on
-#else
+#if !defined(__INTELLISENSE__)
     #include "../utility/attributes.h"
 
     // Enable compiler thread-safety attributes only for Clang, excluding SWIG.
@@ -80,6 +54,33 @@
     #define REENTRANT_CAPABILITY                THREAD_ATTRIBUTE(reentrant_capability)
     #define LOCKABLE                            CAPABILITY("mutex")
     #define SCOPED_LOCKABLE                     THREAD_ATTRIBUTE(scoped_lockable)
+    // clang-format on
+#else
+    // Dummy thread-safety annotations for IntelliSense
+
+    // clang-format off
+    #define LOCK_RETURNED(x)
+    #define CAPABILITY(x)
+    #define GUARDED_BY(x)
+    #define PT_GUARDED_BY(x)
+    #define ACQUIRED_BEFORE(...)
+    #define ACQUIRED_AFTER(...)
+    #define ASSERT_CAPABILITY(x)
+    #define ACQUIRE_CAPABILITY(...)
+    #define TRY_ACQUIRE_CAPABILITY(...)
+    #define RELEASE_CAPABILITY(...)
+    #define REQUIRES_CAPABILITY(...)
+    #define ASSERT_SHARED_CAPABILITY(x)
+    #define ACQUIRE_SHARED_CAPABILITY(...)
+    #define TRY_ACQUIRE_SHARED_CAPABILITY(...)
+    #define RELEASE_SHARED_CAPABILITY(...)
+    #define REQUIRES_SHARED_CAPABILITY(...)
+    #define LOCKS_EXCLUDED(...)
+    #define RELEASE_GENERIC_CAPABILITY(...)
+    #define NO_THREAD_SAFETY_ANALYSIS
+    #define REENTRANT_CAPABILITY
+    #define LOCKABLE                            CAPABILITY("mutex")
+    #define SCOPED_LOCKABLE
     // clang-format on
 #endif
 

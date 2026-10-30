@@ -21,6 +21,7 @@
 #include <iterator>
 #include <map>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -482,6 +483,255 @@ class Graph final {
     component_index_type componentIndices;
     usize                edgeCount = 0;
 };
+
+template<typename Vertex,
+         GraphType Type                         = GraphType::Directed,
+         typename Weight                        = int,
+         template<typename, typename> class Map = std::unordered_map>
+class StronglyConnectedComponents final {
+   public:
+    using graph_type      = Graph<Vertex, Type, Weight, Map>;
+    using component_type  = std::vector<Vertex>;
+    using components_type = std::vector<component_type>;
+
+    explicit StronglyConnectedComponents(const graph_type& graph) noexcept :
+        graph_(graph) {}
+
+    components_type find() const {
+        const usize vertexCount = graph_.vertex_count();
+
+        components_type components;
+        components.reserve(vertexCount);
+
+        std::vector<Vertex> finishOrder;
+        finishOrder.reserve(vertexCount);
+
+        Map<Vertex, bool> visited;
+
+        // Step 1: DFS on the original graph; record finish order.
+        for (const auto& [vertex, edges] : graph_.adjacencies())
+        {
+            (void) edges;
+
+            if (visited.find(vertex) == visited.end())
+                dfs_finish(vertex, visited, finishOrder);
+        }
+
+        // Step 2: Build the transpose adjacency.
+        Map<Vertex, std::vector<Vertex>> reverseAdjacencies;
+
+        for (const auto& [vertex, edges] : graph_.adjacencies())
+        {
+            (void) edges;
+            reverseAdjacencies.try_emplace(vertex);
+        }
+
+        for (const auto& [from, edges] : graph_.adjacencies())
+            for (const auto& [to, weight] : edges)
+            {
+                (void) weight;
+                reverseAdjacencies.find(to)->second.push_back(from);
+            }
+
+        // Step 3: DFS on the transpose in reverse finish order.
+        visited.clear();
+
+        for (auto itr = finishOrder.rbegin(); itr != finishOrder.rend(); ++itr)
+        {
+            if (visited.find(*itr) != visited.end())
+                continue;
+
+            components.emplace_back();
+            dfs_collect(*itr, reverseAdjacencies, visited, components.back());
+        }
+
+        return components;
+    }
+
+   private:
+    using visited_type = Map<Vertex, bool>;
+    using reverse_type = Map<Vertex, std::vector<Vertex>>;
+
+    const graph_type& graph_;
+
+    void dfs_finish(const Vertex&        vertex,
+                    visited_type&        visited,
+                    std::vector<Vertex>& finishOrder) const {
+        visited.try_emplace(vertex, true);
+
+        if (const auto* edges = graph_.neighbors(vertex))
+            for (const auto& [neighbor, weight] : *edges)
+            {
+                (void) weight;
+
+                if (visited.find(neighbor) == visited.end())
+                    dfs_finish(neighbor, visited, finishOrder);
+            }
+
+        finishOrder.push_back(vertex);
+    }
+
+    static void dfs_collect(const Vertex&       vertex,
+                            const reverse_type& reverseAdjacencies,
+                            visited_type&       visited,
+                            component_type&     component) {
+        visited.try_emplace(vertex, true);
+        component.push_back(vertex);
+
+        const auto itr = reverseAdjacencies.find(vertex);
+
+        if (itr == reverseAdjacencies.end())
+            return;
+
+        for (const auto& neighbor : itr->second)
+            if (visited.find(neighbor) == visited.end())
+                dfs_collect(neighbor, reverseAdjacencies, visited, component);
+    }
+};
+
+template<typename Vertex, GraphType Type, typename Weight, template<typename, typename> class Map>
+auto build_scc_graph(
+  const Graph<Vertex, Type, Weight, Map>&                           graph,
+  const typename Graph<Vertex, Type, Weight, Map>::components_type& components) noexcept {
+
+    using ComponentMap = std::unordered_map<Vertex, usize>;
+    using SCCGraph     = Graph<usize, GraphType::Directed>;
+
+    SCCGraph     sccGraph(components.size());
+    ComponentMap componentOf;
+
+    componentOf.reserve(graph.vertex_count());
+
+    // Assign each vertex its SCC index.
+    for (usize i = 0; i < components.size(); ++i)
+    {
+        sccGraph.add_vertex(i);
+
+        for (const auto& vertex : components[i])
+            componentOf.emplace(vertex, i);
+    }
+
+    // Add edges between different SCCs.
+    for (const auto& [src, edges] : graph.adjacencies())
+    {
+        const usize srcSCC = componentOf.find(src)->second;
+
+        for (const auto& [dst, weight] : edges)
+        {
+            (void) weight;
+
+            const usize dstSCC = componentOf.find(dst)->second;
+
+            if (srcSCC != dstSCC)
+                sccGraph.add_edge(srcSCC, dstSCC);
+        }
+    }
+
+    return std::make_pair(std::move(sccGraph), std::move(componentOf));
+}
+
+template<typename Point,
+         typename Vertex,
+         GraphType Type,
+         typename Weight,
+         template<typename, typename> class Map>
+auto find_reachable_sccs(const Point&                            startPoint,
+                         const Graph<Vertex, Type, Weight, Map>& sccGraph,
+                         const std::unordered_map<Point, usize>& componentOf) {
+    std::vector<usize> reachable;
+
+    const auto itr = componentOf.find(startPoint);
+
+    if (itr == componentOf.end())
+        return reachable;
+
+    std::vector<bool> visited(sccGraph.vertex_count(), false);
+    std::stack<usize> stack;
+
+    stack.push(itr->second);
+    visited[itr->second] = true;
+
+    while (!stack.empty())
+    {
+        const usize current = stack.top();
+        stack.pop();
+
+        reachable.push_back(current);
+
+        if (const auto* neighbors = sccGraph.neighbors(current))
+            for (const auto& [next, weight] : *neighbors)
+            {
+                (void) weight;
+
+                if (!visited[next])
+                {
+                    visited[next] = true;
+                    stack.push(next);
+                }
+            }
+    }
+
+    return reachable;
+}
+
+template<typename Weight, template<typename, typename> class Map>
+auto calculate_reachability(const Graph<usize, GraphType::Directed, Weight, Map>& graph) {
+    const usize                     count = graph.vertex_count();
+    std::vector<std::vector<usize>> reachable(count);
+
+    for (usize start = 0; start < count; ++start)
+    {
+        std::vector<bool>  visited(count, false);
+        std::vector<usize> stack{start};
+        visited[start] = true;
+
+        while (!stack.empty())
+        {
+            const usize current = stack.back();
+            stack.pop_back();
+
+            reachable[start].push_back(current);
+
+            if (const auto* neighbors = graph.neighbors(current))
+                for (const auto& [next, weight] : *neighbors)
+                {
+                    (void) weight;
+
+                    if (!visited[next])
+                    {
+                        visited[next] = true;
+                        stack.push_back(next);
+                    }
+                }
+        }
+    }
+
+    return reachable;
+}
+
+template<typename Weight, template<typename, typename> class Map>
+auto find_source_sccs(const Graph<usize, GraphType::Directed, Weight, Map>& sccGraph) noexcept {
+    const usize        count = sccGraph.vertex_count();
+    std::vector<usize> incoming(count, 0);
+    std::vector<usize> sources;
+
+    for (const auto& [src, edges] : sccGraph.adjacencies())
+    {
+        (void) src;
+
+        for (const auto& [dst, weight] : edges)
+        {
+            (void) weight;
+            ++incoming[dst];
+        }
+    }
+
+    for (usize scc = 0; scc < count; ++scc)
+        if (incoming[scc] == 0)
+            sources.push_back(scc);
+
+    return sources;
+}
 
 }  // namespace DON
 

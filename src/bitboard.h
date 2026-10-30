@@ -284,9 +284,8 @@ constexpr u8 constexpr_msb_index(const Bitboard b) noexcept {
       13, 18, 8,  12, 7,  6,  5,  63   //
     };
 
-    constexpr u64 Debruijn64 = u64{0x03F79D71B4CB0A89};
-
-    return MSBIndices[(b * Debruijn64) >> 58];
+    //                 b * Debruijn64 >> 58
+    return MSBIndices[(b * u64{0x03F79D71B4CB0A89}) >> 58];
 }
 
 // Fills all bits below the most significant set bit.

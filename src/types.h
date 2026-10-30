@@ -253,13 +253,13 @@ constexpr Square& operator-=(Square& s, const Direction dir) noexcept { return s
 
 [[nodiscard]] constexpr bool is_ok(const Square s) noexcept { return (s <= SQ_H8); }
 
-[[nodiscard]] constexpr File file_of(const Square s) noexcept { return File((u8(s) >> 0) & 7); }
-[[nodiscard]] constexpr Rank rank_of(const Square s) noexcept { return Rank((u8(s) >> 3) & 7); }
+[[nodiscard]] constexpr File file_of(const Square s) noexcept { return File((u8(s) >> 0) & 0x7); }
+[[nodiscard]] constexpr Rank rank_of(const Square s) noexcept { return Rank((u8(s) >> 3) & 0x7); }
 
 [[nodiscard]] constexpr Square reverse_sq(const Square s) noexcept { return Square(SQ_H8 - s); }
 
 [[nodiscard]] constexpr bool is_light(const Square s) noexcept {
-    return ((u8(s) ^ u8(rank_of(s))) & 1) != 0;
+    return ((u8(s) ^ u8(rank_of(s))) & 0x1) != 0;
 }
 [[nodiscard]] constexpr bool color_opposite(const Square s1, const Square s2) noexcept {
     return is_light(s1) != is_light(s2);
@@ -326,9 +326,9 @@ constexpr Piece operator^(const Piece pc1, const Piece pc2) noexcept { return Pi
     return Piece((u8(c) << 3) | u8(pt));
 }
 
-constexpr PieceType type_of(const Piece pc) noexcept { return PieceType((+pc >> 0) & 7); }
+constexpr PieceType type_of(const Piece pc) noexcept { return PieceType((+pc >> 0) & 0x7); }
 
-constexpr Color color_of(const Piece pc) noexcept { return Color((+pc >> 3) & 1); }
+constexpr Color color_of(const Piece pc) noexcept { return Color((+pc >> 3) & 0x1); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 [[nodiscard]] constexpr Piece flip_color(const Piece pc) noexcept {
@@ -799,7 +799,7 @@ ALWAYS_INLINE Move::Move(const Square orgSq, const Square dstSq, const PieceType
     assert(DON::is_ok(orgSq) && DON::is_ok(dstSq) && KNIGHT <= promoPt && promoPt <= QUEEN);
 }
 
-// **Define the constexpr static members outside the class**
+// *** Define the const static members outside the class ***
 inline const Move Move::None{0xC000};
 inline const Move Move::Null{0xE000};
 
@@ -834,7 +834,7 @@ struct DirtyThreats final {
 
         Threat() noexcept = default;
         explicit Threat(u32 d) noexcept;
-        Threat(bool put, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
+        Threat(bool add, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
 
         // clang-format off
 
@@ -856,7 +856,7 @@ struct DirtyThreats final {
         u32 data;
     };
 
-    void add(bool put, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
+    void add(bool add, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
 
     [[nodiscard]] const Threat* begin() const noexcept { return threats_.begin(); }
     [[nodiscard]] const Threat* end() const noexcept { return threats_.end(); }
@@ -873,9 +873,9 @@ struct DirtyThreats final {
     // Thus, 80 should work as an upper bound.
     // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
     // So, 80 + 16 = 96.
-    using ThreatVector = StaticVector<Threat, 96, u8>;
+    using ThreatList = StaticVector<Threat, 96, u8>;
 
-    ThreatVector threats_;
+    ThreatList threats_;
 };
 
 ALWAYS_INLINE DirtyThreats::Threat::Threat(const u32 d) noexcept :
@@ -892,12 +892,12 @@ ALWAYS_INLINE DirtyThreats::Threat::Threat(const bool   add,
            | (u32(threatenedSq) << ThreatenedSqShift)  //
            | (u32(sq) << SqShift)) {}
 
-ALWAYS_INLINE void DirtyThreats::add(const bool   put,
+ALWAYS_INLINE void DirtyThreats::add(const bool   add,
                                      const Piece  pc,
                                      const Piece  threatenedPc,
                                      const Square sq,
                                      const Square threatenedSq) noexcept {
-    threats_.push_back(Threat{put, pc, threatenedPc, sq, threatenedSq});
+    threats_.push_back(Threat{add, pc, threatenedPc, sq, threatenedSq});
 }
 
 ALWAYS_INLINE DirtyThreats::Threat* DirtyThreats::make_space(const u8 space) noexcept {

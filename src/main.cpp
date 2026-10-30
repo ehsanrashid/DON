@@ -67,7 +67,7 @@ int main(const int argc, const char* const argv[]) noexcept {
       ? uci.execute(commandLine.arguments_string())
       : uci.process_input(std::cin);
 
-    uci.execute(QUIT_CMD);
+    uci.execute(QUIT);
 
     return 0;
 }

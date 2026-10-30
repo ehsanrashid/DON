@@ -35,7 +35,7 @@ namespace DON {
 namespace {
 
 // Threshold below which insertion sort is used
-constexpr usize INSERTION_SORT_THRESHOLD = 52;
+constexpr usize INSERTION_SORT_THRESHOLD = 80;
 // Threshold for considering a move "good enough" to be sorted to the front
 constexpr i32 GOOD_QUIET_THRESHOLD = -14000;
 
@@ -65,7 +65,8 @@ struct ExtMoveSorter final {
 
         // Find the insertion position and create a mask for the lanes to shift right
         assert(em.value != std::numeric_limits<int>::min());
-        const __mmask16 expand = _kadd_mask16(_mm512_cmplt_epi32_mask(sortedValues, values), -1);
+        const __mmask16 expand =
+          _kadd_mask16(_mm512_cmplt_epi32_mask(sortedValues, values), __mmask16(-1));
 
         sortedValues = _mm512_mask_expand_epi32(values, expand, sortedValues);
         sortedMoves  = _mm512_mask_expand_epi32(moves, expand, sortedMoves);
@@ -115,6 +116,31 @@ Iterator upper_bound_unrolled(const Iterator beg,
 
     usize i = n;
 
+    // Process blocks of 16 elements
+    while (ins == end && i >= BLOCK_16)
+    {
+        i -= BLOCK_16;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, base[0])  ? base + 0
+            : comp(value, base[1])  ? base + 1
+            : comp(value, base[2])  ? base + 2
+            : comp(value, base[3])  ? base + 3
+            : comp(value, base[4])  ? base + 4
+            : comp(value, base[5])  ? base + 5
+            : comp(value, base[6])  ? base + 6
+            : comp(value, base[7])  ? base + 7
+            : comp(value, base[8])  ? base + 8
+            : comp(value, base[9])  ? base + 9
+            : comp(value, base[10]) ? base + 10
+            : comp(value, base[11]) ? base + 11
+            : comp(value, base[12]) ? base + 12
+            : comp(value, base[13]) ? base + 13
+            : comp(value, base[14]) ? base + 14
+            : comp(value, base[15]) ? base + 15
+                                    : ins;
+    }
     // Process blocks of 8 elements
     while (ins == end && i >= BLOCK_8)
     {
@@ -146,7 +172,7 @@ Iterator upper_bound_unrolled(const Iterator beg,
                                    : ins;
     }
     // Handle remaining elements
-    while (i >= 1)
+    while (i != 0)
     {
         --i;
 
@@ -616,16 +642,11 @@ ENC_BAD_CAPTURE:
 
     case Stage::EVA_QUIET :
     case Stage::QS_CAPTURE :
-        if (cur != curEnd)
-            return *cur++;
-
-        return Move::None;
+        return cur != curEnd ? *cur++ : Move::None;
 
     case Stage::PROBCUT :
-        if (select([this]() noexcept -> bool { return above_threshold_capture(); }))
-            return *cur++;
-
-        return Move::None;
+        return select([this]() noexcept -> bool { return above_threshold_capture(); }) ? *cur++
+                                                                                       : Move::None;
     }
     assert(false);
     UNREACHABLE();
