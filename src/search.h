@@ -722,7 +722,7 @@ class Worker final {
     void do_move(Position& pos, Move m, State& st, Stack* ss) noexcept;
     void undo_move(Position& pos, Move m) noexcept;
     void do_null_move(Position& pos, State& st, Stack* ss) noexcept;
-    void undo_null_move(Position& pos) const noexcept;
+    void undo_null_move(Position& pos) noexcept;
 
     Value evaluate(const Position& pos) noexcept;
 

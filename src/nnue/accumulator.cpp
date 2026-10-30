@@ -706,20 +706,22 @@ void update_hybrid(const Color               perspective,
     Bitboard newRemovedBB = newChangedBB & newEntry.piecesBB;
     Bitboard newAddedBB   = newChangedBB & curPiecesBB;
 
-    Features::K32H3::append_map_changed_indices(perspective, oldKingSq, oldEntry.pieceMap,
-                                                prePieceMap, oldRemovedBB, oldAddedBB, oldRemove,
-                                                oldAdd);
-    Features::K32H3::append_map_changed_indices(perspective, newKingSq, newEntry.pieceMap,
-                                                curPieceMap, newRemovedBB, newAddedBB, newRemove,
-                                                newAdd);
+    Features::K32H3::append_map_changed_indices(perspective, oldKingSq,          //
+                                                oldEntry.pieceMap, prePieceMap,  //
+                                                oldRemovedBB, oldAddedBB, oldRemove, oldAdd);
+    Features::K32H3::append_map_changed_indices(perspective, newKingSq,          //
+                                                newEntry.pieceMap, curPieceMap,  //
+                                                newRemovedBB, newAddedBB, newRemove, newAdd);
 
     Features::FullThreats::IndexList thrRemoved, thrAdded;  // also contain pp indices
 
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = Dimensions;
-    Features::FullThreats::append_changed_indices(
-      perspective, newKingSq, dstAcc.dirties.dirtyThreats, thrRemoved, thrAdded, pfBase, pfStride);
-    Features::PP3Wide::append_changed_indices(perspective, newKingSq, dstAcc.dirties.dirtyPawnPairs,
+    Features::FullThreats::append_changed_indices(perspective, newKingSq,       //
+                                                  dstAcc.dirties.dirtyThreats,  //
+                                                  thrRemoved, thrAdded, pfBase, pfStride);
+    Features::PP3Wide::append_changed_indices(perspective, newKingSq,         //
+                                              dstAcc.dirties.dirtyPawnPairs,  //
                                               thrRemoved, thrAdded, pfBase, pfStride);
 
     const auto& srcAccm = srcAcc.accumulation[perspective];
@@ -880,14 +882,15 @@ void update_incremental(const Color               perspective,
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = Dimensions;
 
-    Features::FullThreats::append_changed_indices(
-      perspective, kingSq, dTs, Forward ? thrRemoved : thrAdded, Forward ? thrAdded : thrRemoved,
-      pfBase, pfStride);
-    Features::PP3Wide::append_changed_indices(perspective, kingSq, dPps,
-                                              Forward ? thrRemoved : thrAdded,
+    Features::FullThreats::append_changed_indices(perspective, kingSq, dTs,         //
+                                                  Forward ? thrRemoved : thrAdded,  //
+                                                  Forward ? thrAdded : thrRemoved, pfBase,
+                                                  pfStride);
+    Features::PP3Wide::append_changed_indices(perspective, kingSq, dPps,        //
+                                              Forward ? thrRemoved : thrAdded,  //
                                               Forward ? thrAdded : thrRemoved, pfBase, pfStride);
-    Features::K32H3::append_changed_indices(perspective, kingSq, dP,  //
-                                            Forward ? psqRemoved : psqAdded,
+    Features::K32H3::append_changed_indices(perspective, kingSq, dP,          //
+                                            Forward ? psqRemoved : psqAdded,  //
                                             Forward ? psqAdded : psqRemoved);
 
     apply_combined(perspective, featureTransformer, srcAcc, dstAcc, psqRemoved, psqAdded,
@@ -914,11 +917,14 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = Dimensions;
 
-    Features::FullThreats::append_changed_indices_both(
-      wKingSq, bKingSq, dstAcc.dirties.dirtyThreats, thrRemoved, thrAdded, pfBase, pfStride);
-    Features::PP3Wide::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPawnPairs,
+    Features::FullThreats::append_changed_indices_both(wKingSq, bKingSq,             //
+                                                       dstAcc.dirties.dirtyThreats,  //
+                                                       thrRemoved, thrAdded, pfBase, pfStride);
+    Features::PP3Wide::append_changed_indices_both(wKingSq, bKingSq,               //
+                                                   dstAcc.dirties.dirtyPawnPairs,  //
                                                    thrRemoved, thrAdded, pfBase, pfStride);
-    Features::K32H3::append_changed_indices_both(wKingSq, bKingSq, dstAcc.dirties.dirtyPiece,
+    Features::K32H3::append_changed_indices_both(wKingSq, bKingSq,           //
+                                                 dstAcc.dirties.dirtyPiece,  //
                                                  psqRemoved, psqAdded);
 
     apply_combined_both(featureTransformer, srcAcc, dstAcc,  //

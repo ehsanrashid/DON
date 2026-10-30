@@ -890,7 +890,7 @@ endif
 
 ### 3.3 Optimization
 ifeq ($(optimize),yes)
-CXXFLAGS += -O3 -funroll-loops
+CXXFLAGS += -O3 -funroll-loops -fno-stack-protector
 LDFLAGS  += -O3
 
 ifeq ($(COMP),gcc)

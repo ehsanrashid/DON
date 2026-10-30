@@ -2274,7 +2274,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     // clang-format on
 }
 
-void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
+void Worker::undo_null_move(Position& pos) noexcept { pos.undo_null_move(); }
 
 // Evaluate the current position of the game tree, from the point of view of the side to move.
 Value Worker::evaluate(const Position& pos) noexcept {
