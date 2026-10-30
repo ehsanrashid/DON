@@ -578,7 +578,8 @@ void Worker::iterative_deepening() noexcept {
             const auto preValue    = rmIdx.preValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + thread_id() % 8 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10193.0);
+            int   delta = 5 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10193.0)  //
+                        + int(!is_main()) * 7;
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -1182,8 +1183,8 @@ Value Worker::search(Position&    pos,
         assert(preMove != Move::Null);
 
         const int evalDiff = constexpr_round((ss->evalue - beta) / 256.0);
-        // Null move dynamic reduction. Odd threads reduce one ply less
-        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - (thread_id() & 1);
+        // Null move dynamic reduction. More threads reduce one ply less
+        Depth R = 7 + depth / 3 + (evalDiff > 0 ? evalDiff : 0) - int(!is_main());
         R -= int(seekMate) * R / 2;
 
         do_null_move(pos, st, ss);

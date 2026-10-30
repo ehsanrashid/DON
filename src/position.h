@@ -357,7 +357,7 @@ class Position final {
 
     template<bool ComputeRay>
     void update_piece_threats(
-      Square s, Piece pc, DirtyThreats* dTs, bool put, Bitboard noRayBB = FULL_BB) const noexcept;
+      Square s, Piece pc, DirtyThreats* dTs, bool add, Bitboard noRayBB = FULL_BB) const noexcept;
 
     // Helper used to do/undo a castling move.
     // This is a bit tricky in Chess960 where org/dst squares can overlap.
@@ -889,7 +889,7 @@ ALWAYS_INLINE void
 Position::update_piece_threats(const Square              s,
                                const Piece               pc,
                                DirtyThreats* const       dTs,
-                               const bool                put,
+                               const bool                add,
                                [[maybe_unused]] Bitboard noRayBB) const noexcept {
     const Bitboard occupancyBB          = pieces_bb();
     const Bitboard nAttacksBB           = Attacks::pseudo_attacks_bb(KNIGHT, s);
@@ -902,7 +902,7 @@ Position::update_piece_threats(const Square              s,
                        | (pieces_bb(QUEEN, ROOK) & rAttacksBB);
 
     const auto process_sliders =
-      [this, s, pc, dTs, put, noRayBB, &slidersBB, qAttacksBB, noKingBB]  //
+      [this, s, pc, dTs, add, noRayBB, &slidersBB, qAttacksBB, noKingBB]  //
       (const bool addDirect) noexcept {
           while (slidersBB != 0)
           {
@@ -925,11 +925,11 @@ Position::update_piece_threats(const Square              s,
                   assert(is_ok(threatenedPc));
 
                   if (slider_can_threaten(threatenedPc, sliderPc))
-                      dTs->add(!put, sliderPc, threatenedPc, sliderSq, threatenedSq);
+                      dTs->add(!add, sliderPc, threatenedPc, sliderSq, threatenedSq);
               }
 
               if (addDirect && slider_can_threaten(pc, sliderPc))
-                  dTs->add(put, sliderPc, pc, sliderSq, s);
+                  dTs->add(add, sliderPc, pc, sliderSq, s);
           }
       };
 
@@ -996,7 +996,7 @@ Position::update_piece_threats(const Square              s,
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dTs->add(put, pc, threatenedPc, s, threatenedSq);
+        dTs->add(add, pc, threatenedPc, s, threatenedSq);
     }
 
     if constexpr (ComputeRay)
@@ -1016,7 +1016,7 @@ Position::update_piece_threats(const Square              s,
         assert(srcSq != s);
         assert(is_ok(srcPc));
 
-        dTs->add(put, srcPc, pc, srcSq, s);
+        dTs->add(add, srcPc, pc, srcSq, s);
     }
 #endif
 }

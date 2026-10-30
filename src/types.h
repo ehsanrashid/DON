@@ -834,7 +834,7 @@ struct DirtyThreats final {
 
         Threat() noexcept = default;
         explicit Threat(u32 d) noexcept;
-        Threat(bool put, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
+        Threat(bool add, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
 
         // clang-format off
 
@@ -856,7 +856,7 @@ struct DirtyThreats final {
         u32 data;
     };
 
-    void add(bool put, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
+    void add(bool add, Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
 
     [[nodiscard]] const Threat* begin() const noexcept { return threats_.begin(); }
     [[nodiscard]] const Threat* end() const noexcept { return threats_.end(); }
@@ -892,12 +892,12 @@ ALWAYS_INLINE DirtyThreats::Threat::Threat(const bool   add,
            | (u32(threatenedSq) << ThreatenedSqShift)  //
            | (u32(sq) << SqShift)) {}
 
-ALWAYS_INLINE void DirtyThreats::add(const bool   put,
+ALWAYS_INLINE void DirtyThreats::add(const bool   add,
                                      const Piece  pc,
                                      const Piece  threatenedPc,
                                      const Square sq,
                                      const Square threatenedSq) noexcept {
-    threats_.push_back(Threat{put, pc, threatenedPc, sq, threatenedSq});
+    threats_.push_back(Threat{add, pc, threatenedPc, sq, threatenedSq});
 }
 
 ALWAYS_INLINE DirtyThreats::Threat* DirtyThreats::make_space(const u8 space) noexcept {
