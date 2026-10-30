@@ -642,16 +642,11 @@ ENC_BAD_CAPTURE:
 
     case Stage::EVA_QUIET :
     case Stage::QS_CAPTURE :
-        if (cur != curEnd)
-            return *cur++;
-
-        return Move::None;
+        return cur != curEnd ? *cur++ : Move::None;
 
     case Stage::PROBCUT :
-        if (select([this]() noexcept -> bool { return above_threshold_capture(); }))
-            return *cur++;
-
-        return Move::None;
+        return select([this]() noexcept -> bool { return above_threshold_capture(); }) ? *cur++
+                                                                                       : Move::None;
     }
     assert(false);
     UNREACHABLE();
