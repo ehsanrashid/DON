@@ -54,7 +54,7 @@ constexpr u64 KEY21_MSB = KEY21_LSB << (KEY21_BITS - 1);
 
 constexpr u32 compress_key21(const Key key) noexcept {
     return ((key >> 0 * KEY21_BITS) & (KEY21_MASK >> 0 * KEY21_BITS / 3))  //
-         ^ ((key >> 1 * KEY21_BITS) & (KEY21_MASK >> 1 * KEY21_BITS / 3))
+         ^ ((key >> 1 * KEY21_BITS) & (KEY21_MASK >> 1 * KEY21_BITS / 3))  //
          ^ ((key >> 2 * KEY21_BITS) & (KEY21_MASK >> 2 * KEY21_BITS / 3));
 }
 

@@ -30,7 +30,7 @@ namespace DON {
 
 class Options;
 
-inline constexpr std::string_view QUIT_CMD{"quit"};
+inline constexpr std::string_view QUIT{"quit"};
 
 class UCI final {
    public:

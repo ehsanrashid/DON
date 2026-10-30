@@ -19,8 +19,7 @@ g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -DNDEBUG -I./src tests/graph.cpp -o 
 
 #include "utility/graph.h"
 
-using namespace DON;
-
+namespace DON {
 class ReferenceGraph final {
     usize                          n;
     std::vector<std::vector<bool>> edges;
@@ -121,6 +120,10 @@ class ReferenceGraph final {
         return count;
     }
 };
+
+}  // namespace DON
+
+using namespace DON;
 
 int main() {
     // Directed graph: default and explicit weights.

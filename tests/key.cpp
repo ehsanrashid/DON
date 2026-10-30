@@ -14,11 +14,10 @@ g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -DNDEBUG -I./src tests/key.cpp -o bu
 #include <limits>
 #include <random>
 
+#include "types.h"
 #include "utility/types.h"
 
 using namespace DON;
-
-using Key = u64;
 
 /*
 constexpr u8  KEY32_BITS = u8{32};

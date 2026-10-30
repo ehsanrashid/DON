@@ -676,34 +676,34 @@ void Worker::iterative_deepening() noexcept {
                 // when pvIdx - 1 is a proven loss.
                 // Moreover, do not trust an exact loss value from an aborted search.
 
-                auto& rmIdx_0 = rootMoves[pvIdx - 0];
-                auto& rmIdx_1 = rootMoves[pvIdx - 1];
+                auto& idx_0_rm = rootMoves[pvIdx - 0];
+                auto& idx_1_rm = rootMoves[pvIdx - 1];
 
-                if (rmIdx_0.is_exact_loss() || (is_loss(rmIdx_1.value) && rmIdx_0 < rmIdx_1))
+                if (idx_0_rm.is_exact_loss() || (is_loss(idx_1_rm.value) && idx_0_rm < idx_1_rm))
                 {
                     // If the previous score is worse than pvIdx - 1, can safely use it.
                     // If it is equal, make sure it cannot overtake pvIdx - 1.
-                    if (rmIdx_0.preValue != -VALUE_INFINITE && rmIdx_0.isExact
-                        && rmIdx_0.preValue <= rmIdx_1.value)
+                    if (idx_0_rm.preValue != -VALUE_INFINITE && idx_0_rm.isExact
+                        && idx_0_rm.preValue <= idx_1_rm.value)
                     {
-                        rmIdx_0.value = rmIdx_0.uciValue = rmIdx_0.preValue;
-                        rmIdx_0.preValue                 = -VALUE_INFINITE;
-                        rmIdx_0.pv                       = rmIdx_0.prePV;
-                        rmIdx_0.reset_bound();
+                        idx_0_rm.value = idx_0_rm.uciValue = idx_0_rm.preValue;
+                        idx_0_rm.preValue                  = -VALUE_INFINITE;
+                        idx_0_rm.pv                        = idx_0_rm.prePV;
+                        idx_0_rm.reset_bound();
                     }
                     // Otherwise, if can, cap the score to the best possible, and mark
                     // the score as a bound (also a valid excuse for the incomplete PV).
                     else
                     {
-                        if (is_loss(rmIdx_1.value))
+                        if (is_loss(idx_1_rm.value))
                         {
-                            rmIdx_0.value = rmIdx_0.uciValue = rmIdx_1.value;
-                            rmIdx_0.preValue                 = -VALUE_INFINITE;
-                            rmIdx_0.shrink_to(std::min(rmIdx_0.size(), rmIdx_1.size()));
-                            rmIdx_0.bound = Bound::UPPER;
+                            idx_0_rm.value = idx_0_rm.uciValue = idx_1_rm.value;
+                            idx_0_rm.preValue                  = -VALUE_INFINITE;
+                            idx_0_rm.shrink_to(std::min(idx_0_rm.size(), idx_1_rm.size()));
+                            idx_0_rm.bound = Bound::UPPER;
                         }
                         else
-                            rmIdx_0.bound = Bound::LOWER;
+                            idx_0_rm.bound = Bound::LOWER;
                     }
                 }
 
@@ -887,10 +887,10 @@ Value Worker::search(Position&    pos,
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        const Value newAplha = mated_in(ss->ply + 0);
+        const Value newAlpha = mated_in(ss->ply + 0);
         const Value newBeta  = mates_in(ss->ply + 1);
-        if (alpha < newAplha)
-            alpha = newAplha;
+        if (alpha < newAlpha)
+            alpha = newAlpha;
         if (beta > newBeta)
             beta = newBeta;
 

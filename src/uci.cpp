@@ -71,7 +71,7 @@ enum class Command : u8 {
 // clang-format off
 const std::unordered_map<std::string_view, Command> COMMANDS{
   {"stop"      , Command::STOP},
-  {QUIT_CMD    , Command::QUIT},
+  {QUIT        , Command::QUIT},
   {"ponderhit" , Command::PONDERHIT},
   {"position"  , Command::POSITION},
   {"go"        , Command::GO},
@@ -256,7 +256,7 @@ void UCI::process_input(std::istream& is) noexcept {
     // Wait for an input or an end-of-file (EOF) indication
     while (std::getline(is, command))
     {
-        if (command == QUIT_CMD)
+        if (command == QUIT)
             break;
 
         execute(command);
