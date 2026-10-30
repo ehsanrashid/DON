@@ -258,8 +258,8 @@ u8 PTWriter::prepare_replacement() const noexcept {
         if (ptc->entries[replacement].depth() > ptc->entries[i].depth())
             replacement = i;
 
-    for (; replacement != 0 && ptc->entries[replacement - 1].key() == key; --replacement)
-        ptc->entries[replacement].reset();
+    while (replacement != 0 && ptc->entries[replacement - 1].key() == key)
+        ptc->entries[replacement--].reset();
 
     return replacement;
 }

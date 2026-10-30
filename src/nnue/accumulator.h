@@ -70,7 +70,7 @@ struct AccumulatorCache final {
        public:
         // To initialize a refresh entry, set all its bitboards empty,
         // so put the biases in the accumulation, without any weights on top.
-        void init(const Array<Bias, L1>& biases) noexcept;
+        void reset(const Array<Bias, L1>& biases) noexcept;
 
         Array<Bias, L1> accumulation;
         PieceMap        pieceMap;
@@ -79,15 +79,15 @@ struct AccumulatorCache final {
 
     template<typename Network>
     explicit AccumulatorCache(const Network& network) noexcept {
-        init(network);
+        reset(network);
     }
 
     template<typename Network>
-    void init(const Network& network) noexcept {
+    void reset(const Network& network) noexcept {
         for (auto& qEntries : entries)
             for (auto& sqEntry : qEntries)
                 for (auto& entry : sqEntry)
-                    entry.init(network.featureTransformer.biases);
+                    entry.reset(network.featureTransformer.biases);
     }
 
     auto&       operator[](const u8 psqBlock) noexcept { return entries[psqBlock]; }

@@ -36,7 +36,7 @@
 
 namespace DON::NNUE {
 
-void AccumulatorCache::Entry::init(const Array<Bias, L1>& biases) noexcept {
+void AccumulatorCache::Entry::reset(const Array<Bias, L1>& biases) noexcept {
     // Initialize accumulation with given biases
     accumulation          = biases;
     constexpr auto offset = offsetof(Entry, pieceMap);

@@ -276,7 +276,7 @@ void Worker::reset() noexcept {
 
     ttMoveHistory = 0;
 
-    accCache.init(network[numa_access_token()]);
+    accCache.reset(network[numa_access_token()]);
 }
 
 // Ensure that the neural network is replicated on this NUMA node
@@ -445,9 +445,9 @@ void Worker::iterative_deepening() noexcept {
 
     accStack.reset();
 
-    for (auto& colorQuietHist : quietHistory)
-        for (auto& quietHist : colorQuietHist)
-            quietHist = constexpr_round(quietHist * 729.0 / 1024.0);
+    for (auto& cHist : quietHistory)
+        for (auto& hist : cHist)
+            hist = constexpr_round(hist * 729.0 / 1024.0);
 
     lowPlyQuietHistory.fill(102);
 

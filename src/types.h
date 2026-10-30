@@ -873,9 +873,9 @@ struct DirtyThreats final {
     // Thus, 80 should work as an upper bound.
     // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
     // So, 80 + 16 = 96.
-    using ThreatVector = StaticVector<Threat, 96, u8>;
+    using ThreatList = StaticVector<Threat, 96, u8>;
 
-    ThreatVector threats_;
+    ThreatList threats_;
 };
 
 ALWAYS_INLINE DirtyThreats::Threat::Threat(const u32 d) noexcept :

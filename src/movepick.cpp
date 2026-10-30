@@ -65,7 +65,8 @@ struct ExtMoveSorter final {
 
         // Find the insertion position and create a mask for the lanes to shift right
         assert(em.value != std::numeric_limits<int>::min());
-        const __mmask16 expand = _kadd_mask16(_mm512_cmplt_epi32_mask(sortedValues, values), -1);
+        const __mmask16 expand =
+          _kadd_mask16(_mm512_cmplt_epi32_mask(sortedValues, values), __mmask16(-1));
 
         sortedValues = _mm512_mask_expand_epi32(values, expand, sortedValues);
         sortedMoves  = _mm512_mask_expand_epi32(moves, expand, sortedMoves);
