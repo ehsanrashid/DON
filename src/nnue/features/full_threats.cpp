@@ -118,16 +118,16 @@ constexpr auto init_threat_luts() noexcept {
                         continue;
                     }
 
+                    const Index index = cumulativeOffset  //
+                                      + (attackedC * targetMax + map) * pieceOffset;
+
                     const bool semiExcluded = attackerPt == attackedPt  //
                                            && (attackerC != attackedC || attackerPt != PAWN);
 
-                    const Index feature = cumulativeOffset  //
-                                        + (attackedC * targetMax + map) * pieceOffset;
-
-                    threatLuts.lut1[+attackerPc][+attackedPc][0] = feature;
+                    threatLuts.lut1[+attackerPc][+attackedPc][0] = index;
                     threatLuts.lut1[+attackerPc][+attackedPc][1] = semiExcluded  //
                                                                    ? Dimensions
-                                                                   : feature;
+                                                                   : index;
                 }
 
             cumulativeOffset += 2 * targetMax * pieceOffset;
@@ -259,7 +259,7 @@ void append_changed_indices(const Color               perspective,
         const u8  dst  = u8(raw >> Threat::ThreatenedSqShift) ^ orient;
         const u8  pair = u8(raw >> Threat::ThreatenedPcShift);
 
-        const auto& pLut2 = THREAT_LUTS.lut2[(pair >> 4) & 0x7];
+        const auto& pLut2 = THREAT_LUTS.lut2[type_of(Piece(pair >> 4))];
 
         const Index index = threat_index(pLut1[pair ^ pair_swap][org < dst], pLut2[org][dst]);
 
@@ -267,7 +267,7 @@ void append_changed_indices(const Color               perspective,
             prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
               reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + index * pfStride));
 
-        const bool add = raw >> 31;
+        const bool add = (raw >> Threat::AddShift) != 0;
 
         auto& insert = add ? added : removed;
 
@@ -294,7 +294,7 @@ void append_changed_indices_both(const Square                wKingSq,
         const u8  dst  = u8(raw >> Threat::ThreatenedSqShift);
         const u8  pair = u8(raw >> Threat::ThreatenedPcShift);
 
-        const auto& pLut2 = THREAT_LUTS.lut2[(pair >> 4) & 0x7];
+        const auto& pLut2 = THREAT_LUTS.lut2[type_of(Piece(pair >> 4))];
 
         const u8 wOrg = org ^ wOrient;
         const u8 wDst = dst ^ wOrient;
@@ -314,7 +314,7 @@ void append_changed_indices_both(const Square                wKingSq,
               reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + bIndex * pfStride));
         }
 
-        const bool add = raw >> 31;
+        const bool add = (raw >> Threat::AddShift) != 0;
 
         auto& wInsert = add ? added[WHITE] : removed[WHITE];
         auto& bInsert = add ? added[BLACK] : removed[BLACK];
