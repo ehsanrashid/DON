@@ -53,7 +53,7 @@ Dirties& AccumulatorStack::push(const Position& pos) noexcept {
     assert(size() < Size);
 
     push_and_clear();
-    top().beforeBlock = Features::K32H3::block_state(pos);
+    top().beforeBlocks = Features::K32H3::blocks(pos);
     return top().dirties;
 }
 
@@ -134,14 +134,11 @@ void AccumulatorStack::evaluate(const Color               perspective,
         if (size() >= 2 && accumulators[size() - 2].computed[perspective]
             && pos.count() >= HybridMinCount)
         {
-            const auto& dP          = top().dirties.dirtyPiece;
-            const auto& beforeBlock = top().beforeBlock;
-            const auto  afterBlock  = Features::K32H3::block_state(pos);
+            const auto& dP = top().dirties.dirtyPiece;
 
             if (dP.movedPc == make_piece(perspective, KING)
                 && ((u8(dP.orgSq) & u8{4}) == (u8(dP.dstSq) & u8{4}))
-                && Features::K32H3::block(beforeBlock, perspective)
-                     == Features::K32H3::block(afterBlock, perspective)
+                && top().beforeBlocks[perspective] == Features::K32H3::block(perspective, pos)
                 && !is_ok(dP.addedSq))  // excludes castling
             {
                 update_hybrid(perspective, pos, featureTransformer, accumulators[size() - 2], top(),
@@ -155,10 +152,12 @@ void AccumulatorStack::evaluate(const Color               perspective,
     }
 }
 
+// Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
+// state just after a change that requires full refresh.
 usize AccumulatorStack::find_last_usable_index(const Color     perspective,
                                                const Position& pos) const noexcept {
-    // Backtrack psq block changes
-    auto afterBlock = Features::K32H3::block_state(pos);
+    // All traversed states must use the current block
+    const auto psqBlock = Features::K32H3::block(perspective, pos);
 
     for (usize idx = size(); idx-- > 0;)
     {
@@ -166,14 +165,12 @@ usize AccumulatorStack::find_last_usable_index(const Color     perspective,
             return idx;
 
         const auto& dirtyPiece  = accumulators[idx].dirties.dirtyPiece;
-        const auto& beforeBlock = accumulators[idx].beforeBlock;
+        const auto  beforeBlock = accumulators[idx].beforeBlocks[perspective];
 
         // Threat feature set refreshes require a king move across the center, i.e.,
         // a subset of halfka refreshes
-        if (Features::K32H3::refresh_required(perspective, dirtyPiece, beforeBlock, afterBlock))
+        if (Features::K32H3::refresh_required(perspective, dirtyPiece, beforeBlock, psqBlock))
             return idx;
-
-        afterBlock = beforeBlock;
     }
 
     return 0;
@@ -187,7 +184,7 @@ void AccumulatorStack::update_incremental_forward(const Color               pers
     assert(accumulators[beg].computed[perspective]);
 
     const Square kingSq   = pos.square(perspective, KING);
-    const u8     psqBlock = Features::K32H3::block(pos, perspective);
+    const u8     psqBlock = Features::K32H3::block(perspective, pos);
 
     for (usize idx = beg; ++idx < size();)
         update_incremental<true>(perspective, kingSq, psqBlock, featureTransformer,
@@ -204,7 +201,7 @@ void AccumulatorStack::update_incremental_backward(const Color               per
     assert(top().computed[perspective]);
 
     const Square kingSq   = pos.square(perspective, KING);
-    const u8     psqBlock = Features::K32H3::block(pos, perspective);
+    const u8     psqBlock = Features::K32H3::block(perspective, pos);
 
     for (usize idx = std::max(size(), usize{1}) - 1; idx-- > end;)
         update_incremental<false>(perspective, kingSq, psqBlock, featureTransformer,
@@ -224,8 +221,8 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
 
     const Square wKingSq    = pos.square(WHITE, KING);
     const Square bKingSq    = pos.square(BLACK, KING);
-    const u8     whiteBlock = Features::K32H3::block(pos, WHITE);
-    const u8     blackBlock = Features::K32H3::block(pos, BLACK);
+    const u8     whiteBlock = Features::K32H3::block(WHITE, pos);
+    const u8     blackBlock = Features::K32H3::block(BLACK, pos);
 
     const usize maxBeg = std::max(wBeg, bBeg);
 
@@ -688,7 +685,7 @@ void update_hybrid(const Color               perspective,
     prePieceMap[oldKingSq] = make_piece(perspective, KING);
     prePiecesBB |= square_bb(oldKingSq);
 
-    const auto psqBlock = Features::K32H3::block(pos, perspective);
+    const auto psqBlock = Features::K32H3::block(perspective, pos);
 
     const auto& oldEntry   = accCache[psqBlock][oldKingSq][perspective];
     auto&       newEntry   = accCache[psqBlock][newKingSq][perspective];
@@ -727,10 +724,10 @@ void update_hybrid(const Color               perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    Tile tile;
-
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
+        Tile tile;
+
         load_tile(newEntry.accumulation.data(), j, tile);
 
         apply_psq_features<Op::Sub>(newRemove, psqWeights, j, tile);
@@ -767,7 +764,7 @@ void update_refresh_cache(const Color               perspective,
                           Accumulator&              dstAcc,
                           AccumulatorCache&         accCache) noexcept {
     const Square kingSq   = pos.square(perspective, KING);
-    const u8     psqBlock = Features::K32H3::block(pos, perspective);
+    const u8     psqBlock = Features::K32H3::block(perspective, pos);
 
     auto&       entry      = accCache[psqBlock][kingSq][perspective];
     const auto* psqWeights = featureTransformer.psq_weights(psqBlock);
@@ -793,10 +790,10 @@ void update_refresh_cache(const Color               perspective,
 
     dstAcc.computed[perspective] = true;
 
-    Tile tile;
-
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
+        Tile tile;
+
         load_tile(entry.accumulation.data(), j, tile);
 
         apply_psq_features<Op::Sub>(removed, psqWeights, j, tile);
@@ -822,10 +819,10 @@ void apply_combined(Color                                   perspective,
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
 
-    Tile tile;
-
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
+        Tile tile;
+
         load_tile(srcAccm.data(), j, tile);
 
         apply_combined_features<Op::Sub, true>(  //

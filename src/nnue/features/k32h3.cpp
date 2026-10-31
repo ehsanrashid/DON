@@ -101,14 +101,13 @@ make_index(const Color perspective, const Square kingSq, const Square s, const P
 }
 }  // namespace
 
-Block block_state(const Position& pos) noexcept {
-    return {{pos.count(WHITE, QUEEN), pos.count(BLACK, QUEEN)},
-            popcount(pos.pieces_bb(QUEEN, ROOK))};
+u8 block(const Color perspective, const Position& pos) noexcept {
+    return pos.pieces_bb(~perspective, QUEEN) != 0  //
+           ? 2
+           : pos.pieces_bb(QUEEN, ROOK) != 0 ? 1 : 0;
 }
 
-u8 block(const Position& pos, Color perspective) noexcept {
-    return block(block_state(pos), perspective);
-}
+Blocks blocks(const Position& pos) noexcept { return {block(WHITE, pos), block(BLACK, pos)}; }
 
 void append_map_changed_indices(const Color     perspective,
                                 const Square    kingSq,
@@ -194,9 +193,8 @@ void append_changed_indices_both(const Square                wKingSq,
 
 bool refresh_required(const Color      perspective,
                       const DirtyType& dP,
-                      const Block&     beforeBlock,
-                      const Block&     afterBlock) noexcept {
-    return dP.movedPc == make_piece(perspective, KING)
-        || block(beforeBlock, perspective) != block(afterBlock, perspective);
+                      const u8         beforeBlock,
+                      const u8         afterBlock) noexcept {
+    return dP.movedPc == make_piece(perspective, KING) || beforeBlock != afterBlock;
 }
 }  // namespace DON::NNUE::Features::K32H3
