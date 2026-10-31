@@ -31,7 +31,7 @@
 #if defined(USE_AVX2)
     #include <immintrin.h>
     #define USE_DUAL_HYPERBOLA_QUINT
-#elif defined(__loongarch__) && __loongarch_grlen == 64
+#elif defined(__loongarch__) && defined(__loongarch_grlen) && __loongarch_grlen == 64
     #define USE_HYPERBOLA_QUINT
 #elif defined(__aarch64__)
     #include <arm_acle.h>
@@ -128,12 +128,12 @@ inline Bitboard reverse_bb(const Bitboard bb) noexcept {
 
     #if defined(HAS_BUILTIN_BITREVERSE64)
     rbb = __builtin_bitreverse64(bb);
-    #elif defined(__loongarch__) && __loongarch_grlen == 64
-    __asm__ __volatile__("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
+    #elif defined(__loongarch__) && defined(__loongarch_grlen) && __loongarch_grlen == 64
+    __asm__("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
     #elif defined(__aarch64__)
         // GCC before 12.2 does not provide __rbitll() in arm_acle.h
         #if defined(GCC_NON_CLANG) && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
-    __asm__ __volatile__("rbit %0, %1" : "=r"(rbb) : "r"(bb));
+    __asm__("rbit %0, %1" : "=r"(rbb) : "r"(bb));
         #else
     rbb = __rbitll(bb);
         #endif

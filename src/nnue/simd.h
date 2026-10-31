@@ -33,25 +33,23 @@
     #if defined(USE_LASX)
         #include <lasxintrin.h>
     #endif
-    #if defined(__clang__)
-        #if defined(__has_builtin)
-            #if defined(USE_LSX)
-                #if __has_builtin(__builtin_lsx_vssrani_bu_h)
-                    #define HAS_BUILTIN_LSX_VSSRANI_BU_H
+    #if defined(__has_builtin)
+        #if defined(USE_LSX)
+            #if __has_builtin(__builtin_lsx_vssrani_bu_h)
+                #define HAS_BUILTIN_LSX_VSSRANI_BU_H
+            #endif
+            #if __has_builtin(__builtin_lsx_vssrani_hu_w)
+                #define HAS_BUILTIN_LSX_VSSRANI_HU_W
+            #endif
+            #if defined(USE_LASX)
+                #if __has_builtin(__builtin_lasx_cast_128)
+                    #define HAS_BUILTIN_LASX_CAST_128
                 #endif
-                #if __has_builtin(__builtin_lsx_vssrani_hu_w)
-                    #define HAS_BUILTIN_LSX_VSSRANI_HU_W
+                #if __has_builtin(__builtin_lasx_xvssrani_bu_h)
+                    #define HAS_BUILTIN_LASX_XVSSRANI_BU_H
                 #endif
-                #if defined(USE_LASX)
-                    #if __has_builtin(__builtin_lasx_xvssrani_bu_h)
-                        #define HAS_BUILTIN_LASX_XVSSRANI_BU_H
-                    #endif
-                    #if __has_builtin(__builtin_lasx_xvssrani_hu_w)
-                        #define HAS_BUILTIN_LASX_XVSSRANI_HU_W
-                    #endif
-                    #if __has_builtin(__builtin_lasx_cast_128)
-                        #define HAS_BUILTIN_LASX_CAST_128
-                    #endif
+                #if __has_builtin(__builtin_lasx_xvssrani_hu_w)
+                    #define HAS_BUILTIN_LASX_XVSSRANI_HU_W
                 #endif
             #endif
         #endif
@@ -229,7 +227,7 @@ ALWAYS_INLINE void lasx_store256(__m256i* dst, const __m256i value) noexcept {
 
 ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #if defined(HAS_BUILTIN_LASX_CAST_128)
-    return __lasx_vext2xv_h_b(__lasx_cast_128(a));
+    return __lasx_vext2xv_h_b(__builtin_lasx_cast_128(a));
         #elif defined(GCC_NON_CLANG)
     __m256i epi16;
     __asm__("vext2xv.h.b %u0, %u1" : "=f"(epi16) : "f"(a));
@@ -256,7 +254,7 @@ ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         // Inverse permuted at load time
 ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
         #if defined(HAS_BUILTIN_LASX_XVSSRANI_BU_H)
-    return (__m256i) __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
+    return __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
         #else
     return __lasx_xvssrani_bu_h(b, a, 0);
         #endif
@@ -265,7 +263,7 @@ ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept 
 
 ALWAYS_INLINE __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
         #if defined(HAS_BUILTIN_LASX_XVSSRANI_HU_W)
-    return (__m256i) __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
+    return __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
         #else
     return __lasx_xvssrani_hu_w(b, a, 0);
         #endif
@@ -314,7 +312,7 @@ ALWAYS_INLINE __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
         // Inverse permuted at load time
 ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
         #if defined(HAS_BUILTIN_LSX_VSSRANI_BU_H)
-    return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
+    return __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
         #else
     return __lsx_vssrani_bu_h(b, a, 0);
         #endif
@@ -323,7 +321,7 @@ ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
 
 ALWAYS_INLINE __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
         #if defined(HAS_BUILTIN_LSX_VSSRANI_HU_W)
-    return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
+    return __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
         #else
     return __lsx_vssrani_hu_w(b, a, 0);
         #endif
@@ -544,13 +542,13 @@ struct Tiling final {
 
     template<typename RegisterType, typename LaneType, Index LaneCount, Index RegisterCount>
     static constexpr Index best_register_count() noexcept {
+        static_assert(REGISTER_COUNT_MAX != 0);
+        static_assert(RegisterCount != 0 && RegisterCount <= REGISTER_COUNT_MAX);
+
         constexpr Index RegisterSize = sizeof(RegisterType);
         constexpr Index LaneSize     = sizeof(LaneType);
 
         static_assert(RegisterSize >= LaneSize);
-        static_assert(RegisterCount > 0);
-        static_assert(REGISTER_COUNT_MAX > 0);
-        static_assert(RegisterCount <= REGISTER_COUNT_MAX);
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 

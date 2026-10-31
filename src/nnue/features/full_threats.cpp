@@ -55,12 +55,12 @@ struct alignas(CACHE_LINE_SIZE) ThreatLUTs final {
     // [attacker][attacked][from < to]
     Array<Index, PIECE_NB, PIECE_NB, 2> lut1{};
     // [pt][from][to]
-    Array<Index, PIECE_TYPE_NB, SQUARE_NB, SQUARE_NB> lut2{};
+    Array<Index, PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lut2{};
 };
 
-constexpr auto init_threat_luts() noexcept {
-    ThreatLUTs                threatLuts{};
-    Array<u16, PIECE_TYPE_NB> offsets{};
+alignas(CACHE_LINE_SIZE) constexpr auto THREAT_LUTS = []() constexpr noexcept {
+    ThreatLUTs                 threatLuts{};
+    Array<u16, PIECE_TYPE_CNT> offsets{};
 
     // Initialize lut2: index within each piece's threat features.
     for (const auto pt : PIECE_TYPES)
@@ -79,7 +79,7 @@ constexpr auto init_threat_luts() noexcept {
                                        : (dst < org)  ? blackAttacks
                                                       : whiteAttacks;
 
-                threatLuts.lut2[pt][org][dst] =
+                threatLuts.lut2[pt - 1][org][dst] =
                   offset + constexpr_popcount((square_bb(dst) - 1) & attacks);
             }
 
@@ -89,7 +89,7 @@ constexpr auto init_threat_luts() noexcept {
                 offset += constexpr_popcount(whiteAttacks);
         }
 
-        offsets[pt] = offset;
+        offsets[pt - 1] = offset;
     }
 
     // Initialize lut1: feature base index and exclusion handling.
@@ -100,7 +100,7 @@ constexpr auto init_threat_luts() noexcept {
         {
             const Piece attackerPc = make_piece(attackerC, attackerPt);
 
-            const Index pieceOffset = offsets[attackerPt];
+            const Index pieceOffset = offsets[attackerPt - 1];
             const Index targetMax   = TARGET_MAX[attackerPt - 1];
 
             for (const Color attackedC : {WHITE, BLACK})
@@ -136,9 +136,7 @@ constexpr auto init_threat_luts() noexcept {
     assert(cumulativeOffset == Dimensions);
 
     return threatLuts;
-}
-
-constexpr auto THREAT_LUTS = init_threat_luts();
+}();
 
 ALWAYS_INLINE constexpr Index threat_index(const Index lut1, const Index lut2) noexcept {
     return lut1 != Dimensions ? lut1 + lut2 : Dimensions;
@@ -162,7 +160,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     unsigned attacked = (+attackedPc) ^ swap;
 
     return threat_index(THREAT_LUTS.lut1[attacker][attacked][org < dst],
-                        THREAT_LUTS.lut2[type_of(attackerPc)][org][dst]);
+                        THREAT_LUTS.lut2[type_of(attackerPc) - 1][org][dst]);
 }
 
 ALWAYS_INLINE void append_pawn_active_indices(Bitboard        attacksBB,
@@ -259,7 +257,9 @@ void append_changed_indices(const Color               perspective,
         const u8  dst  = u8(raw >> Threat::ThreatenedSqShift) ^ orient;
         const u8  pair = u8(raw >> Threat::ThreatenedPcShift);
 
-        const auto& pLut2 = THREAT_LUTS.lut2[type_of(Piece(pair >> 4))];
+        assert((pair >> 4) != 0);
+
+        const auto& pLut2 = THREAT_LUTS.lut2[type_of(Piece(pair >> 4)) - 1];
 
         const Index index = threat_index(pLut1[pair ^ pair_swap][org < dst], pLut2[org][dst]);
 
@@ -294,7 +294,9 @@ void append_changed_indices_both(const Square                wKingSq,
         const u8  dst  = u8(raw >> Threat::ThreatenedSqShift);
         const u8  pair = u8(raw >> Threat::ThreatenedPcShift);
 
-        const auto& pLut2 = THREAT_LUTS.lut2[type_of(Piece(pair >> 4))];
+        assert((pair >> 4) != 0);
+
+        const auto& pLut2 = THREAT_LUTS.lut2[type_of(Piece(pair >> 4)) - 1];
 
         const u8 wOrg = org ^ wOrient;
         const u8 wDst = dst ^ wOrient;
