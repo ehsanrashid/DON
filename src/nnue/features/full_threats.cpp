@@ -33,8 +33,7 @@
 #include "../../utility/static_vector.h"
 #include "../../utility/types.h"
 
-namespace DON::NNUE::Features {
-namespace FullThreats {
+namespace DON::NNUE::Features::FullThreats {
 namespace {
 // Pawn diagonal threats only target knights and rooks,
 // (pawn-pawn relationships are handled by the PP_3Wide feature set),
@@ -325,5 +324,4 @@ void append_changed_indices_both(const Square                wKingSq,
         bInsert.push_back_if_lt(bIndex, Dimensions);
     }
 }
-}  // namespace FullThreats
-}  // namespace DON::NNUE::Features
+}  // namespace DON::NNUE::Features::FullThreats

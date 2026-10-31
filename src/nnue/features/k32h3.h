@@ -29,10 +29,9 @@ namespace DON {
 
 class Position;
 
-namespace NNUE::Features {
 // Feature K32H3: Combination of the position of own king (32 buckets), a piece-square block (3 states),
 // and piece-square positions. Position mirrored such that king is always on e..h files.
-namespace K32H3 {
+namespace NNUE::Features::K32H3 {
 // Hash value embedded in the evaluation file
 inline constexpr u32 Hash = u32{0xAB005CEF};
 
@@ -40,7 +39,7 @@ inline constexpr u32 Hash = u32{0xAB005CEF};
 //  0: no rook or queen on the board,
 //  1: some rook or queen on the board, but the opponent has no queen,
 //  2: the opponent has a queen.
-inline constexpr u8 NumBlocks = 3;
+inline constexpr u8 BlockCount = 3;
 
 struct Block final {
    public:
@@ -62,7 +61,7 @@ inline constexpr Index BlockDimensions = 11 * SQUARE_NB * SQUARE_NB / 2;
 constexpr Index block_offset(const u8 block) { return Index(block) * BlockDimensions; }
 
 // Number of feature dimensions (67,584 piece-squares)
-inline constexpr u32 Dimensions = u32(NumBlocks) * BlockDimensions;
+inline constexpr u32 Dimensions = BlockCount * BlockDimensions;
 
 // Maximum number of simultaneously active features
 inline constexpr Index MaxActiveDimensions = 32;
@@ -97,8 +96,7 @@ bool refresh_required(Color            perspective,
                       const DirtyType& dP,
                       const Block&     beforeBlock,
                       const Block&     afterBlock) noexcept;
-}  // namespace K32H3
-}  // namespace NNUE::Features
+}  // namespace NNUE::Features::K32H3
 }  // namespace DON
 
 #endif  // NNUE_FEATURES_K32H3_H_INCLUDED

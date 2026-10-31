@@ -29,8 +29,7 @@
 #include "../../utility/attributes.h"
 #include "../../utility/types.h"
 
-namespace DON::NNUE::Features {
-namespace PP3Wide {
+namespace DON::NNUE::Features::PP3Wide {
 namespace {
 ALWAYS_INLINE constexpr Index make_pawn_id(const Color c, const Square s) noexcept {
     assert(SQ_A2 <= s && s <= SQ_H7);
@@ -242,5 +241,4 @@ void append_changed_indices_both(const Square                wKingSq,
              afterBB[WHITE], afterBB[BLACK], added[WHITE], added[BLACK]);
 #endif
 }
-}  // namespace PP3Wide
-}  // namespace DON::NNUE::Features
+}  // namespace DON::NNUE::Features::PP3Wide

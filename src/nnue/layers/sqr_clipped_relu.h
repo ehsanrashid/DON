@@ -105,7 +105,6 @@ class SqrClippedReLU final {
             _mm256_store_si256(&clipOut[i], _mm512_cvtsepi16_epi8(clipWords));
             // clang-format on
         }
-
         #else
         const auto* in      = reinterpret_cast<const __m256i*>(input);
         auto*       sqrOut  = reinterpret_cast<__m256i*>(squared);
@@ -133,13 +132,11 @@ class SqrClippedReLU final {
             _mm256_store_si256(&clipOut[i], clipPacked);
             // clang-format on
         }
-
         #endif
     #else
         #error "propagate_pair() requires AVX2+ (AVX512)"
     #endif
     }
-
 #else
     // Forward propagation
     void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
@@ -170,7 +167,6 @@ class SqrClippedReLU final {
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;
-
     #elif defined(USE_LSX)
         #if defined(USE_LASX)
         constexpr Index SimdWidth  = SIMD::WIDTH;
@@ -213,9 +209,7 @@ class SqrClippedReLU final {
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;
-
         #endif
-
     #elif defined(USE_NEON)
         constexpr Index SimdWidth  = SIMD::WIDTH;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
@@ -239,7 +233,6 @@ class SqrClippedReLU final {
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;
-
     #elif defined(USE_RVV)
         for (Index i = 0, vl; i < InputDimensions; i += vl)
         {
@@ -256,10 +249,8 @@ class SqrClippedReLU final {
         }
 
         constexpr Index Start = InputDimensions;
-
     #else
         constexpr Index Start = 0;
-
     #endif
 
         for (Index i = Start; i < InputDimensions; ++i)
@@ -270,7 +261,6 @@ class SqrClippedReLU final {
               std::min((static_cast<i64>(input[i]) * input[i]) >> BaseShift, i64{127}));
         }
     }
-
 #endif
 };
 

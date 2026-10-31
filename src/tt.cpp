@@ -37,7 +37,7 @@ namespace DON {
 namespace {
 
 // Pv, bound and generation are packed in a single byte
-constexpr u8 GENERATION_BITS = 5;
+constexpr u8 GENERATION_BITS = u8{5};
 constexpr u8 GENERATION_MASK = (u8{1} << GENERATION_BITS) - 1;
 constexpr u8 BOUND_SHIFT     = GENERATION_BITS;
 constexpr u8 BOUND_MASK      = u8{3} << BOUND_SHIFT;

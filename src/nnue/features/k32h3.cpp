@@ -33,8 +33,7 @@
 #include "../../utility/attributes.h"
 #include "../../utility/types.h"
 
-namespace DON::NNUE::Features {
-namespace K32H3 {
+namespace DON::NNUE::Features::K32H3 {
 namespace {
 // Unique number for each piece type on each square
 constexpr Index PS_NONE     = 0;
@@ -200,5 +199,4 @@ bool refresh_required(const Color      perspective,
     return dP.movedPc == make_piece(perspective, KING)
         || block(beforeBlock, perspective) != block(afterBlock, perspective);
 }
-}  // namespace K32H3
-}  // namespace DON::NNUE::Features
+}  // namespace DON::NNUE::Features::K32H3

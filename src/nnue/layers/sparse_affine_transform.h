@@ -296,7 +296,7 @@ class SparseAffineTransform final {
         // to a lot of redundant indexing arithmetic in the while (bits) loop.
         // The optimization barriers force these pointers to be calculated and used.
         #if defined(FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION)
-            asm("" : "+r"(inBase), "+r"(wBase));  // opt barrier
+            __asm__("" : "+r"(inBase), "+r"(wBase));  // opt barrier
         #endif
 
         #if defined(USE_AVXVNNI)
@@ -395,7 +395,7 @@ class SparseAffineTransform final {
                   reinterpret_cast<const invec_t*>(&wBase[i * OutputDimensions * ChunkSize]);
 
             #if defined(FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION)
-                asm("" : "+r"(col), "+r"(inPtr));
+                __asm__("" : "+r"(col), "+r"(inPtr));
             #endif
 
                 const invec_t in = vec_load_32(inPtr);

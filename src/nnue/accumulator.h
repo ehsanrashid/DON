@@ -94,7 +94,7 @@ struct AccumulatorCache final {
     const auto& operator[](const u8 psqBlock) const noexcept { return entries[psqBlock]; }
 
    private:
-    Array<Entry, Features::K32H3::NumBlocks, SQUARE_NB, COLOR_NB> entries;
+    Array<Entry, Features::K32H3::BlockCount, SQUARE_NB, COLOR_NB> entries;
 };
 
 struct AccumulatorStack final {
