@@ -254,7 +254,7 @@ ALWAYS_INLINE __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         // Inverse permuted at load time
 ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
         #if defined(HAS_BUILTIN_LASX_XVSSRANI_BU_H)
-    return __builtin_lasx_xvssrani_bu_h((v32u8) b, (v32i8) a, 0);
+    return (__m256i) __builtin_lasx_xvssrani_bu_h((v32u8) b, (v32i8) a, 0);
         #else
     return __lasx_xvssrani_bu_h(b, a, 0);
         #endif
@@ -263,7 +263,7 @@ ALWAYS_INLINE __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept 
 
 ALWAYS_INLINE __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
         #if defined(HAS_BUILTIN_LASX_XVSSRANI_HU_W)
-    return __builtin_lasx_xvssrani_hu_w((v16u16) b, (v16i16) a, 0);
+    return (__m256i) __builtin_lasx_xvssrani_hu_w((v16u16) b, (v16i16) a, 0);
         #else
     return __lasx_xvssrani_hu_w(b, a, 0);
         #endif
@@ -312,7 +312,7 @@ ALWAYS_INLINE __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
         // Inverse permuted at load time
 ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
         #if defined(HAS_BUILTIN_LSX_VSSRANI_BU_H)
-    return __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
+    return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
         #else
     return __lsx_vssrani_bu_h(b, a, 0);
         #endif
@@ -321,7 +321,7 @@ ALWAYS_INLINE __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
 
 ALWAYS_INLINE __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
         #if defined(HAS_BUILTIN_LSX_VSSRANI_HU_W)
-    return __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
+    return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
         #else
     return __lsx_vssrani_hu_w(b, a, 0);
         #endif
