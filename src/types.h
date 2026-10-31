@@ -473,12 +473,14 @@ inline constexpr SqrValue SQR_VALUE_INFINITE = VALUE_INFINITE * VALUE_INFINITE;
 
 inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 
+constexpr Array<Value, PIECE_TYPE_CNT + 1> PIECE_VALUES{
+  VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
+
 // Returns the value of the given piece type
 constexpr Value piece_value(const PieceType pt) noexcept {
-    constexpr Array<Value, PIECE_TYPE_CNT + 1> PieceValues{
-      VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
+    assert(0 <= pt && pt < PIECE_VALUES.size());
 
-    return PieceValues[pt];
+    return PIECE_VALUES[pt];
 }
 
 constexpr bool is_valid(const Value value) noexcept { return value != VALUE_NONE; }
