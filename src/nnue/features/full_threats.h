@@ -29,9 +29,8 @@ namespace DON {
 
 class Position;
 
-namespace NNUE::Features {
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
-namespace FullThreats {
+namespace NNUE::Features::FullThreats {
 
 // Hash value embedded in the evaluation file
 inline constexpr u32 Hash = u32{0x2C41EAEA};
@@ -67,8 +66,7 @@ void append_changed_indices_both(Square                      wKingSq,
                                  Array<IndexList, COLOR_NB>& added,
                                  const ThreatWeight*         pfBase   = nullptr,
                                  usize                       pfStride = 0) noexcept;
-}  // namespace FullThreats
-}  // namespace NNUE::Features
+}  // namespace NNUE::Features::FullThreats
 }  // namespace DON
 
 #endif  // NNUE_FEATURES_FULL_THREATS_H_INCLUDED

@@ -123,7 +123,6 @@ struct NNZ final {
     // Indices of non-zero chunks
     u16      bitset[Dimensions];
     unsigned count = 0;
-
 #else
     struct Cursor final {
        public:
@@ -137,7 +136,6 @@ struct NNZ final {
             __m128i packed = _mm_packus_epi32(neurons1, neurons2);
             packed         = _mm_packs_epi16(packed, packed);
             *nnzOut++      = ~_mm_movemask_epi8(_mm_cmpeq_epi8(packed, _mm_setzero_si128()));
-
         #elif defined(USE_SSSE3) || defined(USE_LSX)
             constexpr usize VecBytes = sizeof(SIMD::vec_t);
 
@@ -157,7 +155,6 @@ struct NNZ final {
                 std::memcpy(nnzOut, &n2, bytes);
                 nnzOut += bytes;
             }
-
         #elif defined(USE_NEON) && USE_NEON >= 8
             alignas(16) constexpr Array<u16, 8> Mask8{1, 16, 2, 32, 4, 64, 8, 128};
 
@@ -172,10 +169,8 @@ struct NNZ final {
             const uint16x8_t bits = vandq_u16(packed, vld1q_u16(Mask8.data()));
 
             *nnzOut++ = vaddvq_u16(bits);
-
         #endif
         }
-
     #elif defined(VECTOR)
         void record(SIMD::vec_t, SIMD::vec_t) noexcept {}
     #endif
@@ -187,7 +182,6 @@ struct NNZ final {
 
     // Each 8-bit chunk
     alignas(8) u8 bitset[ceil_div(Dimensions, 32)];
-
 #endif
 };
 

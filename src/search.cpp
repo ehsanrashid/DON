@@ -1345,7 +1345,7 @@ Value Worker::search(Position&    pos,
     Array<MoveVector, 2> moveVectors;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
-                  &atomicHistories, ss->ply, -1);
+                  &atomicHistories, ss->ply, false);
     // Step 14. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()).is_ok())
     {
@@ -2094,7 +2094,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
-                  &atomicHistories, ss->ply);
+                  &atomicHistories, ss->ply, true);
     // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()).is_ok())
     {
@@ -2109,6 +2109,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
+            mp.skip_quiets([]() noexcept -> bool { return true; });
+
             // Futility pruning and moveCount pruning
             if (!check && move.dst_sq() != preSq         //
                 && move.type() != Move::Type::PROMOTION  //

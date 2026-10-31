@@ -27,9 +27,8 @@ namespace DON {
 
 class Position;
 
-namespace NNUE::Features {
 // Feature PP3Wide:
-namespace PP3Wide {
+namespace NNUE::Features::PP3Wide {
 inline constexpr u32 Hash = u32{0x5C80FA69};
 
 inline constexpr Index PawnIds    = 48 * COLOR_NB;
@@ -67,8 +66,7 @@ void append_changed_indices_both(Square                      wKingSq,
                                  Array<IndexList, COLOR_NB>& added,
                                  const ThreatWeight*         pfBase   = nullptr,
                                  usize                       pfStride = 0) noexcept;
-}  // namespace PP3Wide
-}  // namespace NNUE::Features
+}  // namespace NNUE::Features::PP3Wide
 }  // namespace DON
 
 #endif  // NNUE_FEATURES_PP_3WIDE_INCLUDED

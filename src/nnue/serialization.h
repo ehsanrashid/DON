@@ -63,6 +63,24 @@ inline IntType read_little_endian(std::istream& is) noexcept {
     return value;
 }
 
+// Read integers in bulk from a little-endian stream.
+// This reads N integers from istream and puts them in array out.
+template<typename IntType>
+inline void read_little_endian(std::istream& is, IntType* out, const usize Size) noexcept {
+    if (IS_LITTLE_ENDIAN)
+        is.read(reinterpret_cast<char*>(out), sizeof(IntType) * Size);
+    else
+        for (usize i = 0; i < Size; ++i)
+            out[i] = read_little_endian<IntType>(is);
+}
+
+// Read integers in bulk from a little-endian istream.
+// This reads N integers from istream and puts them in array out.
+template<typename IntType, usize Size>
+inline void read_little_endian(std::istream& is, std::array<IntType, Size>& out) noexcept {
+    read_little_endian(is, out.data(), Size);
+}
+
 // Utility to write an integer (signed or unsigned, any size)
 // to a ostream in little-endian order. Swap the byte order before the write
 // if necessary to always write in little-endian order,
@@ -97,24 +115,6 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 
         os.write(reinterpret_cast<const char*>(arr.data()), IntSize);
     }
-}
-
-// Read integers in bulk from a little-endian stream.
-// This reads N integers from istream and puts them in array out.
-template<typename IntType>
-inline void read_little_endian(std::istream& is, IntType* out, const usize Size) noexcept {
-    if (IS_LITTLE_ENDIAN)
-        is.read(reinterpret_cast<char*>(out), sizeof(IntType) * Size);
-    else
-        for (usize i = 0; i < Size; ++i)
-            out[i] = read_little_endian<IntType>(is);
-}
-
-// Read integers in bulk from a little-endian istream.
-// This reads N integers from istream and puts them in array out.
-template<typename IntType, usize Size>
-inline void read_little_endian(std::istream& is, std::array<IntType, Size>& out) noexcept {
-    read_little_endian(is, out.data(), Size);
 }
 
 // Write integers in bulk to a little-endian ostream.

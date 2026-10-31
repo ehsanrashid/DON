@@ -28,8 +28,7 @@
     #define X86_64
 #endif
 
-#if (defined(__arm__) && defined(__ARM_ARCH) && __ARM_ARCH >= 7) /**/ \
-  || (defined(_M_ARM) && _M_ARM >= 7)
+#if (defined(__arm__) && defined(__ARM_ARCH) && __ARM_ARCH >= 7) || (defined(_M_ARM) && _M_ARM >= 7)
     #define ARM32_V7
 #endif
 
@@ -50,7 +49,6 @@
 #if defined(__GNUC__) && !defined(__INTEL_LLVM_COMPILER)
     #define GCC_NON_INTEL_LLVM
 #endif
-
 
 // Platform -------------------------------------
 

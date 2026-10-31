@@ -67,7 +67,7 @@ void cpu_relax() noexcept {
     #if defined(__riscv_zihintpause)
     __builtin_riscv_pause();  // Zihintpause extension
     #else
-    // Standard RISC-V industrial fallback instruction sequence for pause
+    // Standard RISC-V fallback: full memory fence; stronger than and not equivalent to PAUSE
     __asm__ __volatile__("fence rw,rw" ::: "memory");
     #endif
 #elif defined(__wasm__)
@@ -77,7 +77,7 @@ void cpu_relax() noexcept {
 #elif defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(_ARCH_PPC)
     __asm__ __volatile__("or 27,27,27" ::: "memory");  // Low-priority dispatch hint
     // MIPS (ISA revision 2 or later)
-#elif defined(__mips__) && defined(__mips_isa_rev) && (__mips_isa_rev >= 2)
+#elif defined(__mips__) && defined(__mips_isa_rev) && __mips_isa_rev >= 2
     __asm__ __volatile__("pause" ::: "memory");
     // SPARC
 #elif defined(__sparc__)

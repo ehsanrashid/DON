@@ -303,7 +303,7 @@ MovePicker::MovePicker(const Position&                 p,
                        const PieceSqHistory** const    continuationHist,
                        const AtomicHistories* const    atomicHists,
                        const u16                       ply,
-                       const int                       threshold) noexcept :
+                       const bool                      qs_) noexcept :
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
@@ -312,7 +312,7 @@ MovePicker::MovePicker(const Position&                 p,
     continuationHistory{continuationHist},
     atomicHistories{atomicHists},
     ssPly{ply},
-    threshold_{threshold} {
+    qs{qs_} {
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -321,18 +321,18 @@ MovePicker::MovePicker(const Position&                 p,
         initStage = Stage::EVA_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
     }
-    else if (threshold_ < 0)
+    else if (qs)
+    {
+        initStage = Stage::QS_CAPTURE;
+        curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
+    }
+    else
     {
         //for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
         //    assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
-    }
-    else
-    {
-        initStage = Stage::QS_CAPTURE;
-        curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
     }
 }
 
@@ -483,7 +483,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
         auto& em = *itr++;
         em       = m;
-        em.value = static_cast<i32>(std::clamp(value, -INT_LIMIT, +INT_LIMIT));
+        em.value = i32(std::clamp(value, -INT_LIMIT, +INT_LIMIT));
     }
 
     return itr;
@@ -626,20 +626,22 @@ ENC_BAD_CAPTURE:
         adaptive_stable_sort(cur, curEnd);
 
         curStage = Stage::ENC_BAD_QUIET;
-        [[fallthrough]];
 
-    case Stage::ENC_BAD_QUIET :
-        return cur != curEnd ? *cur++ : Move::None;
+        goto DISPATCH;
 
     case Stage::EVA_CAPTURE :
         if (cur != curEnd)
             return *cur++;
+
+        if (skipQuiets)
+            return Move::None;
 
         init<GenType::EVA_QUIET>();
 
         curStage = Stage::EVA_QUIET;
         [[fallthrough]];
 
+    case Stage::ENC_BAD_QUIET :
     case Stage::EVA_QUIET :
     case Stage::QS_CAPTURE :
         return cur != curEnd ? *cur++ : Move::None;
