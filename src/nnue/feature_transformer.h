@@ -59,8 +59,10 @@ namespace DON::NNUE {
 template<usize Size>
 constexpr Array<usize, Size> invert_permutation(const std::array<usize, Size>& order) noexcept {
     Array<usize, Size> inverse{};
+
     for (usize i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
+
     return inverse;
 }
 
@@ -159,14 +161,13 @@ class FeatureTransformer final {
     static constexpr auto InversePackusEpi16Order = invert_permutation(PackusEpi16Order);
 
 #if defined(USE_PAIRED_WIDENING_ADD)
-    // The int8 weight rows are consumed one full vector register (sizeof(vec_t)
-    // bytes) at a time: unpack{lo,hi}_epi8 interleave the bytes of two rows and
-    // maddubs against a vector of ones sums each pair into an int16 lane. Both
-    // unpacks work within 128-bit lanes, so the int16 results of a chunk come out
-    // with its 8-byte blocks in the order {0, 2, 4, 6, ...} (lo) and {1, 3, 5, 7,
-    // ...} (hi). Storing the 8-byte blocks of every chunk in this order at load
-    // time makes the two output registers hold consecutive accumulator lanes, so
-    // the accumulator layout is unchanged.
+    // The int8 weight rows are consumed one full vector register (sizeof(vec_t) bytes)
+    // at a time: unpack{lo,hi}_epi8 interleave the bytes of two rows and maddubs against
+    // a vector of ones sums each pair into an int16 lane. Both unpacks work within 128-bit
+    // lanes, so the int16 results of a chunk come out with its 8-byte blocks in the order
+    // {0, 2, 4, 6, ...} (lo) and {1, 3, 5, 7, ...} (hi). Storing the 8-byte blocks of every
+    // chunk in this order at load time makes the two output registers hold consecutive
+    // accumulator lanes, so the accumulator layout is unchanged.
     static constexpr auto WideningPairOrder = []() constexpr noexcept {
         constexpr usize BlockCount = sizeof(SIMD::vec_t) / 8;
 
@@ -355,7 +356,6 @@ class FeatureTransformer final {
                 const SIMD::vec_t hi = SIMD::vec_mulhi_8(p0, p1);
 
                 pack = SIMD::vec_srli_8(hi, 1);
-
     #elif defined(USE_NEON)
                 const uint16x8_t mul0 = vmull_u8(vqmovun_s16(acc00), vqmovun_s16(acc10));
                 const uint16x8_t mul1 = vmull_u8(vqmovun_s16(acc01), vqmovun_s16(acc11));
@@ -364,7 +364,6 @@ class FeatureTransformer final {
                 const uint8x16_t   pab = vshrq_n_u8(uzp.val[1], 1);
 
                 pack = reinterpret_cast<SIMD::vec_t>(pab);
-
     #elif defined(__wasm__)
                 // _mm_mulhi_epi16 is lowered to 32-bit multiplies, so we take
                 // a similar approach as the NEON path.
@@ -380,7 +379,6 @@ class FeatureTransformer final {
                                             17, 19, 21, 23, 25, 27, 29, 31);
 
                 pack = wasm_u8x16_shr(merged, 1);
-
     #else
                 const SIMD::vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, ftMax), zero), 7);
                 const SIMD::vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, ftMax), zero), 7);
@@ -397,9 +395,7 @@ class FeatureTransformer final {
 
             cursor.record(packed[0], packed[1]);
         }
-
 #elif defined(USE_RVV)
-
         const Index maxVL = __riscv_vsetvlmax_e8m1();
 
         const auto rvv_propagate = [&](auto vid) noexcept {
@@ -439,17 +435,16 @@ class FeatureTransformer final {
             rvv_propagate(__riscv_vid_v_u8m1(maxVL));  // vuint8m1_t vid8
         else
             rvv_propagate(__riscv_vid_v_u16m2(maxVL));  // vuint16m2_t vid16
-
 #else
         for (Index i = 0; i < HalfDimensions / 2; ++i)
         {
-            Bias sum0 = accumulation[i];
+            Bias sum0 = accumulation[i + 0];
             Bias sum1 = accumulation[i + HalfDimensions / 2];
 
             sum0 = std::clamp<Bias>(sum0, 0, FT_MAX);
             sum1 = std::clamp<Bias>(sum1, 0, FT_MAX);
 
-            output[offset + i] = static_cast<Output>(unsigned(sum0 * sum1) / 512);
+            output[offset + i] = Output((unsigned) (sum0 * sum1) / 512);
         }
 #endif
         // clang-format on
