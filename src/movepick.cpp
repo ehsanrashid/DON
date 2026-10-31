@@ -303,7 +303,7 @@ MovePicker::MovePicker(const Position&                 p,
                        const PieceSqHistory** const    continuationHist,
                        const AtomicHistories* const    atomicHists,
                        const u16                       ply,
-                       const int                       threshold) noexcept :
+                       const bool                      qs_) noexcept :
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
@@ -312,7 +312,7 @@ MovePicker::MovePicker(const Position&                 p,
     continuationHistory{continuationHist},
     atomicHistories{atomicHists},
     ssPly{ply},
-    threshold_{threshold} {
+    qs{qs_} {
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -321,18 +321,18 @@ MovePicker::MovePicker(const Position&                 p,
         initStage = Stage::EVA_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
     }
-    else if (threshold_ < 0)
+    else if (qs)
+    {
+        initStage = Stage::QS_CAPTURE;
+        curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
+    }
+    else
     {
         //for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
         //    assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
-    }
-    else
-    {
-        initStage = Stage::QS_CAPTURE;
-        curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
     }
 }
 

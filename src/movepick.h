@@ -89,7 +89,7 @@ class MovePicker final {
                const PieceSqHistory**    continuationHist,
                const AtomicHistories*    atomicHists,
                u16                       ply,
-               int                       threshold = 0) noexcept;
+               bool                      qs_ = false) noexcept;
 
     // MovePicker constructor for ProbCut:
     // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
@@ -119,7 +119,7 @@ class MovePicker final {
         if (skipQuiets
             && (curStage == Stage::ENC_GOOD_QUIET    //
                 || curStage == Stage::ENC_BAD_QUIET  //
-                || curStage == Stage::EVA_QUIET))
+                || (qs && curStage == Stage::EVA_QUIET)))
             cur = curEnd;  // Discards any quiet moves in the current stage
     }
 
@@ -151,7 +151,8 @@ class MovePicker final {
     const PieceSqHistory** const    continuationHistory = nullptr;
     const AtomicHistories* const    atomicHistories     = nullptr;
     const u16                       ssPly               = LOW_PLY_SIZE;
-    int                             threshold_;
+    bool                            qs                  = false;
+    int                             threshold_          = 0;
 
     Stage initStage;
     Stage curStage;
