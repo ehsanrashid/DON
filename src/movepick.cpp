@@ -626,12 +626,8 @@ ENC_BAD_CAPTURE:
         adaptive_stable_sort(cur, curEnd);
 
         curStage = Stage::ENC_BAD_QUIET;
-        [[fallthrough]];
 
-    case Stage::ENC_BAD_QUIET :
-    case Stage::EVA_QUIET :
-    case Stage::QS_CAPTURE :
-        return cur != curEnd ? *cur++ : Move::None;
+        goto DISPATCH;
 
     case Stage::EVA_CAPTURE :
         if (cur != curEnd)
@@ -643,8 +639,12 @@ ENC_BAD_CAPTURE:
         init<GenType::EVA_QUIET>();
 
         curStage = Stage::EVA_QUIET;
+        [[fallthrough]];
 
-        goto DISPATCH;
+    case Stage::ENC_BAD_QUIET :
+    case Stage::EVA_QUIET :
+    case Stage::QS_CAPTURE :
+        return cur != curEnd ? *cur++ : Move::None;
 
     case Stage::PROBCUT :
         return select([this]() noexcept -> bool { return above_threshold_capture(); }) ? *cur++
