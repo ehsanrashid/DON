@@ -629,20 +629,22 @@ ENC_BAD_CAPTURE:
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
+    case Stage::EVA_QUIET :
+    case Stage::QS_CAPTURE :
         return cur != curEnd ? *cur++ : Move::None;
 
     case Stage::EVA_CAPTURE :
         if (cur != curEnd)
             return *cur++;
 
+        if (skipQuiets)
+            return Move::None;
+
         init<GenType::EVA_QUIET>();
 
         curStage = Stage::EVA_QUIET;
-        [[fallthrough]];
 
-    case Stage::EVA_QUIET :
-    case Stage::QS_CAPTURE :
-        return cur != curEnd ? *cur++ : Move::None;
+        goto DISPATCH;
 
     case Stage::PROBCUT :
         return select([this]() noexcept -> bool { return above_threshold_capture(); }) ? *cur++

@@ -116,7 +116,10 @@ class MovePicker final {
     void skip_quiets(Predicate pred) noexcept {
         skipQuiets = skipQuiets || pred();
 
-        if (skipQuiets && (curStage == Stage::ENC_GOOD_QUIET || curStage == Stage::ENC_BAD_QUIET))
+        if (skipQuiets
+            && (curStage == Stage::ENC_GOOD_QUIET    //
+                || curStage == Stage::ENC_BAD_QUIET  //
+                || curStage == Stage::EVA_QUIET))
             cur = curEnd;  // Discards any quiet moves in the current stage
     }
 
