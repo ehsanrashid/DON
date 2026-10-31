@@ -48,12 +48,12 @@ struct Accumulator final: public BaseAccumulator {
    public:
     void clear() noexcept {
         computed.fill(false);
-        dirties     = {};
-        beforeBlock = {};
+        dirties      = {};
+        beforeBlocks = {};
     }
 
-    Dirties                dirties;
-    Features::K32H3::Block beforeBlock;
+    Dirties                 dirties;
+    Features::K32H3::Blocks beforeBlocks;
 };
 
 static_assert(alignof(Accumulator) == CACHE_LINE_SIZE);

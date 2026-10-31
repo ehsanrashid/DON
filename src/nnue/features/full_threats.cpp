@@ -154,7 +154,7 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     const u8 org = u8(orgSq) ^ orient;
     const u8 dst = u8(dstSq) ^ orient;
 
-    u8       swap     = 8 * perspective;
+    const u8 swap     = 8 * perspective;
     unsigned attacker = (+attackerPc) ^ swap;
     unsigned attacked = (+attackedPc) ^ swap;
 

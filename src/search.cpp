@@ -1863,7 +1863,7 @@ Value Worker::search(Position&    pos,
         // If there is a move that produces search value greater than alpha update the history of searched moves
         if (bestMove.is_ok())
         {
-            bool ttBm = bestMove == ttd.move;
+            const bool ttBm = bestMove == ttd.move;
 
             update_histories<PVNode>(pos, ss, depth, bestMove, ttBm, moveVectors);
 
@@ -1886,7 +1886,6 @@ Value Worker::search(Position&    pos,
             // Bonus for prior quiet move
             else
             {
-                // Bonus scale ranges from 0 to roughly 2.3M, overflows happen for multipliers larger than 900
                 int bonusScale =
                   -241
                   // Increase bonus when depth is high
@@ -2366,8 +2365,8 @@ void Worker::update_histories(const Position&             pos,
 
     if constexpr (!PVNode)
     {
-        bonus =
-          constexpr_round(bonus * (1.0 + (moveVectors[0].size() + moveVectors[1].size()) / 256.0));
+        const int moveCount = int(moveVectors[0].size() + moveVectors[1].size());
+        bonus               = constexpr_round(bonus * (1.0 + double(moveCount) / 256.0));
     }
 
     if (pos.capture_promo(bestMove))
