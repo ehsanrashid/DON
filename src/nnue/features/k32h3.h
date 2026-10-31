@@ -41,19 +41,12 @@ inline constexpr u32 Hash = u32{0xAB005CEF};
 //  2: the opponent has a queen.
 inline constexpr u8 BlockCount = 3;
 
-struct Block final {
-   public:
-    Array<u8, COLOR_NB> queens{};
-    u8                  queensRooks = 0;
-};
+// Block of each perspective
+using Blocks = Array<u8, COLOR_NB>;
 
-constexpr u8 block(const Block& m, Color perspective) noexcept {
-    return m.queens[~perspective] != 0 ? 2 : m.queensRooks != 0;
-}
+u8 block(Color perspective, const Position& pos) noexcept;
 
-Block block_state(const Position& pos) noexcept;
-
-u8 block(const Position& pos, Color perspective) noexcept;
+Blocks blocks(const Position& pos) noexcept;
 
 // Number of features per block (22,528 piece-squares)
 inline constexpr Index BlockDimensions = 11 * SQUARE_NB * SQUARE_NB / 2;
@@ -94,8 +87,8 @@ void append_changed_indices_both(Square                      wKingSq,
 // Determine if a full refresh is required based on the dirty piece
 bool refresh_required(Color            perspective,
                       const DirtyType& dP,
-                      const Block&     beforeBlock,
-                      const Block&     afterBlock) noexcept;
+                      const u8         beforeBlock,
+                      const u8         afterBlock) noexcept;
 }  // namespace NNUE::Features::K32H3
 }  // namespace DON
 
