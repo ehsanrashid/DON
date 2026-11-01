@@ -154,19 +154,6 @@ template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = Prefetc
 inline void prefetch(const void*) noexcept {}
 #endif
 
-// Define a custom case-insensitive hash
-struct CaseInsensitiveHash final {
-    usize operator()(std::string_view sv) const noexcept;
-};
-// Define a custom case-insensitive equality
-struct CaseInsensitiveEqual final {
-    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
-};
-// Define a custom case-insensitive less
-struct CaseInsensitiveLess final {
-    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
-};
-
 struct IndexRange final {
    public:
     usize beg;

@@ -56,8 +56,8 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
 
     const auto id1 = make_pawn_id(rColor, Square{org});
     const auto id2 = make_pawn_id(rPairedColor, Square{dst});
-    const auto idH = std::max(id1, id2);
     const auto idL = std::min(id1, id2);
+    const auto idH = std::max(id1, id2);
 
     return BaseIndex + idL + idH * (idH - 1) / 2;
 }
