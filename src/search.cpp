@@ -2133,10 +2133,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 // Prune if static exchange evaluation is low enough.
                 int threshold = baseFutility - alpha;
                 if (threshold < 1)
-                    threshold = 1;
+                    threshold -= 1;
                 else
-                    threshold *= -4;
-                if (pos.see(move) < threshold)
+                    threshold <<= 2;
+                if (pos.see(move) < -threshold)
                 {
                     const int minValue = std::min<int>(baseFutility, alpha);
                     if (bestValue < minValue)
