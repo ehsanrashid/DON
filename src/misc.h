@@ -392,6 +392,8 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
     return h;
 }
 
+class Logger;
+
 Logger& logger() noexcept;
 
 inline bool InfoStopped = false;
