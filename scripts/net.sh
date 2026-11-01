@@ -2,25 +2,19 @@
 
 # Download commands with a 5min time-out to ensure things fail if the server stalls
 wget_or_curl=$(
-    command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1" ||
-    command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"
-)
+    (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") ||
+    (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
 
 if [ -z "$wget_or_curl" ]; then
     echo "Error: wget or curl not found" >&2
     exit 1
 fi
 
-sha256_cmd=''
-sha256_args=''
-if command -v shasum >/dev/null 2>&1; then
-    sha256_cmd='shasum'
-    sha256_args='-a 256'
-elif command -v sha256sum >/dev/null 2>&1; then
-    sha256_cmd='sha256sum'
-fi
+sha256sum=$(
+    (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") ||
+    (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
 
-if [ -z "$sha256_cmd" ]; then
+if [ -z "$sha256sum" ]; then
     echo "sha256sum not found, NNUE files will be assumed valid." >&2
 fi
 
@@ -32,11 +26,11 @@ get_nnue_filename() {
 
 validate_network() {
     # If no sha256sum command is available, assume the file is always valid
-    [ -z "$sha256_cmd" ] && return 0
+    [ -z "$sha256sum" ] && return 0
     [ -f "$1" ] || return 0
 
     local hash
-    hash=$("$sha256_cmd" $sha256_args "$1") || return 1
+    hash=$("$sha256sum" "$1") || return 1
     hash=$(printf '%s\n' "$hash" | cut -c 1-12)
 
     if [ "$1" != "nn-$hash.nnue" ]; then
