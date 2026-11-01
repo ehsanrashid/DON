@@ -107,9 +107,4 @@ void Logger::write_timestamp(std::string_view suffix) noexcept {
     ofs.flush();
 }
 
-Logger& logger() noexcept {
-    static Logger logger(std::cin, std::cout);
-    return logger;
-}
-
 }  // namespace DON

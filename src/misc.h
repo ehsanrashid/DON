@@ -49,6 +49,7 @@
 #endif
 
 #include "utility/attributes.h"
+#include "utility/logger.h"
 #include "utility/types.h"
 
 namespace DON {
@@ -391,6 +392,8 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
     }
     return h;
 }
+
+Logger& logger() noexcept;
 
 inline bool InfoStopped = false;
 

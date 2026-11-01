@@ -394,6 +394,11 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     return os;
 }
 
+Logger& logger() noexcept {
+    static Logger logger(std::cin, std::cout);
+    return logger;
+}
+
 void print_info_string(const std::string_view info) noexcept {
 
     if (InfoStopped)
