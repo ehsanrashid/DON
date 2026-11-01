@@ -30,7 +30,7 @@ validate_network() {
     [ -f "$1" ] || return 0
 
     local hash
-    hash=$("$sha256sum" "$1") || return 1
+    hash=$($sha256sum "$1") || return 1
     hash=$(printf '%s\n' "$hash" | cut -c 1-12)
 
     if [ "$1" != "nn-$hash.nnue" ]; then
