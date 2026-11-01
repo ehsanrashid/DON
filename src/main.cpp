@@ -29,6 +29,10 @@
 #include "utility/console.h"
 #include "utility/functions.h"
 
+#if defined(UNIVERSAL_BINARY)
+    #include "utility/attributes.h"
+#endif
+
 using namespace DON;
 
 #if defined(UNIVERSAL_BINARY)
@@ -36,7 +40,7 @@ namespace DON {
 
 int main(const int argc, const char* const argv[]) noexcept;  // silence 'no previous declaration'
 
-__attribute__((used))  // keep main alive
+ATTRIBUTE(used)  // keep main alive
 #endif
 
 int main(const int argc, const char* const argv[]) noexcept {
