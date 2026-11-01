@@ -72,8 +72,10 @@
 
 #if defined(CLANG_OR_GCC)
     #define UNLIKELY(x) __builtin_expect(!!(x), 0)
+    #define LIKELY(x) __builtin_expect(!!(x), 1)
 #else
     #define UNLIKELY(x) (x)
+    #define LIKELY(x) (x)
 #endif
 
 #define PACKED ATTRIBUTE(packed)

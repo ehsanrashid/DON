@@ -38,7 +38,7 @@ class FeatureTransformer;
 // Stores the accumulated affine-transformation results for HalfKAHm and FullThreats.
 struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
-    Array<Bias, COLOR_NB, L1> accumulation;
+    Array<Bias, COLOR_NB, L1> accumulation{};
     Array<bool, COLOR_NB>     computed{};
 };
 

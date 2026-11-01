@@ -487,6 +487,11 @@ template void generate<GenType::ENC_QUIET  , false>(const Position& pos, Move*& 
 template void generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move*& moves) noexcept;
 template void generate<GenType::EVA_QUIET  , false>(const Position& pos, Move*& moves) noexcept;
 
+template void generate<GenType::ENC_CAPTURE, true>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::ENC_QUIET  , true>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::EVA_CAPTURE, true>(const Position& pos, Move*& moves) noexcept;
+template void generate<GenType::EVA_QUIET  , true>(const Position& pos, Move*& moves) noexcept;
+
 // <ALL> Generates all legal
 template<>
 void generate<GenType::ALL, false>(const Position& pos, Move*& moves) noexcept {
@@ -506,7 +511,7 @@ void generate<GenType::ALL, true >(const Position& pos, Move*& moves) noexcept {
     if (pos.checkers_bb() == 0)
     {
         generate<GenType::ENC_CAPTURE, true>(pos, moves);
-        generate<GenType::ENC_QUIET, true>(pos, moves);
+        generate<GenType::ENC_QUIET  , true>(pos, moves);
     }
     else
     {

@@ -232,7 +232,7 @@ class PoolLIRSCache final {
         if (capacity == 0)
             return 0;
 
-        const usize hirCapacity = capacity / 20 + (capacity % 20 != 0);
+        const usize hirCapacity = (capacity / 20) + ((capacity % 20) != 0 ? 1 : 0);
 
         return std::min(capacity, std::max(usize{1}, hirCapacity));
     }
@@ -242,12 +242,15 @@ class PoolLIRSCache final {
     }
 
     [[nodiscard]] usize nolock_map_reserve_size(const usize requestedCapacity) const noexcept {
-        constexpr usize maxSize     = std::numeric_limits<usize>::max();
-        const usize     hirCapacity = requestedCapacity / 20 + (requestedCapacity % 20 != 0);
+        constexpr usize maxSize = std::numeric_limits<usize>::max();
+        const usize     hirCapacity =
+          (requestedCapacity / 20) + ((requestedCapacity % 20) != 0 ? 1 : 0);
 
-        const usize requested = requestedCapacity > (maxSize - hirCapacity - 1) / 2
-                                ? maxSize
-                                : 2 * requestedCapacity + hirCapacity + 1;
+        // Check for overflow before multiplication
+        if (requestedCapacity > maxSize / 2)
+            return maxSize;
+
+        const usize requested = 2 * requestedCapacity + hirCapacity + 1;
 
         return std::max(reserveCount, requested);
     }
@@ -267,7 +270,7 @@ class PoolLIRSCache final {
 
     [[nodiscard]] usize nolock_resident_size() const noexcept { return lirSize + queueQ.size(); }
 
-    [[nodiscard]] Return nolock_read(const Entry* entry) const noexcept {
+    ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
 
@@ -487,6 +490,8 @@ class PoolLIRSCache final {
             return false;
 
         Entry* const entry = front->owner;
+        if (entry == nullptr)
+            return false;
 
         nolock_queue_remove(*entry);
 
@@ -1022,7 +1027,7 @@ class PoolFlatLIRSCache final {
         if (capacity == 0)
             return 0;
 
-        const usize hirCapacity = capacity / 20 + (capacity % 20 != 0);
+        const usize hirCapacity = (capacity / 20) + ((capacity % 20) != 0 ? 1 : 0);
 
         return std::min(capacity, std::max(usize{1}, hirCapacity));
     }
@@ -1032,12 +1037,15 @@ class PoolFlatLIRSCache final {
     }
 
     [[nodiscard]] usize nolock_map_reserve_size(const usize requestedCapacity) const noexcept {
-        constexpr usize maxSize     = std::numeric_limits<usize>::max();
-        const usize     hirCapacity = requestedCapacity / 20 + (requestedCapacity % 20 != 0);
+        constexpr usize maxSize = std::numeric_limits<usize>::max();
+        const usize     hirCapacity =
+          (requestedCapacity / 20) + ((requestedCapacity % 20) != 0 ? 1 : 0);
 
-        const usize requested = requestedCapacity > (maxSize - hirCapacity - 1) / 2
-                                ? maxSize
-                                : 2 * requestedCapacity + hirCapacity + 1;
+        // Check for overflow before multiplication
+        if (requestedCapacity > maxSize / 2)
+            return maxSize;
+
+        const usize requested = 2 * requestedCapacity + hirCapacity + 1;
 
         return std::max(reserveCount, requested);
     }
@@ -1051,13 +1059,7 @@ class PoolFlatLIRSCache final {
         nolock_reserve_map(capacity);
     }
 
-    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
-        return entry != nullptr && entry->value.has_value();
-    }
-
-    [[nodiscard]] usize nolock_resident_size() const noexcept { return lirSize + queueQ.size(); }
-
-    [[nodiscard]] Return nolock_read(const Entry* entry) const noexcept {
+    ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
 
@@ -1066,6 +1068,12 @@ class PoolFlatLIRSCache final {
         else
             return **entry->value;
     }
+
+    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
+        return entry != nullptr && entry->value.has_value();
+    }
+
+    [[nodiscard]] usize nolock_resident_size() const noexcept { return lirSize + queueQ.size(); }
 
     void nolock_hir_stack_push_front(Entry& entry) noexcept {
         if (!entry.inHirStack)
@@ -1277,6 +1285,8 @@ class PoolFlatLIRSCache final {
             return false;
 
         Entry* const entry = front->owner;
+        if (entry == nullptr)
+            return false;
 
         nolock_queue_remove(*entry);
 

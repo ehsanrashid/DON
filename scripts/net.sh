@@ -3,42 +3,48 @@
 # Download commands with a 5min time-out to ensure things fail if the server stalls
 wget_or_curl=$(
     (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") ||
-    (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300")
-)
+    (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
 
 if [ -z "$wget_or_curl" ]; then
-    echo "Error: wget or curl not found" >&2
-    exit 1
+    echo "wget or curl not found." >&2
 fi
 
 sha256sum=$(
     (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") ||
-    (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum")
-)
+    (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
 
 if [ -z "$sha256sum" ]; then
-    >&2 echo "sha256sum not found, NNUE files will be assumed valid."
+    echo "sha256sum not found, NNUE files will be assumed valid." >&2
 fi
 
 get_nnue_filename() {
-    grep "$1" "evaluate.h" | grep "#define" | sed "s/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/"
+    grep "$1" "evaluate.h" |
+    grep "#define" |
+    sed -n 's/.*\(nn-[a-z0-9]\{12\}\.nnue\).*/\1/p'
 }
 
 validate_network() {
     # If no sha256sum command is available, assume the file is always valid
     [ -z "$sha256sum" ] && return 0
+    [ -f "$1" ] || return 0
 
-    if [ -f "$1" ] && [ "$1" != "nn-$($sha256sum "$1" | cut -c 1-12).nnue" ]; then
+    local hash
+    hash=$($sha256sum "$1") || return 1
+    hash=$(printf '%s\n' "$hash" | cut -c 1-12)
+
+    if [ "$1" != "nn-$hash.nnue" ]; then
         rm -f "$1"
         return 1
     fi
+
+    return 0
 }
 
 fetch_network() {
     filename="$(get_nnue_filename "$1")"
 
     if [ -z "$filename" ]; then
-        >&2 echo "NNUE file name not found for: $1"
+        echo "NNUE file name not found for: $1" >&2
         return 1
     fi
     if [ -f "$filename" ]; then
@@ -50,9 +56,8 @@ fetch_network() {
         fi
     fi
     if [ -z "$wget_or_curl" ]; then
-        >&2 printf "%s\n" \
-                    "Neither wget nor curl is installed." \
-                    "Install one of these tools to download NNUE files automatically."
+        echo "Neither wget nor curl is installed." >&2
+        echo "Install one of these tools to download NNUE files automatically." >&2
         exit 1
     fi
 
@@ -71,12 +76,12 @@ fetch_network() {
             echo "Failed to download from $url"
         fi
         if [ -f "$filename" ]; then
-            return
+            return 0
         fi
     done
 
     # Download was not successful in the loop, return false
-    >&2 echo "Failed to download $filename"
+    echo "Failed to download $filename" >&2
     return 1
 }
 

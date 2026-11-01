@@ -107,9 +107,9 @@ SRCS := \
     nnue/features/full_threats.cpp nnue/features/k32h3.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/architecture.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp \
-    utility/command_line.cpp utility/console.cpp utility/cpu.cpp utility/debug.cpp utility/functions.cpp \
-    utility/guard.cpp utility/logger.cpp utility/mutex.cpp utility/prng.cpp utility/reader.cpp \
-    utility/streambuf.cpp utility/sync_ostream.cpp
+    utility/command_line.cpp utility/comparator.cpp utility/console.cpp utility/cpu.cpp utility/debug.cpp \
+    utility/functions.cpp utility/guard.cpp utility/logger.cpp utility/mutex.cpp utility/prng.cpp \
+    utility/reader.cpp utility/streambuf.cpp utility/sync_ostream.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -128,13 +128,13 @@ HEADERS := \
     nnue/types.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h \
     utility/access.h utility/arc_cache.h utility/atomic.h utility/attributes.h utility/call_once.h \
-    utility/channel.h utility/command_line.h utility/complex.h utility/concurrent.h utility/console.h \
-    utility/cpu.h utility/debug.h utility/disjoint_set.h utility/environment.h utility/error.h utility/functions.h \
-    utility/guard.h utility/graph.h utility/lfu_cache.h utility/lirs_cache.h utility/list.h utility/logger.h \
-    utility/lru_cache.h utility/map.h utility/matrix.h utility/multi_array.h utility/mutex.h utility/platform_win.h \
-    utility/pool.h utility/prng.h utility/queue.h utility/reader.h utility/segment_tree.h utility/set.h utility/sharded_cache.h \
-    utility/sieve_cache.h utility/static_vector.h utility/store.h utility/streambuf.h utility/sync_ostream.h \
-    utility/thread_attributes.h utility/types.h utility/unordered_map.h \
+    utility/channel.h utility/command_line.h utility/comparator.h utility/complex.h utility/concurrent.h \
+    utility/console.h utility/cpu.h utility/debug.h utility/disjoint_set.h utility/environment.h utility/error.h \
+    utility/functions.h utility/guard.h utility/graph.h utility/lfu_cache.h utility/lirs_cache.h utility/list.h \
+    utility/logger.h utility/lru_cache.h utility/map.h utility/matrix.h utility/multi_array.h utility/mutex.h \
+    utility/platform_win.h utility/pool.h utility/prng.h utility/queue.h utility/reader.h utility/segment_tree.h \
+    utility/set.h utility/sharded_cache.h utility/sieve_cache.h utility/static_vector.h utility/store.h utility/streambuf.h \
+    utility/sync_ostream.h utility/thread_attributes.h utility/types.h utility/unordered_map.h \
     utility/ankerl/stl.h utility/ankerl/unordered_dense.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
@@ -1817,7 +1817,7 @@ ARCH_MAIN_CXXFLAGS += -arch x86_64 -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE  # SLIC
 UNIVERSAL_LDFLAGS += -arch x86_64
 endif
 
-ARCH_CXXFLAGS = $(ARCH_EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS)
+ARCH_CXXFLAGS = $(strip $(ARCH_EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(ARCH_MAIN_CXXFLAGS))
 
 # Include the normal link flags in the custom universal link flags.
 UNIVERSAL_LDFLAGS += $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))

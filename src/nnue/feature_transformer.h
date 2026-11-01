@@ -286,7 +286,7 @@ class FeatureTransformer final {
                                       const Array<i16, HalfDimensions>&       accumulation,
                                       Array<Output, BufferSize>&              output,
                                       [[maybe_unused]] NNZ<OutputDimensions>& nnz) noexcept {
-        Index offset = perspective * (HalfDimensions / 2);
+        const Index offset = perspective * (HalfDimensions / 2);
 
         // clang-format off
 #if defined(VECTOR)

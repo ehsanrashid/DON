@@ -257,8 +257,7 @@ class SqrClippedReLU final {
         {
             // The extra 7-bit right-shift approximates division by 127 while avoiding the more expensive integer division.
             // The resulting scale must be accounted for by the trainer.
-            output[i] = static_cast<Output>(
-              std::min((static_cast<i64>(input[i]) * input[i]) >> BaseShift, i64{127}));
+            output[i] = Output(std::min((i64(input[i]) * input[i]) >> BaseShift, i64{127}));
         }
     }
 #endif

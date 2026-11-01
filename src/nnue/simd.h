@@ -347,14 +347,14 @@ ALWAYS_INLINE vec_t vec_srli_8(const vec_t a, const unsigned shift) noexcept {
         inline constexpr usize CHUNK_SIZE_MAX = 16;
     #endif
 #elif defined(USE_NEON)
-using vec_i8x8_t  __attribute__((may_alias)) = int8x8_t;
-using vec_i16x8_t __attribute__((may_alias)) = int16x8_t;
-using vec_i8x16_t __attribute__((may_alias)) = int8x16_t;
-using vec_u16x8_t __attribute__((may_alias)) = uint16x8_t;
-using vec_i32x4_t __attribute__((may_alias)) = int32x4_t;
+using vec_i8x8_t  ATTRIBUTE(may_alias) = int8x8_t;
+using vec_i16x8_t ATTRIBUTE(may_alias) = int16x8_t;
+using vec_i8x16_t ATTRIBUTE(may_alias) = int8x16_t;
+using vec_u16x8_t ATTRIBUTE(may_alias) = uint16x8_t;
+using vec_i32x4_t ATTRIBUTE(may_alias) = int32x4_t;
 
-using vec_t    __attribute__((may_alias)) = int16x8_t;
-using vec_i8_t __attribute__((may_alias)) = int8x16_t;
+using vec_t    ATTRIBUTE(may_alias) = int16x8_t;
+using vec_i8_t ATTRIBUTE(may_alias) = int8x16_t;
 
     #define vec_load(src) (*(src))
     #define vec_store(dst, value) *(dst) = (value)
