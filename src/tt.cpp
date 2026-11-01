@@ -257,12 +257,14 @@ TTWriter::TTWriter(TTCluster* const tc, const u8 idx, const u32 k21, const u8 ge
 u8 TTWriter::prepare_replacement() const noexcept {
     u8 replacement = 0;
 
-    for (u8 i = 1; i < TTCluster::EntryCount; ++i)
-        if (ttc->entries[replacement].worth(generation) > ttc->entries[i].worth(generation))
-            replacement = i;
-
-    while (replacement != 0 && ttc->key_equals(key21, replacement - 1))
-        ttc->entries[replacement--].reset();
+    if (const u8 idx = ttc->key_index(key21); idx < TTCluster::EntryCount)
+        replacement = idx;
+    else
+    {
+        for (u8 i = 1; i < TTCluster::EntryCount; ++i)
+            if (ttc->entries[replacement].worth(generation) > ttc->entries[i].worth(generation))
+                replacement = i;
+    }
 
     return replacement;
 }

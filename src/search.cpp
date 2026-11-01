@@ -58,10 +58,10 @@ constexpr u64 WEIGHT_MAX      = 24;  // 75.0% of WEIGHT_SCALE
 alignas(CACHE_LINE_SIZE) constexpr auto LMR_DIVISORS = []() constexpr noexcept {
     Array<double, 16> lmrDivisors{};
 
-    for (int depth = 0; depth < int(lmrDivisors.size()); ++depth)
+    for (usize i = 0; i < lmrDivisors.size(); ++i)
     {
-        const int d        = depth + 1;
-        lmrDivisors[depth] = 3000.0 + 7 * (d - 8) * (d - 8);
+        const int d    = int(i) + 1;
+        lmrDivisors[i] = 3000.0 + 7 * (d - 8) * (d - 8);
     }
 
     return lmrDivisors;
@@ -81,12 +81,12 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
 }();
 
 constexpr int reduction(const Depth depth, const u16 moveCount, const bool improve) noexcept {
-    int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
+    const int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
     return 948 + reductionScale + int(!improve) * constexpr_ceil(reductionScale * 197.0 / 512.0);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
-constexpr Value draw_value(const u64 nodes) noexcept { return VALUE_DRAW - 1 + Value(nodes & 2); }
+constexpr Value draw_value(const u64 nodes) noexcept { return VALUE_DRAW - 1 + Value(nodes & 0x2); }
 
 // Adjusts a mate or TB score from "plies to mate from the root"
 // to "plies to mate from the current position". Standard scores are unchanged.
@@ -923,8 +923,8 @@ Value Worker::search(Position&    pos,
     ss->ttMove = ttd.move;
     ss->ttPv   = exclude ? ss->ttPv : PVNode || (ttd.hit && ttd.pv);
 
-    const bool ttmNone    = !ttd.move.is_ok();
-    const bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
+    const bool ttmOk      = ttd.move.is_ok();
+    const bool ttmCapture = ttmOk && pos.capture_promo(ttd.move);
 
     const Move preMove = (ss - 1)->move;
 
@@ -1005,7 +1005,7 @@ Value Worker::search(Position&    pos,
                 && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
             {
                 // If ttMove fails high, update move sorting heuristics on TT hit
-                if (!ttmNone && ttd.value >= beta)
+                if (ttmOk && ttd.value >= beta)
                 {
                     // Bonus for a quiet ttMove
                     if (!ttmCapture)
@@ -1022,14 +1022,14 @@ Value Worker::search(Position&    pos,
                                                          * rule50_threshold(-4)))
                 {
                     // If the depth is big enough, verify that the ttMove is really a good move
-                    if (depth > 6 && !ttmNone && !is_decisive(ttd.value) && pos.legal(ttd.move))
+                    if (depth > 6 && ttmOk && !is_decisive(ttd.value) && pos.legal(ttd.move))
                     {
                         pos.do_move(ttd.move, st);
-                        auto [ottd, ottw] = transpositionTable.probe(pos.key());
+                        auto [ttd_, ttw_] = transpositionTable.probe(pos.key());
                         pos.undo_move(ttd.move);
 
                         // Check that the ttValue after the ttMove would also trigger a cutoff
-                        if (!is_valid(ottd.value) || (ttd.value >= beta) == (-ottd.value >= beta))
+                        if (!is_valid(ttd_.value) || (ttd.value >= beta) == (-ttd_.value >= beta))
                             return ttd.value;
                     }
                     else
@@ -1161,7 +1161,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!exclude && !ss->ttPv && (ttmNone || ttmCapture) && ttEvalue >= beta && !is_decisive(ttEvalue)
+    if (!exclude && !ss->ttPv && (!ttmOk || ttmCapture) && ttEvalue >= beta && !is_decisive(ttEvalue)
         && depth < 19 - int(seekMate) * 13)
     {
         // Compute base futility
@@ -1243,7 +1243,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!AllNode)
     {
         // Reduce depth when sufficiently deep and no TT move is available.
-        if (depth > 5 && ttmNone && !ss->followPv)
+        if (depth > 5 && !ttmOk && !ss->followPv)
             --depth;
     }
 
@@ -1381,7 +1381,7 @@ Value Worker::search(Position&    pos,
             (ss + 1)->pv = nullptr;
         }
 
-        const bool ttm = move == ttd.move;
+        const bool ttm = ttmOk && move == ttd.move;
 
         const Square dstSq = move.dst_sq();
 
@@ -1607,7 +1607,7 @@ Value Worker::search(Position&    pos,
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
-            r += 4026 + int(ttmNone) * 933;
+            r += 4026 + int(!ttmOk) * 933;
 
         // Increase reduction if ttMove is a capture
         r += int(ttmCapture) * 1079;
@@ -1676,7 +1676,7 @@ Value Worker::search(Position&    pos,
         else if (!PVNode || moveCount > 1)
         {
             // Increase reduction if ttMove is not present
-            r += int(ttmNone) * 1127;
+            r += int(!ttmOk) * 1127;
 
             // Reduce search depth if expected reduction is high
             value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
