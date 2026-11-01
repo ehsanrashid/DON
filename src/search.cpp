@@ -60,7 +60,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LMR_DIVISORS = []() constexpr noexcept {
 
     for (usize i = 0; i < lmrDivisors.size(); ++i)
     {
-        const int d    = i + 1;
+        const int d    = int(i) + 1;
         lmrDivisors[i] = 3000.0 + 7 * (d - 8) * (d - 8);
     }
 
@@ -75,7 +75,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = u16(ReductionScale * constexpr_log(i));
+        reductions[i] = u16(ReductionScale * constexpr_log(double(i)));
 
     return reductions;
 }();
