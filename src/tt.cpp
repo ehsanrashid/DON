@@ -388,16 +388,16 @@ u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
 
     constexpr usize RequiredCount = 1000;
 
-    const usize ActualCount = std::min(RequiredCount, clusterCount);
+    const usize actualCount = std::min(clusterCount, RequiredCount);
 
     u32 count = 0;
 
-    for (usize idx = 0; idx < ActualCount; ++idx)
+    for (usize idx = 0; idx < actualCount; ++idx)
         for (const auto& entry : clusters[idx].entries)
             count += entry.occupied() && entry.relative_age(generation8) <= maxAge;
 
     // Normalize per entries per cluster
-    return u16(ceil_div(count * RequiredCount, ActualCount) / TTCluster::EntryCount);
+    return u16(ceil_div(count * RequiredCount, actualCount) / TTCluster::EntryCount);
 }
 
 bool TranspositionTable::load(const fs::path& hashPath, const Threads& threads) noexcept {
