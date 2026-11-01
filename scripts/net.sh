@@ -6,8 +6,7 @@ wget_or_curl=$(
     (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
 
 if [ -z "$wget_or_curl" ]; then
-    echo "Error: wget or curl not found" >&2
-    exit 1
+    echo "wget or curl not found." >&2
 fi
 
 sha256sum=$(
@@ -45,7 +44,7 @@ fetch_network() {
     filename="$(get_nnue_filename "$1")"
 
     if [ -z "$filename" ]; then
-        >&2 echo "NNUE file name not found for: $1"
+        echo "NNUE file name not found for: $1" >&2
         return 1
     fi
     if [ -f "$filename" ]; then
@@ -57,9 +56,8 @@ fetch_network() {
         fi
     fi
     if [ -z "$wget_or_curl" ]; then
-        >&2 printf "%s\n" \
-                    "Neither wget nor curl is installed." \
-                    "Install one of these tools to download NNUE files automatically."
+        echo "Neither wget nor curl is installed." >&2
+        echo "Install one of these tools to download NNUE files automatically." >&2
         exit 1
     fi
 
@@ -78,12 +76,12 @@ fetch_network() {
             echo "Failed to download from $url"
         fi
         if [ -f "$filename" ]; then
-            return
+            return 0
         fi
     done
 
     # Download was not successful in the loop, return false
-    >&2 echo "Failed to download $filename"
+    echo "Failed to download $filename" >&2
     return 1
 }
 
