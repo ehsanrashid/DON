@@ -17,8 +17,6 @@
 
 #include "../utility/logger.h"
 
-#include <iostream>
-
 #include "../utility/functions.h"
 #include "../utility/streambuf.h"
 #include "../utility/types.h"
@@ -105,11 +103,6 @@ void Logger::write_timestamp(std::string_view suffix) noexcept {
     ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << '\n';
 
     ofs.flush();
-}
-
-Logger& logger() noexcept {
-    static Logger logger(std::cin, std::cout);
-    return logger;
 }
 
 }  // namespace DON

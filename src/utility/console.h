@@ -127,8 +127,8 @@ class Console final {
     // Color control.
     void set_colors(const char* outColor = ConsoleColor::BRIGHT_BLUE,
                     const char* errColor = ConsoleColor::BRIGHT_RED) noexcept;
-    void restore_colors() noexcept;
 
+    void restore_colors() noexcept;
 
    private:
     bool initialized = false;

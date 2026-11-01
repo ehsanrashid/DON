@@ -89,10 +89,8 @@ CpuFeatures query_cpu_features() noexcept {
     }
 
     return CpuFeatures{gcv, zbitmanip, zicond, vlen};
-
 #else
     return CpuFeatures{};
-
 #endif
 }
 

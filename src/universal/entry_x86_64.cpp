@@ -22,6 +22,7 @@
     #include <cpuid.h>
 #endif
 
+// clang-format off
 #if defined(_MSC_VER)
 namespace {
 
@@ -292,16 +293,15 @@ bool cpu_is(const char* model) noexcept {
 
 }  // namespace
 
-    #define CPU_INIT() ((void) 0)
-    #define CPU_SUPPORTS(feature) cpu_supports(feature)
-    #define CPU_IS(model) cpu_is(model)
-
+    #define CPU_INIT()              ((void) 0)
+    #define CPU_SUPPORTS(feature)   cpu_supports(feature)
+    #define CPU_IS(model)           cpu_is(model)
 #else
-    #define CPU_INIT() __builtin_cpu_init()
-    #define CPU_SUPPORTS(feature) __builtin_cpu_supports(feature)
-    #define CPU_IS(model) __builtin_cpu_is(model)
-
+    #define CPU_INIT()              __builtin_cpu_init()
+    #define CPU_SUPPORTS(feature)   __builtin_cpu_supports(feature)
+    #define CPU_IS(model)           __builtin_cpu_is(model)
 #endif
+// clang-format on
 
 #include "../utility/types.h"
 
@@ -381,29 +381,27 @@ struct CpuFeatures final {
 };
 
 CpuFeatures query_cpu_features() noexcept {
-    return {
-      (bool) CPU_SUPPORTS("sse4.1"),
-      (bool) CPU_SUPPORTS("popcnt"),
-      (bool) CPU_SUPPORTS("avx2"),
-      (bool) CPU_SUPPORTS("fma"),
-      (bool) CPU_SUPPORTS("bmi"),
-      (bool) CPU_SUPPORTS("bmi2"),
-      (bool) CPU_SUPPORTS("avxvnni"),
-      (bool) CPU_SUPPORTS("avx512f"),
-      (bool) CPU_SUPPORTS("avx512bw"),
-      (bool) CPU_SUPPORTS("avx512cd"),
-      (bool) CPU_SUPPORTS("avx512dq"),
-      (bool) CPU_SUPPORTS("avx512vl"),
-      (bool) CPU_SUPPORTS("avx512vnni"),
-      (bool) CPU_SUPPORTS("avx512ifma"),
-      (bool) CPU_SUPPORTS("avx512vbmi"),
-      (bool) CPU_SUPPORTS("avx512vbmi2"),
-      (bool) CPU_SUPPORTS("avx512vpopcntdq"),
-      (bool) CPU_SUPPORTS("avx512bitalg"),
-      (bool) CPU_SUPPORTS("vpclmulqdq"),
-      (bool) CPU_SUPPORTS("gfni"),
-      (bool) CPU_SUPPORTS("vaes")  //
-    };
+    return {(bool) CPU_SUPPORTS("sse4.1"),
+            (bool) CPU_SUPPORTS("popcnt"),
+            (bool) CPU_SUPPORTS("avx2"),
+            (bool) CPU_SUPPORTS("fma"),
+            (bool) CPU_SUPPORTS("bmi"),
+            (bool) CPU_SUPPORTS("bmi2"),
+            (bool) CPU_SUPPORTS("avxvnni"),
+            (bool) CPU_SUPPORTS("avx512f"),
+            (bool) CPU_SUPPORTS("avx512bw"),
+            (bool) CPU_SUPPORTS("avx512cd"),
+            (bool) CPU_SUPPORTS("avx512dq"),
+            (bool) CPU_SUPPORTS("avx512vl"),
+            (bool) CPU_SUPPORTS("avx512vnni"),
+            (bool) CPU_SUPPORTS("avx512ifma"),
+            (bool) CPU_SUPPORTS("avx512vbmi"),
+            (bool) CPU_SUPPORTS("avx512vbmi2"),
+            (bool) CPU_SUPPORTS("avx512vpopcntdq"),
+            (bool) CPU_SUPPORTS("avx512bitalg"),
+            (bool) CPU_SUPPORTS("vpclmulqdq"),
+            (bool) CPU_SUPPORTS("gfni"),
+            (bool) CPU_SUPPORTS("vaes")};
 }
 
 // AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pext/pdep via microcode.

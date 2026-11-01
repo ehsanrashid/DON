@@ -25,6 +25,7 @@
 
 #include "utility/console.h"
 #include "utility/functions.h"
+#include "utility/logger.h"
 
 namespace DON {
 
@@ -90,7 +91,7 @@ std::string engine_logo() noexcept {
     logo.reserve(1100);
 
     constexpr const char* const BG_COLOR     = ConsoleColor::BG_BLACK;
-    constexpr const char* const BORDER_COLOR = ConsoleColor::BRIGHT_MAGENTA;
+    constexpr const char* const BORDER_COLOR = ConsoleColor::BRIGHT_CYAN;
     constexpr const char* const BORDER_STYLE = ConsoleColor::BLINK;
     constexpr const char* const BODY_COLOR_1 = ConsoleColor::RED;
     constexpr const char* const BODY_COLOR_2 = ConsoleColor::BRIGHT_RED;
@@ -392,6 +393,11 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
 
     return os;
+}
+
+Logger& logger() noexcept {
+    static Logger logger(std::cin, std::cout);
+    return logger;
 }
 
 void print_info_string(const std::string_view info) noexcept {

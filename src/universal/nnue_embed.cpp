@@ -80,7 +80,6 @@ const unsigned char* map_embedded_nnue() noexcept {
 
 extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();
 extern const unsigned int         gEmbeddedNNUESize = (unsigned int) (gUniversalNNUESize);
-
 #else
     #if !defined(__INTELLISENSE__)
         #if defined(__has_embed)

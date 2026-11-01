@@ -220,9 +220,7 @@ class Pool final {
     void attach_active(Slot* const slot) noexcept {
         // Ensure slot is valid
         if (UNLIKELY(slot == nullptr))
-        {
             std::terminate();
-        }
 
         [[maybe_unused]]  //
         const bool inserted = activeList.push_back(slot->activeNode);
@@ -232,9 +230,7 @@ class Pool final {
     void detach_active(Slot* const slot) noexcept {
         // Ensure slot is valid
         if (UNLIKELY(slot == nullptr))
-        {
             std::terminate();
-        }
 
         [[maybe_unused]]  //
         const bool erased = activeList.erase(slot->activeNode);
@@ -250,9 +246,7 @@ class Pool final {
 
         // Ensure slot allocation succeeded
         if (UNLIKELY(slot == nullptr))
-        {
             std::terminate();
-        }
 
         T* value = nullptr;
 

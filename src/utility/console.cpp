@@ -53,7 +53,8 @@ void Console::restore() noexcept {
     restore_colors();
 
 #if defined(_WIN32)
-    // Restore the original console modes only when they were saved.
+    // Restore the original console modes
+
     if (outputModeSaved)
     {
         const HANDLE handle = ::GetStdHandle(STD_OUTPUT_HANDLE);
@@ -74,7 +75,8 @@ void Console::restore() noexcept {
         errorModeSaved = false;
     }
 
-    // Restore original code pages.
+    // Restore original code pages
+
     if (inputCodePageSaved)
     {
         (void) ::SetConsoleCP(inputCodePage);

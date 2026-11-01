@@ -429,7 +429,6 @@ class SparseAffineTransform final {
     #undef vec_load_32
     #undef vec_add_dpbusd_32
     #undef vec_add_32
-
 #elif defined(USE_RVV)
         // Don't support larger for now
         static_assert(OutputDimensions <= 128 * 8 / 32);
@@ -476,7 +475,6 @@ class SparseAffineTransform final {
             RVV_SPARSE_PROPAGATE(m2, m4, m8);
 
     #undef RVV_SPARSE_PROPAGATE
-
 #else
         // Use dense fallback implementation for the other architectures
         fallback_affine_transform<InputDimensions, PaddedInputDimensions, OutputDimensions>(
