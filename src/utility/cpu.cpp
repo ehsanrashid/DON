@@ -51,14 +51,14 @@ void cpu_relax() noexcept {
     // Covers: Apple Silicon, Windows ARM64, Android, Linux ARM64
 #elif defined(__aarch64__) || defined(_M_ARM64)
     #if defined(_MSC_VER)
-    __yield();  // MSVC intrinsic
+    ::__yield();  // MSVC intrinsic
     #elif defined(CLANG_OR_GCC)
     __asm__ __volatile__("yield" ::: "memory");
     #endif
     // ARM32 (ARMv7+)
 #elif defined(ARM32_V7)
     #if defined(_MSC_VER)
-    __yield();
+    ::__yield();
     #elif defined(CLANG_OR_GCC)
     // Ensure backward-compatible hint space mapping on older ARMv7 cores
     __asm__ __volatile__("yield" ::: "memory");

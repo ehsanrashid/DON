@@ -412,7 +412,7 @@ std::string error_to_string(const DWORD errorId) noexcept {
         return "Unknown error: " + u32_to_hex_prefix(errorId);
 
     // Copy the error message into a std::string
-    std::string message{buffer, size};
+    std::string message(buffer, size);
     // Trim trailing CR/LF that many system messages include
     while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
         message.pop_back();
@@ -426,10 +426,10 @@ std::string error_to_string(const DWORD errorId) noexcept {
 bool is_valid_handle(const HANDLE handle) noexcept {
     return handle != HANDLE_INVALID && handle != INVALID_HANDLE_VALUE;
 }
-
 #else
-bool is_valid_fd(const int fd) noexcept { return fd > FD_INVALID; }
-
+bool is_valid_fd(const int fd) noexcept {  //
+    return fd > FD_INVALID;
+}
 #endif
 
 }  // namespace DON

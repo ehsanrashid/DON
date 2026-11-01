@@ -218,8 +218,9 @@ std::optional<std::string> read_file_to_string(const fs::path& filePath) noexcep
 [[nodiscard]] fs::path utf8_to_path(std::string_view utf8) noexcept;
 
 #if defined(_WIN32)
-inline constexpr HANDLE HANDLE_INVALID   = nullptr;
-inline constexpr void*  MMAP_PTR_INVALID = nullptr;
+inline constexpr HANDLE HANDLE_INVALID = nullptr;
+
+inline constexpr void* MMAP_PTR_INVALID = nullptr;
 
 // Get the error message string, if any
 [[nodiscard]] std::string error_to_string(DWORD errorId) noexcept;
@@ -232,7 +233,6 @@ inline constexpr void* MMAP_PTR_INVALID  = nullptr;
 inline constexpr usize MMAP_SIZE_INVALID = 0;
 
 [[nodiscard]] bool is_valid_fd(int fd) noexcept;
-
 #endif
 
 }  // namespace DON

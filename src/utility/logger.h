@@ -36,7 +36,6 @@ namespace DON {
 class Logger final {
    public:
     Logger(std::istream& isRef, std::ostream& osRef) noexcept;
-
     Logger(const Logger&)            = delete;
     Logger& operator=(const Logger&) = delete;
     Logger(Logger&&)                 = delete;
