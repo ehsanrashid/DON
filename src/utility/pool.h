@@ -36,6 +36,7 @@
     #include <vector>
 #endif
 
+#include "../utility/attributes.h"
 #include "../utility/list.h"
 #include "../utility/types.h"
 
@@ -118,10 +119,12 @@ class Pool final {
     }
 
     void destroy(T* value) noexcept {
-        assert(value != nullptr);
-
-        if (value == nullptr)
+        // Defensive null check - prevents undefined behavior if called with nullptr
+        if (UNLIKELY(value == nullptr))
+        {
+            assert(false && "Pool::destroy called with nullptr");
             std::terminate();
+        }
 
         Slot* const slot = slot_from_value(value);
 
@@ -193,29 +196,46 @@ class Pool final {
         if (blocks.full())
             std::terminate();
 #endif
-        if (requiredSize > MaxBlockSize)
+        // Check for arithmetic overflow and bounds
+        if (UNLIKELY(requiredSize > MaxBlockSize))
             std::terminate();
 
         const usize size = block_size(requiredSize);
 
-        if (size == 0 || size > MaxBlockSize)
+        if (UNLIKELY(size == 0 || size > MaxBlockSize))
             std::terminate();
 
         blocks.push_back(Block{std::make_unique<Slot[]>(size), size});
 
         Slot* const slots = blocks.back().slots.get();
+        // Ensure allocated memory is valid before use
+        if (UNLIKELY(slots == nullptr))
+            std::terminate();
+
         // Loop directly using pointer limits for absolute code minimization
         for (Slot* slot = slots; slot < slots + size; ++slot)
             slotList.push_front(*slot);
     }
 
     void attach_active(Slot* const slot) noexcept {
+        // Ensure slot is valid
+        if (UNLIKELY(slot == nullptr))
+        {
+            std::terminate();
+        }
+
         [[maybe_unused]]  //
         const bool inserted = activeList.push_back(slot->activeNode);
         assert(inserted);
     }
 
     void detach_active(Slot* const slot) noexcept {
+        // Ensure slot is valid
+        if (UNLIKELY(slot == nullptr))
+        {
+            std::terminate();
+        }
+
         [[maybe_unused]]  //
         const bool erased = activeList.erase(slot->activeNode);
         assert(erased);
@@ -228,16 +248,30 @@ class Pool final {
 
         Slot* const slot = slotList.pop_front();
 
-        T* value;
+        // Ensure slot allocation succeeded
+        if (UNLIKELY(slot == nullptr))
+        {
+            std::terminate();
+        }
 
+        T* value = nullptr;
+
+        // Construction can throw; cleanup on failure (noexcept by contract)
         //try
         //{
         value = ::new (static_cast<void*>(slot->storage)) T(std::forward<Args>(args)...);
         //} catch (...)
         //{
+        //    // Return slot to free list on construction failure
         //    slotList.push_front(*slot);
         //    throw;
         //}
+
+        if (UNLIKELY(value == nullptr))
+        {
+            slotList.push_front(*slot);
+            std::terminate();
+        }
 
         attach_active(slot);
 

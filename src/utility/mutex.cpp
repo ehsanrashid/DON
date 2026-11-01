@@ -41,17 +41,19 @@ void SpinMutex::lock() noexcept {
 
     while (true)
     {
+        // Check relaxed first to minimize atomic operations
         if (!locked.load(std::memory_order_relaxed))
         {
             bool expected = false;
 
+            // Acquire semantics ensure all subsequent operations see consistent state
             if (locked.compare_exchange_weak(expected, true,             //
                                              std::memory_order_acquire,  //
                                              std::memory_order_relaxed))
                 break;
         }
 
-        // Yield occasionally to reduce CPU usage under contention.
+        // Exponential backoff: spin → yield → sleep
         if (++spins == SpinsMax)
         {
             spins = 0;
@@ -132,15 +134,18 @@ bool SharedMutex::try_lock_shared() noexcept {
 }
 
 void SharedMutex::unlock_shared() noexcept {
+    bool shouldNotify = false;
     {
         std::lock_guard lockGuard{mutex};
 
         assert(activeReaderCount != 0);
-        --activeReaderCount;
+        // Only notify waiters when the last active reader exits
+        shouldNotify = --activeReaderCount == 0;
     }
 
     // Wake waiters to recheck their eligibility
-    commonCondVar.notify_all();
+    if (shouldNotify)
+        commonCondVar.notify_all();
 }
 
 bool SharedMutex::can_lock() const noexcept {
@@ -232,15 +237,15 @@ bool ReaderSharedMutex::try_lock_shared() noexcept {
 }
 
 void ReaderSharedMutex::unlock_shared() noexcept {
-    bool notifyWriter;
+    bool shouldNotify = false;
     {
         std::lock_guard lockGuard{mutex};
 
         assert(activeReaderCount != 0);
-        notifyWriter = --activeReaderCount == 0;
+        shouldNotify = --activeReaderCount == 0;
     }
 
-    if (notifyWriter)
+    if (shouldNotify)
         writerCondVar.notify_one();
 }
 
@@ -335,15 +340,15 @@ bool WriterSharedMutex::try_lock_shared() noexcept {
 }
 
 void WriterSharedMutex::unlock_shared() noexcept {
-    bool notifyWriter;
+    bool shouldNotify = false;
     {
         std::lock_guard lockGuard{mutex};
 
         assert(activeReaderCount != 0);
-        notifyWriter = --activeReaderCount == 0;
+        shouldNotify = --activeReaderCount == 0;
     }
 
-    if (notifyWriter)
+    if (shouldNotify)
         writerCondVar.notify_one();
 }
 
