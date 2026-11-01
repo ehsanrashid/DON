@@ -49,7 +49,6 @@
 #endif
 
 #include "utility/attributes.h"
-#include "utility/logger.h"
 #include "utility/types.h"
 
 namespace DON {

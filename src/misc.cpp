@@ -25,6 +25,7 @@
 
 #include "utility/console.h"
 #include "utility/functions.h"
+#include "utility/logger.h"
 
 namespace DON {
 

@@ -17,8 +17,6 @@
 
 #include "../utility/logger.h"
 
-#include <iostream>
-
 #include "../utility/functions.h"
 #include "../utility/streambuf.h"
 #include "../utility/types.h"
