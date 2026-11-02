@@ -79,7 +79,8 @@ class PoolSIEVECache final {
         defaultCapacity(cap),
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac),
-        capacity(cap) {
+        capacity(cap),
+        hand(nullptr) {
         configure();
     }
 
@@ -449,6 +450,9 @@ class PoolSIEVECache final {
 
         return count == list.size() && handFound && (list.empty() == (hand == nullptr));
     }
+#else
+    // In NDEBUG builds, skip consistency checks entirely:
+    [[nodiscard]] bool nolock_consistency_check() const noexcept { return true; }
 #endif
 
     const usize defaultCapacity;
@@ -457,11 +461,10 @@ class PoolSIEVECache final {
 
     mutable Mutex mutex;
     usize         capacity;
-
     map_type      map;
     list_type     list;
     Pool<Entry>   pool;
-    list_iterator hand = nullptr;
+    list_iterator hand;
 };
 
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
@@ -504,7 +507,8 @@ class PoolFlatSIEVECache final {
         defaultCapacity(cap),
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac),
-        capacity(cap) {
+        capacity(cap),
+        hand(nullptr) {
         configure();
     }
 
@@ -874,6 +878,9 @@ class PoolFlatSIEVECache final {
 
         return count == list.size() && handFound && (list.empty() == (hand == nullptr));
     }
+#else
+    // In NDEBUG builds, skip consistency checks entirely:
+    [[nodiscard]] bool nolock_consistency_check() const noexcept { return true; }
 #endif
 
     const usize defaultCapacity;
@@ -882,11 +889,10 @@ class PoolFlatSIEVECache final {
 
     mutable Mutex mutex;
     usize         capacity;
-
     map_type      map;
     list_type     list;
     Pool<Entry>   pool;
-    list_iterator hand = nullptr;
+    list_iterator hand;
 };
 
 }  // namespace DON
