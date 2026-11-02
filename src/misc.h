@@ -25,6 +25,7 @@
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <iosfwd>  // ostream
 #include <string>
 #include <string_view>
 #include <type_traits>

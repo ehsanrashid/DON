@@ -1,100 +1,109 @@
 <div align="center">
 
-  [![DON][DON128-logo]][website-link]
+  [![DON][DON-color-logo]][website-link]
 
   <h3>DON</h3>
 
-  A free and strong UCI chess engine.
+  A powerful UCI chess engine combining classical search with neural-network evaluation.
   <br>
   <strong>[Explore DON docs »][wiki-link]</strong>
   <br>
   <br>
   [Report bug][issue-link]
-  ·
 
-  [![Build]][build-link]
-  [![License]][license-link]
+  [![Build][build-badge]][build-link]
+  [![License][license-badge]][license-link]
   <br>
-  [![Release]][release-link]
-  [![Commits]][commits-link]
+  [![Release][release-badge]][release-link]
+  [![Commits][commits-badge]][commits-link]
   <br>
+  [![Website][website-badge]][website-link]
 
+  [![DON-black-logo]]
 </div>
 
 ## Overview
 
-[DON][website-link] is a **free and strong UCI chess engine**
-that analyzes chess positions and computes the optimal moves.
+[DON][website-link] is a **free and powerful UCI chess engine**
+designed to analyze chess positions and find the strongest moves.
 
-DON **does not include a graphical user interface** (GUI) that is required
-to display a chessboard and to make it easy to input moves. These GUIs are
-developed independently from DON and are available online. **Read the
-documentation for your GUI** of choice for information about how to use
-DON with it.
+DON is a command-line chess engine and **does not include a graphical user interface (GUI)**.
+A chess GUI provides the graphical chessboard, allows you to play moves,
+and displays the engine's analysis.
 
-See also the DON [documentation][wiki-usage-link] for further usage help.
+DON can be used with various independently developed chess GUIs that support the UCI protocol.
+Refer to the documentation of your preferred GUI for instructions on configuring and using DON.
+
+For additional information, see the DON [documentation][wiki-usage-link].
 
 ## Files
 
-This distribution of DON consists of the following files:
+The DON distribution includes the following files and directories:
 
-  * [README.md][readme-link], the file you are currently reading.
-
-  * [Copying.txt][license-link], a text file containing the GNU General Public
-    License version 3.
-
-  * [src][src-link], a subdirectory containing the full source code, including a
-    Makefile that can be used to compile DON on Unix-like systems.
-
-  * a file with the .nnue extension, storing the neural network for the NNUE
-    evaluation. Binary distributions will have this file embedded.
+- [README.md][readme-link] — The file you are currently reading,
+  containing an introduction to DON and basic usage information.
+- [Copying.txt][license-link] — Contains the GNU General Public License, version 3 (GPL-3.0).
+- [src][src-link] — Contains the complete DON source code, including a Makefile
+  for building the engine on Unix-like systems.
+- **NNUE network file (`.nnue`)** — Contains the neural network used for NNUE evaluation.
+  In binary distributions, the network is embedded directly into the engine executable
+  and does not need to be provided separately.
 
 ## Contributing
 
 __See [Contributing Guide](CONTRIBUTING.md).__
 
-### Improving the code
+### Improving the Code
 
-In the [chess programming wiki][programming-link], many techniques used in
-DON are explained with a lot of background information.
-The [chess programming DON][programming-don-link] describes many features
-and techniques used by DON. However, it is generic rather than
-focused on DON's precise implementation.
+The [Chess Programming Wiki][programming-link] provides detailed explanations and background information on many of the algorithms, techniques, and concepts used in chess engines.
+
+The [DON Chess Programming Guide][programming-don-link] covers various features and techniques implemented in DON. While it provides insight into DON's architecture and design, it is intended as a general guide rather than a comprehensive reference to every detail of DON's implementation.
+
+Exploring both resources can help you understand the underlying concepts, study DON's design decisions, and contribute to its development.
 
 ## Compiling DON
 
-DON has support for 32-bit or 64-bit CPUs, certain hardware instructions,
-big-endian machines such as Power PC, and other platforms.
+DON supports a wide range of platforms and hardware configurations, including 32-bit and 64-bit CPUs, various instruction-set extensions, and big-endian architectures such as PowerPC.
 
-On Unix-like systems, it should be easy to compile DON directly from the
-source code with the included Makefile in the folder `src`. In general, it is
-recommended to run `make help` to see a list of make targets with corresponding
-descriptions. An example suitable for most Intel and AMD chips:
+On Unix-like systems, DON can be compiled directly from the source code using the Makefile provided in the `src` directory.
 
+To explore the available build options, run:
+
+```bash
+cd src
+make help
 ```
+
+This displays the available Makefile targets along with their descriptions.
+
+For most modern Intel and AMD processors, a profile-guided optimized (PGO) build can be created with:
+
+```bash
 cd src
 make -j profile-build
 ```
 
-Detailed compilation instructions for all platforms can be found in our
-[documentation][wiki-compile-link]. Our wiki also has information about
-the [UCI commands][wiki-uci-link] supported by DON.
+For detailed compilation instructions, including platform-specific configurations and supported architectures, see the [compilation documentation][wiki-compile-link].
 
-## Terms of use
+For information about the UCI commands supported by DON, see the [UCI commands documentation][wiki-uci-link].
 
-DON is free and distributed under the
-[**GNU General Public License version 3**][license-link] (GPL v3). Essentially,
-this means you are free to do almost exactly what you want with the program,
-including distributing it among your friends, making it available for download
-from your website, selling it (either by itself or as part of some bigger
-software package), or using it as the starting point for a software project of
-your own.
+## Terms of Use
 
-The only real limitation is that whenever you distribute DON in some way,
-you MUST always include the license and the full source code (or a pointer to
-where the source code can be found) to generate the exact binary you are
-distributing. If you make any changes to the source code, these changes must
-also be made available under GPL v3.
+DON is free and open-source software distributed under the [**GNU General Public License, version 3 (GPL-3.0)**][license-link].
+
+The GPL v3 grants you the freedom to use, study, modify, and redistribute DON.
+You may distribute it among friends, make it available for download on your website,
+sell it, include it in a larger software package, or use it as the basis for your own software projects.
+
+When redistributing DON, you must comply with the applicable GPL v3 requirements.
+These include providing recipients with a copy of the license and, when distributing binaries,
+making the corresponding complete source code available under the license terms.
+The source code must correspond to the exact version of the binary being distributed.
+
+If you distribute a modified version of DON, your modifications must also comply with the GPL v3 requirements,
+including making the modified source code available under the license terms.
+
+For the complete terms, conditions, and obligations, please refer to the [GNU General Public License, version 3][license-link].
 
 ## Acknowledgements
 
@@ -111,6 +120,7 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [release-link]:         https://github.com/ehsanrashid/DON/releases/latest
 [src-link]:             https://github.com/ehsanrashid/DON/tree/main/src
 [uci-link]:             https://backscattering.de/chess/uci/
+[website-link]:         https://DON.org
 [wiki-link]:            https://github.com/ehsanrashid/DON/wiki
 [wiki-compile-link]:    https://github.com/ehsanrashid/DON/wiki/Compiling-from-source
 [wiki-uci-link]:        https://github.com/ehsanrashid/DON/wiki/UCI-&-Commands
@@ -118,3 +128,11 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [worker-link]:          https://github.com/ehsanrashid/DON/wiki/Running-the-worker
 [lc0-data-link]:        https://storage.lczero.org/files/training_data
 [odbl-link]:            https://opendatacommons.org/licenses/odbl/odbl-10.txt
+
+[DON-color-logo]:       https://github.com/ehsanrashid/DON/DON-color-logo.png
+[DON-black-logo]:       https://github.com/ehsanrashid/DON/DON-black-logo.png
+[build-badge]:          https://img.shields.io/github/actions/workflow/status/ehsanrashid/DON/DON.yml?branch=main&style=for-the-badge&label=DON&logo=github
+[commits-badge]:        https://img.shields.io/github/commits-since/ehsanrashid/DON/latest?style=for-the-badge
+[license-badge]:        https://img.shields.io/github/license/ehsanrashid/DON?style=for-the-badge&label=license&color=success
+[release-badge]:        https://img.shields.io/github/v/release/ehsanrashid/DON?style=for-the-badge&label=official%20release
+[website-badge]:        https://img.shields.io/website?style=for-the-badge&down_color=red&down_message=Offline&label=website&up_color=success&up_message=Online&url=https%3A%2F%2FDON.org
