@@ -1,16 +1,16 @@
 <div align="center">
 
-  [![DON][DON-color-logo]][website-link]
+  <a href="https://github.com/ehsanrashid/DON">
+    <img src="./DON-logo.png" alt="DON" width="256">
+  </a>
 
-  <h3>DON</h3>
+  <h1>DON</h1>
 
   A powerful UCI chess engine combining classical search with neural-network evaluation.
   <br>
   <strong>[Explore DON docs »][wiki-link]</strong>
   <br>
   <br>
-  [Report bug][issue-link]
-
   [![Build][build-badge]][build-link]
   [![License][license-badge]][license-link]
   <br>
@@ -18,8 +18,12 @@
   [![Commits][commits-badge]][commits-link]
   <br>
   [![Website][website-badge]][website-link]
+  <br>
+  [Report bug][issue-link]
 
-  ![DON-black-logo]
+  <a href="https://github.com/ehsanrashid/DON">
+    <img src="./DON-color-logo.png" alt="DON" width="256">
+  </a>
 </div>
 
 ## Overview
