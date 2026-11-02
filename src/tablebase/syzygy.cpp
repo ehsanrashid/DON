@@ -969,7 +969,7 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const Fil
         else
         {
             const auto groupLen = pd->groupLen[next];
-            assert(freeLen >= static_cast<usize>(groupLen));
+            assert(freeLen >= usize(groupLen));
 
             pd->groupIdx[next] = idx;
             idx *= Binomial[groupLen][freeLen];
@@ -2134,7 +2134,7 @@ bool rank_root_moves_dtz(Position&       pos,
                          const bool      rankDTZ,
                          const AbortFunc should_abort) noexcept {
     // Obtain 50-move counter for the root position
-    const i16 rule50Count = pos.rule50_count();
+    const u16 rule50Count = pos.rule50_count();
 
     // Check whether the position was repeated since the last zeroing move
     const bool hasRepeated = pos.has_repeated();

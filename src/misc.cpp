@@ -396,7 +396,7 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
 }
 
 Logger& logger() noexcept {
-    static Logger logger(std::cin, std::cout);
+    static Logger logger{std::cin, std::cout};
     return logger;
 }
 

@@ -68,10 +68,9 @@ namespace {
 
 // Read network header
 bool read_header_(std::istream& is, u32& hash, std::string& netDescription) noexcept {
-    u32 fileVersion, descSize;
-    fileVersion = read_little_endian<u32>(is);
-    hash        = read_little_endian<u32>(is);
-    descSize    = read_little_endian<u32>(is);
+    u32 fileVersion = read_little_endian<u32>(is);
+    hash            = read_little_endian<u32>(is);
+    u32 descSize    = read_little_endian<u32>(is);
 
     if (!is || fileVersion != FILE_VERSION)
         return false;
@@ -192,7 +191,7 @@ bool Network::save(const std::optional<fs::path>& evalPath,
 
     std::ofstream ofs{evPath, std::ios::binary};
 
-    bool saved = save(ofs, evalFile.netDescription);
+    const bool saved = save(ofs, evalFile.netDescription);
 
     print_info_string(saved ? "Network saved successfully to " + evPath.string() + "."
                             : "Failed to export net.");

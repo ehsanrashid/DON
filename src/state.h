@@ -46,6 +46,7 @@ struct State final {
     State& operator=(const State& st) noexcept = default;
     State(State&&) noexcept                    = delete;
     State& operator=(State&&) noexcept         = delete;
+    ~State() noexcept                          = default;
 
     void clear() noexcept;
 

@@ -100,7 +100,7 @@ constexpr Value value_to_tt(const Value v, const i16 ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(const Value v, const i16 ply, const i16 rule50Count) noexcept {
+constexpr Value value_from_tt(const Value v, const i16 ply, const u16 rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;
@@ -1081,15 +1081,18 @@ Value Worker::search(Position&    pos,
                 {
                     ++tbHits;
 
-                    int drawScr = tbConfig.useRule50 ? 1 : 0;
+                    const int drawScr = tbConfig.useRule50 ? 1 : 0;
+
+                    const bool deepLoss = wdl < -drawScr;
+                    const bool deepWin  = wdl > +drawScr;
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_PLY_MAX to value
-                    Value tbValue = wdl < -drawScr ? -VALUE_TB + ss->ply
-                                  : wdl > +drawScr ? +VALUE_TB - ss->ply
-                                                   : VALUE_DRAW + 2 * wdl * drawScr;
+                    const Value tbValue = deepLoss ? Value(-VALUE_TB + ss->ply)  //
+                                        : deepWin  ? Value(+VALUE_TB - ss->ply)  //
+                                                   : Value(VALUE_DRAW + 2 * wdl * drawScr);
 
-                    Bound bound = wdl < -drawScr ? Bound::UPPER
-                                : wdl > +drawScr ? Bound::LOWER
+                    const Bound bound = deepLoss ? Bound::UPPER  //
+                                      : deepWin  ? Bound::LOWER  //
                                                  : Bound::EXACT;
 
                     if (bound == Bound::EXACT
