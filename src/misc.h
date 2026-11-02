@@ -23,9 +23,9 @@
 #include <chrono>   // chrono::duration
 #include <cstdint>  // SIZE_MAX, UINT64_MAX
 #include <cstring>
-#include <fstream>
 #include <functional>
 #include <initializer_list>
+#include <iosfwd>  // ostream
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -36,14 +36,10 @@
     #define USE_X86_PREFETCH
 #endif
 
-#if defined(_WIN32)
-    #include <utility>
-
-    #include "utility/platform_win.h"  // PreFetchCacheLine()
-#endif
-
 #if defined(USE_X86_PREFETCH)
-    #if !defined(_MSC_VER)
+    #if defined(_MSC_VER)
+        #include "utility/platform_win.h"  // PreFetchCacheLine()
+    #else
         #include <xmmintrin.h>  // _mm_prefetch() intrinsic (SSE)
     #endif
 #endif
@@ -267,7 +263,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     // Initialize hash with seed and length (MurmurHash64A convention)
     u64 h = seed ^ (size * MurmurM);
 
-    const auto* const RESTRICT beg = reinterpret_cast<const u8*>(data);
+    const auto* const RESTRICT beg = (const u8*) (data);
     const auto* const RESTRICT end = beg + size;
     const auto* RESTRICT       p   = beg;
 

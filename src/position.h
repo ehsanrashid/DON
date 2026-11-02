@@ -57,6 +57,7 @@ class Position final {
     Position& operator=(const Position&) noexcept = default;
     Position(Position&&) noexcept                 = delete;
     Position& operator=(Position&&) noexcept      = delete;
+    ~Position() noexcept                          = default;
 
     void clear() noexcept;
 
@@ -306,6 +307,7 @@ class Position final {
         SEE& operator=(const SEE&) noexcept = delete;
         SEE(SEE&&) noexcept                 = delete;
         SEE& operator=(SEE&&) noexcept      = delete;
+        ~SEE() noexcept                     = default;
 
         [[nodiscard]] bool operator>=(int threshold) const noexcept;
         [[nodiscard]] bool operator>(int threshold) const noexcept;
@@ -693,7 +695,7 @@ ALWAYS_INLINE bool Position::has_non_pawn(const Color c) const noexcept {
 }
 
 ALWAYS_INLINE Value Position::non_pawn_value() const noexcept {
-    return non_pawn_value(WHITE) + non_pawn_value(BLACK);
+    return Value(non_pawn_value(WHITE) + non_pawn_value(BLACK));
 }
 
 ALWAYS_INLINE u16 Position::rule50_count() const noexcept { return st->rule50Count; }
@@ -1040,7 +1042,7 @@ ALWAYS_INLINE bool Position::SEE::operator<(const int threshold) const noexcept 
 ALWAYS_INLINE i16 rule50_threshold(const i16 r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
 
-    return r50 + 2 * Position::DrawMoveCount;
+    return i16(r50 + 2 * Position::DrawMoveCount);
 }
 
 }  // namespace DON

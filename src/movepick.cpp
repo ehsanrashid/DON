@@ -312,7 +312,8 @@ MovePicker::MovePicker(const Position&                 p,
     continuationHistory{continuationHist},
     atomicHistories{atomicHists},
     ssPly{ply},
-    qs{qs_} {
+    qs{qs_}  //, moves()
+{
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -343,7 +344,8 @@ MovePicker::MovePicker(const Position&             p,
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
-    threshold_{threshold} {
+    threshold_{threshold}  //, moves{}
+{
     assert(pos.checkers_bb() == 0);
     assert(!ttMove.is_ok() || pos.legal(ttMove));
 

@@ -58,32 +58,65 @@ struct MoveList final {
     using size_type       = usize;
 
     // Generate moves into the internal buffer
-    explicit MoveList(const Position& pos) noexcept :
-        moveEnd(moves.data()) {
-        generate<GT, Any>(pos, moveEnd);
-        assert(moves.data() <= moveEnd && moveEnd <= moves.data() + moves.size());
-    }
+    explicit MoveList(const Position& pos) noexcept;
     MoveList() noexcept                           = delete;
     MoveList(const MoveList&) noexcept            = delete;
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList(MoveList&&) noexcept                 = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
+    ~MoveList() noexcept                          = default;
 
-    [[nodiscard]] const_iterator begin() const noexcept { return moves.data(); }
-    [[nodiscard]] const_iterator end() const noexcept { return moveEnd; }
+    [[nodiscard]] const_iterator begin() const noexcept;
+    [[nodiscard]] const_iterator end() const noexcept;
 
-    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
-    [[nodiscard]] bool      empty() const noexcept { return size() == 0; }
+    [[nodiscard]] size_type size() const noexcept;
+    [[nodiscard]] bool      empty() const noexcept;
 
-    [[nodiscard]] const_iterator find(const Move m) const noexcept {
-        return std::find(begin(), end(), m);
-    }
-    [[nodiscard]] bool contains(const Move m) const noexcept { return find(m) != end(); }
+    [[nodiscard]] const_iterator find(const Move m) const noexcept;
+    [[nodiscard]] bool           contains(const Move m) const noexcept;
 
    private:
     Array<value_type, MOVE_MAX> moves;
     value_type*                 moveEnd;
 };
+
+template<GenType GT, bool Any>
+MoveList<GT, Any>::MoveList(const Position& pos) noexcept :
+    moves(),
+    moveEnd(moves.data()) {
+    generate<GT, Any>(pos, moveEnd);
+    assert(moves.data() <= moveEnd && moveEnd <= moves.data() + moves.size());
+}
+
+template<GenType GT, bool Any>
+typename MoveList<GT, Any>::const_iterator MoveList<GT, Any>::begin() const noexcept {
+    return moves.data();
+}
+
+template<GenType GT, bool Any>
+typename MoveList<GT, Any>::const_iterator MoveList<GT, Any>::end() const noexcept {
+    return moveEnd;
+}
+
+template<GenType GT, bool Any>
+typename MoveList<GT, Any>::size_type MoveList<GT, Any>::size() const noexcept {
+    return end() - begin();
+}
+
+template<GenType GT, bool Any>
+bool MoveList<GT, Any>::empty() const noexcept {
+    return size() == 0;
+}
+
+template<GenType GT, bool Any>
+typename MoveList<GT, Any>::const_iterator MoveList<GT, Any>::find(const Move m) const noexcept {
+    return std::find(begin(), end(), m);
+}
+
+template<GenType GT, bool Any>
+bool MoveList<GT, Any>::contains(const Move m) const noexcept {
+    return find(m) != end();
+}
 
 }  // namespace DON
 
