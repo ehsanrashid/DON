@@ -1,10 +1,13 @@
 <div align="center">
 
   <a href="https://github.com/ehsanrashid/DON">
-    <img src="./DON-logo.png" alt="DON" width="256">
+    <img src="./DON-logo.png" alt="DON" width="320">
   </a>
 
   <h1>DON</h1>
+  <a href="https://github.com/ehsanrashid/DON">
+    <img src="./DON-color-logo.png" alt="DON" width="160">
+  </a>
 
   A powerful UCI chess engine combining classical search with neural-network evaluation.
   <br>
@@ -20,10 +23,6 @@
   [![Website][website-badge]][website-link]
   <br>
   [Report bug][issue-link]
-
-  <a href="https://github.com/ehsanrashid/DON">
-    <img src="./DON-color-logo.png" alt="DON" width="256">
-  </a>
 </div>
 
 ## Overview
