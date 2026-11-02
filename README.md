@@ -19,7 +19,7 @@
   <br>
   [![Website][website-badge]][website-link]
 
-  [![DON-black-logo]]
+  ![DON-black-logo]
 </div>
 
 ## Overview
@@ -129,8 +129,8 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [lc0-data-link]:        https://storage.lczero.org/files/training_data
 [odbl-link]:            https://opendatacommons.org/licenses/odbl/odbl-10.txt
 
-[DON-color-logo]:       https://github.com/ehsanrashid/DON/DON-color-logo.png
-[DON-black-logo]:       https://github.com/ehsanrashid/DON/DON-black-logo.png
+[DON-color-logo]:       ./DON-color-logo.png
+[DON-black-logo]:       ./DON-black-logo.png
 [build-badge]:          https://img.shields.io/github/actions/workflow/status/ehsanrashid/DON/DON.yml?branch=main&style=for-the-badge&label=DON&logo=github
 [commits-badge]:        https://img.shields.io/github/commits-since/ehsanrashid/DON/latest?style=for-the-badge
 [license-badge]:        https://img.shields.io/github/license/ehsanrashid/DON?style=for-the-badge&label=license&color=success
