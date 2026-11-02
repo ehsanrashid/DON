@@ -18,21 +18,20 @@
 #ifndef UTILITY_TYPES_H_INCLUDED
 #define UTILITY_TYPES_H_INCLUDED
 
-#include <algorithm>
 #include <array>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
-#include <iostream>
 #include <limits>
-#include <string>
-#include <string_view>
 #include <type_traits>
 
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
+#endif
+
+#if !defined(NDEBUG)
+    #include <iostream>
 #endif
 
 #if !defined(PATH_MAX)
@@ -42,14 +41,14 @@
     #define NAME_MAX (255)
 #endif
 
-#define STRING_LITERAL(x) #x
-#define STRINGIFY(x) STRING_LITERAL(x)
-
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
     #define DEBUG_LOG(msg) ((void) 0)
 #endif
+
+#define STRING_LITERAL(x) #x
+#define STRINGIFY(x) STRING_LITERAL(x)
 
 namespace DON {
 
@@ -120,8 +119,14 @@ inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
 inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 
-inline constexpr double LN2   = 0.693147180559945309417232121458176568;
-inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
+// clang-format off
+inline constexpr double LN2      = 0.6931471805599453094172321214581765680755001343602552541206800094933936219696947156058633269964186875;
+//inline constexpr double LN10     = 2.3025850929940456840179914546843642076011014886287729760333279009675726096773524802359972050895982983;
+inline constexpr double INV_LN10 = 0.4342944819032518276511289189166050822943970058036665661144537831658646492088707747292249493384317483;
+inline constexpr double SQRT2    = 1.4142135623730950488016887242096980785696718753769480731766797379907324784621070388503875343276415727;
+//inline constexpr double PI       = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679;
+//inline constexpr double E        = 2.7182818284590452353602874713526624977572470936999595749669676277240766303535475945713821785251664274;
+// clang-format on
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
@@ -399,6 +404,8 @@ constexpr double constexpr_log(double x) noexcept {
     // f = x - 1, approximately in (-0.293, 0.414), with |f| <= ~0.414.
     return constexpr_log1p_log(x - 1.0) + exponent * LN2;
 }
+
+constexpr double constexpr_log10(const double x) noexcept { return constexpr_log(x) * INV_LN10; }
 
 }  // namespace DON
 

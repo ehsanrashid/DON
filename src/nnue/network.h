@@ -46,6 +46,7 @@ class Network final {
     Network(Network&&) noexcept            = default;
     Network& operator=(const Network&)     = default;
     Network& operator=(Network&&) noexcept = default;
+    ~Network() noexcept                    = default;
 
     void load(const fs::path& rootDirectory, fs::path evalPath, EvalFile& evalFile) noexcept;
     bool save(const std::optional<fs::path>& evalPath, const EvalFile& evalFile) const noexcept;
