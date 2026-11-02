@@ -212,6 +212,15 @@ class PoolLIRSCache final {
         return entry != nullptr && entry->value.has_value();
     }
 
+    [[nodiscard]] ALWAYS_INLINE list_iterator nolock_touch(list_iterator entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        // Hot path: just mark accessed, no list reorganization
+        entry->accessed = true;
+        return entry;
+    }
+
     ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
@@ -231,12 +240,7 @@ class PoolLIRSCache final {
         if (LIKELY(existingItr != map.end()))
         {
             assert(existingItr->second != nullptr);
-            Entry* const entry = existingItr->second;
-
-            // Hot path: just mark accessed, no list reorganization
-            entry->accessed = true;
-
-            return nolock_read(entry);
+            return nolock_read(nolock_touch(existingItr->second));
         }
 
         if (UNLIKELY(list.size() >= capacity))
@@ -275,12 +279,7 @@ class PoolLIRSCache final {
         if (LIKELY(existingItr != map.end()))
         {
             assert(existingItr->second != nullptr);
-            Entry* const entry = existingItr->second;
-
-            // Hot path: just mark accessed, no list reorganization
-            entry->accessed = true;
-
-            return nolock_read(entry);
+            return nolock_read(nolock_touch(existingItr->second));
         }
 
         if (UNLIKELY(list.size() >= capacity))
@@ -409,8 +408,8 @@ class PoolLIRSCache final {
 
     mutable Mutex mutex;
     usize         capacity;
-    list_type     list;
     map_type      map;
+    list_type     list;
     Pool<Entry>   pool;
     list_iterator hand;
 };
@@ -584,6 +583,15 @@ class PoolFlatLIRSCache final {
         return entry != nullptr && entry->value.has_value();
     }
 
+    [[nodiscard]] ALWAYS_INLINE list_iterator nolock_touch(list_iterator entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        // Hot path: just mark accessed, no list reorganization
+        entry->accessed = true;
+        return entry;
+    }
+
     ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
@@ -603,11 +611,7 @@ class PoolFlatLIRSCache final {
         if (LIKELY(existingItr != map.end()))
         {
             assert(existingItr->second != nullptr);
-            Entry* const entry = existingItr->second;
-
-            entry->accessed = true;
-
-            return nolock_read(entry);
+            return nolock_read(nolock_touch(existingItr->second));
         }
 
         if (UNLIKELY(list.size() >= capacity))
@@ -645,11 +649,7 @@ class PoolFlatLIRSCache final {
         if (LIKELY(existingItr != map.end()))
         {
             assert(existingItr->second != nullptr);
-            Entry* const entry = existingItr->second;
-
-            entry->accessed = true;
-
-            return nolock_read(entry);
+            return nolock_read(nolock_touch(existingItr->second));
         }
 
         if (UNLIKELY(list.size() >= capacity))
@@ -776,8 +776,8 @@ class PoolFlatLIRSCache final {
 
     mutable Mutex mutex;
     usize         capacity;
-    list_type     list;
     map_type      map;
+    list_type     list;
     Pool<Entry>   pool;
     list_iterator hand;
 };
