@@ -29,9 +29,9 @@
 #include "movegen.h"
 #include "zobrist.h"
 #include "tablebase/syzygy.h"
-#include "utility/sieve_cache.h"
 #include "utility/error.h"
 #include "utility/functions.h"
+#include "utility/lirs_cache.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
 #include "utility/reader.h"
@@ -53,7 +53,11 @@ Cuckoos_& cuckoos() noexcept {
     return cuckoos;
 }
 
-using ValueCache = ShardedCache<Key, Value, PoolFlatSIEVECache, 32, SpinMutex>;
+using ValueCache = ShardedCache<Key,
+                                Value,
+                                PoolFlatLIRSCache,
+                                32,  //
+                                SpinMutex>;
 
 constexpr float MAX_LOAD_FACTOR = 0.75F;
 
@@ -1515,7 +1519,7 @@ Key Position::move_key(const Move m) const noexcept {
 
     return moveKey  //
          ^ zobrist().piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ zobrist().mr50(movedPt == PAWN || is_ok(capturedPc) ? 0 : rule50_count() + 1);
+         ^ zobrist().mr50(movedPt == PAWN || is_ok(type_of(capturedPc)) ? 0 : rule50_count() + 1);
 }
 
 bool Position::see_ge(const Move m, const int threshold) const noexcept {

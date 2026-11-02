@@ -633,7 +633,7 @@ ENC_BAD_CAPTURE:
         if (cur != curEnd)
             return *cur++;
 
-        if (skipQuiets)
+        if (qs && skipQuiets)
             return Move::None;
 
         init<GenType::EVA_QUIET>();
