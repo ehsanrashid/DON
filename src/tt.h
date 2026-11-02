@@ -45,6 +45,7 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
     TTData(TTData&&) noexcept                 = default;
     TTData& operator=(TTData&&) noexcept      = delete;
+    ~TTData() noexcept                        = default;
 
     Move  move;
     Value value;
@@ -68,6 +69,7 @@ class TTWriter final {
     TTWriter(const TTWriter&) noexcept            = delete;
     TTWriter(TTWriter&&) noexcept                 = default;
     TTWriter& operator=(TTWriter&&) noexcept      = delete;
+    ~TTWriter() noexcept                          = default;
 
     void write(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 

@@ -154,6 +154,7 @@ struct PTData final {
     PTData& operator=(const PTData&) noexcept = delete;
     PTData(PTData&&) noexcept                 = default;
     PTData& operator=(PTData&&) noexcept      = delete;
+    ~PTData() noexcept                        = default;
 
     u64   nodes;
     Depth depth;

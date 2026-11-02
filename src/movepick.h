@@ -103,6 +103,7 @@ class MovePicker final {
     MovePicker& operator=(const MovePicker&) noexcept = delete;
     MovePicker(MovePicker&&) noexcept                 = delete;
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
+    ~MovePicker() noexcept                            = default;
 
     // Most important method of the MovePicker class.
     // It emits a new legal move every time it is called until there are no more moves left,
@@ -113,15 +114,7 @@ class MovePicker final {
     [[nodiscard]] int   threshold() const noexcept;
 
     template<typename Predicate>
-    void skip_quiets(Predicate pred) noexcept {
-        skipQuiets = skipQuiets || pred();
-
-        if (skipQuiets
-            && (curStage == Stage::ENC_GOOD_QUIET    //
-                || curStage == Stage::ENC_BAD_QUIET  //
-                || (qs && curStage == Stage::EVA_QUIET)))
-            cur = curEnd;  // Discards any quiet moves in the current stage
-    }
+    void skip_quiets(Predicate pred) noexcept;
 
    private:
     template<GenType GT>
@@ -167,6 +160,17 @@ class MovePicker final {
       badCaptureEnd = nullptr,  //
       badQuietBeg   = nullptr;
 };
+
+template<typename Predicate>
+ALWAYS_INLINE void MovePicker::skip_quiets(Predicate pred) noexcept {
+    skipQuiets = skipQuiets || pred();
+
+    if (skipQuiets
+        && (curStage == Stage::ENC_GOOD_QUIET    //
+            || curStage == Stage::ENC_BAD_QUIET  //
+            || (qs && curStage == Stage::EVA_QUIET)))
+        cur = curEnd;  // Discards any quiet moves in the current stage
+}
 
 }  // namespace DON
 
