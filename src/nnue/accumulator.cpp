@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>  // for offsetof()
 #include <cstring>  // for memset()
 
 #include "../bitboard.h"
@@ -37,11 +36,10 @@
 namespace DON::NNUE {
 
 void AccumulatorCache::Entry::reset(const Array<Bias, L1>& biases) noexcept {
+    // Reset all members to zero memory before initialization
+    std::memset(reinterpret_cast<u8*>(this), 0, sizeof(*this));
     // Initialize accumulation with given biases
-    accumulation          = biases;
-    constexpr auto offset = offsetof(Entry, pieceMap);
-    static_assert(offset <= sizeof(Entry), "offset exceeds object size");
-    std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
+    accumulation = biases;
 }
 
 void AccumulatorStack::reset() noexcept {
@@ -726,7 +724,7 @@ void update_hybrid(const Color               perspective,
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
-        Tile tile;
+        Tile tile{};
 
         load_tile(newEntry.accumulation.data(), j, tile);
 
@@ -792,7 +790,7 @@ void update_refresh_cache(const Color               perspective,
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
-        Tile tile;
+        Tile tile{};
 
         load_tile(entry.accumulation.data(), j, tile);
 
@@ -821,7 +819,7 @@ void apply_combined(Color                                   perspective,
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
-        Tile tile;
+        Tile tile{};
 
         load_tile(srcAccm.data(), j, tile);
 
