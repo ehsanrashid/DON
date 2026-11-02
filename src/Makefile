@@ -134,7 +134,7 @@ HEADERS := \
     utility/logger.h utility/lru_cache.h utility/map.h utility/matrix.h utility/multi_array.h utility/mutex.h \
     utility/platform_win.h utility/pool.h utility/prng.h utility/queue.h utility/reader.h utility/segment_tree.h \
     utility/set.h utility/sharded_cache.h utility/sieve_cache.h utility/static_vector.h utility/store.h utility/streambuf.h \
-    utility/sync_ostream.h utility/thread_attributes.h utility/types.h utility/unordered_map.h \
+    utility/sync_ostream.h utility/thread_attributes.h utility/tracker.h utility/types.h utility/unordered_map.h \
     utility/ankerl/stl.h utility/ankerl/unordered_dense.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))

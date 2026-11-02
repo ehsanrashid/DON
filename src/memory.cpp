@@ -57,7 +57,7 @@
     #include <stdlib.h>
 #endif
 
-#include "utility/concurrent.h"  // ConcurrentAllocationTracker<>
+#include "utility/tracker.h"
 
 namespace DON {
 
@@ -214,7 +214,7 @@ bool free_aligned_huge(void* const mem, const usize allocSize) noexcept {
 }
 
 
-ConcurrentAllocationTracker HugePageAllocationTracker{};
+AllocationTracker HugePageAllocationTracker{};
 
     #endif
 
