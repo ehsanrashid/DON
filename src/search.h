@@ -492,6 +492,7 @@ struct Skill final {
     Skill& operator=(const Skill&) noexcept = delete;
     Skill(Skill&&) noexcept                 = delete;
     Skill& operator=(Skill&&) noexcept      = delete;
+    ~Skill() noexcept                       = default;
 
     void init(const Options& options) noexcept;
 
