@@ -67,7 +67,7 @@
     #include <vector>
 
     #include "native_thread.h"
-    #include "utility/concurrent.h"  // ConcurrentRegistry<>, RegistryCleanup<>, RegistryCleanupHook<>
+    #include "utility/registry.h"  // Registry<>, RegistryCleanup<>, RegistryCleanupHook<>
 
     // Linux (non-Android)
     #if defined(LINUX_NON_ANDROID)
@@ -439,7 +439,7 @@ class BaseSharedMemory {
 // Usage:
 //  - Register memory after successful creation
 //  - Unregister memory before destruction
-inline ConcurrentRegistry<  //
+inline Registry<  //
   BaseSharedMemory*>
   MemoryRegistry(usize{256}, 0.75F);
 
@@ -456,7 +456,7 @@ inline ConcurrentRegistry<  //
 //  - Process-exit hook installation is handled by MemoryRegistryCleanupHook.
 //  - Detached memory objects are reset in registry insertion order.
 inline RegistryCleanup<  //
-  ConcurrentRegistry<    //
+  Registry<              //
     BaseSharedMemory*>>  //
   MemoryRegistryCleanup{MemoryRegistry};
 
@@ -480,7 +480,7 @@ inline RegistryCleanup<  //
 //    It is not called after SIGKILL, abort(), or other abnormal/forced termination.
 inline RegistryCleanupHook<  //
   RegistryCleanup<           //
-    ConcurrentRegistry<      //
+    Registry<                //
       BaseSharedMemory*>>>   //
   MemoryRegistryCleanupHook{MemoryRegistryCleanup};
 
