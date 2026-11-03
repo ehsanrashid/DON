@@ -19,6 +19,8 @@
 
 #include <cassert>
 #include <iostream>
+//#include <unordered_set>
+
 #include "utility/functions.h"
 
 namespace DON {
@@ -207,7 +209,7 @@ void SpinOption::operator=(const std::string_view value) noexcept {
 class ComboOption final: public Option {
    public:
     using StringViewSet =
-      std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
+      ankerl::unordered_dense::set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
 
     ComboOption(std::string_view                     str,
                 const std::vector<std::string_view>& vrs,
@@ -308,19 +310,15 @@ usize Options::size() const noexcept { return list.size(); }
 
 bool Options::empty() const noexcept { return list.empty(); }
 
-bool Options::contains(const Set::const_iterator setItr) const noexcept {
-    return setItr != set.end();
-}
-
 bool Options::contains(const std::string_view name) const noexcept {
-    return contains(set.find(name));
+    return map.find(name) != map.end();
 }
 
-usize Options::count(const std::string_view name) const noexcept { return indexMap.count(name); }
+usize Options::count(const std::string_view name) const noexcept { return map.count(name); }
 
-auto Options::find(const std::string_view name) noexcept { return indexMap.find(name); }
+auto Options::find(const std::string_view name) noexcept { return map.find(name); }
 
-auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
+auto Options::find(const std::string_view name) const noexcept { return map.find(name); }
 
 bool Options::add(const std::string_view name, Option::Ptr option) noexcept {
     // Already a member.
@@ -344,43 +342,29 @@ bool Options::add(const std::string_view name, Option::Ptr option) noexcept {
     const std::string_view nameView = listItr->first;
 
     // Associate the name with its corresponding list node.
-    [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(nameView, listItr);
+    [[maybe_unused]] const auto [mapItr, inserted] = map.emplace(nameView, listItr);
     // The initial membership check guarantees that the name is not already indexed.
     assert(inserted);
-    assert(indexMapItr->second == listItr);
-
-    // Establish name membership after the ordered list and name index are updated.
-    [[maybe_unused]] const auto [setItr, registered] = set.emplace(nameView);
-    // The initial membership check guarantees that this insertion succeeds.
-    assert(registered);
-    assert(setItr != set.end());
+    assert(mapItr->second == listItr);
 
     return true;
 }
 
 bool Options::remove(const std::string_view name) noexcept {
-    const auto setItr = set.find(name);
+    const auto mapItr = map.find(name);
 
     // Not a member.
-    if (!contains(setItr))
+    if (mapItr == map.end())
         return false;
 
-    const auto indexMapItr = find(name);
-    // Set membership guarantees that the name is indexed.
-    assert(indexMapItr != indexMap.end());
-
     // Retrieve the corresponding list node.
-    const auto listItr = indexMapItr->second;
+    const auto listItr = mapItr->second;
     // Verify the list node and its name.
     assert(listItr != list.end());
     assert(CaseInsensitiveEqual{}(listItr->first, name));
 
-    // Remove the membership entry.
-    set.erase(setItr);
-
     // Remove the index entry.
-    indexMap.erase(indexMapItr);
-
+    map.erase(mapItr);
     // Remove the option from the ordered list.
     list.erase(listItr);
 
@@ -388,19 +372,19 @@ bool Options::remove(const std::string_view name) noexcept {
 }
 
 void Options::setoption(const std::string_view name, const std::string_view value) noexcept {
-    const auto indexMapItr = find(name);
+    const auto mapItr = find(name);
 
-    if (indexMapItr != indexMap.end())
-        *indexMapItr->second->second = value;
+    if (mapItr != map.end())
+        *mapItr->second->second = value;
     else
         std::cerr << "No such option: '" << name << "'" << std::endl;
 }
 
 const Option& Options::operator[](const std::string_view name) const noexcept {
-    const auto indexMapItr = find(name);
-    assert(indexMapItr != indexMap.end());
+    const auto mapItr = find(name);
+    assert(mapItr != map.end());
 
-    return *indexMapItr->second->second;
+    return *mapItr->second->second;
 }
 
 void Options::set_on_info(OnInfo&& onInf) noexcept { onInfo = std::move(onInf); }

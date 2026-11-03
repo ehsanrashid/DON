@@ -25,13 +25,13 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <unordered_set>
+//#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "utility/comparator.h"
 #include "utility/types.h"
+#include "utility/ankerl/unordered_dense.h"
 
 namespace DON {
 
@@ -104,13 +104,11 @@ class Options final {
 
     // clang-format off
     // Stores the option name view and the polymorphic option, preserving the original name case.
-    using Entry    = std::pair<std::string_view, Option::Ptr>;
+    using Entry = std::pair<std::string_view, Option::Ptr>;
     // Preserves insertion order and the original name case.
-    using List     = std::list<Entry>;
-    // Provides fast case-insensitive name lookup, count and removal.
-    using IndexMap = std::unordered_map<std::string_view, List::iterator, CaseInsensitiveHash, CaseInsensitiveEqual>;
-    // Provides fast case-insensitive uniqueness and membership checks.
-    using Set      = std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
+    using List  = std::list<Entry>;
+    // Provides fast case-insensitive name lookup, uniqueness and removal.
+    using Map   = ankerl::unordered_dense::map<std::string_view, List::iterator, CaseInsensitiveHash, CaseInsensitiveEqual>;
     // clang-format on
 
     using ChangeInfo = std::optional<std::string_view>;
@@ -124,7 +122,6 @@ class Options final {
     usize size() const noexcept;
     bool  empty() const noexcept;
 
-    bool contains(Set::const_iterator setItr) const noexcept;
     bool contains(std::string_view name) const noexcept;
 
     usize count(std::string_view name) const noexcept;
@@ -152,9 +149,8 @@ class Options final {
     void on_info(ChangeInfo changeInfo) const noexcept;
 
    private:
-    List     list;
-    IndexMap indexMap;
-    Set      set;
+    List list;
+    Map  map;
 
     OnInfo onInfo;
 };

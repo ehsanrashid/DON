@@ -118,8 +118,9 @@ class Registry final {
 
         std::cout << "Registered values [" << list.size() << "]:\n";
 
-        for (usize i = 0; i < list.size(); ++i)
-            std::cout << '[' << i << "] " << list[i] << '\n';
+        usize i = 0;
+        for (const auto& value : list)
+            std::cout << '[' << i++ << "] " << value << '\n';
 
         std::cout << std::endl;
     }
@@ -132,30 +133,6 @@ class Registry final {
     [[nodiscard]] bool nolock_contains(const Value& value) const noexcept {
         return nolock_find(value) != map.end();
     }
-
-#if !defined(NDEBUG)
-    // Verifies consistency between List and Map.
-    // Caller must hold mutex in shared or exclusive mode.
-    bool nolock_is_consistent() const noexcept {
-        assert(list.size() == map.size() && "List and Map sizes differ");
-
-        for (auto listItr = list.begin(); listItr != list.end(); ++listItr)
-        {
-            const auto mapItr = nolock_find(*listItr);
-
-            assert(mapItr != map.end() && "List value is missing from Map");
-            assert(mapItr->second == listItr && "Map points to the wrong List node");
-        }
-
-        for (const auto& [value, listItr] : map)
-        {
-            assert(listItr != list.end() && "Map contains an invalid List iterator");
-            assert(*listItr == value && "Map iterator points to the wrong value");
-        }
-
-        return true;
-    }
-#endif
 
     // Registers a value.
     // The caller must hold 'mutex' exclusively.
@@ -213,6 +190,30 @@ class Registry final {
         map.max_load_factor(maxLoadFactor);
         map.reserve(reserveCount);
     }
+
+#if !defined(NDEBUG)
+    // Verifies consistency between List and Map.
+    // Caller must hold mutex in shared or exclusive mode.
+    bool nolock_is_consistent() const noexcept {
+        assert(list.size() == map.size() && "List and Map sizes differ");
+
+        for (auto listItr = list.begin(); listItr != list.end(); ++listItr)
+        {
+            const auto mapItr = nolock_find(*listItr);
+
+            assert(mapItr != map.end() && "List value is missing from Map");
+            assert(mapItr->second == listItr && "Map points to the wrong List node");
+        }
+
+        for (const auto& [value, listItr] : map)
+        {
+            assert(listItr != list.end() && "Map contains an invalid List iterator");
+            assert(*listItr == value && "Map iterator points to the wrong value");
+        }
+
+        return true;
+    }
+#endif
 
     const usize reserveCount;
     const float maxLoadFactor;
