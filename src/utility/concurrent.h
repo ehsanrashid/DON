@@ -25,9 +25,7 @@
 #include <list>           // list<>
 #include <memory>         // make_unique<>, unique_ptr<>
 #include <mutex>          // lock_guard<>
-#include <optional>       // optional<>, nullopt
 #include <shared_mutex>   // shared_lock<>, shared_mutex<>
-#include <type_traits>    // conditional_t<>
 #include <unordered_map>  // unordered_map<>
 #include <unordered_set>  // unordered_set<>
 #include <utility>        // forward<>, pair<>
@@ -36,79 +34,6 @@
 #include "../utility/types.h"
 
 namespace DON {
-
-// ConcurrentAllocationTracker: thread-safe allocation and freeing, with allocation size tracking.
-class ConcurrentAllocationTracker final {
-   public:
-    using SizeMap = std::unordered_map<void*, usize>;
-
-    ConcurrentAllocationTracker() noexcept = default;
-
-    template<typename AllocFunc>
-    [[nodiscard]] void* alloc(const usize allocSize, AllocFunc&& allocFn) noexcept {
-        void* const mem = std::forward<AllocFunc>(allocFn)(allocSize);
-
-        if (mem != nullptr)
-        {
-            std::lock_guard lockGuard{mutex};
-
-            sizeMap.emplace(mem, allocSize);
-        }
-
-        return mem;
-    }
-
-    template<typename FreeFunc>
-    [[nodiscard]] bool free(void* const mem, FreeFunc&& freeFn) noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        if (const auto itr = sizeMap.find(mem); itr != sizeMap.end())
-        {
-            const usize allocSize = itr->second;
-
-            if (!std::forward<FreeFunc>(freeFn)(mem, allocSize))
-            {
-                //std::exit(EXIT_FAILURE);
-                return false;
-            }
-
-            sizeMap.erase(itr);
-            return true;
-        }
-
-        return false;
-    }
-
-    [[nodiscard]] usize size() const noexcept {
-        std::shared_lock sharedLock{mutex};
-
-        return sizeMap.size();
-    }
-
-    [[nodiscard]] bool empty() const noexcept {
-        std::shared_lock sharedLock{mutex};
-
-        return sizeMap.empty();
-    }
-
-    [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
-        std::shared_lock sharedLock{mutex};
-
-        if (auto itr = sizeMap.find(mem); itr != sizeMap.end())
-            return itr->second;
-
-        return std::nullopt;
-    }
-
-   private:
-    ConcurrentAllocationTracker(const ConcurrentAllocationTracker&) noexcept            = delete;
-    ConcurrentAllocationTracker& operator=(const ConcurrentAllocationTracker&) noexcept = delete;
-    ConcurrentAllocationTracker(ConcurrentAllocationTracker&&) noexcept                 = delete;
-    ConcurrentAllocationTracker& operator=(ConcurrentAllocationTracker&&) noexcept      = delete;
-
-    mutable std::shared_mutex mutex;
-    SizeMap                   sizeMap;
-};
 
 // ConcurrentRegistry: thread-safe registry preserving true insertion order with pre-reserved storage.
 template<typename Value>

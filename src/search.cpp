@@ -75,7 +75,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = u16(ReductionScale * constexpr_log(double(i)));
+        reductions[i] = u16(ReductionScale * constexpr_log(i));
 
     return reductions;
 }();

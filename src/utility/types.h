@@ -18,21 +18,20 @@
 #ifndef UTILITY_TYPES_H_INCLUDED
 #define UTILITY_TYPES_H_INCLUDED
 
-#include <algorithm>
 #include <array>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
-#include <iostream>
 #include <limits>
-#include <string>
-#include <string_view>
 #include <type_traits>
 
 #if !defined(_WIN32)     /* Non-Windows */
     #include <limits.h>  // PATH_MAX, NAME_MAX
+#endif
+
+#if !defined(NDEBUG)
+    #include <iostream>
 #endif
 
 #if !defined(PATH_MAX)
@@ -42,14 +41,14 @@
     #define NAME_MAX (255)
 #endif
 
-#define STRING_LITERAL(x) #x
-#define STRINGIFY(x) STRING_LITERAL(x)
-
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
     #define DEBUG_LOG(msg) ((void) 0)
 #endif
+
+#define STRING_LITERAL(x) #x
+#define STRINGIFY(x) STRING_LITERAL(x)
 
 namespace DON {
 
@@ -120,8 +119,14 @@ inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
 inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 
-inline constexpr double LN2   = 0.693147180559945309417232121458176568;
-inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
+// clang-format off
+inline constexpr double LN2      = 0.6931471805599453094172321214581765680755001343602552541206800094933936219696947156058633269964186875;
+//inline constexpr double LN10     = 2.3025850929940456840179914546843642076011014886287729760333279009675726096773524802359972050895982983;
+inline constexpr double INV_LN10 = 0.4342944819032518276511289189166050822943970058036665661144537831658646492088707747292249493384317483;
+inline constexpr double SQRT2    = 1.4142135623730950488016887242096980785696718753769480731766797379907324784621070388503875343276415727;
+//inline constexpr double PI       = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679;
+//inline constexpr double E        = 2.7182818284590452353602874713526624977572470936999595749669676277240766303535475945713821785251664274;
+// clang-format on
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
@@ -171,27 +176,83 @@ template<
 }
 
 // Return the square of a number, using a wider type to avoid overflow
-template<typename T>
+template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
 [[nodiscard]] constexpr auto sqr(const T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * Wider(x);
 }
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
-template<typename T>
+template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
 [[nodiscard]] constexpr auto sign_sqr(const T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     return sign(x) * sqr(x);
 }
 
 [[nodiscard]] constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
 
-template<typename T1, typename T2>
+template<typename T1,
+         typename T2,
+         std::enable_if_t<std::is_integral_v<T1> && std::is_integral_v<T2>, bool> = true>
 [[nodiscard]] constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
+    assert(d != 0);
+
     using R = std::common_type_t<T1, T2>;
-    //return (R(n) + R(d) - 1) / R(d);  // potential overflow issue
     return R(n) / R(d) + (R(n) % R(d) != 0);
+}
+
+// Round n up to be a multiple of base
+template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
+[[nodiscard]] constexpr T ceil_to_multiple(const T n, const T base) noexcept {
+    return ceil_div(n, base) * base;
+}
+
+// Round up to the next power of 2
+[[nodiscard]] constexpr usize round_up_to_pow2(usize x) noexcept {
+    if (x == 0)
+        return 1;
+
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+#if defined(SIZE_MAX) && SIZE_MAX == UINT64_MAX
+    x |= x >> 32;
+#endif
+    return x + 1;
+}
+
+// Round up to a multiple of alignment
+template<typename T>
+[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
+    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
+    // Alignment must be non-zero power of 2
+    assert(is_power_of_2(alignment));
+
+    // Safely handle edge case: zero alignment when assertions are disabled
+    if (alignment == 0)
+        return size;
+
+    const T mask = alignment - 1;
+
+    if (size > std::numeric_limits<T>::max() - mask)
+        return std::numeric_limits<T>::max();
+
+    // Round up to the next multiple of alignment
+    return (size + mask) & ~mask;
+}
+
+// Get the first aligned element of an array.
+// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
+// where N is the number of elements in the array.
+template<usize Alignment, typename T>
+[[nodiscard]] T* align_ptr_up(T* ptr) noexcept {
+    static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
+    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
+
+    const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
+    return reinterpret_cast<T*>(uPtr);
 }
 
 // Return round(value * numerator / denominator), capped at limit.
@@ -258,64 +319,10 @@ template<typename T1, typename T2>
     return whole + fraction;
 }
 
-// Round n up to be a multiple of base
-template<typename T>
-[[nodiscard]] constexpr T ceil_to_multiple(const T n, const T base) noexcept {
-    return ceil_div(n, base) * base;
-}
-
-// Round up to the next power of 2
-[[nodiscard]] constexpr usize round_up_to_pow2(usize x) noexcept {
-    if (x == 0)
-        return 1;
-
-    --x;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-#if defined(SIZE_MAX) && SIZE_MAX == UINT64_MAX
-    x |= x >> 32;
-#endif
-    return x + 1;
-}
-
-// Round up to a multiple of alignment
-template<typename T>
-[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
-    // Alignment must be non-zero power of 2
-    assert(is_power_of_2(alignment));
-
-    // Safely handle edge case: zero alignment when assertions are disabled
-    if (alignment == 0)
-        return size;
-
-    const T mask = alignment - 1;
-
-    if (size > std::numeric_limits<T>::max() - mask)
-        return std::numeric_limits<T>::max();
-
-    // Round up to the next multiple of alignment
-    return (size + mask) & ~mask;
-}
-
-// Get the first aligned element of an array.
-// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
-// where N is the number of elements in the array.
-template<usize Alignment, typename T>
-[[nodiscard]] T* align_ptr_up(T* ptr) noexcept {
-    static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
-    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
-
-    const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
-    return reinterpret_cast<T*>(uPtr);
-}
-
 template<typename T1, typename T2>
 [[nodiscard]] constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     assert(x0 != x1);
+
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
@@ -331,6 +338,8 @@ template<typename T1, typename T2>
 }
 
 static_assert(mul_hi64(u64{0xDEADBEEFDEADBEEF}, u64{0xCAFEBABECAFEBABE}) == u64{0xB092AB7CE9F4B259},
+              "mul_hi64(): Failed");
+static_assert(mul_hi64(u64{0xFFFFFFFF00000000}, u64{0x00000001FFFFFFFF}) == u64{0x00000001FFFFFFFD},
               "mul_hi64(): Failed");
 
 // Computes ln(1 + d) for f in (-1, sqrt(2)-1] via the identity
@@ -367,38 +376,112 @@ constexpr double constexpr_log1p_log(const double d) noexcept {
 //
 // Note: the while loops are O(|exponent|) iterations, which is fine for
 // compile-time table generation. For runtime use, prefer std::log.
-constexpr double constexpr_log(double x) noexcept {
+template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
+constexpr double constexpr_log(const T x) noexcept {
+    auto xx = double(x);
     // Returns an approximation of ln(x) for x > 0.
     // For x <= 0, returns -1e300 as a constexpr-safe sentinel.
-    if (x <= 0.0)
+    if (xx <= 0.0)
         return -1e300;  // Undefined; not NaN/−inf so it stays constexpr-safe
 
     int exponent = 0;
 
     // Stage 1: reduce to [1, 2)
-    while (x >= 2.0)
+    while (xx >= 2.0)
     {
         ++exponent;
-        x *= 0.5;
+        xx *= 0.5;
     }
-    while (x < 1.0)
+    while (xx < 1.0)
     {
         --exponent;
-        x *= 2.0;
+        xx *= 2.0;
     }
 
     // Stage 2: reduce to [1/sqrt(2), sqrt(2))
     // If x >= sqrt(2), folding the upper half down gives f = x - 1 closer to 0,
     // keeping |s| <= ~0.172 and making the series converge in ~10 terms.
-    if (x >= SQRT2)
+    if (xx >= SQRT2)
     {
-        x *= 0.5;
+        xx *= 0.5;
         ++exponent;
     }
 
     // f = x - 1, approximately in (-0.293, 0.414), with |f| <= ~0.414.
-    return constexpr_log1p_log(x - 1.0) + exponent * LN2;
+    return constexpr_log1p_log(xx - 1.0) + exponent * LN2;
 }
+
+template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, bool> = true>
+constexpr double constexpr_log10(const T x) noexcept {
+    return constexpr_log(x) * INV_LN10;
+}
+
+constexpr double constexpr_exp(double x) noexcept {
+    // Range reduction: x = k * ln(2) + r.
+    int    exponent = static_cast<int>(x / LN2);
+    double r        = x - exponent * LN2;
+
+    if (r > LN2 * 0.5)
+    {
+        r -= LN2;
+        ++exponent;
+    }
+    else if (r < -LN2 * 0.5)
+    {
+        r += LN2;
+        --exponent;
+    }
+
+    // exp(r) = 1 + r + r^2/2! + ...
+    double sum  = 1.0;
+    double term = 1.0;
+
+    for (int n = 1; n <= 20; ++n)
+    {
+        term *= r / n;
+        sum += term;
+    }
+
+    // Multiply by 2^exponent.
+    while (exponent > 0)
+    {
+        sum *= 2.0;
+        --exponent;
+    }
+
+    while (exponent < 0)
+    {
+        sum *= 0.5;
+        ++exponent;
+    }
+
+    return sum;
+}
+
+template<typename T,
+         typename U,
+         std::enable_if_t<std::is_arithmetic_v<T> && std::is_arithmetic_v<U>, bool> = true>
+constexpr double constexpr_pow(const T base, const U exponent) noexcept {
+    const auto b = double(base);
+    const auto e = double(exponent);
+
+    if (e == 0.0)
+        return 1.0;
+
+    if (b <= 0.0)
+        return -1e300;  // Positive base required by this implementation.
+
+    return constexpr_exp(e * constexpr_log(b));
+}
+
+static_assert(constexpr_pow(2.0, 0.0) == 1.0, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(2.0, 1.0) > 1.999999999999, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(2.0, 2.0) > 3.999999999999, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(4.0, 0.5) > 1.999999999999, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(8.0, 1.0 / 3.0) > 1.999999999999, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(3.22713, 0.46866) > 1.0, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(3.22713, 0.46866) < 2.0, "constexpr_pow(): Failed");
+static_assert(constexpr_pow(2.0, -2.0) > 0.249999999999, "constexpr_pow(): Failed");
 
 }  // namespace DON
 

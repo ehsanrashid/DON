@@ -43,15 +43,15 @@ Option::operator std::string_view() const noexcept {
 }
 
 void Option::on_change() noexcept {
+    if (optionsPtr == nullptr)
+        return;
+
     if (!onChange)
         return;
 
     auto changeInfo = onChange(*this);
 
     if (!changeInfo)
-        return;
-
-    if (optionsPtr == nullptr)
         return;
 
     optionsPtr->on_info(std::move(changeInfo));

@@ -20,15 +20,12 @@
 #ifndef NNUE_SERIALIZATION_H_INCLUDED
 #define NNUE_SERIALIZATION_H_INCLUDED
 
-#include <algorithm>
 #include <array>
-#include <cassert>
 #include <cstring>
-#include <iostream>
-#include <string_view>
+#include <istream>
+#include <ostream>
 #include <type_traits>
 
-#include "../misc.h"
 #include "../utility/types.h"
 
 namespace DON::NNUE {

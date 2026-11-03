@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <string_view>
 #include <thread>
 
@@ -109,13 +108,13 @@ void TimeManager::init(const Color    c,
 
         // Convert from milliseconds to nodes
         clock.time = TimePoint(timeNodes);
-        clock.inc *= NodesTime;
-        OverheadTime *= NodesTime;
+        clock.inc *= TimePoint(NodesTime);
+        OverheadTime *= TimePoint(NodesTime);
     }
 
-    const u64 scaleFactor = use_nodes_time() ? NodesTime : 1;
+    const i64 scaleFactor = use_nodes_time() ? i64(NodesTime) : 1;
 
-    const TimePoint scaledTime = std::max<TimePoint>(clock.time / scaleFactor, 1);
+    const TimePoint scaledTime = TimePoint(std::max<i64>(clock.time / scaleFactor, 1));
 
     // Maximum move horizon
     u8 mtg = limit.movesToGo != 0 && limit.movesToGo < MTGMax ? limit.movesToGo : MTGMax;
@@ -123,7 +122,7 @@ void TimeManager::init(const Color    c,
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls keep the actual movestogo as horizon.
     if (mtg > 2 && scaledTime < 1000 && limit.movesToGo == 0)
-        mtg = u8(std::max(0.05051 * scaledTime, 2.0));
+        mtg = u8(std::max(0.05051 * double(scaledTime), 2.0));
 
     // clang-format off
 
@@ -141,7 +140,7 @@ void TimeManager::init(const Color    c,
     if (limit.movesToGo == 0)
     {
         // Calculate time constants based on current remaining time
-        const double logScaledTime = std::log10(scaledTime / 1000.0);
+        const double logScaledTime = constexpr_log10(double(scaledTime) / 1000.0);
 
         // 1) x base-time (sudden death)
         // Sudden death time control
@@ -150,13 +149,13 @@ void TimeManager::init(const Color    c,
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == TimeAdjustDefault)
         {
-            timeAdjust = -0.4126 + 0.2862 * std::log10(remainTime);
+            timeAdjust = -0.4126 + 0.2862 * constexpr_log10(remainTime);
             if (timeAdjust < TimeAdjustMin)
                 timeAdjust = TimeAdjustMin;
         }
 
         optimumScale = timeAdjust
-                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
+                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3) * constexpr_pow(2.82122 + ply, 0.46642), 0.19404 * double(clock.time) / remainTime);
         maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + ply / 12.7592, 6.35772);
         }
         // 2) x base-time (+ z increment)
@@ -167,20 +166,20 @@ void TimeManager::init(const Color    c,
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == TimeAdjustDefault)
         {
-            timeAdjust = -0.4141 + 0.3272 * std::log10(remainTime);
+            timeAdjust = -0.4141 + 0.3272 * constexpr_log10(remainTime);
             if (timeAdjust < TimeAdjustMin)
                 timeAdjust = TimeAdjustMin;
         }
 
         optimumScale = timeAdjust
-                     * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * logScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);
+                     * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * logScaledTime, 4.90500e-3) * constexpr_pow(3.22713 + ply, 0.46866), 0.19404 * double(clock.time) / remainTime);
         maximumScale = std::min(std::max(3.37440 + 3.06080 * logScaledTime, 3.14410) + ply / 12.3520, 6.87300);
         }
     }
     // 3) x moves in y time (+ z increment)
     else
     {
-        optimumScale = std::min((0.8800 + ply / 116.4) / mtg, 0.8800 * clock.time / remainTime);
+        optimumScale = std::min((0.8800 + ply / 116.4) / mtg, 0.8800 * double(clock.time) / remainTime);
         maximumScale = 1.3000 + 0.1100 * mtg;
     }
 
@@ -193,7 +192,7 @@ void TimeManager::init(const Color    c,
     // Warning: don't remove this conditions.
     if (!use_nodes_time() && limit.movesToGo > 1)
     {
-        const double timeAdvantage = (limit.clocks[c].time - limit.clocks[~c].time) / (1.0 + limit.clocks[c].time + limit.clocks[~c].time);
+        const double timeAdvantage = double(limit.clocks[c].time - limit.clocks[~c].time) / (1.0 + double(limit.clocks[c].time + limit.clocks[~c].time));
         if (timeAdvantage < 0.0)
             optimumScale *= 1.0 + 0.9 * timeAdvantage;
     }
@@ -203,7 +202,7 @@ void TimeManager::init(const Color    c,
     maximumTime = std::max(
                     mtg < 2
                     ? clock.time
-                    : TimePoint(std::min(maximumScale * optimumTime, 0.80970 * clock.time - OverheadTime) - options["BufferTime"]),
+                    : TimePoint(std::min(maximumScale * optimumTime, 0.80970 * double(clock.time) - OverheadTime) - options["BufferTime"]),
                     optimumTime);
     // clang-format on
 
@@ -211,7 +210,7 @@ void TimeManager::init(const Color    c,
         std::this_thread::sleep_for(Ms(optimumTime / 2));
 
     if (options["Ponder"])
-        optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeMaxValue));
+        optimumTime = TimePoint(std::min(1.2500 * double(optimumTime), TimeMaxValue));
 }
 
 void TimeManager::advance_time_nodes(const i64 nodes) noexcept {
