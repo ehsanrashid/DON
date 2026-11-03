@@ -34,7 +34,6 @@
 #include "utility/debug.h"
 #include "utility/multi_array.h"
 #include "utility/prng.h"
-#include <math.h>
 
 namespace DON {
 

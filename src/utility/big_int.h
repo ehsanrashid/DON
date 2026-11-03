@@ -46,23 +46,23 @@ class BigInt final {
     bool  negative = false;
 
     // Compare absolute values.
-    static int compare_abs(const BigInt& a, const BigInt& b) noexcept {
-        if (a.limbs.size() != b.limbs.size())
-            return a.limbs.size() < b.limbs.size() ? -1 : 1;
+    static int compare_abs(const BigInt& bi1, const BigInt& bi2) noexcept {
+        if (bi1.limbs.size() != bi2.limbs.size())
+            return bi1.limbs.size() < bi2.limbs.size() ? -1 : 1;
 
-        for (usize i = a.limbs.size(); i-- > 0;)
+        for (usize i = bi1.limbs.size(); i-- > 0;)
         {
-            if (a.limbs[i] != b.limbs[i])
-                return a.limbs[i] < b.limbs[i] ? -1 : 1;
+            if (bi1.limbs[i] != bi2.limbs[i])
+                return bi1.limbs[i] < bi2.limbs[i] ? -1 : 1;
         }
 
         return 0;
     }
 
     // Add absolute values.
-    static BigInt add_abs(const BigInt& a, const BigInt& b) {
+    static BigInt add_abs(const BigInt& bi1, const BigInt& bi2) noexcept {
         BigInt result;
-        result.limbs.resize(std::max(a.limbs.size(), b.limbs.size()) + 1);
+        result.limbs.resize(std::max(bi1.limbs.size(), bi2.limbs.size()) + 1);
 
         u64 carry = 0;
 
@@ -70,42 +70,42 @@ class BigInt final {
         {
             u64 sum = carry;
 
-            if (i < a.limbs.size())
-                sum += a.limbs[i];
+            if (i < bi1.limbs.size())
+                sum += bi1.limbs[i];
 
-            if (i < b.limbs.size())
-                sum += b.limbs[i];
+            if (i < bi2.limbs.size())
+                sum += bi2.limbs[i];
 
-            result.limbs[i] = static_cast<Limb>(sum % Base);
+            result.limbs[i] = Limb(sum % Base);
             carry           = sum / Base;
         }
 
-        result.limbs.back() = static_cast<Limb>(carry);
+        result.limbs.back() = Limb(carry);
         result.trim();
 
         return result;
     }
 
     // Subtract absolute values. Requires |a| >= |b|.
-    static BigInt sub_abs(const BigInt& a, const BigInt& b) {
+    static BigInt sub_abs(const BigInt& bi1, const BigInt& bi2) noexcept {
         BigInt result;
-        result.limbs.resize(a.limbs.size());
+        result.limbs.resize(bi1.limbs.size());
 
         i64 borrow = 0;
 
-        for (usize i = 0; i < a.limbs.size(); ++i)
+        for (usize i = 0; i < bi1.limbs.size(); ++i)
         {
-            i64 diff = static_cast<i64>(a.limbs[i]) - borrow;
+            i64 diff = i64(bi1.limbs[i]) - borrow;
 
-            if (i < b.limbs.size())
-                diff -= b.limbs[i];
+            if (i < bi2.limbs.size())
+                diff -= bi2.limbs[i];
 
             borrow = diff < 0;
 
             if (borrow)
                 diff += Base;
 
-            result.limbs[i] = static_cast<Limb>(diff);
+            result.limbs[i] = Limb(diff);
         }
 
         result.trim();
@@ -126,13 +126,13 @@ class BigInt final {
 
         for (usize i = 0; i < limbs.size(); ++i)
         {
-            const u64 product = static_cast<u64>(limbs[i]) * value + carry;
+            const u64 product = u64(limbs[i]) * value + carry;
 
-            result.limbs[i] = static_cast<Limb>(product % Base);
+            result.limbs[i] = Limb(product % Base);
             carry           = product / Base;
         }
 
-        result.limbs.back() = static_cast<Limb>(carry);
+        result.limbs.back() = Limb(carry);
         result.trim();
 
         return result;
@@ -146,13 +146,13 @@ class BigInt final {
         {
             const u64 current = remainder * Base + limbs[i];
 
-            limbs[i]  = static_cast<Limb>(current / value);
+            limbs[i]  = Limb(current / value);
             remainder = current % value;
         }
 
         trim();
 
-        return static_cast<Limb>(remainder);
+        return Limb(remainder);
     }
 
     // Shift left by one base limb and add a new least-significant limb.
@@ -269,7 +269,7 @@ class BigInt final {
 
         negative = std::is_signed_v<T> && value < 0;
 
-        U magnitude = static_cast<U>(value);
+        U magnitude = U(value);
 
         if (negative)
             magnitude = U{0} - magnitude;
@@ -278,7 +278,7 @@ class BigInt final {
 
         do
         {
-            limbs.push_back(static_cast<Limb>(magnitude % Base));
+            limbs.push_back(Limb(magnitude % Base));
             magnitude /= Base;
         } while (magnitude != 0);
 
@@ -378,10 +378,9 @@ class BigInt final {
 
             for (usize j = 0; j < b.limbs.size(); ++j)
             {
-                const u64 current =
-                  result.limbs[i + j] + static_cast<u64>(a.limbs[i]) * b.limbs[j] + carry;
+                const u64 current = result.limbs[i + j] + u64(a.limbs[i]) * b.limbs[j] + carry;
 
-                result.limbs[i + j] = static_cast<Limb>(current % Base);
+                result.limbs[i + j] = Limb(current % Base);
 
                 carry = current / Base;
             }
@@ -392,7 +391,7 @@ class BigInt final {
             {
                 const u64 current = result.limbs[k] + carry;
 
-                result.limbs[k] = static_cast<Limb>(current % Base);
+                result.limbs[k] = Limb(current % Base);
 
                 carry = current / Base;
                 ++k;
@@ -510,12 +509,12 @@ class BigInt final {
         }
 
         if (!negative)
-            return static_cast<i64>(value);
+            return i64(value);
 
         if (value == limit)
             return std::numeric_limits<i64>::min();
 
-        return -static_cast<i64>(value);
+        return -i64(value);
     }
 
     // String conversion
