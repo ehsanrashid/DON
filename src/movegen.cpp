@@ -319,9 +319,7 @@ void generate_piece(const Position& pos,
     const Bitboard occupancyBB = pos.pieces_bb();
     const Bitboard blockersBB  = pos.blockers_bb(ac);
 
-    Bitboard bb;
-
-    bb = piecesBB & ~blockersBB;
+    Bitboard bb = piecesBB & ~blockersBB;
     while (bb != 0)
     {
         const Square   orgSq = ac == WHITE ? pop_lsq(bb) : pop_msq(bb);

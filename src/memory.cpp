@@ -57,7 +57,9 @@
     #include <stdlib.h>
 #endif
 
-#include "utility/tracker.h"
+#if !defined(_WIN32)
+    #include "utility/tracker.h"
+#endif
 
 namespace DON {
 
@@ -243,7 +245,6 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
     // Fall back to regular Windows page-aligned allocation
     mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
 #else
     #if defined(USE_POSIX_HUGE_PAGES)
     if (hugePageHint && allocSize >= HUGE_PAGE_SIZE)
@@ -263,7 +264,6 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     const usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
 
     mem = HugePageAllocationTracker.alloc(roundedAllocSize, alloc_aligned_huge);
-
     #else
     constexpr usize Alignment = 4 * KB;  // Assume 4 KB page size
 
@@ -275,7 +275,6 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     if (mem != nullptr)
         ::madvise(mem, roundedAllocSize, MADV_HUGEPAGE);
         #endif
-
     #endif
 #endif
 
