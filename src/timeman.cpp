@@ -59,7 +59,7 @@ void TimeManager::reset() noexcept {
 }
 
 void TimeManager::init(const Color    c,
-                       const i16      ply,
+                       const u16      ply,
                        const Options& options,
                        Limit&         limit) noexcept {
     // If have no time, no need to fully initialize TM.
