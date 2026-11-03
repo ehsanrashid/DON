@@ -17,9 +17,9 @@
 
 #include "option.h"
 
+#include <algorithm>  // min()/max()
 #include <cassert>
 #include <iostream>
-//#include <unordered_set>
 
 #include "utility/functions.h"
 

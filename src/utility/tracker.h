@@ -21,8 +21,7 @@
 #include <mutex>         // lock_guard<>
 #include <optional>      // optional<>, nullopt
 #include <shared_mutex>  // shared_lock<>, shared_mutex<>
-//#include <unordered_map>  // unordered_map<>
-#include <utility>  // forward<>
+#include <utility>       // forward<>
 
 #include "../utility/types.h"
 #include "../utility/ankerl/unordered_dense.h"

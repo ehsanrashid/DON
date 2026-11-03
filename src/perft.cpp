@@ -175,6 +175,7 @@ struct PTEntry final {
     PTEntry& operator=(const PTEntry&) noexcept = delete;
     PTEntry(PTEntry&&) noexcept                 = delete;
     PTEntry& operator=(PTEntry&&) noexcept      = delete;
+    ~PTEntry() noexcept                         = default;
 
     [[nodiscard]] u32   key() const noexcept { return key32; }
     [[nodiscard]] bool  occupied() const noexcept { return depth16 != 0; }
@@ -219,6 +220,7 @@ struct PTCluster final {
     PTCluster& operator=(const PTCluster&) noexcept = delete;
     PTCluster(PTCluster&&) noexcept                 = delete;
     PTCluster& operator=(PTCluster&&) noexcept      = delete;
+    ~PTCluster() noexcept                           = default;
 
     static constexpr u8 EntryCount = 4;
 
@@ -236,6 +238,7 @@ class PTWriter final {
     PTWriter(const PTWriter&) noexcept            = delete;
     PTWriter(PTWriter&&) noexcept                 = default;
     PTWriter& operator=(PTWriter&&) noexcept      = delete;
+    ~PTWriter() noexcept                          = default;
 
     void write(u64 n, Depth d) noexcept;
 
@@ -280,7 +283,11 @@ struct ProbResult final {
 
 class PerftTable final {
    public:
-    PerftTable() noexcept = default;
+    PerftTable() noexcept                             = default;
+    PerftTable(const PerftTable&) noexcept            = delete;
+    PerftTable& operator=(const PerftTable&) noexcept = delete;
+    PerftTable(PerftTable&&) noexcept                 = delete;
+    PerftTable& operator=(PerftTable&&) noexcept      = delete;
 
     ~PerftTable() noexcept;
 
@@ -295,11 +302,6 @@ class PerftTable final {
     void free() noexcept;
 
    private:
-    PerftTable(const PerftTable&) noexcept            = delete;
-    PerftTable& operator=(const PerftTable&) noexcept = delete;
-    PerftTable(PerftTable&&) noexcept                 = delete;
-    PerftTable& operator=(PerftTable&&) noexcept      = delete;
-
     PTCluster* clusters = nullptr;
     usize      clusterCount;
 };
@@ -457,7 +459,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                 {
                     const Key key = pos.raw_key();
 
-                    auto [ptd, ptw] = perft_table().probe(key, depth - 1);
+                    auto [ptd, ptw] = perft_table().probe(key, Depth(depth - 1));
 
                     if (ptd.hit)
                     {
@@ -465,14 +467,14 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                     }
                     else
                     {
-                        iPerftData = perft<false>(pos, depth - 1, detail);
+                        iPerftData = perft<false>(pos, Depth(depth - 1), detail);
 
-                        ptw.write(iPerftData.nodes, depth - 1);
+                        ptw.write(iPerftData.nodes, Depth(depth - 1));
                     }
                 }
                 else
                 {
-                    iPerftData = perft<false>(pos, depth - 1, detail);
+                    iPerftData = perft<false>(pos, Depth(depth - 1), detail);
                 }
             }
 

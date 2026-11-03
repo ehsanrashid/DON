@@ -24,7 +24,6 @@
 #include <list>          // list<>
 #include <mutex>         // lock_guard<>
 #include <shared_mutex>  // shared_lock<>, shared_mutex<>
-//#include <unordered_map>  // unordered_map<>
 
 #include "../utility/call_once.h"
 #include "../utility/types.h"
