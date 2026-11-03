@@ -18,16 +18,17 @@
 #ifndef UTILITY_REGISTRY_H_INCLUDED
 #define UTILITY_REGISTRY_H_INCLUDED
 
-#include <cassert>        // assert()
-#include <cstdlib>        // atexit()
-#include <iostream>       // basic_ostream<>
-#include <list>           // list<>
-#include <mutex>          // lock_guard<>
-#include <shared_mutex>   // shared_lock<>, shared_mutex<>
-#include <unordered_map>  // unordered_map<>
+#include <cassert>       // assert()
+#include <cstdlib>       // atexit()
+#include <iostream>      // basic_ostream<>
+#include <list>          // list<>
+#include <mutex>         // lock_guard<>
+#include <shared_mutex>  // shared_lock<>, shared_mutex<>
+//#include <unordered_map>  // unordered_map<>
 
 #include "../utility/call_once.h"
 #include "../utility/types.h"
+#include "../utility/ankerl/unordered_dense.h"
 
 namespace DON {
 
@@ -36,13 +37,13 @@ template<typename Value>
 class Registry final {
    private:
     using List = std::list<Value>;
-    using Map  = std::unordered_map<Value, typename List::iterator>;
+    using Map  = ankerl::unordered_dense::map<Value, typename List::iterator>;
 
    public:
     explicit Registry(usize reserveCnt = 1 * KB, float maxLoadFac = 0.75F) :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac) {
-        configure(map);
+        configure();
     }
 
     Registry(const Registry&) noexcept            = delete;
@@ -158,7 +159,7 @@ class Registry final {
 
     // Registers a value.
     // The caller must hold 'mutex' exclusively.
-    bool nolock_register(const Value& value) {
+    bool nolock_register(const Value& value) noexcept {
         if (nolock_contains(value))
             return false;
 
@@ -180,7 +181,7 @@ class Registry final {
 
     // Unregisters a value.
     // The caller must hold 'mutex' exclusively.
-    bool nolock_unregister(const Value& value) {
+    bool nolock_unregister(const Value& value) noexcept {
         const auto mapItr = nolock_find(value);
 
         if (mapItr == map.end())
@@ -201,16 +202,16 @@ class Registry final {
         return true;
     }
 
-    void configure(Map& map_) const {
-        map_.max_load_factor(maxLoadFactor);
-        map_.reserve(reserveCount);
-    }
-
     // Stops accepting new values.
     void stop_registering() noexcept {
         std::lock_guard lockGuard{mutex};
 
         registrationStopped = true;
+    }
+
+    void configure() noexcept {
+        map.max_load_factor(maxLoadFactor);
+        map.reserve(reserveCount);
     }
 
     const usize reserveCount;
@@ -274,7 +275,8 @@ class RegistryCleanupHook final {
         {
             registryCleanupPtr = &registryCleanup;
 
-            hookCallOnce([]() noexcept -> void { std::atexit(cleanupFunction); });
+            // Call std::atexit only once in the entire application lifecycle setup phase.
+            hookCallOnce([]() noexcept -> void { (void) std::atexit(cleanupFunction); });
         }
     }
 
