@@ -49,6 +49,7 @@ class Registry final {
     Registry& operator=(const Registry&) noexcept = delete;
     Registry(Registry&&) noexcept                 = delete;
     Registry& operator=(Registry&&) noexcept      = delete;
+    ~Registry() noexcept                          = default;
 
     // Registers a value in the registry.
     //
@@ -116,10 +117,8 @@ class Registry final {
 
         std::cout << "Registered values [" << list.size() << "]:\n";
 
-        usize i = 0;
-
-        for (const auto& value : list)
-            std::cout << '[' << i++ << "] " << value << '\n';
+        for (usize i = 0; i < list.size(); ++i)
+            std::cout << '[' << i << "] " << list[i] << '\n';
 
         std::cout << std::endl;
     }
@@ -241,6 +240,7 @@ class RegistryCleanup final {
     RegistryCleanup& operator=(const RegistryCleanup&) noexcept = delete;
     RegistryCleanup(RegistryCleanup&&) noexcept                 = delete;
     RegistryCleanup& operator=(RegistryCleanup&&) noexcept      = delete;
+    ~RegistryCleanup() noexcept                                 = default;
 
     void cleanup() noexcept {
         registry.stop_registering();
@@ -267,6 +267,7 @@ class RegistryCleanupHook final {
     RegistryCleanupHook& operator=(const RegistryCleanupHook&) noexcept = delete;
     RegistryCleanupHook(RegistryCleanupHook&&) noexcept                 = delete;
     RegistryCleanupHook& operator=(RegistryCleanupHook&&) noexcept      = delete;
+    ~RegistryCleanupHook() noexcept                                     = default;
 
     void ensure_initialized() noexcept {
         while (!hookCallOnce.once_called())

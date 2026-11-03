@@ -95,10 +95,12 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
 class Options final {
    public:
+    Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
     Options& operator=(const Options&) noexcept = delete;
     Options(Options&&) noexcept                 = delete;
     Options& operator=(Options&&) noexcept      = delete;
+    ~Options() noexcept                         = default;
 
     // clang-format off
     // Stores the option name view and the polymorphic option, preserving the original name case.
@@ -113,8 +115,6 @@ class Options final {
 
     using ChangeInfo = std::optional<std::string_view>;
     using OnInfo     = std::function<void(ChangeInfo)>;
-
-    Options() noexcept = default;
 
     auto begin() noexcept;
     auto end() noexcept;
