@@ -2120,6 +2120,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
+            // Skip quiets
+            if (!capture)
+                break;
+
             mp.skip_quiets([]() noexcept -> bool { return true; });
 
             // Futility pruning and moveCount pruning
@@ -2155,10 +2159,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                     continue;
                 }
             }
-
-            // Skip quiets
-            if (!capture)
-                continue;
 
             // SEE-based pruning:
             if (pos.see(move) < -74)
