@@ -18,20 +18,20 @@
 #ifndef UTILITY_TRACKER_H_INCLUDED
 #define UTILITY_TRACKER_H_INCLUDED
 
-#include <mutex>          // lock_guard<>
-#include <optional>       // optional<>, nullopt
-#include <shared_mutex>   // shared_lock<>, shared_mutex<>
-#include <unordered_map>  // unordered_map<>
-#include <utility>        // forward<>
+#include <mutex>         // lock_guard<>
+#include <optional>      // optional<>, nullopt
+#include <shared_mutex>  // shared_lock<>, shared_mutex<>
+#include <utility>       // forward<>
 
 #include "../utility/types.h"
+#include "../utility/ankerl/unordered_dense.h"
 
 namespace DON {
 
 // AllocationTracker: thread-safe allocation and freeing, with allocation size tracking.
 class AllocationTracker final {
    public:
-    using AllocationMap = std::unordered_map<void*, usize>;
+    using AllocationMap = ankerl::unordered_dense::map<void*, usize>;
 
     AllocationTracker() noexcept                                    = default;
     AllocationTracker(const AllocationTracker&) noexcept            = delete;

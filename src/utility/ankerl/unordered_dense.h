@@ -1,7 +1,7 @@
 ///////////////////////// ankerl::unordered_dense::{map, set} /////////////////////////
 
 // A fast & densely stored hashmap and hashset.
-// Version 5.3.2
+// Version 5.3.3
 // https://github.com/martinus/unordered_dense
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.
@@ -35,7 +35,7 @@ constexpr auto ANKERL_UNORDERED_DENSE_VERSION_MAJOR =
 constexpr auto ANKERL_UNORDERED_DENSE_VERSION_MINOR =
   3;  // NOLINT(cppcoreguidelines-macro-usage) backwards compatible functionality
 constexpr auto ANKERL_UNORDERED_DENSE_VERSION_PATCH =
-  2;  // NOLINT(cppcoreguidelines-macro-usage) backwards compatible bug fixes
+  3;  // NOLINT(cppcoreguidelines-macro-usage) backwards compatible bug fixes
 
 // API versioning with inline namespace, see https://www.foonathan.net/2018/11/inline-namespaces/
 
@@ -166,8 +166,16 @@ constexpr auto ANKERL_UNORDERED_DENSE_VERSION_PATCH =
         #include <intrin.h>  // for _BitScanForward
     #endif
 
-    #if __has_cpp_attribute(likely) && __has_cpp_attribute(unlikely) \
-      && ANKERL_UNORDERED_DENSE_CPP_VERSION >= 202002L
+    // __has_cpp_attribute is not provided by every C++17 compiler (e.g. MSVC 19.16); probe it with
+    // defined() first so the nested use is not evaluated where the builtin is missing (MSVC C4067).
+    #if defined(__has_cpp_attribute) && ANKERL_UNORDERED_DENSE_CPP_VERSION >= 202002L
+        #if __has_cpp_attribute(likely) && __has_cpp_attribute(unlikely)
+            #define ANKERL_UNORDERED_DENSE_HAS_LIKELY_ATTR \
+                1  // NOLINT(cppcoreguidelines-macro-usage)
+        #endif
+    #endif
+
+    #if defined(ANKERL_UNORDERED_DENSE_HAS_LIKELY_ATTR)
         #define ANKERL_UNORDERED_DENSE_LIKELY_ATTR \
             [[likely]]  // NOLINT(cppcoreguidelines-macro-usage)
         #define ANKERL_UNORDERED_DENSE_UNLIKELY_ATTR \
@@ -913,9 +921,7 @@ namespace detail {
 [[nodiscard]] constexpr auto make_fingerprint_words() -> std::array<std::uint32_t, 256> {
     auto t = std::array<std::uint32_t, 256>{};
     for (std::uint32_t i = 0; i < 256; ++i)
-    {
         t[i] = (i == 0 ? 8U : i) * 0x01010101U;
-    }
     return t;
 }
 inline constexpr std::array<std::uint32_t, 256> fingerprint_words = make_fingerprint_words();
@@ -4330,8 +4336,8 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
         if constexpr (detail::is_detected_v<detail::detect_range_assign, value_container_type,
                                             value_type const*>)
         {
-            m_values.assign(view.begin(),
-                            view.end());  // one copy of the range, a memcpy where it can be
+            // one copy of the range, a memcpy where it can be
+            m_values.assign(view.begin(), view.end());
         }
         else
         {
@@ -4339,10 +4345,9 @@ class table: public std::conditional_t<is_map_v<T>, base_table_type_map<T>, base
             {
                 m_values.reserve(view.size());
             }
+            // segmented_vector has no assign
             for (auto const& v : view)
-            {  // segmented_vector has no assign
                 m_values.emplace_back(v);
-            }
         }
     }
 

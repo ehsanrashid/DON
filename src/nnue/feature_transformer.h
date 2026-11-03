@@ -75,7 +75,7 @@ constexpr void permute(std::array<T, DataSize>&            data,
     constexpr usize ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    auto* bytes = reinterpret_cast<u8*>(data.data());
+    auto* bytes = (u8*) data.data();
 
     for (usize i = 0; i < TotalSize; i += ChunkSize)
     {

@@ -463,7 +463,7 @@ struct Limit final {
     }
 
     constexpr u16 calls_count() const noexcept {
-        return nodes != 0 ? std::min(constexpr_ceil(nodes / 1024.0), 512) : 512;
+        return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / 1024.0), 512) : 512;
     }
 
     TimePoint startTime = 0;

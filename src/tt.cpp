@@ -81,10 +81,11 @@ struct TTEntry final {
     TTEntry& operator=(const TTEntry&) noexcept = delete;
     TTEntry(TTEntry&&) noexcept                 = delete;
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
+    ~TTEntry() noexcept                         = default;
 
     // clang-format off
     [[nodiscard]] bool  occupied() const noexcept { return depth8 != 0; }
-    [[nodiscard]] Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
+    [[nodiscard]] Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
     [[nodiscard]] Move  move() const noexcept { return move16; }
     [[nodiscard]] Value value() const noexcept { return value16; }
     [[nodiscard]] Value evalue() const noexcept { return evalue16; }
@@ -205,6 +206,7 @@ struct TTCluster final {
     TTCluster& operator=(const TTCluster&) noexcept = delete;
     TTCluster(TTCluster&&) noexcept                 = delete;
     TTCluster& operator=(TTCluster&&) noexcept      = delete;
+    ~TTCluster() noexcept                           = default;
 
     u8 key_index(u32 key21) const noexcept;
 
