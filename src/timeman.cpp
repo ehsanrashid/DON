@@ -150,7 +150,7 @@ void TimeManager::init(const Color    c,
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == TimeAdjustDefault)
         {
-            timeAdjust = -0.4126 + 0.2862 * constexpr_log10(remainTime);
+            timeAdjust = -0.4126 + 0.2862 * constexpr_log10(double(remainTime));
             if (timeAdjust < TimeAdjustMin)
                 timeAdjust = TimeAdjustMin;
         }
@@ -167,7 +167,7 @@ void TimeManager::init(const Color    c,
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == TimeAdjustDefault)
         {
-            timeAdjust = -0.4141 + 0.3272 * constexpr_log10(remainTime);
+            timeAdjust = -0.4141 + 0.3272 * constexpr_log10(double(remainTime));
             if (timeAdjust < TimeAdjustMin)
                 timeAdjust = TimeAdjustMin;
         }
