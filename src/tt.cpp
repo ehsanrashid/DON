@@ -263,9 +263,16 @@ u8 TTWriter::prepare_replacement() const noexcept {
         replacement = idx;
     else
     {
+        auto replacementWorth = ttc->entries[0].worth(generation);
         for (u8 i = 1; i < TTCluster::EntryCount; ++i)
-            if (ttc->entries[replacement].worth(generation) > ttc->entries[i].worth(generation))
-                replacement = i;
+        {
+            const auto worth = ttc->entries[i].worth(generation);
+            if (replacementWorth > worth)
+            {
+                replacementWorth = worth;
+                replacement      = i;
+            }
+        }
     }
 
     return replacement;
