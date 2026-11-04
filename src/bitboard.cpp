@@ -21,9 +21,9 @@
     #include <cstring>  // memcpy()
 #endif
 
-#include "utility/lirs_cache.h"
 #include "utility/mutex.h"
 #include "utility/sharded_cache.h"
+#include "utility/sieve_cache.h"
 
 namespace DON {
 
@@ -44,7 +44,7 @@ alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
 
 using BitboardCache = ShardedCache<Bitboard,
                                    std::string,
-                                   PoolFlatLIRSCache,
+                                   PoolFlatSIEVECache,
                                    32,
                                    SpinMutex,  //
                                    std::string_view>;

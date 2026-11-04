@@ -36,6 +36,7 @@ class LOCKABLE Mutex final {
     Mutex& operator=(const Mutex&) noexcept = delete;
     Mutex(Mutex&&) noexcept                 = delete;
     Mutex& operator=(Mutex&&) noexcept      = delete;
+    ~Mutex() noexcept                       = default;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -66,6 +67,7 @@ class LOCKABLE SpinMutex final {
     SpinMutex& operator=(const SpinMutex&) noexcept = delete;
     SpinMutex(SpinMutex&&) noexcept                 = delete;
     SpinMutex& operator=(SpinMutex&&) noexcept      = delete;
+    ~SpinMutex() noexcept                           = default;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -88,6 +90,7 @@ class LOCKABLE SharedMutex final {
     SharedMutex& operator=(const SharedMutex&) noexcept = delete;
     SharedMutex(SharedMutex&&) noexcept                 = delete;
     SharedMutex& operator=(SharedMutex&&) noexcept      = delete;
+    ~SharedMutex() noexcept                             = default;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -133,6 +136,7 @@ class LOCKABLE ReaderSharedMutex final {
     ReaderSharedMutex& operator=(const ReaderSharedMutex&) noexcept = delete;
     ReaderSharedMutex(ReaderSharedMutex&&) noexcept                 = delete;
     ReaderSharedMutex& operator=(ReaderSharedMutex&&) noexcept      = delete;
+    ~ReaderSharedMutex() noexcept                                   = default;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -179,6 +183,7 @@ class LOCKABLE WriterSharedMutex final {
     WriterSharedMutex& operator=(const WriterSharedMutex&) noexcept = delete;
     WriterSharedMutex(WriterSharedMutex&&) noexcept                 = delete;
     WriterSharedMutex& operator=(WriterSharedMutex&&) noexcept      = delete;
+    ~WriterSharedMutex() noexcept                                   = default;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 
@@ -241,6 +246,7 @@ class LOCKABLE FairSharedMutex final {
     FairSharedMutex& operator=(const FairSharedMutex&) noexcept = delete;
     FairSharedMutex(FairSharedMutex&&) noexcept                 = delete;
     FairSharedMutex& operator=(FairSharedMutex&&) noexcept      = delete;
+    ~FairSharedMutex() noexcept                                 = default;
 
     void lock() noexcept ACQUIRE_CAPABILITY();
 

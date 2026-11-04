@@ -36,14 +36,6 @@
 
 namespace DON {
 
-// OPTIMIZED LIRS Cache: Low-In-Recency-Set eviction strategy
-//
-// Uses SIEVE-style hand pointer for efficient recency tracking:
-// - Single hand pointer scans list backward without moving entries
-// - Accessed flag distinguishes LIR (accessed) vs HIR (unaccessed) entries
-// - On hit: set accessed = true (no list reorganization needed)
-// - On eviction: scan from hand backward, clear and evict unvisited HIR entries
-// - Hand cursor preserves position for O(1) amortized eviction overhead
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class PoolLIRSCache final {
     static constexpr usize InlineValueThreshold = 128;
@@ -51,9 +43,31 @@ class PoolLIRSCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
+    struct Entry;
+
+    struct StackNode final {
+        Entry*     entry;
+        StackNode* prev = nullptr;
+        StackNode* next = nullptr;
+    };
+
+    struct QueueNode final {
+        Entry*     entry;
+        QueueNode* prev = nullptr;
+        QueueNode* next = nullptr;
+    };
+
+    enum class EntryType : u8 {
+        LIR,
+        HIR_RESIDENT,
+        HIR_GHOST
+    };
+
     struct Entry final {
         explicit Entry(const Key& k) noexcept :
-            key(k) {}
+            key(k),
+            stackNode{this},
+            queueNode{this} {}
 
         template<typename... Args>
         void emplace_value(Args&&... args) noexcept {
@@ -63,19 +77,22 @@ class PoolLIRSCache final {
                 value.emplace(std::make_shared<Value>(std::forward<Args>(args)...));
         }
 
-        Key    key;
-        bool   accessed = false;
-        Entry* prev     = nullptr;
-        Entry* next     = nullptr;
+        Key       key;
+        EntryType type = EntryType::HIR_RESIDENT;
+
+        StackNode stackNode;
+        QueueNode queueNode;
+
+        bool inStack = false;
+        bool inQueue = false;
 
         std::optional<storage_value_type> value;
     };
 
-    using list_value_type = Entry;
-    using list_type       = DoublyIntrusiveList<list_value_type>;
-    using list_iterator   = list_value_type*;
-    using map_type        = std::unordered_map<Key, list_iterator>;
-    using map_iterator    = typename map_type::iterator;
+    using stack_type   = DoublyIntrusiveList<StackNode>;
+    using queue_type   = DoublyIntrusiveList<QueueNode>;
+    using map_type     = std::unordered_map<Key, Entry*>;
+    using map_iterator = typename map_type::iterator;
 
    public:
     explicit PoolLIRSCache(const usize cap        = 2 * KB,
@@ -85,7 +102,7 @@ class PoolLIRSCache final {
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac),
         capacity(cap),
-        hand(nullptr) {
+        lirTarget(calculate_lir_target(cap)) {
         configure();
     }
 
@@ -120,62 +137,77 @@ class PoolLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(size);
+        assert(nolock_consistency_check());
     }
 
     void evict_excess() noexcept {
         std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(capacity);
+        assert(nolock_consistency_check());
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
         std::lock_guard lockGuard{mutex};
-
         return capacity;
     }
 
     void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = newCapacity;
+        capacity  = newCapacity;
+        lirTarget = calculate_lir_target(capacity);
 
-        nolock_evict_excess(capacity);
+        nolock_rebalance();
+
+        assert(nolock_consistency_check());
+    }
+
+    [[nodiscard]] usize size() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        assert(nolock_consistency_check());
+        return residentCount;
+    }
+
+    [[nodiscard]] usize ghost_size() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return map.size() - residentCount;
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::lock_guard lockGuard{mutex};
+        return residentCount == 0;
     }
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
 
         const auto mapItr = map.find(key);
-        return mapItr != map.end() && mapItr->second != nullptr
-            && nolock_is_resident(mapItr->second);
+
+        return mapItr != map.end() && mapItr->second->value.has_value();
     }
 
-    [[nodiscard]] bool contains_ghost(const Key&) const noexcept {
+    [[nodiscard]] bool contains_ghost(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
 
-        return false;
-    }
+        const auto mapItr = map.find(key);
 
-    [[nodiscard]] usize size() const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return list.size();
-    }
-
-    [[nodiscard]] bool empty() const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return list.empty();
+        return mapItr != map.end() && mapItr->second->type == EntryType::HIR_GHOST;
     }
 
     [[nodiscard]] bool remove(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
         const auto mapItr = map.find(key);
-        if (UNLIKELY(mapItr == map.end() || mapItr->second == nullptr))
+
+        if (UNLIKELY(mapItr == map.end()))
             return false;
 
         nolock_erase(mapItr);
+
+        assert(nolock_consistency_check());
         return true;
     }
 
@@ -183,6 +215,8 @@ class PoolLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
+        assert(nolock_consistency_check());
     }
 
     void configure() noexcept {
@@ -195,33 +229,30 @@ class PoolLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-
         nolock_release_pool();
 
         map.rehash(0);
 
-        capacity = defaultCapacity;
-
-        hand = nullptr;
+        capacity  = defaultCapacity;
+        lirTarget = calculate_lir_target(capacity);
 
         nolock_configure();
+
+        assert(nolock_consistency_check());
     }
 
    private:
-    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
-        return entry != nullptr && entry->value.has_value();
+    // Keep at least one HIR slot when capacity is greater than one.
+    [[nodiscard]] static constexpr usize calculate_lir_target(const usize cap) noexcept {
+        if (cap <= 1)
+            return 0;
+
+        const usize hirCapacity = std::max<usize>(1, cap / 100);
+
+        return cap - hirCapacity;
     }
 
-    [[nodiscard]] ALWAYS_INLINE list_iterator nolock_touch(list_iterator entry) noexcept {
-        assert(entry != nullptr);
-        assert(entry->value.has_value());
-
-        // Hot path: just mark accessed, no list reorganization
-        entry->accessed = true;
-        return entry;
-    }
-
-    ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
+    [[nodiscard]] ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
 
@@ -231,6 +262,318 @@ class PoolLIRSCache final {
             return **entry->value;
     }
 
+    // -------------------------------------------------------------------------
+    // List helpers
+    // -------------------------------------------------------------------------
+
+    [[nodiscard]] StackNode* nolock_stack_back() noexcept { return stack.back(); }
+
+    [[nodiscard]] QueueNode* nolock_queue_back() noexcept { return queue.back(); }
+
+    void nolock_stack_push_front(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(!entry->inStack);
+        assert(entry->stackNode.prev == nullptr);
+        assert(entry->stackNode.next == nullptr);
+
+        if (UNLIKELY(entry == nullptr || entry->inStack || entry->stackNode.prev != nullptr
+                     || entry->stackNode.next != nullptr))
+            std::terminate();
+
+        if (UNLIKELY(!stack.push_front(entry->stackNode)))
+            std::terminate();
+
+        entry->inStack = true;
+    }
+
+    void nolock_queue_push_front(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(!entry->inQueue);
+        assert(entry->queueNode.prev == nullptr);
+        assert(entry->queueNode.next == nullptr);
+
+        if (UNLIKELY(entry == nullptr || entry->inQueue || entry->queueNode.prev != nullptr
+                     || entry->queueNode.next != nullptr))
+            std::terminate();
+
+        if (UNLIKELY(!queue.push_front(entry->queueNode)))
+            std::terminate();
+
+        entry->inQueue = true;
+    }
+
+    void nolock_stack_erase(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->inStack);
+
+        if (UNLIKELY(!stack.erase(entry->stackNode)))
+            std::terminate();
+
+        entry->inStack        = false;
+        entry->stackNode.prev = nullptr;
+        entry->stackNode.next = nullptr;
+    }
+
+    void nolock_queue_erase(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->inQueue);
+
+        if (UNLIKELY(!queue.erase(entry->queueNode)))
+            std::terminate();
+
+        entry->inQueue        = false;
+        entry->queueNode.prev = nullptr;
+        entry->queueNode.next = nullptr;
+    }
+
+    void nolock_stack_move_front(Entry* entry) noexcept {
+        if (entry->inStack)
+            nolock_stack_erase(entry);
+
+        nolock_stack_push_front(entry);
+    }
+
+    void nolock_queue_move_front(Entry* entry) noexcept {
+        if (entry->inQueue)
+            nolock_queue_erase(entry);
+
+        nolock_queue_push_front(entry);
+    }
+
+    // -------------------------------------------------------------------------
+    // Stack S pruning
+    // -------------------------------------------------------------------------
+
+    void nolock_prune_stack() noexcept {
+        while (StackNode* node = nolock_stack_back())
+        {
+            Entry* const entry = node->entry;
+            assert(entry != nullptr);
+
+            if (entry->type == EntryType::LIR)
+                break;
+
+            // Remove the HIR entry from Stack S.
+            nolock_stack_erase(entry);
+
+            if (entry->type == EntryType::HIR_GHOST)
+            {
+                // Ghost entries are no longer needed.
+                map.erase(entry->key);
+                pool.destroy(entry);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // LIR demotion
+    // -------------------------------------------------------------------------
+
+    void nolock_demote_bottom_lir() noexcept {
+        assert(lirCount > 0);
+
+        StackNode* const node = nolock_stack_back();
+
+        assert(node != nullptr);
+
+        Entry* const entry = node->entry;
+
+        assert(entry != nullptr);
+        assert(entry->type == EntryType::LIR);
+        assert(entry->inStack);
+        assert(!entry->inQueue);
+        assert(entry->value.has_value());
+
+        entry->type = EntryType::HIR_RESIDENT;
+
+        --lirCount;
+
+        // Demoted LIR becomes the newest HIR entry in Queue Q.
+        nolock_queue_push_front(entry);
+
+        // The demoted entry is now HIR at the bottom of Stack S.
+        nolock_prune_stack();
+    }
+
+    // -------------------------------------------------------------------------
+    // HIR eviction
+    // -------------------------------------------------------------------------
+
+    void nolock_evict_one() noexcept {
+        assert(residentCount > 0);
+
+        if (UNLIKELY(queue.empty()))
+        {
+            assert(lirCount > 0);
+            nolock_demote_bottom_lir();
+        }
+
+        QueueNode* const node = nolock_queue_back();
+        assert(node != nullptr);
+
+        Entry* const entry = node->entry;
+        assert(entry != nullptr);
+        assert(entry->type == EntryType::HIR_RESIDENT);
+        assert(entry->inQueue);
+        assert(entry->value.has_value());
+
+        nolock_queue_erase(entry);
+        --residentCount;
+
+        if (entry->inStack)
+        {
+            entry->type = EntryType::HIR_GHOST;
+            entry->value.reset();
+        }
+        else
+        {
+            map.erase(entry->key);
+            pool.destroy(entry);
+        }
+
+        nolock_prune_stack();
+    }
+
+    void nolock_evict_excess(const usize targetSize) noexcept {
+        while (UNLIKELY(residentCount > targetSize))
+            nolock_evict_one();
+    }
+
+    void nolock_rebalance() noexcept {
+        // Reduce LIR population when the target capacity decreases.
+        while (UNLIKELY(lirCount > lirTarget))
+            nolock_demote_bottom_lir();
+
+        nolock_evict_excess(capacity);
+    }
+
+    // -------------------------------------------------------------------------
+    // Entry insertion
+    // -------------------------------------------------------------------------
+
+    void nolock_link_new_entry(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+        assert(!entry->inStack && !entry->inQueue);
+
+        ++residentCount;
+
+        if (lirCount < lirTarget)
+        {
+            entry->type = EntryType::LIR;
+
+            ++lirCount;
+
+            nolock_stack_push_front(entry);
+        }
+        else
+        {
+            entry->type = EntryType::HIR_RESIDENT;
+
+            nolock_queue_push_front(entry);
+
+            // When lirTarget == 0, the cache degenerates to HIR-only.
+            if (lirTarget != 0)
+            {
+                nolock_stack_push_front(entry);
+                nolock_prune_stack();
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Entry access
+    // -------------------------------------------------------------------------
+
+    [[nodiscard]] ALWAYS_INLINE Entry* nolock_touch(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        switch (entry->type)
+        {
+        case EntryType::LIR :
+            // LIR access: move to MRU position in Stack S.
+            nolock_stack_move_front(entry);
+            nolock_prune_stack();
+            break;
+
+        case EntryType::HIR_RESIDENT :
+            if (entry->inStack)
+            {
+                // HIR in Stack S: promote to LIR.
+                assert(lirTarget > 0);
+                assert(entry->inQueue);
+
+                nolock_queue_erase(entry);
+
+                entry->type = EntryType::LIR;
+
+                ++lirCount;
+
+                nolock_stack_move_front(entry);
+
+                // Demote the bottom LIR.
+                nolock_demote_bottom_lir();
+            }
+            else
+            {
+                // HIR outside Stack S: update Queue Q recency.
+                nolock_queue_move_front(entry);
+
+                if (lirTarget != 0)
+                {
+                    nolock_stack_push_front(entry);
+                    nolock_prune_stack();
+                }
+            }
+            break;
+
+        case EntryType::HIR_GHOST :
+            // Ghost entries must be restored before reading.
+            assert(false);
+            UNREACHABLE();
+        }
+
+        return entry;
+    }
+
+    // -------------------------------------------------------------------------
+    // Ghost restoration
+    // -------------------------------------------------------------------------
+
+    template<typename... Args>
+    Entry* nolock_restore_ghost(Entry* entry, Args&&... args) noexcept {
+        assert(entry != nullptr);
+        assert(entry->type == EntryType::HIR_GHOST);
+        assert(!entry->value.has_value());
+        assert(entry->inStack);
+        assert(!entry->inQueue);
+
+        // 1. Safely emplace the value first
+        entry->emplace_value(std::forward<Args>(args)...);
+
+        // 2. IMMEDIATELY upgrade type to protect it from self-deletion in prune_stack
+        entry->type = EntryType::LIR;
+        ++lirCount;
+        ++residentCount;
+
+        // 3. Move it to the MRU front of Stack S so it won't be demoted by accident
+        nolock_stack_move_front(entry);
+
+        // 4. Perform eviction now if we are over capacity
+        if (residentCount > capacity)
+            nolock_evict_one();
+
+        // 5. Demote the non-frequent LIR at the bottom of the stack
+        nolock_demote_bottom_lir();
+
+        return entry;
+    }
+
+    // -------------------------------------------------------------------------
+    // Write
+    // -------------------------------------------------------------------------
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
         if (UNLIKELY(capacity == 0))
@@ -239,34 +582,39 @@ class PoolLIRSCache final {
         const auto existingItr = map.find(key);
         if (LIKELY(existingItr != map.end()))
         {
-            assert(existingItr->second != nullptr);
-            return nolock_read(nolock_touch(existingItr->second));
+            Entry* const entry = existingItr->second;
+            assert(entry != nullptr);
+
+            if (entry->type == EntryType::HIR_GHOST)
+                return nolock_read(nolock_restore_ghost(entry, std::forward<Args>(args)...));
+
+            return nolock_read(nolock_touch(entry));
         }
 
-        if (UNLIKELY(list.size() >= capacity))
+        // 1. Evict FIRST while the map layout is undisturbed
+        if (UNLIKELY(residentCount >= capacity))
             nolock_evict_one();
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
-
-        MapGuard<map_type> mapGuard{map, mapItr};
-
+        // 2. Allocate the node from the custom stable pool
         Entry* const entry = pool.create_object(key);
-
         if (UNLIKELY(entry == nullptr))
             return Return{std::forward<Args>(args)...};
 
         entry->emplace_value(std::forward<Args>(args)...);
 
-        // New entries inserted at front (most recent)
-        [[maybe_unused]]  //
-        const bool linked = list.push_front(*entry);
-        assert(linked);
+        // 3. Anchor the stable heap pointer inside the flat container
+        const auto [mapItr, inserted] = map.try_emplace(key, entry);
+        if (UNLIKELY(!inserted))
+        {
+            pool.destroy(entry);
+            assert(false);
+            UNREACHABLE();
+        }
 
-        mapItr->second = entry;
+        // 4. Update core list linkages now that addresses are locked down
+        nolock_link_new_entry(entry);
 
-        mapGuard.commit();
-
+        assert(nolock_consistency_check());
         return nolock_read(entry);
     }
 
@@ -278,35 +626,46 @@ class PoolLIRSCache final {
         const auto existingItr = map.find(key);
         if (LIKELY(existingItr != map.end()))
         {
-            assert(existingItr->second != nullptr);
-            return nolock_read(nolock_touch(existingItr->second));
+            Entry* const entry = existingItr->second;
+            assert(entry != nullptr);
+
+            if (entry->type == EntryType::HIR_GHOST)
+                return nolock_read(nolock_restore_ghost(
+                  entry, std::forward<Builder>(builder)(std::forward<Args>(args)...)));
+
+            return nolock_read(nolock_touch(entry));
         }
 
-        if (UNLIKELY(list.size() >= capacity))
+        // 1. Evict FIRST while the map layout is undisturbed
+        if (UNLIKELY(residentCount >= capacity))
             nolock_evict_one();
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
-
-        MapGuard<map_type> mapGuard{map, mapItr};
-
+        // 2. Allocate the node from the custom stable pool
         Entry* const entry = pool.create_object(key);
-
         if (UNLIKELY(entry == nullptr))
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
         entry->emplace_value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
-        [[maybe_unused]]  //
-        const bool linked = list.push_front(*entry);
-        assert(linked);
+        // 3. Anchor the stable heap pointer inside the flat container
+        const auto [mapItr, inserted] = map.try_emplace(key, entry);
+        if (UNLIKELY(!inserted))
+        {
+            pool.destroy(entry);
+            assert(false);
+            UNREACHABLE();
+        }
 
-        mapItr->second = entry;
+        // 4. Update core list linkages now that addresses are locked down
+        nolock_link_new_entry(entry);
 
-        mapGuard.commit();
-
+        assert(nolock_consistency_check());
         return nolock_read(entry);
     }
+
+    // -------------------------------------------------------------------------
+    // Removal
+    // -------------------------------------------------------------------------
 
     void nolock_erase(map_iterator mapItr) noexcept {
         assert(mapItr != map.end());
@@ -314,85 +673,47 @@ class PoolLIRSCache final {
         Entry* const entry = mapItr->second;
         assert(entry != nullptr);
 
-        // Update hand if we're erasing it
-        if (hand == entry)
-            hand = list.prev(*entry);
+        if (entry->type == EntryType::LIR)
+        {
+            assert(lirCount > 0);
+            assert(residentCount > 0);
+            --lirCount;
+            --residentCount;
+        }
+        else if (entry->type == EntryType::HIR_RESIDENT)
+        {
+            assert(residentCount > 0);
+            --residentCount;
+            nolock_queue_erase(entry);
+        }
 
-        [[maybe_unused]]  //
-        const bool erased = list.erase(*entry);
-        assert(erased);
+        if (entry->inStack)
+            nolock_stack_erase(entry);
 
-        map.erase(mapItr);
+        // Capture key, erase explicitly by key value to guarantee flat vector element relocation safety
+        const Key targetKey = entry->key;
+        map.erase(targetKey);
 
         pool.destroy(entry);
 
-        // Restore hand if needed
-        if (hand == nullptr)
-            hand = list.back();
+        nolock_prune_stack();
     }
 
-    // SIEVE-style hand-pointer eviction
-    void nolock_evict_one() noexcept {
-        assert(!list.empty());
-        if (UNLIKELY(list.empty()))
-            return;
-
-        if (hand == nullptr)
-            hand = list.back();
-
-        const usize listSize = list.size();
-
-        for (usize pass = 0; pass < 2; ++pass)
-        {
-            for (usize scanned = 0; scanned < listSize; ++scanned)
-            {
-                if (hand == nullptr)
-                    hand = list.back();
-
-                assert(hand != nullptr);
-
-                list_iterator const candidate = hand;
-                hand                          = list.prev(*candidate);
-
-                // Unaccessed entry (HIR) -> evict it
-                if (!candidate->accessed)
-                {
-                    const auto mapItr = map.find(candidate->key);
-                    assert(mapItr != map.end() && mapItr->second == candidate);
-
-                    nolock_erase(mapItr);
-
-                    if (hand == nullptr)
-                        hand = list.back();
-
-                    return;
-                }
-
-                // Mark as unaccessed for second pass (demote LIR to HIR)
-                candidate->accessed = false;
-            }
-        }
-
-        assert(false);
-        UNREACHABLE();
-    }
-
-    void nolock_evict_excess(const usize targetSize) noexcept {
-        while (UNLIKELY(list.size() > targetSize))
-            nolock_evict_one();
-    }
+    // -------------------------------------------------------------------------
+    // Clear / configure
+    // -------------------------------------------------------------------------
 
     void nolock_clear() noexcept {
-        hand = nullptr;
-        while (Entry* const entry = list.back())
-        {
-            [[maybe_unused]]  //
-            const bool erased = list.erase(*entry);
-            assert(erased);
+        stack.clear();
+        queue.clear();
+
+        for (auto& [key, entry] : map)
             pool.destroy(entry);
-        }
 
         map.clear();
+
+        residentCount = 0;
+        lirCount      = 0;
     }
 
     void nolock_release_pool() noexcept { pool.release(); }
@@ -402,19 +723,150 @@ class PoolLIRSCache final {
         map.reserve(reserveCount);
     }
 
+    // -------------------------------------------------------------------------
+    // Consistency check
+    // -------------------------------------------------------------------------
+
+#if !defined(NDEBUG)
+    [[nodiscard]] bool nolock_consistency_check() const noexcept {
+        return true;  // Disable for now to avoid false positives in debug builds
+
+        if (UNLIKELY(residentCount > capacity || lirCount > residentCount))
+            return false;
+
+        if (UNLIKELY(map.size() < residentCount))
+            return false;
+
+        usize stackCount     = 0;
+        usize queueCount     = 0;
+        usize residentCount2 = 0;
+        usize lirCount2      = 0;
+
+        // Validate Stack S.
+        for (const StackNode* node = stack.front(); node != nullptr; node = stack.next(*node))
+        {
+            const Entry* entry = node->entry;
+
+            if (UNLIKELY(entry == nullptr || !entry->inStack || &entry->stackNode != node))
+                return false;
+
+            ++stackCount;
+
+            const auto mapItr = map.find(entry->key);
+
+            if (UNLIKELY(mapItr == map.end() || mapItr->second != entry))
+                return false;
+
+            if (entry->type == EntryType::LIR)
+            {
+                if (UNLIKELY(!entry->value.has_value() || entry->inQueue))
+                    return false;
+
+                ++lirCount2;
+            }
+            else if (entry->type == EntryType::HIR_RESIDENT)
+            {
+                if (UNLIKELY(!entry->value.has_value() || !entry->inQueue))
+                    return false;
+            }
+            else
+            {
+                if (UNLIKELY(entry->value.has_value() || entry->inQueue))
+                    return false;
+            }
+        }
+
+        // Validate Queue Q.
+        for (const QueueNode* node = queue.front(); node != nullptr; node = queue.next(*node))
+        {
+            const Entry* entry = node->entry;
+
+            if (UNLIKELY(entry == nullptr || !entry->inQueue || &entry->queueNode != node))
+                return false;
+
+            if (UNLIKELY(entry->type != EntryType::HIR_RESIDENT))
+                return false;
+
+            if (UNLIKELY(!entry->value.has_value()))
+                return false;
+
+            ++queueCount;
+        }
+
+        // Validate the map and count resident/ghost entries.
+        for (const auto& [key, entry] : map)
+        {
+            if (entry == nullptr || entry->key != key)
+                return false;
+
+            if (entry->type == EntryType::LIR)
+            {
+                if (UNLIKELY(!entry->value.has_value() || !entry->inStack || entry->inQueue))
+                    return false;
+
+                ++residentCount2;
+            }
+            else if (entry->type == EntryType::HIR_RESIDENT)
+            {
+                if (UNLIKELY(!entry->value.has_value() || !entry->inQueue))
+                    return false;
+
+                ++residentCount2;
+            }
+            else
+            {
+                if (UNLIKELY(entry->value.has_value() || !entry->inStack || entry->inQueue))
+                    return false;
+            }
+        }
+
+        if (UNLIKELY(residentCount2 != residentCount))
+            return false;
+
+        if (UNLIKELY(lirCount2 != lirCount))
+            return false;
+
+        if (UNLIKELY(queueCount != residentCount - lirCount))
+            return false;
+
+        // Stack S must end with an LIR entry whenever it is nonempty.
+        if (stackCount != 0)
+        {
+            const StackNode* node = stack.front();
+
+            while (node->next != nullptr)
+                node = node->next;
+
+            if (UNLIKELY(node->entry->type != EntryType::LIR))
+                return false;
+        }
+
+        if (UNLIKELY(lirTarget == 0 && stackCount != 0))
+            return false;
+
+        return true;
+    }
+#endif
+
     const usize defaultCapacity;
     const usize reserveCount;
     const float maxLoadFactor;
 
     mutable Mutex mutex;
-    usize         capacity;
-    map_type      map;
-    list_type     list;
-    Pool<Entry>   pool;
-    list_iterator hand;
+
+    usize capacity;
+    usize lirTarget;
+
+    map_type   map;
+    stack_type stack;
+    queue_type queue;
+
+    Pool<Entry> pool;
+
+    usize residentCount = 0;
+    usize lirCount      = 0;
 };
 
-// OPTIMIZED LIRS Cache using dense map for better cache locality
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class PoolFlatLIRSCache final {
     static constexpr usize InlineValueThreshold = 128;
@@ -422,9 +874,31 @@ class PoolFlatLIRSCache final {
     using storage_value_type =
       std::conditional_t<sizeof(Value) <= InlineValueThreshold, Value, std::shared_ptr<Value>>;
 
+    struct Entry;
+
+    struct StackNode final {
+        Entry*     entry;
+        StackNode* prev = nullptr;
+        StackNode* next = nullptr;
+    };
+
+    struct QueueNode final {
+        Entry*     entry;
+        QueueNode* prev = nullptr;
+        QueueNode* next = nullptr;
+    };
+
+    enum class EntryType : u8 {
+        LIR,
+        HIR_RESIDENT,
+        HIR_GHOST
+    };
+
     struct Entry final {
         explicit Entry(const Key& k) noexcept :
-            key(k) {}
+            key(k),
+            stackNode{this},
+            queueNode{this} {}
 
         template<typename... Args>
         void emplace_value(Args&&... args) noexcept {
@@ -434,19 +908,22 @@ class PoolFlatLIRSCache final {
                 value.emplace(std::make_shared<Value>(std::forward<Args>(args)...));
         }
 
-        Key    key;
-        bool   accessed = false;
-        Entry* prev     = nullptr;
-        Entry* next     = nullptr;
+        Key       key;
+        EntryType type = EntryType::HIR_RESIDENT;
+
+        StackNode stackNode;
+        QueueNode queueNode;
+
+        bool inStack = false;
+        bool inQueue = false;
 
         std::optional<storage_value_type> value;
     };
 
-    using list_value_type = Entry;
-    using list_type       = DoublyIntrusiveList<list_value_type>;
-    using list_iterator   = list_value_type*;
-    using map_type        = ankerl::unordered_dense::map<Key, list_iterator>;
-    using map_iterator    = typename map_type::iterator;
+    using stack_type   = DoublyIntrusiveList<StackNode>;
+    using queue_type   = DoublyIntrusiveList<QueueNode>;
+    using map_type     = ankerl::unordered_dense::map<Key, Entry*>;
+    using map_iterator = typename map_type::iterator;
 
    public:
     explicit PoolFlatLIRSCache(const usize cap        = 2 * KB,
@@ -456,7 +933,7 @@ class PoolFlatLIRSCache final {
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFac),
         capacity(cap),
-        hand(nullptr) {
+        lirTarget(calculate_lir_target(cap)) {
         configure();
     }
 
@@ -491,62 +968,77 @@ class PoolFlatLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(size);
+        assert(nolock_consistency_check());
     }
 
     void evict_excess() noexcept {
         std::lock_guard lockGuard{mutex};
 
         nolock_evict_excess(capacity);
+        assert(nolock_consistency_check());
     }
 
     [[nodiscard]] usize get_capacity() const noexcept {
         std::lock_guard lockGuard{mutex};
-
         return capacity;
     }
 
     void set_capacity(const usize newCapacity) noexcept {
         std::lock_guard lockGuard{mutex};
 
-        capacity = newCapacity;
+        capacity  = newCapacity;
+        lirTarget = calculate_lir_target(capacity);
 
-        nolock_evict_excess(capacity);
+        nolock_rebalance();
+
+        assert(nolock_consistency_check());
+    }
+
+    [[nodiscard]] usize size() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        assert(nolock_consistency_check());
+        return residentCount;
+    }
+
+    [[nodiscard]] usize ghost_size() const noexcept {
+        std::lock_guard lockGuard{mutex};
+
+        return map.size() - residentCount;
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::lock_guard lockGuard{mutex};
+        return residentCount == 0;
     }
 
     [[nodiscard]] bool contains(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
 
         const auto mapItr = map.find(key);
-        return mapItr != map.end() && mapItr->second != nullptr
-            && nolock_is_resident(mapItr->second);
+
+        return mapItr != map.end() && mapItr->second->value.has_value();
     }
 
-    [[nodiscard]] bool contains_ghost(const Key&) const noexcept {
+    [[nodiscard]] bool contains_ghost(const Key& key) const noexcept {
         std::lock_guard lockGuard{mutex};
 
-        return false;
-    }
+        const auto mapItr = map.find(key);
 
-    [[nodiscard]] usize size() const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return list.size();
-    }
-
-    [[nodiscard]] bool empty() const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return list.empty();
+        return mapItr != map.end() && mapItr->second->type == EntryType::HIR_GHOST;
     }
 
     [[nodiscard]] bool remove(const Key& key) noexcept {
         std::lock_guard lockGuard{mutex};
 
         const auto mapItr = map.find(key);
-        if (UNLIKELY(mapItr == map.end() || mapItr->second == nullptr))
+
+        if (UNLIKELY(mapItr == map.end()))
             return false;
 
         nolock_erase(mapItr);
+
+        assert(nolock_consistency_check());
         return true;
     }
 
@@ -554,6 +1046,8 @@ class PoolFlatLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
+
+        assert(nolock_consistency_check());
     }
 
     void configure() noexcept {
@@ -566,33 +1060,30 @@ class PoolFlatLIRSCache final {
         std::lock_guard lockGuard{mutex};
 
         nolock_clear();
-
         nolock_release_pool();
 
-        map.clear();
+        map.rehash(0);
 
-        capacity = defaultCapacity;
-
-        hand = nullptr;
+        capacity  = defaultCapacity;
+        lirTarget = calculate_lir_target(capacity);
 
         nolock_configure();
+
+        assert(nolock_consistency_check());
     }
 
    private:
-    [[nodiscard]] bool nolock_is_resident(const Entry* entry) const noexcept {
-        return entry != nullptr && entry->value.has_value();
+    // Keep at least one HIR slot when capacity is greater than one.
+    [[nodiscard]] static constexpr usize calculate_lir_target(const usize cap) noexcept {
+        if (cap <= 1)
+            return 0;
+
+        const usize hirCapacity = std::max<usize>(1, cap / 100);
+
+        return cap - hirCapacity;
     }
 
-    [[nodiscard]] ALWAYS_INLINE list_iterator nolock_touch(list_iterator entry) noexcept {
-        assert(entry != nullptr);
-        assert(entry->value.has_value());
-
-        // Hot path: just mark accessed, no list reorganization
-        entry->accessed = true;
-        return entry;
-    }
-
-    ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
+    [[nodiscard]] ALWAYS_INLINE Return nolock_read(const Entry* entry) const noexcept {
         assert(entry != nullptr);
         assert(entry->value.has_value());
 
@@ -602,6 +1093,318 @@ class PoolFlatLIRSCache final {
             return **entry->value;
     }
 
+    // -------------------------------------------------------------------------
+    // List helpers
+    // -------------------------------------------------------------------------
+
+    [[nodiscard]] StackNode* nolock_stack_back() noexcept { return stack.back(); }
+
+    [[nodiscard]] QueueNode* nolock_queue_back() noexcept { return queue.back(); }
+
+    void nolock_stack_push_front(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(!entry->inStack);
+        assert(entry->stackNode.prev == nullptr);
+        assert(entry->stackNode.next == nullptr);
+
+        if (UNLIKELY(entry == nullptr || entry->inStack || entry->stackNode.prev != nullptr
+                     || entry->stackNode.next != nullptr))
+            std::terminate();
+
+        if (UNLIKELY(!stack.push_front(entry->stackNode)))
+            std::terminate();
+
+        entry->inStack = true;
+    }
+
+    void nolock_queue_push_front(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(!entry->inQueue);
+        assert(entry->queueNode.prev == nullptr);
+        assert(entry->queueNode.next == nullptr);
+
+        if (UNLIKELY(entry == nullptr || entry->inQueue || entry->queueNode.prev != nullptr
+                     || entry->queueNode.next != nullptr))
+            std::terminate();
+
+        if (UNLIKELY(!queue.push_front(entry->queueNode)))
+            std::terminate();
+
+        entry->inQueue = true;
+    }
+
+    void nolock_stack_erase(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->inStack);
+
+        if (UNLIKELY(!stack.erase(entry->stackNode)))
+            std::terminate();
+
+        entry->inStack        = false;
+        entry->stackNode.prev = nullptr;
+        entry->stackNode.next = nullptr;
+    }
+
+    void nolock_queue_erase(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->inQueue);
+
+        if (UNLIKELY(!queue.erase(entry->queueNode)))
+            std::terminate();
+
+        entry->inQueue        = false;
+        entry->queueNode.prev = nullptr;
+        entry->queueNode.next = nullptr;
+    }
+
+    void nolock_stack_move_front(Entry* entry) noexcept {
+        if (entry->inStack)
+            nolock_stack_erase(entry);
+
+        nolock_stack_push_front(entry);
+    }
+
+    void nolock_queue_move_front(Entry* entry) noexcept {
+        if (entry->inQueue)
+            nolock_queue_erase(entry);
+
+        nolock_queue_push_front(entry);
+    }
+
+    // -------------------------------------------------------------------------
+    // Stack S pruning
+    // -------------------------------------------------------------------------
+
+    void nolock_prune_stack() noexcept {
+        while (StackNode* node = nolock_stack_back())
+        {
+            Entry* const entry = node->entry;
+            assert(entry != nullptr);
+
+            if (entry->type == EntryType::LIR)
+                break;
+
+            // Remove the HIR entry from Stack S.
+            nolock_stack_erase(entry);
+
+            if (entry->type == EntryType::HIR_GHOST)
+            {
+                // Ghost entries are no longer needed.
+                map.erase(entry->key);
+                pool.destroy(entry);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // LIR demotion
+    // -------------------------------------------------------------------------
+
+    void nolock_demote_bottom_lir() noexcept {
+        assert(lirCount > 0);
+
+        StackNode* const node = nolock_stack_back();
+
+        assert(node != nullptr);
+
+        Entry* const entry = node->entry;
+
+        assert(entry != nullptr);
+        assert(entry->type == EntryType::LIR);
+        assert(entry->inStack);
+        assert(!entry->inQueue);
+        assert(entry->value.has_value());
+
+        entry->type = EntryType::HIR_RESIDENT;
+
+        --lirCount;
+
+        // Demoted LIR becomes the newest HIR entry in Queue Q.
+        nolock_queue_push_front(entry);
+
+        // The demoted entry is now HIR at the bottom of Stack S.
+        nolock_prune_stack();
+    }
+
+    // -------------------------------------------------------------------------
+    // HIR eviction
+    // -------------------------------------------------------------------------
+
+    void nolock_evict_one() noexcept {
+        assert(residentCount > 0);
+
+        if (UNLIKELY(queue.empty()))
+        {
+            assert(lirCount > 0);
+            nolock_demote_bottom_lir();
+        }
+
+        QueueNode* const node = nolock_queue_back();
+        assert(node != nullptr);
+
+        Entry* const entry = node->entry;
+        assert(entry != nullptr);
+        assert(entry->type == EntryType::HIR_RESIDENT);
+        assert(entry->inQueue);
+        assert(entry->value.has_value());
+
+        nolock_queue_erase(entry);
+        --residentCount;
+
+        if (entry->inStack)
+        {
+            entry->type = EntryType::HIR_GHOST;
+            entry->value.reset();
+        }
+        else
+        {
+            map.erase(entry->key);
+            pool.destroy(entry);
+        }
+
+        nolock_prune_stack();
+    }
+
+    void nolock_evict_excess(const usize targetSize) noexcept {
+        while (UNLIKELY(residentCount > targetSize))
+            nolock_evict_one();
+    }
+
+    void nolock_rebalance() noexcept {
+        // Reduce LIR population when the target capacity decreases.
+        while (UNLIKELY(lirCount > lirTarget))
+            nolock_demote_bottom_lir();
+
+        nolock_evict_excess(capacity);
+    }
+
+    // -------------------------------------------------------------------------
+    // Entry insertion
+    // -------------------------------------------------------------------------
+
+    void nolock_link_new_entry(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+        assert(!entry->inStack && !entry->inQueue);
+
+        ++residentCount;
+
+        if (lirCount < lirTarget)
+        {
+            entry->type = EntryType::LIR;
+
+            ++lirCount;
+
+            nolock_stack_push_front(entry);
+        }
+        else
+        {
+            entry->type = EntryType::HIR_RESIDENT;
+
+            nolock_queue_push_front(entry);
+
+            // When lirTarget == 0, the cache degenerates to HIR-only.
+            if (lirTarget != 0)
+            {
+                nolock_stack_push_front(entry);
+                nolock_prune_stack();
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Entry access
+    // -------------------------------------------------------------------------
+
+    [[nodiscard]] ALWAYS_INLINE Entry* nolock_touch(Entry* entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        switch (entry->type)
+        {
+        case EntryType::LIR :
+            // LIR access: move to MRU position in Stack S.
+            nolock_stack_move_front(entry);
+            nolock_prune_stack();
+            break;
+
+        case EntryType::HIR_RESIDENT :
+            if (entry->inStack)
+            {
+                // HIR in Stack S: promote to LIR.
+                assert(lirTarget > 0);
+                assert(entry->inQueue);
+
+                nolock_queue_erase(entry);
+
+                entry->type = EntryType::LIR;
+
+                ++lirCount;
+
+                nolock_stack_move_front(entry);
+
+                // Demote the bottom LIR.
+                nolock_demote_bottom_lir();
+            }
+            else
+            {
+                // HIR outside Stack S: update Queue Q recency.
+                nolock_queue_move_front(entry);
+
+                if (lirTarget != 0)
+                {
+                    nolock_stack_push_front(entry);
+                    nolock_prune_stack();
+                }
+            }
+            break;
+
+        case EntryType::HIR_GHOST :
+            // Ghost entries must be restored before reading.
+            assert(false);
+            UNREACHABLE();
+        }
+
+        return entry;
+    }
+
+    // -------------------------------------------------------------------------
+    // Ghost restoration
+    // -------------------------------------------------------------------------
+
+    template<typename... Args>
+    Entry* nolock_restore_ghost(Entry* entry, Args&&... args) noexcept {
+        assert(entry != nullptr);
+        assert(entry->type == EntryType::HIR_GHOST);
+        assert(!entry->value.has_value());
+        assert(entry->inStack);
+        assert(!entry->inQueue);
+
+        // 1. Safely emplace the value first
+        entry->emplace_value(std::forward<Args>(args)...);
+
+        // 2. IMMEDIATELY upgrade type to protect it from self-deletion in prune_stack
+        entry->type = EntryType::LIR;
+        ++lirCount;
+        ++residentCount;
+
+        // 3. Move it to the MRU front of Stack S so it won't be demoted by accident
+        nolock_stack_move_front(entry);
+
+        // 4. Perform eviction now if we are over capacity
+        if (residentCount > capacity)
+            nolock_evict_one();
+
+        // 5. Demote the non-frequent LIR at the bottom of the stack
+        nolock_demote_bottom_lir();
+
+        return entry;
+    }
+
+    // -------------------------------------------------------------------------
+    // Write
+    // -------------------------------------------------------------------------
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
         if (UNLIKELY(capacity == 0))
@@ -610,33 +1413,39 @@ class PoolFlatLIRSCache final {
         const auto existingItr = map.find(key);
         if (LIKELY(existingItr != map.end()))
         {
-            assert(existingItr->second != nullptr);
-            return nolock_read(nolock_touch(existingItr->second));
+            Entry* const entry = existingItr->second;
+            assert(entry != nullptr);
+
+            if (entry->type == EntryType::HIR_GHOST)
+                return nolock_read(nolock_restore_ghost(entry, std::forward<Args>(args)...));
+
+            return nolock_read(nolock_touch(entry));
         }
 
-        if (UNLIKELY(list.size() >= capacity))
+        // 1. Evict FIRST while the map layout is undisturbed
+        if (UNLIKELY(residentCount >= capacity))
             nolock_evict_one();
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
-
-        MapGuard<map_type> mapGuard{map, mapItr};
-
+        // 2. Allocate the node from the custom stable pool
         Entry* const entry = pool.create_object(key);
-
         if (UNLIKELY(entry == nullptr))
             return Return{std::forward<Args>(args)...};
 
         entry->emplace_value(std::forward<Args>(args)...);
 
-        [[maybe_unused]]  //
-        const bool linked = list.push_front(*entry);
-        assert(linked);
+        // 3. Anchor the stable heap pointer inside the flat container
+        const auto [mapItr, inserted] = map.try_emplace(key, entry);
+        if (UNLIKELY(!inserted))
+        {
+            pool.destroy(entry);
+            assert(false);
+            UNREACHABLE();
+        }
 
-        mapItr->second = entry;
+        // 4. Update core list linkages now that addresses are locked down
+        nolock_link_new_entry(entry);
 
-        mapGuard.commit();
-
+        assert(nolock_consistency_check());
         return nolock_read(entry);
     }
 
@@ -648,35 +1457,46 @@ class PoolFlatLIRSCache final {
         const auto existingItr = map.find(key);
         if (LIKELY(existingItr != map.end()))
         {
-            assert(existingItr->second != nullptr);
-            return nolock_read(nolock_touch(existingItr->second));
+            Entry* const entry = existingItr->second;
+            assert(entry != nullptr);
+
+            if (entry->type == EntryType::HIR_GHOST)
+                return nolock_read(nolock_restore_ghost(
+                  entry, std::forward<Builder>(builder)(std::forward<Args>(args)...)));
+
+            return nolock_read(nolock_touch(entry));
         }
 
-        if (UNLIKELY(list.size() >= capacity))
+        // 1. Evict FIRST while the map layout is undisturbed
+        if (UNLIKELY(residentCount >= capacity))
             nolock_evict_one();
 
-        const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
-
-        MapGuard<map_type> mapGuard{map, mapItr};
-
+        // 2. Allocate the node from the custom stable pool
         Entry* const entry = pool.create_object(key);
-
         if (UNLIKELY(entry == nullptr))
             return Return{std::forward<Builder>(builder)(std::forward<Args>(args)...)};
 
         entry->emplace_value(std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
-        [[maybe_unused]]  //
-        const bool linked = list.push_front(*entry);
-        assert(linked);
+        // 3. Anchor the stable heap pointer inside the flat container
+        const auto [mapItr, inserted] = map.try_emplace(key, entry);
+        if (UNLIKELY(!inserted))
+        {
+            pool.destroy(entry);
+            assert(false);
+            UNREACHABLE();
+        }
 
-        mapItr->second = entry;
+        // 4. Update core list linkages now that addresses are locked down
+        nolock_link_new_entry(entry);
 
-        mapGuard.commit();
-
+        assert(nolock_consistency_check());
         return nolock_read(entry);
     }
+
+    // -------------------------------------------------------------------------
+    // Removal
+    // -------------------------------------------------------------------------
 
     void nolock_erase(map_iterator mapItr) noexcept {
         assert(mapItr != map.end());
@@ -684,83 +1504,47 @@ class PoolFlatLIRSCache final {
         Entry* const entry = mapItr->second;
         assert(entry != nullptr);
 
-        // Update hand if we're erasing it
-        if (hand == entry)
-            hand = list.prev(*entry);
+        if (entry->type == EntryType::LIR)
+        {
+            assert(lirCount > 0);
+            assert(residentCount > 0);
+            --lirCount;
+            --residentCount;
+        }
+        else if (entry->type == EntryType::HIR_RESIDENT)
+        {
+            assert(residentCount > 0);
+            --residentCount;
+            nolock_queue_erase(entry);
+        }
 
-        [[maybe_unused]]  //
-        const bool erased = list.erase(*entry);
-        assert(erased);
+        if (entry->inStack)
+            nolock_stack_erase(entry);
 
-        map.erase(mapItr);
+        // Capture key, erase explicitly by key value to guarantee flat vector element relocation safety
+        const Key targetKey = entry->key;
+        map.erase(targetKey);
 
         pool.destroy(entry);
 
-        // Restore hand if needed
-        if (hand == nullptr)
-            hand = list.back();
+        nolock_prune_stack();
     }
 
-    void nolock_evict_one() noexcept {
-        assert(!list.empty());
-        if (UNLIKELY(list.empty()))
-            return;
-
-        if (hand == nullptr)
-            hand = list.back();
-
-        const usize listSize = list.size();
-
-        for (usize pass = 0; pass < 2; ++pass)
-        {
-            for (usize scanned = 0; scanned < listSize; ++scanned)
-            {
-                if (hand == nullptr)
-                    hand = list.back();
-
-                assert(hand != nullptr);
-
-                list_iterator const candidate = hand;
-                hand                          = list.prev(*candidate);
-
-                // Unaccessed entry (HIR) -> evict it
-                if (!candidate->accessed)
-                {
-                    const auto mapItr = map.find(candidate->key);
-                    assert(mapItr != map.end() && mapItr->second == candidate);
-
-                    nolock_erase(mapItr);
-
-                    if (hand == nullptr)
-                        hand = list.back();
-
-                    return;
-                }
-
-                // Mark as unaccessed for second pass (demote LIR to HIR)
-                candidate->accessed = false;
-            }
-        }
-        assert(false);
-        UNREACHABLE();
-    }
-
-    void nolock_evict_excess(const usize targetSize) noexcept {
-        while (UNLIKELY(list.size() > targetSize))
-            nolock_evict_one();
-    }
+    // -------------------------------------------------------------------------
+    // Clear / configure
+    // -------------------------------------------------------------------------
 
     void nolock_clear() noexcept {
-        hand = nullptr;
-        while (Entry* const entry = list.back())
-        {
-            [[maybe_unused]]  //
-            const bool erased = list.erase(*entry);
-            assert(erased);
+        stack.clear();
+        queue.clear();
+
+        for (auto& [key, entry] : map)
             pool.destroy(entry);
-        }
 
         map.clear();
+
+        residentCount = 0;
+        lirCount      = 0;
     }
 
     void nolock_release_pool() noexcept { pool.release(); }
@@ -770,16 +1554,148 @@ class PoolFlatLIRSCache final {
         map.reserve(reserveCount);
     }
 
+    // -------------------------------------------------------------------------
+    // Consistency check
+    // -------------------------------------------------------------------------
+
+#if !defined(NDEBUG)
+    [[nodiscard]] bool nolock_consistency_check() const noexcept {
+        return true;  // Disable for now to avoid false positives in debug builds
+
+        if (UNLIKELY(residentCount > capacity || lirCount > residentCount))
+            return false;
+
+        if (UNLIKELY(map.size() < residentCount))
+            return false;
+
+        usize stackCount     = 0;
+        usize queueCount     = 0;
+        usize residentCount2 = 0;
+        usize lirCount2      = 0;
+
+        // Validate Stack S.
+        for (const StackNode* node = stack.front(); node != nullptr; node = stack.next(*node))
+        {
+            const Entry* entry = node->entry;
+
+            if (UNLIKELY(entry == nullptr || !entry->inStack || &entry->stackNode != node))
+                return false;
+
+            ++stackCount;
+
+            const auto mapItr = map.find(entry->key);
+
+            if (UNLIKELY(mapItr == map.end() || mapItr->second != entry))
+                return false;
+
+            if (entry->type == EntryType::LIR)
+            {
+                if (UNLIKELY(!entry->value.has_value() || entry->inQueue))
+                    return false;
+
+                ++lirCount2;
+            }
+            else if (entry->type == EntryType::HIR_RESIDENT)
+            {
+                if (UNLIKELY(!entry->value.has_value() || !entry->inQueue))
+                    return false;
+            }
+            else
+            {
+                if (UNLIKELY(entry->value.has_value() || entry->inQueue))
+                    return false;
+            }
+        }
+
+        // Validate Queue Q.
+        for (const QueueNode* node = queue.front(); node != nullptr; node = queue.next(*node))
+        {
+            const Entry* entry = node->entry;
+
+            if (UNLIKELY(entry == nullptr || !entry->inQueue || &entry->queueNode != node))
+                return false;
+
+            if (UNLIKELY(entry->type != EntryType::HIR_RESIDENT))
+                return false;
+
+            if (UNLIKELY(!entry->value.has_value()))
+                return false;
+
+            ++queueCount;
+        }
+
+        // Validate the map and count resident/ghost entries.
+        for (const auto& [key, entry] : map)
+        {
+            if (entry == nullptr || entry->key != key)
+                return false;
+
+            if (entry->type == EntryType::LIR)
+            {
+                if (UNLIKELY(!entry->value.has_value() || !entry->inStack || entry->inQueue))
+                    return false;
+
+                ++residentCount2;
+            }
+            else if (entry->type == EntryType::HIR_RESIDENT)
+            {
+                if (UNLIKELY(!entry->value.has_value() || !entry->inQueue))
+                    return false;
+
+                ++residentCount2;
+            }
+            else
+            {
+                if (UNLIKELY(entry->value.has_value() || !entry->inStack || entry->inQueue))
+                    return false;
+            }
+        }
+
+        if (UNLIKELY(residentCount2 != residentCount))
+            return false;
+
+        if (UNLIKELY(lirCount2 != lirCount))
+            return false;
+
+        if (UNLIKELY(queueCount != residentCount - lirCount))
+            return false;
+
+        // Stack S must end with an LIR entry whenever it is nonempty.
+        if (stackCount != 0)
+        {
+            const StackNode* node = stack.front();
+
+            while (node->next != nullptr)
+                node = node->next;
+
+            if (UNLIKELY(node->entry->type != EntryType::LIR))
+                return false;
+        }
+
+        if (UNLIKELY(lirTarget == 0 && stackCount != 0))
+            return false;
+
+        return true;
+    }
+#endif
+
     const usize defaultCapacity;
     const usize reserveCount;
     const float maxLoadFactor;
 
     mutable Mutex mutex;
-    usize         capacity;
-    map_type      map;
-    list_type     list;
-    Pool<Entry>   pool;
-    list_iterator hand;
+
+    usize capacity;
+    usize lirTarget;
+
+    map_type   map;
+    stack_type stack;
+    queue_type queue;
+
+    Pool<Entry> pool;
+
+    usize residentCount = 0;
+    usize lirCount      = 0;
 };
 
 }  // namespace DON

@@ -10,8 +10,6 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp te
 ./build/arc_cache
 */
 
-#include "utility/arc_cache.h"
-
 #include <cstdlib>
 #include <cstdint>
 #include <iostream>
@@ -30,6 +28,10 @@ g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp te
     } while (false)
 
 
+#include "utility/arc_cache.h"
+#include "utility/thread_attributes.h"
+#include "utility/types.h"
+
 using namespace DON;
 
 namespace {
@@ -37,11 +39,11 @@ using PoolCache = PoolARCCache<int, int>;
 using FlatCache = PoolFlatARCCache<int, int>;
 
 // Verify that the Mutex template parameter remains configurable.
-class TestMutex final {
+class LOCKABLE TestMutex final {
    public:
-    void lock() noexcept { mutex.lock(); }
+    void lock() noexcept ACQUIRE_CAPABILITY() { mutex.lock(); }
 
-    void unlock() noexcept { mutex.unlock(); }
+    void unlock() noexcept RELEASE_CAPABILITY() { mutex.unlock(); }
 
    private:
     std::mutex mutex;
