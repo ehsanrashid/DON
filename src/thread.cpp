@@ -387,7 +387,7 @@ const Thread* Threads::best_thread() const noexcept {
     assert(threads.size() > 1);
     // Snap threads pointers under read-lock
     std::vector<const Thread*> snapThreads;
-    const auto*                fallbackThread = threads.front().get();
+    const auto*                fallbackThread = threads[0].get();
     Depth                      bestDepth      = fallbackThread->worker->rootDepth;
     {
         std::shared_lock sharedLock{mutex};
@@ -437,7 +437,7 @@ const Thread* Threads::best_thread() const noexcept {
     // Select the best thread
 
     // Initialize with first valid thread
-    const auto* bestThread = snapThreads.front();
+    const auto* bestThread = snapThreads[0];
 
     // Compute and cache the best thread comparison metrics
     auto bestMetric = ThreadMetric::from_thread(bestThread, voteCounts, vote_weight);

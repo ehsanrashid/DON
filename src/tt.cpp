@@ -257,15 +257,23 @@ TTWriter::TTWriter(TTCluster* const tc, const u8 idx, const u32 k21, const u8 ge
 
 // Find an entry to be replaced according to the replacement strategy
 u8 TTWriter::prepare_replacement() const noexcept {
-    u8 replacement = 0;
+    u8 replacement;
 
     if (const u8 idx = ttc->key_index(key21); idx < TTCluster::EntryCount)
         replacement = idx;
     else
     {
+        replacement           = 0;
+        auto replacementWorth = ttc->entries[replacement].worth(generation);
         for (u8 i = 1; i < TTCluster::EntryCount; ++i)
-            if (ttc->entries[replacement].worth(generation) > ttc->entries[i].worth(generation))
-                replacement = i;
+        {
+            const auto worth = ttc->entries[i].worth(generation);
+            if (replacementWorth > worth)
+            {
+                replacementWorth = worth;
+                replacement      = i;
+            }
+        }
     }
 
     return replacement;

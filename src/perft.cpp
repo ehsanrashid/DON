@@ -256,14 +256,23 @@ PTWriter::PTWriter(PTCluster* tc, u8 idx, u32 k) noexcept :
     key(k) {}
 
 u8 PTWriter::prepare_replacement() const noexcept {
-    u8 replacement = 0;
-
+    u8   replacement      = 0;
+    auto replacementWorth = ptc->entries[replacement].depth();
     for (u8 i = 1; i < PTCluster::EntryCount; ++i)
-        if (ptc->entries[replacement].depth() > ptc->entries[i].depth())
-            replacement = i;
+    {
+        const auto worth = ptc->entries[i].depth();
+        if (replacementWorth > worth)
+        {
+            replacementWorth = worth;
+            replacement      = i;
+        }
+    }
 
     while (replacement != 0 && ptc->entries[replacement - 1].key() == key)
-        ptc->entries[replacement--].reset();
+    {
+        ptc->entries[replacement].reset();
+        --replacement;
+    }
 
     return replacement;
 }
