@@ -2380,8 +2380,7 @@ void Worker::update_histories(const Position&             pos,
 
     if constexpr (!PVNode)
     {
-        const int moveCount = int(moveVectors[0].size() + moveVectors[1].size());
-        bonus               = constexpr_round(bonus * (1.0 + double(moveCount) / 256.0));
+        bonus = constexpr_round(bonus * (1.0 + double(ss->moveCount) / 256.0));
     }
 
     if (pos.capture_promo(bestMove))
