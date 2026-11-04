@@ -20,6 +20,7 @@
 
 #include <cassert>
 
+#include "../utility/attributes.h"
 #include "../utility/types.h"
 
 namespace DON {
@@ -35,6 +36,13 @@ class SinglyIntrusiveList final {
     using pointer       = T*;
     using const_pointer = const T*;
 
+    SinglyIntrusiveList() noexcept                                 = default;
+    SinglyIntrusiveList(const SinglyIntrusiveList&)                = delete;
+    SinglyIntrusiveList& operator=(const SinglyIntrusiveList&)     = delete;
+    SinglyIntrusiveList(SinglyIntrusiveList&&) noexcept            = delete;
+    SinglyIntrusiveList& operator=(SinglyIntrusiveList&&) noexcept = delete;
+    ~SinglyIntrusiveList() noexcept { clear(); }
+
     [[nodiscard]] pointer front() noexcept { return head; }
 
     [[nodiscard]] const_pointer front() const noexcept { return head; }
@@ -48,19 +56,28 @@ class SinglyIntrusiveList final {
     }
 
     void push_front(T& node) noexcept {
+        assert(node.next == nullptr);
+
+        if (UNLIKELY(node.next != nullptr))
+            std::terminate();
+
         node.next = head;
         head      = &node;
 
         ++size_;
     }
 
-    // position must belong to this list; node must be detached.
+    // position must belong to this list; node must be detached
     bool insert_after(T& node, T& pos) noexcept {
         assert(&pos != &node);
         assert(node.next == nullptr);
 
+        if (UNLIKELY(&pos == &node || node.next != nullptr))
+            std::terminate();
+
         node.next = pos.next;
         pos.next  = &node;
+
         ++size_;
         return true;
     }
@@ -131,6 +148,7 @@ class DoublyIntrusiveList final {
     DoublyIntrusiveList& operator=(const DoublyIntrusiveList&)     = delete;
     DoublyIntrusiveList(DoublyIntrusiveList&&) noexcept            = delete;
     DoublyIntrusiveList& operator=(DoublyIntrusiveList&&) noexcept = delete;
+    ~DoublyIntrusiveList() noexcept { clear(); }
 
     [[nodiscard]] T*       front() noexcept { return front_; }
     [[nodiscard]] const T* front() const noexcept { return front_; }

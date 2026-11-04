@@ -36,9 +36,13 @@
 
 namespace DON {
 
-// SIEVE cache: entries are inserted at the front and remain in insertion order
-// on hits. A hit sets the entry's visited bit; eviction scans from the hand,
-// clears visited bits, and removes the first unvisited entry.
+// SIEVE cache:
+//
+// - New entries are inserted at the front.
+// - A hand scans entries from the back.
+// - Cache hits mark entries as visited.
+// - Eviction clears the visited flag and gives entries a second chance.
+// - The first unvisited entry encountered is evicted.
 template<typename Key, typename Value, typename Mutex = std::mutex, typename Return = Value>
 class PoolSIEVECache final {
     static constexpr usize InlineValueThreshold = 128;
@@ -158,12 +162,6 @@ class PoolSIEVECache final {
         return mapItr != map.end() && mapItr->second != nullptr;
     }
 
-    [[nodiscard]] bool contains_ghost(const Key&) const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return false;
-    }
-
     [[nodiscard]] usize size() const noexcept {
         std::lock_guard lockGuard{mutex};
 
@@ -221,13 +219,41 @@ class PoolSIEVECache final {
     }
 
    private:
+    [[nodiscard]] ALWAYS_INLINE list_iterator nolock_touch(list_iterator entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        entry->visited = true;
+        return entry;
+    }
+
+    void nolock_link_new_entry(Entry& entry) noexcept {
+        assert(!entry.visited);
+        assert(entry.prev == nullptr && entry.next == nullptr);
+        assert(entry.value.has_value());
+
+        if (UNLIKELY(!list.push_front(entry)))
+            std::terminate();
+
+        if (hand == nullptr)
+            hand = &entry;
+    }
+
+    ALWAYS_INLINE Return nolock_read(const list_iterator entry) const noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
+            return *entry->value;
+        else
+            return **entry->value;
+    }
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
-        // UNLIKELY() helps branch predictor optimize hot path
         if (UNLIKELY(capacity == 0))
             return Return{std::forward<Args>(args)...};
 
-        // LIKELY() since most operations are cache hits
         const auto existingItr = map.find(key);
         if (LIKELY(existingItr != map.end()))
         {
@@ -239,7 +265,8 @@ class PoolSIEVECache final {
             nolock_evict_one();
 
         const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
+        if (UNLIKELY(!inserted))
+            std::terminate();
 
         MapGuard<map_type> mapGuard{map, mapItr};
 
@@ -276,7 +303,8 @@ class PoolSIEVECache final {
             nolock_evict_one();
 
         const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
+        if (UNLIKELY(!inserted))
+            std::terminate();
 
         MapGuard<map_type> mapGuard{map, mapItr};
 
@@ -297,101 +325,62 @@ class PoolSIEVECache final {
         return nolock_read(entry);
     }
 
-    [[nodiscard]] list_iterator nolock_touch(list_iterator entry) noexcept {
-        assert(entry != nullptr);
-        assert(entry->value.has_value());
-
-        entry->visited = true;
-        return entry;
-    }
-
-    void nolock_link_new_entry(Entry& entry) noexcept {
-        assert(!entry.visited);
-        assert(entry.prev == nullptr && entry.next == nullptr);
-        assert(entry.value.has_value());
-
-        [[maybe_unused]]  //
-        const bool linked = list.push_front(entry);
-        assert(linked);
-    }
-
-    // Inline hint for hot-path function
-    ALWAYS_INLINE Return nolock_read(const list_iterator entry) const noexcept {
-        assert(entry != nullptr);
-        assert(entry->value.has_value());
-
-        if constexpr (sizeof(Value) <= InlineValueThreshold)
-            return *entry->value;
-        else
-            return **entry->value;
-    }
-
     void nolock_erase(map_iterator mapItr) noexcept {
-        assert(mapItr != map.end());
+        if (UNLIKELY(mapItr == map.end() || mapItr->second == nullptr))
+            std::terminate();
 
         Entry* const entry = mapItr->second;
-        assert(entry != nullptr);
 
         if (hand == entry)
             hand = list.prev(*entry);
 
-        // Unlink from the intrusive list while pointers are completely stable
-        [[maybe_unused]]  //
-        const bool erased = list.erase(*entry);
-        assert(erased);
+        if (UNLIKELY(!list.erase(*entry)))
+            std::terminate();
 
-        // Erase the index entry without copying or hashing its key.
         map.erase(mapItr);
-
         pool.destroy(entry);
 
-        // The hand must never point to a destroyed entry.
-        if (hand == nullptr)
+        if (list.empty())
+            hand = nullptr;
+        else if (hand == nullptr)
             hand = list.back();
     }
 
+    // SIEVE-style hand-pointer eviction
     void nolock_evict_one() noexcept {
         assert(!list.empty());
+
         if (UNLIKELY(list.empty()))
-            return;
+            std::terminate();
 
         if (hand == nullptr)
             hand = list.back();
 
-        const usize listSize = list.size();
-
-        for (usize pass = 0; pass < 2; ++pass)
+        while (true)
         {
-            for (usize scanned = 0; scanned < listSize; ++scanned)
+            Entry* const candidate = hand;
+
+            if (UNLIKELY(candidate == nullptr))
+                std::terminate();
+
+            hand = list.prev(*candidate);
+
+            if (!candidate->visited)
             {
-                if (hand == nullptr)
-                    hand = list.back();
-
-                assert(hand != nullptr);
-
-                list_iterator const candidate = hand;
-                hand                          = list.prev(*candidate);
-
-                if (candidate->visited)
-                {
-                    candidate->visited = false;
-                    continue;
-                }
-
                 const auto mapItr = map.find(candidate->key);
-                assert(mapItr != map.end() && mapItr->second == candidate);
 
-                // Erase safely using the index wrapper
+                if (UNLIKELY(mapItr == map.end() || mapItr->second != candidate))
+                    std::terminate();
+
                 nolock_erase(mapItr);
-
-                if (hand == nullptr)
-                    hand = list.back();
-
                 return;
             }
+
+            candidate->visited = false;
+
+            if (hand == nullptr)
+                hand = list.back();
         }
-        assert(false);
-        UNREACHABLE();
     }
 
     void nolock_evict_excess(const usize targetSize) noexcept {
@@ -430,7 +419,7 @@ class PoolSIEVECache final {
             return false;
 
         usize count     = 0;
-        bool  handFound = hand == nullptr;
+        bool  handFound = false;
 
         for (const Entry* entry = list.front(); entry != nullptr; entry = list.next(*entry))
         {
@@ -448,11 +437,14 @@ class PoolSIEVECache final {
                 handFound = true;
         }
 
-        return count == list.size() && handFound && (list.empty() == (hand == nullptr));
+        if (UNLIKELY(count != list.size()))
+            return false;
+
+        if (list.empty())
+            return hand == nullptr;
+
+        return hand != nullptr && handFound;
     }
-#else
-    // In NDEBUG builds, skip consistency checks entirely:
-    [[nodiscard]] bool nolock_consistency_check() const noexcept { return true; }
 #endif
 
     const usize defaultCapacity;
@@ -586,12 +578,6 @@ class PoolFlatSIEVECache final {
         return mapItr != map.end() && mapItr->second != nullptr;
     }
 
-    [[nodiscard]] bool contains_ghost(const Key&) const noexcept {
-        std::lock_guard lockGuard{mutex};
-
-        return false;
-    }
-
     [[nodiscard]] usize size() const noexcept {
         std::lock_guard lockGuard{mutex};
 
@@ -649,13 +635,41 @@ class PoolFlatSIEVECache final {
     }
 
    private:
+    [[nodiscard]] ALWAYS_INLINE list_iterator nolock_touch(list_iterator entry) noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        entry->visited = true;
+        return entry;
+    }
+
+    void nolock_link_new_entry(Entry& entry) noexcept {
+        assert(!entry.visited);
+        assert(entry.prev == nullptr && entry.next == nullptr);
+        assert(entry.value.has_value());
+
+        if (UNLIKELY(!list.push_front(entry)))
+            std::terminate();
+
+        if (hand == nullptr)
+            hand = &entry;
+    }
+
+    ALWAYS_INLINE Return nolock_read(const list_iterator entry) const noexcept {
+        assert(entry != nullptr);
+        assert(entry->value.has_value());
+
+        if constexpr (sizeof(Value) <= InlineValueThreshold)
+            return *entry->value;
+        else
+            return **entry->value;
+    }
+
     template<typename... Args>
     Return nolock_write(const Key& key, Args&&... args) noexcept {
-        // UNLIKELY() helps branch predictor optimize hot path
         if (UNLIKELY(capacity == 0))
             return Return{std::forward<Args>(args)...};
 
-        // LIKELY() since most operations are cache hits
         const auto existingItr = map.find(key);
         if (LIKELY(existingItr != map.end()))
         {
@@ -667,7 +681,8 @@ class PoolFlatSIEVECache final {
             nolock_evict_one();
 
         const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
+        if (UNLIKELY(!inserted))
+            std::terminate();
 
         MapGuard<map_type> mapGuard{map, mapItr};
 
@@ -704,7 +719,8 @@ class PoolFlatSIEVECache final {
             nolock_evict_one();
 
         const auto [mapItr, inserted] = map.try_emplace(key, nullptr);
-        assert(inserted);
+        if (UNLIKELY(!inserted))
+            std::terminate();
 
         MapGuard<map_type> mapGuard{map, mapItr};
 
@@ -725,101 +741,62 @@ class PoolFlatSIEVECache final {
         return nolock_read(entry);
     }
 
-    [[nodiscard]] list_iterator nolock_touch(list_iterator entry) noexcept {
-        assert(entry != nullptr);
-        assert(entry->value.has_value());
-
-        entry->visited = true;
-        return entry;
-    }
-
-    void nolock_link_new_entry(Entry& entry) noexcept {
-        assert(!entry.visited);
-        assert(entry.prev == nullptr && entry.next == nullptr);
-        assert(entry.value.has_value());
-
-        [[maybe_unused]]  //
-        const bool linked = list.push_front(entry);
-        assert(linked);
-    }
-
-    // Inline hint for hot-path function
-    ALWAYS_INLINE Return nolock_read(const list_iterator entry) const noexcept {
-        assert(entry != nullptr);
-        assert(entry->value.has_value());
-
-        if constexpr (sizeof(Value) <= InlineValueThreshold)
-            return *entry->value;
-        else
-            return **entry->value;
-    }
-
     void nolock_erase(map_iterator mapItr) noexcept {
-        assert(mapItr != map.end());
+        if (UNLIKELY(mapItr == map.end() || mapItr->second == nullptr))
+            std::terminate();
 
         Entry* const entry = mapItr->second;
-        assert(entry != nullptr);
 
         if (hand == entry)
             hand = list.prev(*entry);
 
-        // Unlink from the intrusive list while pointers are completely stable
-        [[maybe_unused]]  //
-        const bool erased = list.erase(*entry);
-        assert(erased);
+        if (UNLIKELY(!list.erase(*entry)))
+            std::terminate();
 
-        // Erase the index entry without copying or hashing its key.
         map.erase(mapItr);
-
         pool.destroy(entry);
 
-        // The hand must never point to a destroyed entry.
-        if (hand == nullptr)
+        if (list.empty())
+            hand = nullptr;
+        else if (hand == nullptr)
             hand = list.back();
     }
 
+    // SIEVE-style hand-pointer eviction
     void nolock_evict_one() noexcept {
         assert(!list.empty());
+
         if (UNLIKELY(list.empty()))
-            return;
+            std::terminate();
 
         if (hand == nullptr)
             hand = list.back();
 
-        const usize listSize = list.size();
-
-        for (usize pass = 0; pass < 2; ++pass)
+        while (true)
         {
-            for (usize scanned = 0; scanned < listSize; ++scanned)
+            Entry* const candidate = hand;
+
+            if (UNLIKELY(candidate == nullptr))
+                std::terminate();
+
+            hand = list.prev(*candidate);
+
+            if (!candidate->visited)
             {
-                if (hand == nullptr)
-                    hand = list.back();
-
-                assert(hand != nullptr);
-
-                list_iterator const candidate = hand;
-                hand                          = list.prev(*candidate);
-
-                if (candidate->visited)
-                {
-                    candidate->visited = false;
-                    continue;
-                }
-
                 const auto mapItr = map.find(candidate->key);
-                assert(mapItr != map.end() && mapItr->second == candidate);
 
-                // Erase safely using the index wrapper
+                if (UNLIKELY(mapItr == map.end() || mapItr->second != candidate))
+                    std::terminate();
+
                 nolock_erase(mapItr);
-
-                if (hand == nullptr)
-                    hand = list.back();
-
                 return;
             }
+
+            candidate->visited = false;
+
+            if (hand == nullptr)
+                hand = list.back();
         }
-        assert(false);
-        UNREACHABLE();
     }
 
     void nolock_evict_excess(const usize targetSize) noexcept {
@@ -858,7 +835,7 @@ class PoolFlatSIEVECache final {
             return false;
 
         usize count     = 0;
-        bool  handFound = hand == nullptr;
+        bool  handFound = false;
 
         for (const Entry* entry = list.front(); entry != nullptr; entry = list.next(*entry))
         {
@@ -876,11 +853,14 @@ class PoolFlatSIEVECache final {
                 handFound = true;
         }
 
-        return count == list.size() && handFound && (list.empty() == (hand == nullptr));
+        if (UNLIKELY(count != list.size()))
+            return false;
+
+        if (list.empty())
+            return hand == nullptr;
+
+        return hand != nullptr && handFound;
     }
-#else
-    // In NDEBUG builds, skip consistency checks entirely:
-    [[nodiscard]] bool nolock_consistency_check() const noexcept { return true; }
 #endif
 
     const usize defaultCapacity;

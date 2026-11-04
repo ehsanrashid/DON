@@ -4,6 +4,8 @@ Steps:
 
 mkdir -p build
 
+g++ -std=c++17 -g -O0 -fno-inline -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/cache_bechmark.cpp -o build/cache_bechmark
+
 g++ -std=c++17 -O2 -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/cache_bechmark.cpp -o build/cache_bechmark
 g++ -std=c++17 -O2 -DNDEBUG -I./src src/utility/cpu.cpp src/utility/mutex.cpp tests/cache_bechmark.cpp -o build/cache_bechmark
 

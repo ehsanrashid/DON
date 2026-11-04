@@ -19,7 +19,6 @@
 #define UTILITY_POOL_H_INCLUDED
 
 #include <algorithm>    // min()/max()
-#include <cassert>      // assert()
 #include <cstddef>      // std::byte, offsetof()
 #include <exception>    // terminate()
 #include <limits>       // numeric_limits<>
@@ -121,14 +120,12 @@ class Pool final {
     void destroy(T* value) noexcept {
         // Defensive null check - prevents undefined behavior if called with nullptr
         if (UNLIKELY(value == nullptr))
-        {
-            assert(false && "Pool::destroy called with nullptr");
             std::terminate();
-        }
 
         Slot* const slot = slot_from_value(value);
 
         detach_active(slot);
+
         value->~T();
 
         slotList.push_front(*slot);
@@ -222,9 +219,8 @@ class Pool final {
         if (UNLIKELY(slot == nullptr))
             std::terminate();
 
-        [[maybe_unused]]  //
-        const bool inserted = activeList.push_back(slot->activeNode);
-        assert(inserted);
+        if (UNLIKELY(!activeList.push_back(slot->activeNode)))
+            std::terminate();
     }
 
     void detach_active(Slot* const slot) noexcept {
@@ -232,9 +228,8 @@ class Pool final {
         if (UNLIKELY(slot == nullptr))
             std::terminate();
 
-        [[maybe_unused]]  //
-        const bool erased = activeList.erase(slot->activeNode);
-        assert(erased);
+        if (UNLIKELY(!activeList.erase(slot->activeNode)))
+            std::terminate();
     }
 
     template<typename... Args>

@@ -142,6 +142,8 @@ class Store final {
 
         nolock_clear();
 
+        map.rehash(0);
+
         nolock_configure();
     }
 

@@ -31,11 +31,11 @@
 #include "tablebase/syzygy.h"
 #include "utility/error.h"
 #include "utility/functions.h"
-#include "utility/lirs_cache.h"
 #include "utility/multi_array.h"
 #include "utility/mutex.h"
 #include "utility/reader.h"
 #include "utility/sharded_cache.h"
+#include "utility/sieve_cache.h"
 
 namespace DON {
 
@@ -55,7 +55,7 @@ Cuckoos_& cuckoos() noexcept {
 
 using ValueCache = ShardedCache<Key,
                                 Value,
-                                PoolFlatLIRSCache,
+                                PoolFlatSIEVECache,
                                 32,  //
                                 SpinMutex>;
 
