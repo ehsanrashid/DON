@@ -750,7 +750,7 @@ class Move {
     [[nodiscard]] Move reverse() const noexcept {
         assert(type() == Type::NORMAL);
 
-        return Move{dst_sq(), org_sq()};
+        return Move::normal(dst_sq(), org_sq());
     }
 
     // Declare static const members (to be defined later)

@@ -1875,15 +1875,20 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         Move m = cuckoos()[index].move;
         assert(m.is_ok());
 
-        // Move path is obstructed
+        // Orient the move relative to the current position.
+        // If the piece is not at the stored origin, it must be at the destination.
+        if (empty(m.org_sq()))
+            m = m.reverse();  // Now m.org_sq() points to where the piece stands right now.
+
+        // The piece must land on an empty square in the current position
+        if (!empty(m.dst_sq()))
+            continue;
+
+        // Move path is obstructed in the current position
         if ((occupancyBB & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
 #if !defined(NDEBUG)
-        // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
-        if (empty(m.org_sq()))
-            m = m.reverse();
-
         assert(legal(m));
 #endif
         if (i16(i) < ply
