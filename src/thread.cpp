@@ -153,8 +153,8 @@ void Threads::set(const NumaConfig&             numaConfig,
                   const Manager::UpdateContext& updateContext) noexcept {
     clear();
 
-    u16 threadCount = sharedState.options["Threads"];
-    assert(threadCount != 0);
+    const u16 Threads = sharedState.options["Threads"];
+    assert(Threads != 0);
 
     // Create new thread(s)
 
@@ -168,7 +168,7 @@ void Threads::set(const NumaConfig&             numaConfig,
 
     const bool threadBindable =  //
       NumaPolicy == "none"   ? false
-      : NumaPolicy == "auto" ? numaConfig.suggests_binding_threads(threadCount)
+      : NumaPolicy == "auto" ? numaConfig.suggests_binding_threads(Threads)
                              : true;  // "system", "hardware" or explicitly set by string
 
     // Assign threads to NUMA nodes
@@ -179,7 +179,7 @@ void Threads::set(const NumaConfig&             numaConfig,
     {
         std::lock_guard lockGuard{mutex};
 
-        threadBoundNumaNodes = numaConfig.distribute_threads_among_numa_nodes(threadCount);
+        threadBoundNumaNodes = numaConfig.distribute_threads_among_numa_nodes(Threads);
 
         thBoundNumaNodes = threadBoundNumaNodes;
 
@@ -193,11 +193,11 @@ void Threads::set(const NumaConfig&             numaConfig,
 
         threadBoundNumaNodes.clear();
 
-        thBoundNumaNodes = std::vector(usize{threadCount}, NumaIndex{0});
+        thBoundNumaNodes = std::vector(usize{Threads}, NumaIndex{0});
 
         numaThreadCounts.reserve(1);
         // All threads belong to NUMA node 0
-        numaThreadCounts.emplace(NumaIndex{0}, threadCount);
+        numaThreadCounts.emplace(NumaIndex{0}, Threads);
     }
 
     // Prepare shared histories map
@@ -233,19 +233,19 @@ void Threads::set(const NumaConfig&             numaConfig,
 
     std::unique_lock uniqueLock{mutex};
 
-    threads.reserve(threadCount);
+    threads.reserve(Threads);
 
-    for (u16 threadId = 0; threadId < threadCount; ++threadId)
+    for (u16 threadId = 0; threadId < Threads; ++threadId)
     {
         const NumaIndex numaId = thBoundNumaNodes[usize{threadId}];
 
         const auto numaIndex     = numaIds[numaId]++;
         const auto numaThreadCnt = numaThreadCounts[numaId];
 
-        const auto create_thread = [this, threadId, threadCount, numaId, numaIndex, numaThreadCnt,
+        const auto create_thread = [this, threadId, Threads, numaId, numaIndex, numaThreadCnt,
                                     numaConfigPtr, &sharedState,
                                     &updateContext]() noexcept -> void {
-            ThreadContext threadContext{threadId, threadCount, numaIndex, numaThreadCnt};
+            ThreadContext threadContext{threadId, Threads, numaIndex, numaThreadCnt};
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
             // to trash cache in case the threads get scheduled on the same NUMA node.
