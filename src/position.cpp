@@ -1868,24 +1868,30 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         const Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
         const usize index = cuckoos().find_key(moveKey);
-
         if (index >= cuckoos().size())
             continue;
 
         Move m = cuckoos()[index].move;
-        assert(m.is_ok());
+        assert(m.is_ok() && m.type() == Move::Type::NORMAL);
 
-        // Move path is obstructed
-        if ((occupancyBB & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
+        Square orgSq = m.org_sq();
+        Square dstSq = m.dst_sq();
+
+        // Orient the move relative to the current position.
+        // If the piece is not at the stored origin, it must be at the destination.
+        if ((occupancyBB & orgSq) == 0)
+            // Now m.org_sq() points to where the piece stands right now.
+            std::swap(orgSq, dstSq);
+
+        // Move path, including destination, must be unobstructed.
+        if ((occupancyBB & Attacks::between_bb(orgSq, dstSq)) != 0)
             continue;
 
 #if !defined(NDEBUG)
-        // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
-        if (empty(m.org_sq()))
-            m = m.reverse();
-
+        m = Move::normal(orgSq, dstSq);
         assert(legal(m));
 #endif
+
         if (i16(i) < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.

@@ -747,12 +747,6 @@ class Move {
     // Validity check: ensures move is not None or Null
     [[nodiscard]] bool is_ok() const noexcept { return org() != dst(); }
 
-    [[nodiscard]] Move reverse() const noexcept {
-        assert(type() == Type::NORMAL);
-
-        return Move{dst_sq(), org_sq()};
-    }
-
     // Declare static const members (to be defined later)
     static const Move None;
     static const Move Null;
