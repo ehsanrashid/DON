@@ -159,7 +159,7 @@ Move can_to_move(std::string can, const MoveList<GenType::ALL>& moveList) noexce
 }
 
 Move can_to_move(std::string can, const Position& pos) noexcept {
-    return can_to_move(std::move(can), MoveList<GenType::ALL>(pos));
+    return can_to_move(std::move(can), MoveList<GenType::ALL>{pos});
 }
 
 namespace {
@@ -283,7 +283,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st);
 
-    const bool moveListEmpty = MoveList<GenType::ALL, true>(pos).empty();
+    const bool moveListEmpty = MoveList<GenType::ALL, true>{pos}.empty();
 
     if (pos.checkers_bb() != 0)
         san.push_back(moveListEmpty ? '#' : '+');
@@ -313,7 +313,7 @@ Move san_to_move(std::string san, Position& pos, const MoveList<GenType::ALL>& m
 }
 
 Move san_to_move(std::string san, Position& pos) noexcept {
-    return san_to_move(std::move(san), pos, MoveList<GenType::ALL>(pos));
+    return san_to_move(std::move(san), pos, MoveList<GenType::ALL>{pos});
 }
 
 Move mix_to_move(std::string mix, Position& pos, const MoveList<GenType::ALL>& moveList) noexcept {

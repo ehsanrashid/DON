@@ -81,7 +81,7 @@ class Zobrist final {
 
     [[nodiscard]] Key turn() const noexcept;
 
-    [[nodiscard]] Key mr50(i16 rule50Count) const noexcept;
+    [[nodiscard]] Key mr50(u16 rule50Count) const noexcept;
 
    private:
     static constexpr u8 PawnOffset = u8{8};

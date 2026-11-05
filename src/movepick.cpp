@@ -358,7 +358,7 @@ void MovePicker::init() noexcept {
 
     if constexpr (GT == GenType::ENC_CAPTURE)
     {
-        MoveList<GT> moveList(pos);
+        MoveList<GT> moveList{pos};
 
         assert(cur == nullptr);
         assert(curEnd == nullptr);
@@ -372,7 +372,7 @@ void MovePicker::init() noexcept {
     }
     else if constexpr (GT == GenType::ENC_QUIET)
     {
-        MoveList<GT> moveList(pos);
+        MoveList<GT> moveList{pos};
 
         assert(badCaptureEnd != nullptr);
 
@@ -385,7 +385,7 @@ void MovePicker::init() noexcept {
     }
     else if constexpr (GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
     {
-        MoveList<GT> moveList(pos);
+        MoveList<GT> moveList{pos};
 
         cur    = moves.data();
         curEnd = score(moveList);

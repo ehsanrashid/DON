@@ -81,7 +81,7 @@ Key Zobrist::enpassant(const Square enPassantSq) const noexcept {
 
 Key Zobrist::turn() const noexcept { return Turn; }
 
-Key Zobrist::mr50(const i16 rule50Count) const noexcept {
+Key Zobrist::mr50(const u16 rule50Count) const noexcept {
     return rule50Count < R50Offset
            ? 0
            : MR50[std::min(usize((rule50Count - R50Offset) / R50Divisor), MR50.size() - 1)];

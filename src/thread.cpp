@@ -504,7 +504,7 @@ void Threads::start(const Position& pos,
 
     RootMoves rootMoves;
 
-    MoveList<GenType::ALL> moveList(pos);
+    MoveList<GenType::ALL> moveList{pos};
 
     if (!limit.searchMoves.empty())
     {

@@ -132,7 +132,7 @@ std::optional<Error> Engine::setup(const std::string_view          fen,
     i16 ply = 1;
     for (const auto& move : moves)
     {
-        const Move m = mix_to_move(move, pos, MoveList<GenType::ALL>(pos));
+        const Move m = mix_to_move(move, pos, MoveList<GenType::ALL>{pos});
 
         if (m == Move::None)
             return Error{"Invalid move at ply " + std::to_string(ply) + ": " + move};

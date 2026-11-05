@@ -117,7 +117,7 @@ void PerftData::classify(Position& pos, const Move m) noexcept {
 
         dblCheck += int(more_than_one(pos.checkers_bb()));
 
-        checkmate += int(MoveList<GenType::ALL, true>(pos).empty());
+        checkmate += int(MoveList<GenType::ALL, true>{pos}.empty());
     }
     else
     {
@@ -125,7 +125,7 @@ void PerftData::classify(Position& pos, const Move m) noexcept {
 
         assert(pos.checkers_bb() == 0);
 
-        stalemate += int(MoveList<GenType::ALL, true>(pos).empty());
+        stalemate += int(MoveList<GenType::ALL, true>{pos}.empty());
     }
 
     pos.undo_move(m);
@@ -431,7 +431,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
 
     PerftData perftData;
 
-    for (const Move m : MoveList<GenType::ALL>(pos))
+    for (const Move m : MoveList<GenType::ALL>{pos})
     {
         PerftData iPerftData;
 
@@ -447,12 +447,11 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
         else
         {
             State st;
-
             pos.do_move(m, st);
 
             if (depth <= 2)
             {
-                MoveList<GenType::ALL> iMoveList(pos);
+                MoveList<GenType::ALL> iMoveList{pos};
 
                 iPerftData.nodes += iMoveList.size();
 

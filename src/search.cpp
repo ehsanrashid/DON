@@ -331,7 +331,7 @@ void Worker::start_search() noexcept {
             rootPos.do_move(bookBestMove, st, true, &atomicHistories);
 
             RootMoves orms;
-            for (const Move m : MoveList<GenType::ALL>(rootPos))
+            for (const Move m : MoveList<GenType::ALL>{rootPos})
                 orms.emplace_back(m);
 
             Move bookPonderMove = PGBook.probe(rootPos, orms, options);
@@ -1853,7 +1853,7 @@ Value Worker::search(Position&    pos,
 
     assert(ss->inCheck == (pos.checkers_bb() != 0));
     assert(moveCount != 0 || !ss->inCheck || exclude
-           || (MoveList<GenType::ALL, true>(pos).empty()));
+           || (MoveList<GenType::ALL, true>{pos}.empty()));
     assert(ss->moveCount == moveCount);
     assert(ss->ttHit == (RootNode || ttd.hit));
     assert(ss->ttMove == ttd.move);
@@ -2206,7 +2206,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (inCheck)
         {
             assert(bestValue == -VALUE_INFINITE);
-            assert((MoveList<GenType::ALL, true>(pos).empty()));
+            assert((MoveList<GenType::ALL, true>{pos}.empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
         else
@@ -2218,7 +2218,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 // No pawn pushes available
                 && (Attacks::pawn_push_bb(ac, pos.pieces_bb(ac, PAWN)) & ~pos.pieces_bb()) == 0
                 && !pos.has_non_pawn(ac)  //
-                && MoveList<GenType::ALL, true>(pos).empty())
+                && MoveList<GenType::ALL, true>{pos}.empty())
                 bestValue = VALUE_DRAW;
         }
     }
@@ -2520,7 +2520,7 @@ bool Worker::ponder_move_extracted() noexcept {
     if (!rootPos.is_draw(1))
     {
         // Legal moves for the opponent
-        MoveList<GenType::ALL> moveList(rootPos);
+        MoveList<GenType::ALL> moveList{rootPos};
 
         if (!moveList.empty())
         {
@@ -2616,7 +2616,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (const Move m : MoveList<GenType::ALL>(rootPos))
+        for (const Move m : MoveList<GenType::ALL>{rootPos})
             rms.emplace_back(m);
 
         const auto tbCfg =
@@ -2663,7 +2663,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (const Move m : MoveList<GenType::ALL>(rootPos))
+        for (const Move m : MoveList<GenType::ALL>{rootPos})
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2671,7 +2671,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const Move om : MoveList<GenType::ALL>(rootPos))
+            for (const Move om : MoveList<GenType::ALL>{rootPos})
                 rm.tbRank -= 1 + int(rootPos.capture(om)) * 99;
 
             rootPos.undo_move(m);

@@ -337,8 +337,8 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     reader.get_int(rule50Count);
     reader.get_int(moveNum);
 
-    rule50Count = constexpr_abs(rule50Count);
-    moveNum     = constexpr_abs(moveNum);
+    rule50Count = int(constexpr_abs(rule50Count));
+    moveNum     = int(constexpr_abs(moveNum));
     // Normally, values >= 100 would be pointless, but support ignoring the 50-move rule for TB purposes.
     // Limit at RULE50_COUNT_MAX as it's used multiplicatively with position evaluation during search.
     if (rule50Count > RULE50_COUNT_MAX)
@@ -1072,7 +1072,7 @@ void Position::do_move(const Move                   m,
             preSt = preSt->preSt->preSt;
             if (preSt->key == st->key)
             {
-                st->repetition = preSt->repetition == 0 ? +i : -i;
+                st->repetition = i16(preSt->repetition == 0 ? +i : -i);
                 break;
             }
         }
@@ -1436,7 +1436,7 @@ Value Position::non_pawn_value(const Color c) const noexcept {
           Value nonPawnValue = VALUE_ZERO;
 
           for (const auto pt : NON_PAWN_PIECE_TYPES)
-              nonPawnValue += piece_value(pt) * count(c_, pt);
+              nonPawnValue = Value(nonPawnValue + piece_value(pt) * count(c_, pt));
 
           return nonPawnValue;
       },
@@ -1446,7 +1446,7 @@ Value Position::non_pawn_value(const Color c) const noexcept {
 Value Position::material_value() const noexcept {
     return material_cache().read_or_write_with(
       material_key(),  //
-      [this]() noexcept -> Value { return 521 * count(PAWN) + non_pawn_value(); });
+      [this]() noexcept -> Value { return Value(521 * count(PAWN) + non_pawn_value()); });
 }
 
 Value Position::evaluate() const noexcept {
@@ -1454,8 +1454,8 @@ Value Position::evaluate() const noexcept {
       material_key() ^ (active_color() == BLACK ? zobrist().turn() : 0),  //
       [this]() noexcept -> Value {
           const Color ac = active_color();
-          return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
-               + (non_pawn_value(ac) - non_pawn_value(~ac));
+          return Value(VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
+                       + (non_pawn_value(ac) - non_pawn_value(~ac)));
       });
 }
 
@@ -1828,9 +1828,9 @@ bool Position::is_draw(const i16  ply,
       is_repetition(ply)
       // Draw by 50-move rule
       || (useRule50 && rule50_count() >= 2 * DrawMoveCount
-          && (checkers_bb() == 0 || !MoveList<GenType::ALL, true>(*this).empty()))
+          && (checkers_bb() == 0 || !MoveList<GenType::ALL, true>{*this}.empty()))
       // Draw by Stalemate
-      || (useStalemate && checkers_bb() == 0 && MoveList<GenType::ALL, true>(*this).empty());
+      || (useStalemate && checkers_bb() == 0 && MoveList<GenType::ALL, true>{*this}.empty());
 }
 
 bool Position::has_repeated() const noexcept {
