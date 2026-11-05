@@ -1868,17 +1868,18 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         const Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
         const usize index = cuckoos().find_key(moveKey);
-
         if (index >= cuckoos().size())
             continue;
 
         Move m = cuckoos()[index].move;
-        assert(m.is_ok());
+        assert(m.is_ok() && m.type() == Move::Type::NORMAL);
 
         // Orient the move relative to the current position.
         // If the piece is not at the stored origin, it must be at the destination.
         if (empty(m.org_sq()))
-            m = m.reverse();  // Now m.org_sq() points to where the piece stands right now.
+            m = Move::normal(
+              m.dst_sq(),
+              m.org_sq());  // Now m.org_sq() points to where the piece stands right now.
 
         // The piece must land on an empty square in the current position
         if (!empty(m.dst_sq()))
@@ -1888,9 +1889,8 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         if ((occupancyBB & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
-#if !defined(NDEBUG)
         assert(legal(m));
-#endif
+
         if (i16(i) < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.

@@ -84,10 +84,10 @@ class Cuckoos final {
                     {
                         if ((Attacks::pseudo_attacks_bb(pt, s1) & s2) != 0)
                         {
-                            const Key  key = zobrist.turn()  //
-                                           ^ zobrist.piece_square(c, pt, s1)
-                                           ^ zobrist.piece_square(c, pt, s2);
-                            const Move move{s1, s2};
+                            const Key  key  = zobrist.turn()  //
+                                            ^ zobrist.piece_square(c, pt, s1)
+                                            ^ zobrist.piece_square(c, pt, s2);
+                            const Move move = Move::normal(s1, s2);
                             insert({key, move});
                         }
                     }
