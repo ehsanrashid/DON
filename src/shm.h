@@ -397,7 +397,6 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-
 #elif defined(USE_UNIX_SHM)
 class BaseSharedMemory {
    public:
@@ -889,7 +888,6 @@ class BackendSharedMemory final {
    private:
     std::optional<SharedMemory<T>> shm;
 };
-
 #else
 // For systems that don't have shared memory, or support is troublesome.
 // The way fallback is done is that need a dummy backend.
@@ -916,7 +914,6 @@ class BackendSharedMemory final {
         return "Shared memory: [Dummy] (non-functional).";
     }
 };
-
 #endif
 
 template<typename T>
@@ -935,6 +932,10 @@ struct FallbackBackendSharedMemory final {
         fallbackObj = std::move(fallbackBackendShm.fallbackObj);
         return *this;
     }
+
+    ~FallbackBackendSharedMemory() noexcept = default;
+
+    [[nodiscard]] bool is_valid() const noexcept { return fallbackObj != nullptr; }
 
     [[nodiscard]] void* get() const noexcept { return fallbackObj.get(); }
 
@@ -1004,6 +1005,7 @@ struct SystemWideSharedMemory final {
         backendShm = std::move(systemWideShm.backendShm);
         return *this;
     }
+    ~SystemWideSharedMemory() noexcept = default;
 
     const T& operator*() const noexcept {
         return *std::launder(reinterpret_cast<const T*>(get_ptr()));

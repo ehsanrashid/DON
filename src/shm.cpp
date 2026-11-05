@@ -17,16 +17,14 @@
 
 #include "shm.h"
 
-#if !defined(_WIN32)
-    #if defined(USE_UNIX_SHM)
-        #include <dirent.h>     // opendir(), readdir(), closedir(), DIR, dirent
-        #include <poll.h>       // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
-        #include <sys/file.h>   // flock(), LOCK_EX, LOCK_UN
-        #include <sys/time.h>   // timeval
-        #include <sys/types.h>  // ssize_t, uid_t
+#if !defined(_WIN32) && defined(USE_UNIX_SHM)
+    #include <dirent.h>     // opendir(), readdir(), closedir(), DIR, dirent
+    #include <poll.h>       // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
+    #include <sys/file.h>   // flock(), LOCK_EX, LOCK_UN
+    #include <sys/time.h>   // timeval
+    #include <sys/types.h>  // ssize_t, uid_t
 
-        #include <algorithm>  // min()/max()
-    #endif
+    #include <algorithm>  // min()/max()
 #endif
 
 namespace DON {

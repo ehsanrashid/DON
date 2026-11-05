@@ -312,8 +312,7 @@ MovePicker::MovePicker(const Position&                 p,
     continuationHistory{continuationHist},
     atomicHistories{atomicHists},
     ssPly{ply},
-    qs{qs_}  //, moves()
-{
+    qs{qs_} {
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -329,9 +328,6 @@ MovePicker::MovePicker(const Position&                 p,
     }
     else
     {
-        //for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
-        //    assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
-
         initStage = Stage::ENC_GOOD_CAPTURE;
         curStage  = Stage{!(ttMove.is_ok())};
     }
@@ -344,8 +340,7 @@ MovePicker::MovePicker(const Position&             p,
     pos{p},
     ttMove{ttm},
     captureHistory{captureHist},
-    threshold_{threshold}  //, moves{}
-{
+    threshold_{threshold} {
     assert(pos.checkers_bb() == 0);
     assert(!ttMove.is_ok() || pos.legal(ttMove));
 
