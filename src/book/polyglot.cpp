@@ -598,7 +598,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (candidates.empty())
         return Move::None;
 
-    MoveList<GenType::ALL> moveList(pos);
+    MoveList<GenType::ALL> moveList{pos};
 
     u32 maxWeight = 0;
     u64 sumWeight = 0;

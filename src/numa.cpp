@@ -953,7 +953,7 @@ NumaConfig NumaConfig::from_l3_domain(const std::vector<L3Domain> l3Domains,
 
     std::unordered_map<NumaIndex, std::vector<L3Domain>> numaL3Domains;
 
-    for (auto& l3Domain : l3Domains)
+    for (const auto& l3Domain : l3Domains)
         numaL3Domains[l3Domain.sysNumaId].push_back(std::move(l3Domain));
 
     NumaIndex numaId = 0;

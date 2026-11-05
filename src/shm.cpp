@@ -380,10 +380,10 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
             int ret = ::poll(fds, PI_NB, -1);
             if (ret == -1)
             {
-                if (errno == EINTR)
-                    continue;
+                if (errno != EINTR)
+                    break;
 
-                break;
+                continue;
             }
 
             // Shutdown requested by main thread
@@ -428,10 +428,8 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
     #endif
                 while (::sendmsg(clientFd.get(), &message.msg, flags) == -1)
                 {
-                    if (errno == EINTR)
-                        continue;
-
-                    break;
+                    if (errno != EINTR)
+                        break;
                 }
             }
         }

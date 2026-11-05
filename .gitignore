@@ -35,7 +35,8 @@ tests/tmp_bench.epd
 # IDE files
 .vs/*
 .vscode/*
-/DON
+.claude/*
+.mcp.json
 DON.sln
 DON.vcxproj
 DON.vcxproj.filters

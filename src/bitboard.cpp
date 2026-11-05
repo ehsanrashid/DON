@@ -65,17 +65,13 @@ u8 popcount(const Bitboard b) noexcept {
     std::memcpy(b16.data(), &b, sizeof(b16));
 
     return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
-
 #elif defined(__GNUC__)  // GCC, Clang, ICX
-    return static_cast<u8>(__builtin_popcountll(b));
-
+    return u8(__builtin_popcountll(b));
 #elif defined(_MSC_VER)
-    return static_cast<u8>(_mm_popcnt_u64(b));
-
+    return u8(_mm_popcnt_u64(b));
 #else  // Compiler is neither GCC nor MSVC compatible
     // Using a fallback implementation
     return constexpr_popcount(b);
-
 #endif
 }
 
@@ -84,15 +80,13 @@ Square lsq(const Bitboard b) noexcept {
 
 #if defined(__GNUC__)  // GCC, Clang, ICX
     return Square(__builtin_ctzll(b));
-
 #elif defined(_MSC_VER)
     unsigned long idx;
 
     #if defined(_WIN64)  // (WIN64)
     _BitScanForward64(&idx, b);
     return Square(idx);
-
-    #else  // (WIN32)
+    #else                // (WIN32)
     if (u32 bb = u32(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
@@ -101,13 +95,10 @@ Square lsq(const Bitboard b) noexcept {
 
     _BitScanForward(&idx, u32(b >> 32));
     return Square(idx + 32);
-
     #endif
-
 #else  // Compiler is neither GCC nor MSVC compatible
     // Using a fallback implementation
     return Square(constexpr_lsb(b));
-
 #endif
 }
 
@@ -116,15 +107,13 @@ Square msq(const Bitboard b) noexcept {
 
 #if defined(__GNUC__)  // GCC, Clang, ICX
     return Square(__builtin_clzll(b) ^ 63);
-
 #elif defined(_MSC_VER)
     unsigned long idx;
 
     #if defined(_WIN64)  // (WIN64)
     _BitScanReverse64(&idx, b);
     return Square(idx);
-
-    #else  // (WIN32)
+    #else                // (WIN32)
     if (u32 bb = static_cast<u32>(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
@@ -133,13 +122,10 @@ Square msq(const Bitboard b) noexcept {
 
     _BitScanReverse(&idx, static_cast<u32>(b));
     return Square(idx);
-
     #endif
-
 #else  // Compiler is neither GCC nor MSVC compatible
     // Using a fallback implementation
     return Square(constexpr_msb(b));
-
 #endif
 }
 

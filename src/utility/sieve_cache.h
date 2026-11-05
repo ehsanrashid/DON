@@ -373,7 +373,7 @@ class PoolSIEVECache final {
                     std::terminate();
 
                 nolock_erase(mapItr);
-                return;
+                break;
             }
 
             candidate->visited = false;
@@ -789,7 +789,7 @@ class PoolFlatSIEVECache final {
                     std::terminate();
 
                 nolock_erase(mapItr);
-                return;
+                break;
             }
 
             candidate->visited = false;
