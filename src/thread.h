@@ -184,19 +184,19 @@ ALWAYS_INLINE void Thread::run_custom_job(const JobFunc jobFn) noexcept {
     condVar.wait(uniqueLock, [this]() noexcept -> bool { return !busy || dead; });
 
     // If the thread is still alive, schedule the job
-    if (!dead)
-    {
-        // Move the job into the shared slot for idle_func() to pick up
-        jobFunc = std::move(jobFn);
+    if (dead)
+        return;
 
-        // Mark the thread as busy so that other run_custom_job calls
-        // will wait until this job is complete.
-        busy = true;
+    // Move the job into the shared slot for idle_func() to pick up
+    jobFunc = std::move(jobFn);
 
-        // Notify the thread that a new job is available.
-        // This wakes idle_func() if it is currently waiting.
-        condVar.notify_one();
-    }
+    // Mark the thread as busy so that other run_custom_job calls
+    // will wait until this job is complete.
+    busy = true;
+
+    // Notify the thread that a new job is available.
+    // This wakes idle_func() if it is currently waiting.
+    condVar.notify_one();
 }
 
 // Wakes up the thread that will reset the worker

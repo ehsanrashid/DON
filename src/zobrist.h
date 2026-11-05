@@ -65,6 +65,7 @@ class Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
+    ~Zobrist() noexcept                         = default;
 
     void init(u64 seed) noexcept;
 
