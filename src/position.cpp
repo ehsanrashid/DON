@@ -263,8 +263,12 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         const Color c = is_upper(token) ? WHITE : BLACK;
         token         = lower_case(token);
 
-        if (relative_rank(c, square(c, KING)) != RANK_1)
+        const Square kingSq = square(c, KING);
+        if (relative_rank(c, kingSq) != RANK_1)
             return FENError{std::string{to_string(c)}.append(" king is not on the first rank.")};
+
+        if (file_of(kingSq) == FILE_A || FILE_H == file_of(kingSq))
+            return FENError{std::string{to_string(c)}.append(" king is not on the correct file.")};
 
         const Bitboard rooksBB = pieces_bb(c, ROOK);
 
@@ -1881,8 +1885,11 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         // Orient the move relative to the current position.
         // If the piece is not at the stored origin, it must be at the destination.
         if ((occupancyBB & orgSq) == 0)
-            // Now m.org_sq() points to where the piece stands right now.
+        {
+            // Now orgSq points to where the piece stands right now.
             std::swap(orgSq, dstSq);
+            assert((occupancyBB & orgSq) != 0);
+        }
 
         // Move path, including destination, must be unobstructed.
         if ((occupancyBB & Attacks::between_bb(orgSq, dstSq)) != 0)

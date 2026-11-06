@@ -352,7 +352,7 @@ inline u64 hash_string(std::string_view sv) noexcept { return hash_bytes(sv.data
 template<typename T>
 u64 hash_raw_data(const T& value) noexcept {
     // Must have no padding bytes because reinterpreting as char*
-    static_assert(std::has_unique_object_representations<T>());
+    static_assert(std::has_unique_object_representations_v<T>);
 
     return hash_bytes(reinterpret_cast<const char*>(&value), sizeof(value));
 }
@@ -370,7 +370,7 @@ void combine_hash(usize& seed, const T& v) noexcept {
     usize x;
     // For primitive types we avoid using the default hasher, which may be
     // nondeterministic across program invocations
-    if constexpr (std::is_integral<T>())
+    if constexpr (std::is_integral_v<T>)
         x = v;
     else
         x = std::hash<T>{}(v);

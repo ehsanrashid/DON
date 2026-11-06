@@ -91,12 +91,13 @@ struct ExtMoveSorter final {
                      const isize    count,
                      const isize    offset,
                      const __m512i  indices) const noexcept {
-        const __m512i extMoves = _mm512_permutex2var_epi32(sortedMoves, indices, sortedValues);
-
         const isize storeCount = count - offset;
 
         if (storeCount > 0)
+        {
+            const __m512i extMoves = _mm512_permutex2var_epi32(sortedMoves, indices, sortedValues);
             _mm512_mask_storeu_epi64(ems + offset, __mmask8((1u << storeCount) - 1), extMoves);
+        }
     }
 
     __m512i sortedMoves;
@@ -316,21 +317,11 @@ MovePicker::MovePicker(const Position&                 p,
     assert(!ttMove.is_ok() || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
-    if (pos.checkers_bb() != 0)
-    {
-        initStage = Stage::EVA_CAPTURE;
-        curStage  = Stage{!(ttMove.is_ok())};
-    }
-    else if (qs)
-    {
-        initStage = Stage::QS_CAPTURE;
-        curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
-    }
-    else
-    {
-        initStage = Stage::ENC_GOOD_CAPTURE;
-        curStage  = Stage{!(ttMove.is_ok())};
-    }
+    const bool inCheck = pos.checkers_bb() != 0;
+    const bool ttmOK   = ttMove.is_ok();
+
+    initStage = inCheck ? Stage::EVA_CAPTURE : qs ? Stage::QS_CAPTURE : Stage::ENC_GOOD_CAPTURE;
+    curStage  = Stage{!(ttmOK && (!qs || inCheck || pos.capture_promo(ttMove)))};
 }
 
 MovePicker::MovePicker(const Position&             p,
@@ -344,8 +335,10 @@ MovePicker::MovePicker(const Position&             p,
     assert(pos.checkers_bb() == 0);
     assert(!ttMove.is_ok() || pos.legal(ttMove));
 
+    const bool ttmOK = ttMove.is_ok();
+
     initStage = Stage::PROBCUT;
-    curStage  = Stage{!(ttMove.is_ok() && pos.capture_promo(ttMove))};
+    curStage  = Stage{!(ttmOK && pos.capture_promo(ttMove))};
 }
 
 template<GenType GT>
