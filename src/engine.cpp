@@ -336,10 +336,7 @@ void Engine::verify_network() const noexcept {
                          .append(to_string(status));
 
         if (!error.empty())
-        {
-            message.push_back(' ');
-            message.append(error);
-        }
+            message.append(" ").append(error);
 
         print_info_string(message);
     }

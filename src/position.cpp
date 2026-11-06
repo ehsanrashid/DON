@@ -264,12 +264,13 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         token         = lower_case(token);
 
         if (relative_rank(c, square(c, KING)) != RANK_1)
-            return FENError{std::string{to_string(c)} + " king is not on the first rank."};
+            return FENError{std::string{to_string(c)}.append(" king is not on the first rank.")};
 
         const Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
-            return FENError{std::string{to_string(c)} + " rook is missing on the first rank."};
+            return FENError{
+              std::string{to_string(c)}.append(" rook is missing on the first rank.")};
 
         Square rookOrgSq;
 

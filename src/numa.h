@@ -377,7 +377,8 @@ class NumaConfig final {
             {
                 // /sys/devices/system/node/node.../cpulist
                 const auto path = std::string{"/sys/devices/system/node/node"}
-                                + std::to_string(nodeId) + "/cpulist";
+                                    .append(std::to_string(nodeId))
+                                    .append("/cpulist");
 
                 auto cpusStr = read_file_to_string(path);
 
@@ -475,8 +476,9 @@ class NumaConfig final {
             if (seenCpus.find(nextCpuId) != seenCpus.end())
                 continue;
 
-            const auto path = std::string{"/sys/devices/system/cpu/cpu"} + std::to_string(nextCpuId)
-                            + "/cache/index3/shared_cpu_list";
+            const auto path = std::string{"/sys/devices/system/cpu/cpu"}
+                                .append(std::to_string(nextCpuId))
+                                .append("/cache/index3/shared_cpu_list");
 
             auto cpusStr = read_file_to_string(path);
 

@@ -140,7 +140,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
     static const auto tempRoot = []() -> std::optional<TempRoot> {
         const uid_t uid = ::getuid();
 
-        const auto tempPath = std::string{"/tmp/DON-"} + std::to_string(uid);
+        const auto tempPath = std::string{"/tmp/DON-"}.append(std::to_string(uid));
 
         if (::mkdir(tempPath.c_str(), S_IRWXU) == 0)
             return TempRoot{tempPath};
@@ -224,7 +224,7 @@ void* map_shared(const usize size, const int fd) noexcept {
 std::string make_sentinel_base(const std::string_view name) noexcept {
     // Using std::to_string here causes non-deterministic PGO builds.
     // snprintf, being part of libc, is insensitive to the formatted values.
-    return std::string{"DONSHM_"} + u64_to_hex(hash_string(name));
+    return std::string{"DONSHM_"}.append(u64_to_hex(hash_string(name)));
 }
 
 void set_cloexec(const int fd) noexcept {
@@ -263,7 +263,7 @@ std::vector<std::string> get_peer_sockets(const std::string& sharedDir) noexcept
             const std::string_view dName = entry->d_name;
 
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
-                peerSockets.push_back(sharedDir + "/" + std::string{dName});
+                peerSockets.push_back(sharedDir.append("/").append(dName));
         }
 
         ::closedir(dir);

@@ -278,7 +278,7 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure serialize initialization
-        const auto mutexName = std::string{name()} + "$mutex";
+        const auto mutexName = std::string{name()}.append("$mutex");
 
         HANDLE mutexHandle = ::CreateMutex(nullptr, FALSE, mutexName.c_str());
 
@@ -582,9 +582,9 @@ class SharedMemory final: public BaseSharedMemory {
    public:
     explicit SharedMemory(std::string_view shmName, const TempRoot& tempRoot) noexcept :
         BaseSharedMemory{shmName},
-        sharedDir{std::string{tempRoot.path()} + "/" + make_sentinel_base(name())},
-        initLockPath{sharedDir + "/init_lock"},
-        socketPath{sharedDir + "/" + std::to_string(::getpid()) + ".sock"} {}
+        sharedDir{std::string{tempRoot.path()}.append("/").append(make_sentinel_base(name()))},
+        initLockPath{sharedDir.append("/").append("init_lock")},
+        socketPath{sharedDir.append("/").append(std::to_string(::getpid())).append(".sock")} {}
 
     ~SharedMemory() noexcept override { reset_with_registry(); }
 
@@ -975,11 +975,13 @@ struct SystemWideSharedMemory final {
 
         // Create a unique name based on the value, executable path, and discriminator
         // Hex hashes separated by dollar signs
-        const auto hashName = usize_to_hex(valueHash) + '$'     //
-                            + u64_to_hex(executableHash) + '$'  //
-                            + u64_to_hex(discriminatorHash);
+        const auto hashName = usize_to_hex(valueHash)
+                                .append("$")
+                                .append(u64_to_hex(executableHash))
+                                .append("$")
+                                .append(u64_to_hex(discriminatorHash));
 
-        auto shmName = std::string{"DON_"} + hashName;
+        auto shmName = std::string{"DON_"}.append(hashName);
 
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
