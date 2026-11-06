@@ -74,7 +74,7 @@ class ClippedReLU final {
     void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
 
     #if defined(USE_SSE2)
-        constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
+        constexpr Index SimdWidth  = 16;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         #if !(defined(USE_SSE41))
@@ -107,7 +107,7 @@ class ClippedReLU final {
         constexpr Index Start = SimdWidth * ChunkCount;
     #elif defined(USE_LSX)
         #if defined(USE_LASX)
-        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index SimdWidth  = 32;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m256i*>(input);
@@ -124,7 +124,7 @@ class ClippedReLU final {
 
         constexpr Index Start = SimdWidth * ChunkCount;
         #else
-        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index SimdWidth  = 16;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -141,7 +141,7 @@ class ClippedReLU final {
         constexpr Index Start = SimdWidth * ChunkCount;
         #endif
     #elif defined(USE_NEON)
-        constexpr Index SimdWidth  = SIMD::WIDTH / 2;
+        constexpr Index SimdWidth  = 8;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const SIMD::vec_i8x8_t zero = {0};

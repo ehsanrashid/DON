@@ -85,18 +85,6 @@
 namespace DON::NNUE::SIMD {
 
 inline constexpr Index WIDTH_MAX = 32;
-inline constexpr Index WIDTH_MIN = 16;
-
-// SIMD width (in bytes)
-inline constexpr Index WIDTH =
-#if defined(USE_AVX2) || defined(USE_LASX)
-  WIDTH_MAX
-#elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
-  WIDTH_MIN
-#else
-  0
-#endif
-  ;
 
 // clang-format off
 #if defined(USE_SSE2)
@@ -580,7 +568,7 @@ struct Tiling final {
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
 };
 #else
-// Treat scalar impl as degenerate size-1 vector
+// Treat scalar implementation as degenerate size-1 vector
 namespace Tiling {
 inline constexpr Index RegCount = 1;
     #if !defined(USE_RVV)

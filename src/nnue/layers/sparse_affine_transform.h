@@ -64,8 +64,8 @@ class SparseAffineTransform final {
     static constexpr Index InputDimensions  = InDims;
     static constexpr Index OutputDimensions = OutDims;
 
-    static_assert(OutputDimensions % SIMD::WIDTH_MIN == 0,
-                  "Only implemented for OutputDimensions divisible by SIMD::WIDTH_MIN.");
+    static_assert(OutputDimensions % 16 == 0,
+                  "Only implemented for OutputDimensions divisible by 16.");
 
     static constexpr Index PaddedInputDimensions =
       ceil_to_multiple<Index>(InputDimensions, SIMD::WIDTH_MAX);

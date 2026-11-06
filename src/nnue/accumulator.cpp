@@ -165,8 +165,7 @@ usize AccumulatorStack::find_last_usable_index(const Color     perspective,
         const auto& dirtyPiece  = accumulators[idx].dirties.dirtyPiece;
         const auto  beforeBlock = accumulators[idx].beforeBlocks[perspective];
 
-        // Threat feature set refreshes require a king move across the center, i.e.,
-        // a subset of halfka refreshes
+        // Threat feature set refreshes require a king move across the center
         if (Features::K32H3::requires_refresh(perspective, dirtyPiece, beforeBlock, psqBlock))
             return idx;
     }
