@@ -39,7 +39,6 @@ std::string executable_path() noexcept {
 
     executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
-
 #elif defined(__APPLE__)
     u32 size = static_cast<u32>(executablePath.size());
 
@@ -47,7 +46,6 @@ std::string executable_path() noexcept {
     {
         executableSize = std::strlen(executablePath.data());
     }
-
 #elif defined(__sun)  // Solaris
     const char* path = ::getexecname();
 
@@ -59,7 +57,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::strnlen(path, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__FreeBSD__)
     constexpr Array<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
@@ -70,7 +67,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__OpenBSD__)
     ssize_t size =  //
       ::readlink("/proc/curproc/file", executablePath.data(), executablePath.size() - 1);
@@ -80,7 +76,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t size =  //
       ::readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
@@ -90,7 +85,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__linux__) || defined(__ANDROID__)
     ssize_t size =  //
       ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
@@ -100,14 +94,11 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__wasm__)
-
+    // WebAssembly does not have a standard way to get the executable path, so we return an empty string.
 #else
     #error "Unsupported platform"
-
 #endif
-
     // In case of any error the path will be empty
     return std::string{executablePath.data(), executableSize};
 }
@@ -124,23 +115,18 @@ std::string normalize_shm_name(const std::string_view shmName) noexcept {
         && (name.size() < GlobalPrefix.size()
             || name.compare(0, GlobalPrefix.size(), GlobalPrefix) != 0))
         name.insert(0, LocalPrefix);
-
 #elif defined(USE_UNIX_SHM)
     // POSIX named shared memory names must start with slash ('/')
     constexpr char Prefix = '/';
 
     if (name.empty() || name[0] != Prefix)
         name.insert(name.begin(), Prefix);
-
 #endif
 
     return name;
 }
 
-#if defined(_WIN32)
-
-
-#elif defined(USE_UNIX_SHM)
+#if !defined(_WIN32) && defined(USE_UNIX_SHM)
 
 BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
     name_{normalize_shm_name(shmName)} {}
@@ -433,7 +419,6 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
         }
     });
 }
-
 #endif
 
 }  // namespace DON
