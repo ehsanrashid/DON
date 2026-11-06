@@ -291,9 +291,7 @@ ALWAYS_INLINE void apply_single(const i8* data, const Index j, Tile& tile) noexc
     else
         tile = __riscv_vwsub_wv_i16m8(tile, weightVec, vl);
 }
-
 #else
-
 struct Tile final {
    public:
     auto&       operator[](const Index i) noexcept { return inner[i]; }
@@ -456,7 +454,6 @@ ALWAYS_INLINE void apply_diff(const i8* add, const i8* sub, Tile& tile) noexcept
     #endif
 #endif
 
-///////////////////////////////////////////////////////////////////////////////
 // The weight-table base already includes the tile offset.
 template<Op op, bool Incremental = false>
 ALWAYS_INLINE void
