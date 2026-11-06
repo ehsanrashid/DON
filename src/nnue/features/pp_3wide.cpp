@@ -37,7 +37,7 @@ ALWAYS_INLINE constexpr Index make_pawn_id(const Color c, const Square s) noexce
     return 48 * int(c) + s - SQ_A2;
 }
 
-ALWAYS_INLINE constexpr Index pp_index(const Index id1, const Index id2) noexcept {
+ALWAYS_INLINE constexpr Index make_index(const Index id1, const Index id2) noexcept {
     const Index idL = std::min(id1, id2);
     const Index idH = std::max(id1, id2);
 
@@ -45,7 +45,7 @@ ALWAYS_INLINE constexpr Index pp_index(const Index id1, const Index id2) noexcep
 }
 
 #if defined(USE_AVX512ICL)
-ALWAYS_INLINE __m256i pp_index_epi16(const __m256i id1, const __m256i id2) noexcept {
+ALWAYS_INLINE __m256i make_index_epi16(const __m256i id1, const __m256i id2) noexcept {
     const __m256i idL  = _mm256_min_epu16(id1, id2);
     const __m256i idH  = _mm256_max_epu16(id1, id2);
     const __m256i prod = _mm256_mullo_epi16(idH, _mm256_sub_epi16(idH, _mm256_set1_epi16(1)));
@@ -53,29 +53,6 @@ ALWAYS_INLINE __m256i pp_index_epi16(const __m256i id1, const __m256i id2) noexc
                             _mm256_add_epi16(idL, _mm256_srli_epi16(prod, 1)));
 }
 #endif
-
-ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
-                                         const Square kingSq,
-                                         const Color  color,
-                                         const Square orgSq,
-                                         const Square dstSq,
-                                         const Color  pairedColor) noexcept {
-    const u8 orient = u8(orientation(kingSq)) ^ (56 * perspective);
-
-    const u8 org = u8(orgSq) ^ orient;
-    const u8 dst = u8(dstSq) ^ orient;
-
-    assert(SQ_A2 <= org && org <= SQ_H7);
-    assert(SQ_A2 <= dst && dst <= SQ_H7);
-
-    const Color rColor       = Color(color ^ perspective);
-    const Color rPairedColor = Color(pairedColor ^ perspective);
-
-    const Index id1 = make_pawn_id(rColor, Square{org});
-    const Index id2 = make_pawn_id(rPairedColor, Square{dst});
-
-    return pp_index(id1, id2);
-}
 
 template<usize N>
 ALWAYS_INLINE void append_active_indices_(Color perspective,
@@ -126,7 +103,7 @@ ALWAYS_INLINE void append_active_indices_(Color perspective,
             const u16      sId  = u16(((u8(s) ^ orientations[i]) - 8) + ((enemyBB & s) ? 48 : 0));
             const __m256i  pIds = _mm256_cvtepu8_epi16(
               _mm512_castsi512_si128(_mm512_maskz_compress_epi8(partnersBB, ids[i])));
-            const __m256i feats = pp_index_epi16(_mm256_set1_epi16(sId), pIds);
+            const __m256i feats = make_index_epi16(_mm256_set1_epi16(sId), pIds);
             // Position::set material limits bound refresh lists to 232 entries:
             // 80 + 8 * (16 - P) + 2 * P + P * (P - 1) / 2, for P <= 16 pawns.
             // Updates have at most 96 threats + 120 pairs. Both fit in 256 entries
@@ -146,7 +123,7 @@ ALWAYS_INLINE void append_active_indices_(Color perspective,
             {
                 const Index dId   = make_pawn_id(Color(pairedColor ^ perspective ^ i),
                                                  Square(u8(dst) ^ orientations[i]));
-                const Index index = pp_index(sId[i], dId);
+                const Index index = make_index(sId[i], dId);
 
                 if (pfBase != nullptr)
                     prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(reinterpret_cast<const void*>(
