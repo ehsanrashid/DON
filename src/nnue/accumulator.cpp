@@ -37,7 +37,7 @@ namespace DON::NNUE {
 
 void AccumulatorCache::Entry::reset(const Array<Bias, L1>& biases) noexcept {
     // Reset all members to zero memory before initialization
-    std::memset(reinterpret_cast<u8*>(this), 0, sizeof(*this));
+    std::memset(static_cast<void*>(this), 0, sizeof(*this));
     // Initialize accumulation with given biases
     accumulation = biases;
 }
@@ -604,7 +604,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return ~sameBB;
-
     #else
     Bitboard sameBB = 0;
 
@@ -619,9 +618,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return ~sameBB;
-
     #endif
-
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
     Bitboard changedBB = 0;
@@ -639,7 +636,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return changedBB;
-
     #else
     Bitboard changedBB = 0;
 
@@ -655,9 +651,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return changedBB;
-
     #endif
-
 #elif defined(USE_NEON)
     const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
     const uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
@@ -675,7 +669,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     const Bitboard  sameBB = vget_lane_u64(vreinterpret_u64_u8(packed), 0);
 
     return ~sameBB;
-
 #elif defined(USE_RVV)
 
     #define RVV_MASK(mx, bx) \
@@ -693,7 +686,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         return RVV_MASK(4, 2);
 
     #undef RVV_MASK
-
 #else
     Bitboard changedBB = 0;
 
@@ -701,7 +693,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         changedBB |= Bitboard{oldPieceMap[s] != newPieceMap[s]} << s;
 
     return changedBB;
-
 #endif
 }
 

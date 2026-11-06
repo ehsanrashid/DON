@@ -114,13 +114,13 @@ Square msq(const Bitboard b) noexcept {
     _BitScanReverse64(&idx, b);
     return Square(idx);
     #else                // (WIN32)
-    if (u32 bb = static_cast<u32>(b >> 32); bb != 0)
+    if (u32 bb = u32(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
         return Square(idx + 32);
     }
 
-    _BitScanReverse(&idx, static_cast<u32>(b));
+    _BitScanReverse(&idx, u32(b));
     return Square(idx);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
