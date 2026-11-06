@@ -263,7 +263,7 @@ std::vector<std::string> get_peer_sockets(const std::string& sharedDir) noexcept
             const std::string_view dName = entry->d_name;
 
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
-                peerSockets.push_back(sharedDir.append("/").append(dName));
+                peerSockets.push_back(std::string{sharedDir}.append("/").append(dName));
         }
 
         ::closedir(dir);
