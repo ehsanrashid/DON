@@ -122,6 +122,7 @@ using vec_i8_t = __m256i;
         #define vec_unpacklo_8(a, b) _mm512_unpacklo_epi8(a, b)
         #define vec_unpackhi_8(a, b) _mm512_unpackhi_epi8(a, b)
         #define vec_maddubs_16(a, b) _mm512_maddubs_epi16(a, b)
+        #define vec_xor(a, b) _mm512_xor_si512(a, b)
 
         #define vec_nnz(a) _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512())
 
@@ -149,6 +150,7 @@ using vec_i8_t = __m128i;
         #define vec_unpacklo_8(a, b) _mm256_unpacklo_epi8(a, b)
         #define vec_unpackhi_8(a, b) _mm256_unpackhi_epi8(a, b)
         #define vec_maddubs_16(a, b) _mm256_maddubs_epi16(a, b)
+        #define vec_xor(a, b) _mm256_xor_si256(a, b)
 
         #define vec_nnz(a) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
 
@@ -195,6 +197,7 @@ ALWAYS_INLINE __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
         #define vec_set_8(a) _mm_set1_epi8(a)
         #define vec_unpacklo_8(a, b) _mm_unpacklo_epi8(a, b)
         #define vec_unpackhi_8(a, b) _mm_unpackhi_epi8(a, b)
+        #define vec_xor(a, b) _mm_xor_si128(a, b)
 
         #if defined(USE_SSSE3)
             #define vec_maddubs_16(a, b) _mm_maddubs_epi16(a, b)

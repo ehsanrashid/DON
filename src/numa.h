@@ -876,6 +876,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         // Map a CPU from the configured NUMA node to its hardware/system NUMA domain.
         const CpuIndex  cpuId     = numaCfg.node_cpus_front(numaId);
         const NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
+
         const auto discriminator = sysCfg.to_string().append("$").append(std::to_string(sysNumaId));
 
         return hash_string(discriminator);
