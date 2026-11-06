@@ -377,7 +377,8 @@ class NumaConfig final {
             {
                 // /sys/devices/system/node/node.../cpulist
                 const auto path = std::string{"/sys/devices/system/node/node"}
-                                + std::to_string(nodeId) + "/cpulist";
+                                    .append(std::to_string(nodeId))
+                                    .append("/cpulist");
 
                 auto cpusStr = read_file_to_string(path);
 
@@ -475,8 +476,9 @@ class NumaConfig final {
             if (seenCpus.find(nextCpuId) != seenCpus.end())
                 continue;
 
-            const auto path = std::string{"/sys/devices/system/cpu/cpu"} + std::to_string(nextCpuId)
-                            + "/cache/index3/shared_cpu_list";
+            const auto path = std::string{"/sys/devices/system/cpu/cpu"}
+                                .append(std::to_string(nextCpuId))
+                                .append("/cache/index3/shared_cpu_list");
 
             auto cpusStr = read_file_to_string(path);
 
@@ -876,6 +878,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         // Map a CPU from the configured NUMA node to its hardware/system NUMA domain.
         const CpuIndex  cpuId     = numaCfg.node_cpus_front(numaId);
         const NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
+
         const auto discriminator = sysCfg.to_string().append("$").append(std::to_string(sysNumaId));
 
         return hash_string(discriminator);

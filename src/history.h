@@ -72,10 +72,9 @@ template<typename T>
 class DynamicArray final {
    public:
     explicit DynamicArray(const usize size) noexcept :
-        size_(size) {
+        size_{size},
+        data_{make_unique_aligned_large_page<T[]>(size)} {
         assert(size != 0);
-
-        data_ = make_unique_aligned_large_page<T[]>(size);
     }
 
     [[nodiscard]] usize size() const noexcept { return size_; }
@@ -101,8 +100,8 @@ class DynamicArray final {
     }
 
    private:
-    LargePagePtr<T[]> data_;
     usize             size_;
+    LargePagePtr<T[]> data_;
 };
 
 template<typename T, int D, usize... Sizes>

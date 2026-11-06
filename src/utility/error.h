@@ -35,7 +35,7 @@ struct Error: public std::runtime_error {
 struct FENError final: public Error {
    public:
     explicit FENError(const std::string_view message) :
-        Error{"Invalid FEN: " + std::string{message}} {}
+        Error{std::string{"Invalid FEN: "}.append(message)} {}
 };
 
 }  // namespace DON

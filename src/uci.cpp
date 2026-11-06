@@ -538,8 +538,9 @@ void UCI::bench(std::istream& is) noexcept {
 
     const auto commands = Benchmark::bench(is, engine.fen());
 
-    const usize num =
-      std::count_if(commands.begin(), commands.end(), [](const std::string_view command) {
+    const usize num = std::count_if(     //
+      commands.begin(), commands.end(),  //
+      [](const std::string_view command) noexcept {
           return starts_with(command, "go ") || starts_with(command, "eval");
       });
 
@@ -639,7 +640,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     InfoStopped = true;
     engine.set_on_update_short([](const auto&) noexcept -> void {});
-    engine.set_on_update_full([&](const auto&) noexcept -> void {});
+    engine.set_on_update_full([](const auto&) noexcept -> void {});
     engine.set_on_update_iter([](const auto&) noexcept -> void {});
     engine.set_on_update_move([](const auto&) noexcept -> void {});
 
@@ -650,9 +651,9 @@ void UCI::benchmark(std::istream& is) noexcept {
     options().setoption("Hash", std::to_string(setup.ttSize));
     options().setoption("UCI_Chess960", bool_to_str(false));
 
-    const usize num =
-      std::count_if(setup.commands.begin(), setup.commands.end(),
-                    [](const std::string_view command) { return starts_with(command, "go "); });
+    const usize num = std::count_if(                 //
+      setup.commands.begin(), setup.commands.end(),  //
+      [](const std::string_view command) noexcept { return starts_with(command, "go "); });
 
     Debug::reset();
 

@@ -17,16 +17,14 @@
 
 #include "shm.h"
 
-#if !defined(_WIN32)
-    #if defined(USE_UNIX_SHM)
-        #include <dirent.h>     // opendir(), readdir(), closedir(), DIR, dirent
-        #include <poll.h>       // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
-        #include <sys/file.h>   // flock(), LOCK_EX, LOCK_UN
-        #include <sys/time.h>   // timeval
-        #include <sys/types.h>  // ssize_t, uid_t
+#if !defined(_WIN32) && defined(USE_UNIX_SHM)
+    #include <dirent.h>     // opendir(), readdir(), closedir(), DIR, dirent
+    #include <poll.h>       // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
+    #include <sys/file.h>   // flock(), LOCK_EX, LOCK_UN
+    #include <sys/time.h>   // timeval
+    #include <sys/types.h>  // ssize_t, uid_t
 
-        #include <algorithm>  // min()/max()
-    #endif
+    #include <algorithm>  // min()/max()
 #endif
 
 namespace DON {
@@ -41,7 +39,6 @@ std::string executable_path() noexcept {
 
     executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
-
 #elif defined(__APPLE__)
     u32 size = static_cast<u32>(executablePath.size());
 
@@ -49,7 +46,6 @@ std::string executable_path() noexcept {
     {
         executableSize = std::strlen(executablePath.data());
     }
-
 #elif defined(__sun)  // Solaris
     const char* path = ::getexecname();
 
@@ -61,7 +57,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::strnlen(path, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__FreeBSD__)
     constexpr Array<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
@@ -72,7 +67,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__OpenBSD__)
     ssize_t size =  //
       ::readlink("/proc/curproc/file", executablePath.data(), executablePath.size() - 1);
@@ -82,7 +76,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t size =  //
       ::readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
@@ -92,7 +85,6 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__linux__) || defined(__ANDROID__)
     ssize_t size =  //
       ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
@@ -102,14 +94,11 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
-
 #elif defined(__wasm__)
-
+    // WebAssembly does not have a standard way to get the executable path, so we return an empty string.
 #else
     #error "Unsupported platform"
-
 #endif
-
     // In case of any error the path will be empty
     return std::string{executablePath.data(), executableSize};
 }
@@ -126,23 +115,18 @@ std::string normalize_shm_name(const std::string_view shmName) noexcept {
         && (name.size() < GlobalPrefix.size()
             || name.compare(0, GlobalPrefix.size(), GlobalPrefix) != 0))
         name.insert(0, LocalPrefix);
-
 #elif defined(USE_UNIX_SHM)
     // POSIX named shared memory names must start with slash ('/')
     constexpr char Prefix = '/';
 
     if (name.empty() || name[0] != Prefix)
         name.insert(name.begin(), Prefix);
-
 #endif
 
     return name;
 }
 
-#if defined(_WIN32)
-
-
-#elif defined(USE_UNIX_SHM)
+#if !defined(_WIN32) && defined(USE_UNIX_SHM)
 
 BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
     name_{normalize_shm_name(shmName)} {}
@@ -156,7 +140,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
     static const auto tempRoot = []() -> std::optional<TempRoot> {
         const uid_t uid = ::getuid();
 
-        const auto tempPath = std::string{"/tmp/DON-"} + std::to_string(uid);
+        const auto tempPath = std::string{"/tmp/DON-"}.append(std::to_string(uid));
 
         if (::mkdir(tempPath.c_str(), S_IRWXU) == 0)
             return TempRoot{tempPath};
@@ -240,7 +224,7 @@ void* map_shared(const usize size, const int fd) noexcept {
 std::string make_sentinel_base(const std::string_view name) noexcept {
     // Using std::to_string here causes non-deterministic PGO builds.
     // snprintf, being part of libc, is insensitive to the formatted values.
-    return std::string{"DONSHM_"} + u64_to_hex(hash_string(name));
+    return std::string{"DONSHM_"}.append(u64_to_hex(hash_string(name)));
 }
 
 void set_cloexec(const int fd) noexcept {
@@ -279,7 +263,7 @@ std::vector<std::string> get_peer_sockets(const std::string& sharedDir) noexcept
             const std::string_view dName = entry->d_name;
 
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
-                peerSockets.push_back(sharedDir + "/" + std::string{dName});
+                peerSockets.push_back(std::string{sharedDir}.append("/").append(dName));
         }
 
         ::closedir(dir);
@@ -435,7 +419,6 @@ NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serve
         }
     });
 }
-
 #endif
 
 }  // namespace DON

@@ -58,6 +58,7 @@ class Cuckoos final {
     Cuckoos& operator=(const Cuckoos&) noexcept = delete;
     Cuckoos(Cuckoos&&) noexcept                 = delete;
     Cuckoos& operator=(Cuckoos&&) noexcept      = delete;
+    ~Cuckoos() noexcept                         = default;
 
     [[nodiscard]] auto begin() noexcept { return cuckoos.begin(); }
     [[nodiscard]] auto end() noexcept { return cuckoos.end(); }

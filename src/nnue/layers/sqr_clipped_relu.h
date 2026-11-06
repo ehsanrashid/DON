@@ -148,7 +148,7 @@ class SqrClippedReLU final {
         [[maybe_unused]] constexpr u8 SimdShift = BaseShift - 16;
 
     #if defined(USE_SSE2)
-        constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
+        constexpr Index SimdWidth  = 16;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -169,7 +169,7 @@ class SqrClippedReLU final {
         constexpr Index Start = SimdWidth * ChunkCount;
     #elif defined(USE_LSX)
         #if defined(USE_LASX)
-        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index SimdWidth  = 32;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m256i*>(input);
@@ -188,9 +188,8 @@ class SqrClippedReLU final {
             // clang-format on
         }
         constexpr Index Start = SimdWidth * ChunkCount;
-
         #else
-        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index SimdWidth  = 16;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -211,7 +210,7 @@ class SqrClippedReLU final {
         constexpr Index Start = SimdWidth * ChunkCount;
         #endif
     #elif defined(USE_NEON)
-        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index SimdWidth  = 16;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const int32x4_t*>(input);

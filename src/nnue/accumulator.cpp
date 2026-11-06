@@ -37,7 +37,7 @@ namespace DON::NNUE {
 
 void AccumulatorCache::Entry::reset(const Array<Bias, L1>& biases) noexcept {
     // Reset all members to zero memory before initialization
-    std::memset(reinterpret_cast<u8*>(this), 0, sizeof(*this));
+    std::memset(static_cast<void*>(this), 0, sizeof(*this));
     // Initialize accumulation with given biases
     accumulation = biases;
 }
@@ -165,8 +165,7 @@ usize AccumulatorStack::find_last_usable_index(const Color     perspective,
         const auto& dirtyPiece  = accumulators[idx].dirties.dirtyPiece;
         const auto  beforeBlock = accumulators[idx].beforeBlocks[perspective];
 
-        // Threat feature set refreshes require a king move across the center, i.e.,
-        // a subset of halfka refreshes
+        // Threat feature set refreshes require a king move across the center
         if (Features::K32H3::requires_refresh(perspective, dirtyPiece, beforeBlock, psqBlock))
             return idx;
     }
@@ -292,9 +291,7 @@ ALWAYS_INLINE void apply_single(const i8* data, const Index j, Tile& tile) noexc
     else
         tile = __riscv_vwsub_wv_i16m8(tile, weightVec, vl);
 }
-
 #else
-
 struct Tile final {
    public:
     auto&       operator[](const Index i) noexcept { return inner[i]; }
@@ -432,10 +429,31 @@ ALWAYS_INLINE void apply_pair(const i8* src0, const i8* src1, Tile& tile) noexce
         }
     }
 }
+
+// tile += add - sub in one maddubs per half. Bias both rows to u8 so maddubs' unsigned
+// operand is valid; the bias cancels and |add - sub| <= 255 can't saturate.
+ALWAYS_INLINE void apply_diff(const i8* add, const i8* sub, Tile& tile) noexcept {
+    static_assert(Tiling::RegCount % 2 == 0);
+    const SIMD::vec_t bias  = vec_set_8(-128);
+    const SIMD::vec_t signs = vec_set_16(-255);  // i8 pairs (+1, -1)
+        #if defined(__clang__)
+            #pragma clang loop unroll(full)
+        #elif defined(__GNUC__)
+            #pragma GCC unroll(Tiling::RegCount / 2)
+        #endif
+    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
+    {
+        const SIMD::vec_t au =
+          vec_xor(vec_load(reinterpret_cast<const SIMD::vec_t*>(add) + k / 2), bias);
+        const SIMD::vec_t su =
+          vec_xor(vec_load(reinterpret_cast<const SIMD::vec_t*>(sub) + k / 2), bias);
+        tile[k + 0] = vec_add_16(tile[k + 0], vec_maddubs_16(vec_unpacklo_8(au, su), signs));
+        tile[k + 1] = vec_add_16(tile[k + 1], vec_maddubs_16(vec_unpackhi_8(au, su), signs));
+    }
+}
     #endif
 #endif
 
-///////////////////////////////////////////////////////////////////////////////
 // The weight-table base already includes the tile offset.
 template<Op op, bool Incremental = false>
 ALWAYS_INLINE void
@@ -471,12 +489,68 @@ apply_features(const u16* indices, Index size, const i8* weights, Index j, Tile&
         apply_single<op>(&weights[indices[i] * Dimensions], j, tile);
 }
 
-template<Op op>
-ALWAYS_INLINE void apply_psq_features(const Features::K32H3::IndexList& psqList,
+// Applies one sign's psq and threat/pp rows. With paired widening, an odd row is held back
+// in `odd` so it can be combined with the other sign's odd row.
+template<Op op, bool Incremental = false>
+ALWAYS_INLINE void apply_features_but_odd(const u16*                psq,
+                                          Index                     psqCount,
+                                          const u16*                thr,
+                                          Index                     thrCount,
+                                          const FeatureTransformer& ft,
+                                          const Weight*             psqBase,
+                                          Index                     j,
+                                          Tile&                     tile,
+                                          const i8*&                odd) noexcept {
+    const auto* psqWeights = &psqBase[j];
+    const auto* thrWeights = &ft.threatAndPpWeights[j];
+    odd                    = nullptr;
+#if defined(USE_PAIRED_WIDENING_ADD)
+    if ((psqCount + thrCount) % 2 != 0)
+        odd = thrCount > 0 ? &thrWeights[usize(thr[--thrCount]) * Dimensions]
+                           : &psqWeights[usize(psq[--psqCount]) * Dimensions];
+
+    // Keep the last odd psq row paired with the first threat/pp row of the same sign.
+    if (psqCount % 2 != 0)
+    {
+        --psqCount;
+        apply_pair<op>(&psqWeights[usize(psq[psqCount]) * Dimensions],
+                       &thrWeights[usize(thr[0]) * Dimensions], tile);
+        ++thr;
+        --thrCount;
+    }
+#endif
+
+    apply_features<op, Incremental>(psq, psqCount, psqWeights, j, tile);
+    apply_features<op>(thr, thrCount, thrWeights, j, tile);
+}
+
+ALWAYS_INLINE void
+apply_odd_features(const i8* removed, const i8* added, Index j, Tile& tile) noexcept {
+#if defined(USE_PAIRED_WIDENING_ADD)
+    if (removed != nullptr && added != nullptr)
+    {
+        apply_diff(added, removed, tile);
+        return;
+    }
+#endif
+    if (removed != nullptr)
+        apply_single<Op::Sub>(removed, j, tile);
+    if (added != nullptr)
+        apply_single<Op::Add>(added, j, tile);
+}
+
+ALWAYS_INLINE void apply_psq_features(const Features::K32H3::IndexList& removed,
+                                      const Features::K32H3::IndexList& added,
+                                      const FeatureTransformer&         ft,
                                       const Weight*                     psqWeights,
                                       Index                             j,
                                       Tile&                             tile) noexcept {
-    apply_features<op>(psqList.begin(), psqList.size(), &psqWeights[j], j, tile);
+    const i8 *oddRemoved, *oddAdded;
+    apply_features_but_odd<Op::Sub>(removed.begin(), removed.size(), nullptr, 0, ft, psqWeights, j,
+                                    tile, oddRemoved);
+    apply_features_but_odd<Op::Add>(added.begin(), added.size(), nullptr, 0, ft, psqWeights, j,
+                                    tile, oddAdded);
+    apply_odd_features(oddRemoved, oddAdded, j, tile);
 }
 
 template<Op op>
@@ -487,38 +561,29 @@ ALWAYS_INLINE void apply_threat_features(const Features::FullThreats::IndexList&
     apply_features<op>(thrList.begin(), thrList.size(), &ft.threatAndPpWeights[j], j, tile);
 }
 
-template<Op op, bool Incremental = false>
-ALWAYS_INLINE void apply_combined_features(const Features::K32H3::IndexList&       psqList,
-                                           const Features::FullThreats::IndexList& thrList,
+template<bool Incremental = false>
+ALWAYS_INLINE void apply_combined_features(const Features::K32H3::IndexList&       psqRemoved,
+                                           const Features::FullThreats::IndexList& thrRemoved,
+                                           const Features::K32H3::IndexList&       psqAdded,
+                                           const Features::FullThreats::IndexList& thrAdded,
                                            const FeatureTransformer&               ft,
                                            const Weight*                           psqBase,
                                            Index                                   j,
                                            Tile&                                   tile) noexcept {
     if constexpr (Incremental)
-        assert(psqList.size() == 1 || psqList.size() == 2);
-
-    const auto* psqWeights = &psqBase[j];
-    const auto* thrWeights = &ft.threatAndPpWeights[j];
-    Index       psqCount   = psqList.size();
-    Index       thrBegin   = 0;
-#if defined(USE_PAIRED_WIDENING_ADD)
-    // Keep the last odd psq row paired with the first threat/pp row of the same sign.
-    if (psqCount % 2 != 0 && thrList.size() != 0)
     {
-        --psqCount;
-        thrBegin = 1;
+        assert(psqRemoved.size() == 1 || psqRemoved.size() == 2);
+        assert(psqAdded.size() == 1 || psqAdded.size() == 2);
     }
-#endif
 
-    apply_features<op, Incremental>(psqList.begin(), psqCount, psqWeights, j, tile);
-#if defined(USE_PAIRED_WIDENING_ADD)
-    if (thrBegin != 0)
-        apply_pair<op>(&psqWeights[psqList[psqCount] * Dimensions],
-                       &thrWeights[thrList[0] * Dimensions], tile);
-#endif
-    apply_features<op>(thrList.begin() + thrBegin,
-                       thrBegin < thrList.size() ? thrList.size() - thrBegin : 0, thrWeights, j,
-                       tile);
+    const i8 *oddRemoved, *oddAdded;
+    apply_features_but_odd<Op::Sub, Incremental>(psqRemoved.begin(), psqRemoved.size(),  //
+                                                 thrRemoved.begin(), thrRemoved.size(),  //
+                                                 ft, psqBase, j, tile, oddRemoved);
+    apply_features_but_odd<Op::Add, Incremental>(psqAdded.begin(), psqAdded.size(),  //
+                                                 thrAdded.begin(), thrAdded.size(),  //
+                                                 ft, psqBase, j, tile, oddAdded);
+    apply_odd_features(oddRemoved, oddAdded, j, tile);
 }
 
 }  // namespace
@@ -539,7 +604,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return ~sameBB;
-
     #else
     Bitboard sameBB = 0;
 
@@ -554,9 +618,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return ~sameBB;
-
     #endif
-
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
     Bitboard changedBB = 0;
@@ -574,7 +636,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return changedBB;
-
     #else
     Bitboard changedBB = 0;
 
@@ -590,9 +651,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return changedBB;
-
     #endif
-
 #elif defined(USE_NEON)
     const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
     const uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
@@ -610,7 +669,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     const Bitboard  sameBB = vget_lane_u64(vreinterpret_u64_u8(packed), 0);
 
     return ~sameBB;
-
 #elif defined(USE_RVV)
 
     #define RVV_MASK(mx, bx) \
@@ -628,7 +686,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         return RVV_MASK(4, 2);
 
     #undef RVV_MASK
-
 #else
     Bitboard changedBB = 0;
 
@@ -636,7 +693,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         changedBB |= Bitboard{oldPieceMap[s] != newPieceMap[s]} << s;
 
     return changedBB;
-
 #endif
 }
 
@@ -728,8 +784,7 @@ void update_hybrid(const Color               perspective,
 
         load_tile(newEntry.accumulation.data(), j, tile);
 
-        apply_psq_features<Op::Sub>(newRemove, psqWeights, j, tile);
-        apply_psq_features<Op::Add>(newAdd, psqWeights, j, tile);
+        apply_psq_features(newRemove, newAdd, featureTransformer, psqWeights, j, tile);
 
         store_tile(newEntry.accumulation.data(), j, tile);
 
@@ -740,10 +795,8 @@ void update_hybrid(const Color               perspective,
         apply<Op::Sub>(&oldEntry.accumulation[j], j, tile);
 
         // ... then adjust
-        apply_combined_features<Op::Sub>(  //
-          oldAdd, thrRemoved, featureTransformer, psqWeights, j, tile);
-        apply_combined_features<Op::Add>(  //
-          oldRemove, thrAdded, featureTransformer, psqWeights, j, tile);
+        apply_combined_features(oldAdd, thrRemoved, oldRemove, thrAdded, featureTransformer,
+                                psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }
@@ -794,8 +847,7 @@ void update_refresh_cache(const Color               perspective,
 
         load_tile(entry.accumulation.data(), j, tile);
 
-        apply_psq_features<Op::Sub>(removed, psqWeights, j, tile);
-        apply_psq_features<Op::Add>(added, psqWeights, j, tile);
+        apply_psq_features(removed, added, featureTransformer, psqWeights, j, tile);
 
         store_tile(entry.accumulation.data(), j, tile);
 
@@ -823,10 +875,8 @@ void apply_combined(Color                                   perspective,
 
         load_tile(srcAccm.data(), j, tile);
 
-        apply_combined_features<Op::Sub, true>(  //
-          psqRemoved, thrRemoved, featureTransformer, psqWeights, j, tile);
-        apply_combined_features<Op::Add, true>(  //
-          psqAdded, thrAdded, featureTransformer, psqWeights, j, tile);
+        apply_combined_features<true>(psqRemoved, thrRemoved, psqAdded, thrAdded,
+                                      featureTransformer, psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
     }
