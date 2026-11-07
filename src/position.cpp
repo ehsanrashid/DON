@@ -1855,8 +1855,8 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         return false;
 
     const Key    baseKey = st->key;
-    const State* preSt   = st->preSt;
-    Key          iterKey = baseKey ^ preSt->key ^ zobrist().turn();
+    const State* pSt     = st->preSt;
+    Key          iterKey = baseKey ^ pSt->key ^ zobrist().turn();
 
     const Bitboard occupancyBB = pieces_bb();
 #if !defined(NDEBUG)
@@ -1865,15 +1865,15 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
     for (u16 i = 3; i <= end; i += 2)
     {
-        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ zobrist().turn();
-
-        preSt = preSt->preSt->preSt;
+        pSt = pSt->preSt;
+        iterKey ^= pSt->key ^ pSt->preSt->key ^ zobrist().turn();
+        pSt = pSt->preSt;
 
         // Opponent pieces have reverted
         if (iterKey != 0)
             continue;
 
-        const Key moveKey = baseKey ^ preSt->key;
+        const Key moveKey = baseKey ^ pSt->key;
         // 'moveKey' is a single move
         const usize index = cuckoos().find_key(moveKey);
         if (index >= cuckoos().size())
@@ -1909,7 +1909,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
         // For nodes before or at the root, check that the move is
         // a repetition rather than a move to the current position.
-        if (preSt->repetition != 0)
+        if (pSt->repetition != 0)
             return true;
     }
 
