@@ -48,14 +48,14 @@ constexpr u64 rotr(const u64 x, const u8 k) noexcept {
 // (including the Java 8 SplitableRandom and the standard initialization routines by Vigna)
 class SplitMix64 final {
    public:
-    explicit SplitMix64(u64 seed) noexcept;
+    constexpr explicit SplitMix64(u64 seed) noexcept;
 
-    u64 next() noexcept;
+    constexpr u64 next() noexcept;
 
    private:
-    void update() noexcept;
+    constexpr void update() noexcept;
 
-    u64 mix() const noexcept;
+    constexpr u64 mix() const noexcept;
 
     u64 state;
 };
@@ -377,6 +377,8 @@ class Xoshiro1024ss final {
     State state = DefaultState;
     usize p     = 0;
 };
+
+void test_prng() noexcept;
 
 }  // namespace DON
 

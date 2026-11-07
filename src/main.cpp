@@ -29,6 +29,10 @@
 #include "utility/console.h"
 #include "utility/functions.h"
 
+#if !defined(NDEBUG)
+    #include "utility/prng.h"
+#endif
+
 #if defined(UNIVERSAL_BINARY)
     #include "utility/attributes.h"
 #endif
@@ -50,6 +54,10 @@ int main(const int argc, const char* const argv[]) noexcept {
     std::cout << engine_info() << std::endl;
     std::cout << build_timestamp() << std::endl;
     std::cout << '\n' << engine_logo() << std::endl;
+
+#if !defined(NDEBUG)
+    test_prng();
+#endif
 
     Attacks::init();
     Position::init();
