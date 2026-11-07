@@ -1859,7 +1859,9 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     Key          iterKey = baseKey ^ preSt->key ^ zobrist().turn();
 
     const Bitboard occupancyBB = pieces_bb();
-    const Bitboard colorBB     = pieces_bb(active_color());
+#if !defined(NDEBUG)
+    const Bitboard colorBB = pieces_bb(active_color());
+#endif
 
     for (u16 i = 3; i <= end; i += 2)
     {
