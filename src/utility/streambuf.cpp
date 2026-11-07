@@ -54,16 +54,18 @@ StringBuf::StringBuf(const std::string_view sv) noexcept {
 
 // ------------------
 
-NullBuf::int_type NullBuf::overflow(int_type ch) { return traits_type::not_eof(ch); }
+NullBuf::int_type NullBuf::overflow(const int_type ch) { return traits_type::not_eof(ch); }
 
-std::streamsize NullBuf::xsputn(const char_type*, std::streamsize size) { return size; }
+std::streamsize NullBuf::xsputn(const char_type* const, const std::streamsize count) {
+    return count;
+}
 
 // ------------------
 
 PrefixBuf::PrefixBuf(std::streambuf* dstBuf, const std::string_view prefx) noexcept :
-    dstBuf_(dstBuf),
-    prefix(prefx),
-    atLineStart(true) {}
+    dstBuf_{dstBuf},
+    prefix{prefx},
+    atLineStart{true} {}
 
 PrefixBuf::int_type PrefixBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
@@ -73,8 +75,8 @@ PrefixBuf::int_type PrefixBuf::overflow(const int_type ch) {
 
     if (atLineStart)
     {
-        if (dstBuf_->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()))
-            != static_cast<std::streamsize>(prefix.size()))
+        if (dstBuf_->sputn(prefix.data(), std::streamsize(prefix.size()))
+            != std::streamsize(prefix.size()))
             return traits_type::eof();
 
         atLineStart = false;
@@ -92,7 +94,8 @@ PrefixBuf::int_type PrefixBuf::overflow(const int_type ch) {
 // ------------------
 
 CountingBuf::CountingBuf(std::streambuf* const dstBuf) noexcept :
-    dstBuf_(dstBuf) {}
+    dstBuf_{dstBuf},
+    bytes{0} {}
 
 CountingBuf::int_type CountingBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
@@ -105,10 +108,10 @@ CountingBuf::int_type CountingBuf::overflow(const int_type ch) {
     return ch;
 }
 
-std::streamsize CountingBuf::xsputn(const char_type* s, std::streamsize size) {
-    const auto written = dstBuf_->sputn(s, size);
+std::streamsize CountingBuf::xsputn(const char_type* const ptr, const std::streamsize count) {
+    const auto written = dstBuf_->sputn(ptr, count);
 
-    bytes += static_cast<usize>(written);
+    bytes += usize(written);
 
     return written;
 }
@@ -118,8 +121,8 @@ int CountingBuf::sync() { return dstBuf_ != nullptr ? dstBuf_->pubsync() : 0; }
 // ------------------
 
 TieBuf::TieBuf(std::streambuf* const primBuf, std::streambuf* const mirrBuf) noexcept :
-    primBuf_(primBuf),
-    mirrBuf_(mirrBuf) {}
+    primBuf_{primBuf},
+    mirrBuf_{mirrBuf} {}
 
 std::streambuf* TieBuf::prim_buf() const noexcept { return primBuf_; }
 
@@ -257,7 +260,7 @@ ColorBuf::int_type ColorBuf::overflow(const int_type ch) {
     return written;
 }
 
-std::streamsize ColorBuf::xsputn(const char_type* const s, const std::streamsize count) {
+std::streamsize ColorBuf::xsputn(const char_type* const ptr, const std::streamsize count) {
     if (buf_ == nullptr || count <= 0)
         return 0;
 
@@ -267,7 +270,7 @@ std::streamsize ColorBuf::xsputn(const char_type* const s, const std::streamsize
         return 0;
     }
 
-    const std::streamsize written = buf_->sputn(s, count);
+    const std::streamsize written = buf_->sputn(ptr, count);
 
     (void) write_reset();
 
@@ -298,11 +301,11 @@ bool ColorBuf::write_reset() noexcept {
 FNV1aBuf::FNV1aBuf(std::streambuf* destination) noexcept :
     buf_(destination) {}
 
-FNV1aBuf::int_type FNV1aBuf::overflow(int_type ch) {
+FNV1aBuf::int_type FNV1aBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
         return traits_type::not_eof(ch);
 
-    const auto c = static_cast<u8>(traits_type::to_char_type(ch));
+    const auto c = u8(traits_type::to_char_type(ch));
 
     state ^= c;
     state *= u64{0x100000001B3};
@@ -313,21 +316,21 @@ FNV1aBuf::int_type FNV1aBuf::overflow(int_type ch) {
     return ch;
 }
 
-std::streamsize FNV1aBuf::xsputn(const char_type* s, const std::streamsize size) {
-    for (std::streamsize i = 0; i < size; ++i)
+std::streamsize FNV1aBuf::xsputn(const char_type* const ptr, const std::streamsize count) {
+    for (std::streamsize i = 0; i < count; ++i)
     {
-        const auto c = static_cast<u8>(s[i]);
+        const auto c = u8(ptr[i]);
 
         state ^= c;
         state *= u64{0x100000001B3};
     }
 
-    return buf_->sputn(s, size);
+    return buf_->sputn(ptr, count);
 }
 
 // ------------------
 
-NullFilter1Buf::NullFilter1Buf(std::streambuf* srcBuf) noexcept :
+NullFilter1Buf::NullFilter1Buf(std::streambuf* const srcBuf) noexcept :
     srcBuf_(srcBuf) {
     setg(&buffer, &buffer + 1, &buffer + 1);
 }
@@ -352,26 +355,27 @@ NullFilter1Buf::int_type NullFilter1Buf::underflow() {
 
 // ------------------
 
-NullFilterBuf::NullFilterBuf(std::streambuf* srcBuf) noexcept :
+NullFilterBuf::NullFilterBuf(std::streambuf* const srcBuf) noexcept :
     srcBuf_(srcBuf) {
-    setg(buffer, buffer, buffer);
+    setg(buffer.data(), buffer.data(), buffer.data());
 }
 
 NullFilterBuf::int_type NullFilterBuf::underflow() {
     if (gptr() < egptr())
         return traits_type::to_int_type(*gptr());
 
-    const std::streamsize count = srcBuf_->sgetn(inputBuffer, BufferSize);
+    const std::streamsize read =
+      srcBuf_->sgetn(inputBuffer.data(), std::streamsize(inputBuffer.size()));
 
-    if (count <= 0)
+    if (read <= 0)
     {
-        setg(buffer, buffer, buffer);
+        setg(buffer.data(), buffer.data(), buffer.data());
         return traits_type::eof();
     }
 
-    char* out = buffer;
+    char* out = buffer.data();
 
-    for (std::streamsize i = 0; i < count; ++i)
+    for (std::streamsize i = 0; i < read; ++i)
     {
         const char c = inputBuffer[i];
 
@@ -379,14 +383,14 @@ NullFilterBuf::int_type NullFilterBuf::underflow() {
             *out++ = c;
     }
 
-    if (out == buffer)
+    if (out == buffer.data())
     {
         // The entire source block consisted of NUL bytes.
         // Read another block.
         return underflow();
     }
 
-    setg(buffer, buffer, out);
+    setg(buffer.data(), buffer.data(), out);
 
     return traits_type::to_int_type(*gptr());
 }
@@ -394,10 +398,10 @@ NullFilterBuf::int_type NullFilterBuf::underflow() {
 // ------------------
 
 LimitBuf::LimitBuf(std::streambuf* dstBuf, usize limit) noexcept :
-    dstBuf_(dstBuf),
-    remaining(limit) {}
+    dstBuf_{dstBuf},
+    remaining{limit} {}
 
-LimitBuf::int_type LimitBuf::overflow(int_type ch) {
+LimitBuf::int_type LimitBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
         return traits_type::not_eof(ch);
 
@@ -414,14 +418,14 @@ LimitBuf::int_type LimitBuf::overflow(int_type ch) {
     return ch;
 }
 
-std::streamsize LimitBuf::xsputn(const char_type* s, std::streamsize size) {
-    const usize n = std::min<usize>(static_cast<usize>(size), remaining);
+std::streamsize LimitBuf::xsputn(const char_type* const ptr, const std::streamsize count) {
+    const usize n = std::min(usize(count), remaining);
 
-    const auto written = dstBuf_->sputn(s, static_cast<std::streamsize>(n));
+    const std::streamsize written = dstBuf_->sputn(ptr, std::streamsize(n));
 
-    remaining -= static_cast<usize>(written);
+    remaining -= usize(written);
 
-    if (written != size)
+    if (written != count)
         overflowedFlag = true;
 
     return written;
@@ -430,9 +434,9 @@ std::streamsize LimitBuf::xsputn(const char_type* s, std::streamsize size) {
 // ------------------
 
 UppercaseBuf::UppercaseBuf(std::streambuf* dstBuf) noexcept :
-    dstBuf_(dstBuf) {}
+    dstBuf_{dstBuf} {}
 
-UppercaseBuf::int_type UppercaseBuf::overflow(int_type ch) {
+UppercaseBuf::int_type UppercaseBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
         return traits_type::not_eof(ch);
 
@@ -475,16 +479,18 @@ Replay1Buf::int_type Replay1Buf::uflow() {
     return ch;
 }
 
-std::streamsize Replay1Buf::xsgetn(char_type* destination, std::streamsize count) {
+std::streamsize Replay1Buf::xsgetn(char_type* const ptr, const std::streamsize count) {
     if (count <= 0)
         return 0;
 
-    const std::streamsize n = srcBuf_->sgetn(destination, count);
+    const std::streamsize read = srcBuf_->sgetn(ptr, count);
 
-    if (n > 0)
-        buffer.append(destination, static_cast<usize>(n));
+    if (read <= 0)
+        return read;
 
-    return n;
+    buffer.append(ptr, usize(read));
+
+    return read;
 }
 
 Replay1Buf::int_type Replay1Buf::pbackfail(int_type ch) {
@@ -504,22 +510,22 @@ ReplayBuf::ReplayBuf(std::streambuf* srcBuf, usize expectedSize) noexcept :
     if (expectedSize != 0)
         recorded.reserve(expectedSize);
 
-    setg(buffer, buffer, buffer);
+    setg(buffer.data(), buffer.data(), buffer.data());
 }
 
 ReplayBuf::int_type ReplayBuf::underflow() {
     if (gptr() < egptr())
         return traits_type::to_int_type(*gptr());
 
-    const std::streamsize n = srcBuf_->sgetn(buffer, static_cast<std::streamsize>(BufferSize));
+    const std::streamsize read = srcBuf_->sgetn(buffer.data(), std::streamsize(buffer.size()));
 
-    if (n <= 0)
+    if (read <= 0)
     {
-        setg(buffer, buffer, buffer);
+        setg(buffer.data(), buffer.data(), buffer.data());
         return traits_type::eof();
     }
 
-    setg(buffer, buffer, buffer + n);
+    setg(buffer.data(), buffer.data(), buffer.data() + read);
 
     return traits_type::to_int_type(*gptr());
 }
@@ -539,13 +545,13 @@ ReplayBuf::int_type ReplayBuf::uflow() {
     return traits_type::to_int_type(c);
 }
 
-std::streamsize ReplayBuf::xsgetn(char_type* destination, std::streamsize count) {
+std::streamsize ReplayBuf::xsgetn(char_type* const ptr, const std::streamsize count) {
     if (count <= 0)
         return 0;
 
-    std::streamsize total = 0;
+    std::streamsize transferred = 0;
 
-    while (count > 0)
+    while (transferred < count)
     {
         if (gptr() == egptr())
         {
@@ -555,22 +561,18 @@ std::streamsize ReplayBuf::xsgetn(char_type* destination, std::streamsize count)
                 break;
         }
 
-        const std::streamsize available = static_cast<std::streamsize>(egptr() - gptr());
+        const std::streamsize available = egptr() - gptr();
+        const std::streamsize n         = std::min(available, count - transferred);
 
-        const std::streamsize n = std::min(count, available);
+        std::memcpy(ptr + transferred, gptr(), usize(n));
+        recorded.append(gptr(), usize(n));
 
-        std::memcpy(destination, gptr(), static_cast<usize>(n));
+        gbump(int(n));
 
-        recorded.append(gptr(), static_cast<usize>(n));
-
-        gbump(static_cast<int>(n));
-
-        destination += n;
-        count -= n;
-        total += n;
+        transferred += n;
     }
 
-    return total;
+    return transferred;
 }
 
 }  // namespace DON

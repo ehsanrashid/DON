@@ -43,8 +43,8 @@
 #include <string>            // basic_string
 #include <string_view>       // basic_string_view, hash
 #include <tuple>             // forward_as_tuple
-#include <type_traits>       // enable_if_t, declval, conditional_t, ena...
-#include <utility>           // forward, exchange, pair, as_const, piece...
+#include <type_traits>       // enable_if_t, declval, conditional_t
+#include <utility>           // forward, exchange, pair, as_const
 #include <vector>            // vector
 
 // <memory_resource> includes <mutex>, which fails to compile if
