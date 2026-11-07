@@ -263,8 +263,12 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         const Color c = is_upper(token) ? WHITE : BLACK;
         token         = lower_case(token);
 
-        if (relative_rank(c, square(c, KING)) != RANK_1)
+        const Square kingSq = square(c, KING);
+        if (relative_rank(c, kingSq) != RANK_1)
             return FENError{std::string{to_string(c)}.append(" king is not on the first rank.")};
+
+        if (file_of(kingSq) == FILE_A || FILE_H == file_of(kingSq))
+            return FENError{std::string{to_string(c)}.append(" king is not on the correct file.")};
 
         const Bitboard rooksBB = pieces_bb(c, ROOK);
 
@@ -1855,6 +1859,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     Key          iterKey = baseKey ^ preSt->key ^ zobrist().turn();
 
     const Bitboard occupancyBB = pieces_bb();
+    const Bitboard colorBB     = pieces_bb(active_color());
 
     for (u16 i = 3; i <= end; i += 2)
     {
@@ -1878,25 +1883,32 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         Square orgSq = m.org_sq();
         Square dstSq = m.dst_sq();
 
+        // Move path, including destination, must be unobstructed.
+        if ((occupancyBB & Attacks::between_ex_bb(orgSq, dstSq)) != 0)
+            continue;
+
+        // If the repetition is entirely within the current search line.
+        if (i < u16(ply))
+            return true;
+
         // Orient the move relative to the current position.
         // If the piece is not at the stored origin, it must be at the destination.
         if ((occupancyBB & orgSq) == 0)
-            // Now m.org_sq() points to where the piece stands right now.
+        {
+            // Now orgSq points to where the piece stands right now.
             std::swap(orgSq, dstSq);
+            assert((occupancyBB & orgSq) != 0);
+        }
 
-        // Move path, including destination, must be unobstructed.
-        if ((occupancyBB & Attacks::between_bb(orgSq, dstSq)) != 0)
+        // The moving piece must belong to the side to move.
+        if ((colorBB & orgSq) == 0)
             continue;
 
-#if !defined(NDEBUG)
-        m = Move::normal(orgSq, dstSq);
-        assert(legal(m));
-#endif
+        assert(legal(Move::normal(orgSq, dstSq)));
 
-        if (i16(i) < ply
-            // For nodes before or at the root, check that the move is
-            // a repetition rather than a move to the current position.
-            || preSt->repetition != 0)
+        // For nodes before or at the root, check that the move is
+        // a repetition rather than a move to the current position.
+        if (preSt->repetition != 0)
             return true;
     }
 

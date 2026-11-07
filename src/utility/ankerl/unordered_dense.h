@@ -230,11 +230,11 @@ namespace detail {
 
     #else
 
-[[noreturn]] inline void on_error_key_not_found() { abort(); }
-[[noreturn]] inline void on_error_bucket_overflow() { abort(); }
-[[noreturn]] inline void on_error_too_many_elements() { abort(); }
-[[noreturn]] inline void on_error_key_changed() { abort(); }
-[[noreturn]] inline void on_error_bad_index() { abort(); }
+[[noreturn]] inline void on_error_key_not_found() { std::abort(); }
+[[noreturn]] inline void on_error_bucket_overflow() { std::abort(); }
+[[noreturn]] inline void on_error_too_many_elements() { std::abort(); }
+[[noreturn]] inline void on_error_key_changed() { std::abort(); }
+[[noreturn]] inline void on_error_bad_index() { std::abort(); }
 
     #endif
 

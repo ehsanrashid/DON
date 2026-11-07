@@ -30,6 +30,8 @@ src/nul
 __pycache__/
 tests/syzygy
 tests/tmp_bench.epd
+tests/build
+tests/out
 *.epd
 
 # IDE files

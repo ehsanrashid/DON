@@ -19,6 +19,7 @@
 #define UTILITY_STREAMBUF_H_INCLUDED
 
 #include <ios>
+#include <streambuf>  // IWYU pragma: keep
 #include <string>
 #include <string_view>
 
@@ -54,7 +55,7 @@ class NullBuf final: public std::streambuf {
    protected:
     int_type overflow(int_type ch) override;
 
-    std::streamsize xsputn(const char_type*, std::streamsize size) override;
+    std::streamsize xsputn(const char_type* ptr, std::streamsize count) override;
 };
 
 // PrefixBuf — automatically prefix every line
@@ -95,13 +96,13 @@ class CountingBuf final: public std::streambuf {
    protected:
     int_type overflow(int_type ch) override;
 
-    std::streamsize xsputn(const char_type* s, std::streamsize size) override;
+    std::streamsize xsputn(const char_type* ptr, std::streamsize count) override;
 
     int sync() override;
 
    private:
     std::streambuf* dstBuf_;
-    usize           bytes = 0;
+    usize           bytes;
 };
 
 // TieBuf (Fancy logging facility).
@@ -170,7 +171,7 @@ class ColorBuf final: public std::streambuf {
     int_type overflow(int_type ch) override;
 
     // Writes a block of characters to the underlying buffer with color handling.
-    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
+    std::streamsize xsputn(const char_type* ptr, std::streamsize count) override;
 
    private:
     // Writes the configured color escape sequence.
@@ -193,7 +194,7 @@ class FNV1aBuf final: public std::streambuf {
    protected:
     int_type overflow(int_type ch) override;
 
-    std::streamsize xsputn(const char_type* s, std::streamsize size) override;
+    std::streamsize xsputn(const char_type* ptr, std::streamsize count) override;
 
    private:
     std::streambuf* buf_;
@@ -209,13 +210,15 @@ class NullFilter1Buf final: public std::streambuf {
 
     NullFilter1Buf(const NullFilter1Buf&)            = delete;
     NullFilter1Buf& operator=(const NullFilter1Buf&) = delete;
+    NullFilter1Buf(NullFilter1Buf&&)                 = delete;
+    NullFilter1Buf& operator=(NullFilter1Buf&&)      = delete;
 
    protected:
     int_type underflow() override;
 
    private:
     std::streambuf* srcBuf_;
-    char            buffer{};
+    char            buffer;
 };
 
 class NullFilterBuf final: public std::streambuf {
@@ -226,15 +229,16 @@ class NullFilterBuf final: public std::streambuf {
 
     NullFilterBuf(const NullFilterBuf&)            = delete;
     NullFilterBuf& operator=(const NullFilterBuf&) = delete;
+    NullFilterBuf(NullFilterBuf&&)                 = delete;
+    NullFilterBuf& operator=(NullFilterBuf&&)      = delete;
 
    protected:
     int_type underflow() override;
 
    private:
-    std::streambuf* srcBuf_;
-
-    char inputBuffer[BufferSize];
-    char buffer[BufferSize];
+    std::streambuf*         srcBuf_;
+    Array<char, BufferSize> inputBuffer;
+    Array<char, BufferSize> buffer;
 };
 
 // Very useful when you don't want a stream to exceed some amount.
@@ -247,7 +251,7 @@ class LimitBuf final: public std::streambuf {
    protected:
     int_type overflow(int_type ch) override;
 
-    std::streamsize xsputn(const char_type* s, std::streamsize size) override;
+    std::streamsize xsputn(const char_type* ptr, std::streamsize count) override;
 
    private:
     std::streambuf* dstBuf_;
@@ -275,6 +279,8 @@ class Replay1Buf final: public std::streambuf {
 
     Replay1Buf(const Replay1Buf&)            = delete;
     Replay1Buf& operator=(const Replay1Buf&) = delete;
+    Replay1Buf(Replay1Buf&&)                 = delete;
+    Replay1Buf& operator=(Replay1Buf&&)      = delete;
 
     std::string_view replay() const noexcept { return buffer; }
 
@@ -289,7 +295,7 @@ class Replay1Buf final: public std::streambuf {
 
     int_type uflow() override;
 
-    std::streamsize xsgetn(char_type* destination, std::streamsize count) override;
+    std::streamsize xsgetn(char_type* ptr, std::streamsize count) override;
 
     int_type pbackfail(int_type ch) override;
 
@@ -322,6 +328,8 @@ class ReplayBuf final: public std::streambuf {
 
     ReplayBuf(const ReplayBuf&)            = delete;
     ReplayBuf& operator=(const ReplayBuf&) = delete;
+    ReplayBuf(ReplayBuf&&)                 = delete;
+    ReplayBuf& operator=(ReplayBuf&&)      = delete;
 
     std::string_view replay() const noexcept { return recorded; }
 
@@ -334,13 +342,12 @@ class ReplayBuf final: public std::streambuf {
 
     int_type uflow() override;
 
-    std::streamsize xsgetn(char_type* destination, std::streamsize count) override;
+    std::streamsize xsgetn(char_type* ptr, std::streamsize count) override;
 
    private:
-    std::streambuf* srcBuf_;
-
-    char        buffer[BufferSize];
-    std::string recorded;
+    std::streambuf*         srcBuf_;
+    Array<char, BufferSize> buffer;
+    std::string             recorded;
 };
 
 }  // namespace DON

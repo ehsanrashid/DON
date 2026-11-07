@@ -18,6 +18,7 @@
 #include "../utility/prng.h"
 
 #include <algorithm>  // generate<>(), all_of<>()
+#include <cassert>
 
 #include "../utility/attributes.h"
 #include "../utility/types.h"
@@ -26,20 +27,20 @@ namespace DON {
 
 // ------------------
 
-SplitMix64::SplitMix64(const u64 seed) noexcept :
+constexpr SplitMix64::SplitMix64(const u64 seed) noexcept :
     state(seed) {}
 
-u64 SplitMix64::next() noexcept {
+constexpr u64 SplitMix64::next() noexcept {
     update();
 
     return mix();
 }
 
-void SplitMix64::update() noexcept {
+constexpr void SplitMix64::update() noexcept {
     state += u64{0x9E3779B97F4A7C15};  // Derived from the Golden Ratio
 }
 
-u64 SplitMix64::mix() const noexcept {
+constexpr u64 SplitMix64::mix() const noexcept {
     u64 tmp = state;
     tmp     = (tmp ^ (tmp >> 30)) * u64{0xBF58476D1CE4E5B9};
     tmp     = (tmp ^ (tmp >> 27)) * u64{0x94D049BB133111EB};
@@ -47,6 +48,22 @@ u64 SplitMix64::mix() const noexcept {
 
     return tmp;
 }
+
+namespace {
+
+constexpr bool test_splitmix64() noexcept {
+    SplitMix64 prng{0};
+
+    return prng.next() == u64{0xE220A8397B1DCDAF}  //
+        && prng.next() == u64{0x6E789E6AA1B965F4}  //
+        && prng.next() == u64{0x06C45D188009454F}  //
+        && prng.next() == u64{0xF88BB8A8724C81EC}  //
+        && prng.next() == u64{0x1B39896A51A8749B};
+}
+
+static_assert(test_splitmix64(), "SplitMix64: Failed");
+
+}  // namespace
 
 // ------------------
 
@@ -475,6 +492,48 @@ u64 Xoshiro1024ss::rand64() noexcept {
     update();
 
     return rand;
+}
+
+void test_prng() noexcept {
+    Xorshift64s prng64{0};
+
+    assert(prng64.rand<u64>() == u64{0x7BBCB40D550682D0});
+    assert(prng64.rand<u64>() == u64{0xDE7FE413D00CC9FD});
+    assert(prng64.rand<u64>() == u64{0xB3C638353C668C91});
+    assert(prng64.rand<u64>() == u64{0xE073AFC0949195FC});
+    assert(prng64.rand<u64>() == u64{0x7F2F9E2EB34937F6});
+
+    Xoroshiro128ss prng128{0};
+
+    assert(prng128.rand<u64>() == u64{0xDEC90D521E93E35D});
+    assert(prng128.rand<u64>() == u64{0x6D33AC6F18895E08});
+    assert(prng128.rand<u64>() == u64{0xAB21904EEC6FA48A});
+    assert(prng128.rand<u64>() == u64{0x87AFDBC188423FBE});
+    assert(prng128.rand<u64>() == u64{0x64C1FC972D0BE37F});
+
+    Xoshiro256ss prng256{0};
+
+    assert(prng256.rand<u64>() == u64{0x99EC5F36CB75F2B4});
+    assert(prng256.rand<u64>() == u64{0xBF6E1F784956452A});
+    assert(prng256.rand<u64>() == u64{0x1A5F849D4933E6E0});
+    assert(prng256.rand<u64>() == u64{0x6AA594F1262D2D2C});
+    assert(prng256.rand<u64>() == u64{0xBBA5AD4A1F842E59});
+
+    Xoshiro512ss prng512{0};
+
+    assert(prng512.rand<u64>() == u64{0x99EC5F36CB75F2B4});
+    assert(prng512.rand<u64>() == u64{0xBF6E1F784956452A});
+    assert(prng512.rand<u64>() == u64{0x3832E5E4541959A2});
+    assert(prng512.rand<u64>() == u64{0x25715BAFDF7A6B43});
+    assert(prng512.rand<u64>() == u64{0x8B67FC19F1C8E17F});
+
+    Xoshiro1024ss prng1024{0};
+
+    assert(prng1024.rand<u64>() == u64{0x99EC5F36CB75F2B4});
+    assert(prng1024.rand<u64>() == u64{0x422EA740D0977210});
+    assert(prng1024.rand<u64>() == u64{0x47BACE0BB96B41D5});
+    assert(prng1024.rand<u64>() == u64{0x8E93D82D4E3FA1E4});
+    assert(prng1024.rand<u64>() == u64{0x657A983D215193D9});
 }
 
 // ------------------

@@ -160,8 +160,7 @@ class RelaxedAtomic final {
         */
 
         const T oldV = load();
-        const T newV = oldV + v;
-        store(newV);
+        store(oldV + v);
         return oldV;
     }
 
@@ -187,8 +186,7 @@ class RelaxedAtomic final {
         */
 
         const T oldV = load();
-        const T newV = oldV - v;
-        store(newV);
+        store(oldV - v);
         return oldV;
     }
 

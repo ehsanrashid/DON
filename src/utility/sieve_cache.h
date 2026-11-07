@@ -19,7 +19,7 @@
 #define UTILITY_SIEVE_CACHE_H_INCLUDED
 
 #include <cassert>
-#include <exception>
+#include <exception>  // terminate()
 #include <memory>
 #include <mutex>
 #include <optional>
