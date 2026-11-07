@@ -1891,20 +1891,19 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         if (i < u16(ply))
             return true;
 
+#if !defined(NDEBUG)
         // Orient the move relative to the current position.
-        // If the piece is not at the stored origin, it must be at the destination.
+        // If the piece is not on the stored origin square, it must be on the destination square.
         if ((occupancyBB & orgSq) == 0)
-        {
-            // Now orgSq points to where the piece stands right now.
             std::swap(orgSq, dstSq);
-            assert((occupancyBB & orgSq) != 0);
-        }
 
+        // orgSq must point to the square occupied by the moving piece.
+        assert((occupancyBB & orgSq) != 0);
         // The moving piece must belong to the side to move.
-        if ((colorBB & orgSq) == 0)
-            continue;
-
+        assert((colorBB & orgSq) != 0);
+        // Move must be legal.
         assert(legal(Move::normal(orgSq, dstSq)));
+#endif
 
         // For nodes before or at the root, check that the move is
         // a repetition rather than a move to the current position.
