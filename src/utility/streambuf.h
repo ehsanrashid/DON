@@ -19,6 +19,7 @@
 #define UTILITY_STREAMBUF_H_INCLUDED
 
 #include <ios>
+#include <streambuf>  // IWYU pragma: keep
 #include <string>
 #include <string_view>
 

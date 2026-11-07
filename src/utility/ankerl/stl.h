@@ -29,22 +29,23 @@
 #ifndef ANKERL_STL_H
 #define ANKERL_STL_H
 
-#include <array>             // for array
-#include <cstdint>           // for uint64_t, uint32_t, std::uint8_t, UINT64_C
-#include <cstring>           // for size_t, memcpy, memset
-#include <functional>        // for equal_to, hash
-#include <initializer_list>  // for initializer_list
-#include <iterator>          // for pair, distance
-#include <limits>            // for numeric_limits
-#include <memory>            // for allocator, allocator_traits, shared_ptr
-#include <optional>          // for optional
-#include <stdexcept>         // for out_of_range
-#include <string>            // for basic_string
-#include <string_view>       // for basic_string_view, hash
-#include <tuple>             // for forward_as_tuple
-#include <type_traits>       // for enable_if_t, declval, conditional_t, ena...
-#include <utility>           // for forward, exchange, pair, as_const, piece...
-#include <vector>            // for vector
+#include <array>             // array
+#include <cstdint>           // uint64_t, uint32_t, std::uint8_t, UINT64_C
+#include <cstdlib>           // abort()
+#include <cstring>           // size_t, memcpy(), memset()
+#include <functional>        // equal_to, hash
+#include <initializer_list>  // initializer_list
+#include <iterator>          // pair, distance
+#include <limits>            // numeric_limits<>
+#include <memory>            // allocator, allocator_traits, shared_ptr
+#include <optional>          // optional
+#include <stdexcept>         // out_of_range
+#include <string>            // basic_string
+#include <string_view>       // basic_string_view, hash
+#include <tuple>             // forward_as_tuple
+#include <type_traits>       // enable_if_t, declval, conditional_t, ena...
+#include <utility>           // forward, exchange, pair, as_const, piece...
+#include <vector>            // vector
 
 // <memory_resource> includes <mutex>, which fails to compile if
 // targeting GCC >= 13 with the (rewritten) win32 thread model, and
@@ -68,11 +69,11 @@
 #if defined(__has_include) && !defined(ANKERL_UNORDERED_DENSE_DISABLE_PMR)
     #if __has_include(<memory_resource>) && !ANKERL_MEMORY_RESOURCE_IS_BAD()
         #define ANKERL_UNORDERED_DENSE_PMR std::pmr  // NOLINT(cppcoreguidelines-macro-usage)
-        #include <memory_resource>                   // for polymorphic_allocator
+        #include <memory_resource>                   // polymorphic_allocator
     #elif __has_include(<experimental/memory_resource>)
         #define ANKERL_UNORDERED_DENSE_PMR \
             std::experimental::pmr               // NOLINT(cppcoreguidelines-macro-usage)
-        #include <experimental/memory_resource>  // for polymorphic_allocator
+        #include <experimental/memory_resource>  // polymorphic_allocator
     #endif
 #endif
 

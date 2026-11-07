@@ -19,6 +19,7 @@
 #define UTILITY_LIST_H_INCLUDED
 
 #include <cassert>
+#include <exception>  // terminate()
 
 #include "../utility/attributes.h"
 #include "../utility/types.h"
