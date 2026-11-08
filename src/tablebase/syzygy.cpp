@@ -1509,8 +1509,12 @@ Ret do_probe_table(T*                table,
         Bitboard b = leadPawnsBB = pos.pieces_bb(color_of(pc), PAWN);
         assert(b != 0);
         do
-            squares[size++] = Square(flipSquares ^ u8(pop_lsq(b)));
-        while (b != 0);
+        {
+            const Square s = pop_lsq(b);
+
+            squares[size] = Square(flipSquares ^ u8(s));
+            ++size;
+        } while (b != 0);
         assert(size != 0);
 
         leadPawnCnt = size;
@@ -1539,8 +1543,9 @@ Ret do_probe_table(T*                table,
     {
         const Square s = pop_lsq(b);
 
-        squares[size]  = Square(flipSquares ^ u8(s));
-        pieces[size++] = Piece(flipColor ^ u8(pos[s]));
+        squares[size] = Square(flipSquares ^ u8(s));
+        pieces[size]  = Piece(flipColor ^ u8(pos[s]));
+        ++size;
     } while (b != 0);
 
     assert(size >= 2);
@@ -1832,16 +1837,15 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 //
 // Usage:
 // • Call TBPaths::init() once during engine startup.
-// • Use TBPaths::get() when resolving tablebase files.
+// • Use TBPaths::paths() when resolving tablebase files.
 //
 // Example:
 //     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
-//     for (const auto& dir : TBPaths::get()) { ... }
+//     for (const auto& dir : TBPaths::paths()) { ... }
 //
 // Notes:
 // • Re-initialization replaces the previous path set.
 namespace TBPaths {
-
 namespace {
 
 // Platform-specific directory separator.

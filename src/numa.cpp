@@ -40,15 +40,14 @@ CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = CpuIndex(std::clamp<u32>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
-                                           concurrency, std::numeric_limits<CpuIndex>::max()));
+    concurrency = CpuIndex(std::clamp<WORD>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
+                                            concurrency, std::numeric_limits<CpuIndex>::max()));
 #endif
 
     return concurrency;
 }
 
 #if defined(_WIN64)
-
 namespace {
 
 template<typename Set>
@@ -142,7 +141,6 @@ std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
 }
 
 WindowsAffinity get_process_affinity() noexcept {
-
     HMODULE hModule = ::GetModuleHandle(KERNEL_MODULE_NAME);
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
@@ -348,11 +346,8 @@ WindowsAffinity get_process_affinity() noexcept {
 
     return winAffinity;
 }
-
 #elif defined(USE_UNIX_NUMA)
-
 CpuSet get_process_affinity() noexcept {
-
     CpuSet cpus;
 
     // For unsupported systems, or in case of a soft error,
@@ -407,7 +402,6 @@ CpuSet get_process_affinity() noexcept {
 
     return cpus;
 }
-
 #endif
 
 NumaReplicatedAccessToken::NumaReplicatedAccessToken() noexcept :

@@ -28,7 +28,6 @@
 #include "position.h"
 
 namespace DON {
-
 namespace {
 namespace {
 
@@ -505,7 +504,7 @@ void generate<GenType::ALL, false>(const Position& pos, Move*& moves) noexcept {
     }
 }
 template<>
-void generate<GenType::ALL, true >(const Position& pos, Move*& moves) noexcept {
+void generate<GenType::ALL, true>(const Position& pos, Move*& moves) noexcept {
     if (pos.checkers_bb() == 0)
     {
         generate<GenType::ENC_CAPTURE, true>(pos, moves);
