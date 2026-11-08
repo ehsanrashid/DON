@@ -2474,7 +2474,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     else
         correctionValue += i64{80695};
 
-    return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
+    return int(std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT));
 }
 
 // clang-format on
