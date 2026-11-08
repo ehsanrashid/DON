@@ -26,11 +26,9 @@
 #include "utility/sieve_cache.h"
 
 namespace DON {
-
 namespace {
 
 #if !defined(USE_POPCNT)
-
 alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
     Array<u8, 0x10000> popCnts{};
 
@@ -39,7 +37,6 @@ alignas(CACHE_LINE_SIZE) const auto POP_CNTS = []() noexcept {
 
     return popCnts;
 }();
-
 #endif
 
 using BitboardCache = ShardedCache<Bitboard,

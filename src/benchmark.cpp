@@ -28,9 +28,7 @@
 #include "utility/functions.h"
 
 namespace DON::Benchmark {
-
 namespace {
-
 // clang-format off
 const std::vector<std::string> DefaultFens{
   "setoption name UCI_Chess960 value false",
@@ -376,7 +374,7 @@ const std::vector<std::vector<std::string>> BenchmarkGames{
 
 }  // namespace
 
-std::vector<std::string> bench(std::istream& is, std::string_view currentFen) noexcept {
+std::vector<std::string> bench(std::istream& is, const std::string_view currentFen) noexcept {
 
     std::string token;
     // Assign default values to missing arguments

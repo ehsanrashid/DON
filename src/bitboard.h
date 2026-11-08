@@ -28,7 +28,6 @@
 #if defined(USE_AVX512)
     #include <immintrin.h>
 #endif
-
 #if defined(_MSC_VER)
     #include <intrin.h>  // _BitScanForward64(), _BitScanForward() intrinsics
     #if defined(USE_POPCNT)

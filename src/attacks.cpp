@@ -24,9 +24,7 @@
 #include "misc.h"
 
 namespace DON::Attacks {
-
 namespace {
-
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
 // The magic bitboards are computed using the "dual hyperbola quintessence" approach.
 #elif defined(USE_HYPERBOLA_QUINT)
@@ -44,9 +42,7 @@ void init_magics() noexcept {
         rMagic.mask2BB = ray_bb(s, Direction::EAST, Direction::WEST);
     }
 }
-
 #else
-
 constexpr Array<usize, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
@@ -192,9 +188,7 @@ void init_magics() noexcept {
 // Explicit template instantiations:
 template void init_magics<BISHOP>() noexcept;
 template void init_magics<ROOK>() noexcept;
-
 #endif
-
 }  // namespace
 
 void init() noexcept {
