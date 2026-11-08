@@ -1855,23 +1855,25 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         return false;
 
     const Key    baseKey = st->key;
-    const State* preSt   = st->preSt;
-    Key          iterKey = baseKey ^ preSt->key ^ zobrist().turn();
+    const State* pSt     = st->preSt;
+    Key          iterKey = baseKey ^ pSt->key ^ zobrist().turn();
 
     const Bitboard occupancyBB = pieces_bb();
-    const Bitboard colorBB     = pieces_bb(active_color());
+#if !defined(NDEBUG)
+    const Bitboard colorBB = pieces_bb(active_color());
+#endif
 
     for (u16 i = 3; i <= end; i += 2)
     {
-        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ zobrist().turn();
-
-        preSt = preSt->preSt->preSt;
+        pSt = pSt->preSt;
+        iterKey ^= pSt->key ^ pSt->preSt->key ^ zobrist().turn();
+        pSt = pSt->preSt;
 
         // Opponent pieces have reverted
         if (iterKey != 0)
             continue;
 
-        const Key moveKey = baseKey ^ preSt->key;
+        const Key moveKey = baseKey ^ pSt->key;
         // 'moveKey' is a single move
         const usize index = cuckoos().find_key(moveKey);
         if (index >= cuckoos().size())
@@ -1883,32 +1885,30 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         Square orgSq = m.org_sq();
         Square dstSq = m.dst_sq();
 
-        // Move path, including destination, must be unobstructed.
+        // The move path must be unobstructed (strictly exclusive of endpoints)
         if ((occupancyBB & Attacks::between_ex_bb(orgSq, dstSq)) != 0)
             continue;
 
-        // If the repetition is entirely within the current search line.
+        // If the repetition is entirely within the current search line
         if (i < u16(ply))
             return true;
 
+#if !defined(NDEBUG)
         // Orient the move relative to the current position.
-        // If the piece is not at the stored origin, it must be at the destination.
+        // If the origin square is unoccupied, the moving piece must be on the destination square.
         if ((occupancyBB & orgSq) == 0)
-        {
-            // Now orgSq points to where the piece stands right now.
             std::swap(orgSq, dstSq);
-            assert((occupancyBB & orgSq) != 0);
-        }
 
-        // The moving piece must belong to the side to move.
-        if ((colorBB & orgSq) == 0)
-            continue;
-
+        // The origin square must contain the moving piece
+        assert((occupancyBB & orgSq) != 0);
+        // The moving piece must belong to the side to move
+        assert((colorBB & orgSq) != 0);
+        // The reconstructed move must be legal
         assert(legal(Move::normal(orgSq, dstSq)));
+#endif
 
-        // For nodes before or at the root, check that the move is
-        // a repetition rather than a move to the current position.
-        if (preSt->repetition != 0)
+        // Check for a prior repetition outside the current search line
+        if (pSt->repetition != 0)
             return true;
     }
 
