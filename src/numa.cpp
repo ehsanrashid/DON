@@ -40,8 +40,8 @@ CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = CpuIndex(std::clamp<WORD>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
-                                            concurrency, std::numeric_limits<CpuIndex>::max()));
+    concurrency = CpuIndex(std::clamp<u32>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
+                                           concurrency, std::numeric_limits<CpuIndex>::max()));
 #endif
 
     return concurrency;
@@ -491,7 +491,6 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     const auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
         return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
     };
-
     #elif defined(USE_UNIX_NUMA)
     CpuSet allowedCpus;
 
@@ -501,7 +500,6 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     const auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
         return allowedCpus.find(cpuId) != allowedCpus.end();
     };
-
     #endif
 
     bool l3Success = false;
