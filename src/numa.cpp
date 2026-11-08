@@ -40,8 +40,8 @@ CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = CpuIndex(std::clamp<u32>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
-                                           concurrency, std::numeric_limits<CpuIndex>::max()));
+    concurrency = CpuIndex(std::clamp<DWORD>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
+                                             concurrency, std::numeric_limits<CpuIndex>::max()));
 #endif
 
     return concurrency;
