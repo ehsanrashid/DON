@@ -174,7 +174,6 @@ CpuSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) noexcep
 
     return cpus;
 }
-
 #elif defined(USE_UNIX_NUMA)
 CpuSet get_process_affinity() noexcept;
 

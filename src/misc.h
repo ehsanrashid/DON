@@ -134,15 +134,11 @@ inline void prefetch(const void* addr) noexcept {
 
         #if defined(_MSC_VER)
     ::PreFetchCacheLine(Hint, addr);
-
         #else
     ::_mm_prefetch(static_cast<const char*>(addr), Hint);
-
         #endif
-
     #else
     __builtin_prefetch(addr, int(Access), int(Loc));
-
     #endif
 }
 #else

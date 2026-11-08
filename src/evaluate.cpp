@@ -33,7 +33,6 @@
 #include "utility/functions.h"
 
 namespace DON::Evaluate {
-
 namespace {
 
 // Normalize the raw evaluations to [-1024, 1024] to measure their correlation.
