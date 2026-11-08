@@ -1879,11 +1879,11 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         if (index >= cuckoos().size())
             continue;
 
-        Move m = cuckoos()[index].move;
-        assert(m.is_ok() && m.type() == Move::Type::NORMAL);
+        const Move move = cuckoos()[index].move;
+        assert(move.is_ok() && move.type() == Move::Type::NORMAL);
 
-        Square orgSq = m.org_sq();
-        Square dstSq = m.dst_sq();
+        Square orgSq = move.org_sq();
+        Square dstSq = move.dst_sq();
 
         // The move path must be unobstructed (strictly exclusive of endpoints)
         if ((occupancyBB & Attacks::between_ex_bb(orgSq, dstSq)) != 0)

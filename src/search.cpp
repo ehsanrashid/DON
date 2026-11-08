@@ -2467,14 +2467,14 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
         const Square preSq = preMove.dst_sq();
         const Piece  prePc = pos[preSq];
 
-        correctionValue += i64{7885} * ((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
-                                      + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq])
-                         + i64{6307} * ((*(ss - 6)->pieceSqCorrectionHistory)[+prePc][preSq]);
+        correctionValue += i64{7885} * (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
+                         + i64{7885} * (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq]
+                         + i64{6307} * (*(ss - 6)->pieceSqCorrectionHistory)[+prePc][preSq];
     }
     else
         correctionValue += i64{80695};
 
-    return static_cast<i32>(std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT));
+    return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
 
 // clang-format on
