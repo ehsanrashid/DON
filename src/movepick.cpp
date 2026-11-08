@@ -520,6 +520,7 @@ void MovePicker::init<GenType::ENC_CAPTURE>() noexcept {
 
 template<>
 void MovePicker::init<GenType::ENC_QUIET>() noexcept {
+    assert(cur == curEnd);
     assert(badCaptureEnd != nullptr);
 
     MoveList<GenType::ENC_QUIET> moveList{pos};
@@ -534,6 +535,9 @@ void MovePicker::init<GenType::ENC_QUIET>() noexcept {
 
 template<>
 void MovePicker::init<GenType::EVA_CAPTURE>() noexcept {
+    assert(cur == nullptr);
+    assert(curEnd == nullptr);
+
     MoveList<GenType::EVA_CAPTURE> moveList{pos};
 
     cur    = moves.data();
@@ -546,6 +550,8 @@ void MovePicker::init<GenType::EVA_CAPTURE>() noexcept {
 
 template<>
 void MovePicker::init<GenType::EVA_QUIET>() noexcept {
+    assert(cur == curEnd);
+
     MoveList<GenType::EVA_QUIET> moveList{pos};
 
     cur    = moves.data();
@@ -576,8 +582,9 @@ DISPATCH:
         return ttMove;
 
     case Stage::INIT :
-        initStage == Stage::EVA_CAPTURE ? init<GenType::EVA_CAPTURE>()
-                                        : init<GenType::ENC_CAPTURE>();
+        initStage == Stage::EVA_CAPTURE  //
+          ? init<GenType::EVA_CAPTURE>()
+          : init<GenType::ENC_CAPTURE>();
 
         curStage = initStage;
 

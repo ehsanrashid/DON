@@ -1686,10 +1686,14 @@ Value Worker::search(Position&    pos,
             // Increase reduction if ttMove is not present
             r += int(!ttmOk) * 1127;
 
+            const Depth redDepth = Depth(newDepth                         //
+                                         - int(r > 5234)                  //
+                                         - int(r > 5487 && newDepth > 2)  //
+                                         - int(r > 5800 && newDepth > 3)  //
+                                         - int(r > 6200 && newDepth > 4));
+
             // Reduce search depth if expected reduction is high
-            value =
-              Value(-search<~NT>(pos, ss + 1, Value(-alpha - 1), Value(-alpha),
-                                 Depth(newDepth - int(r > 5234) - int(r > 5487 && newDepth > 2))));
+            value = Value(-search<~NT>(pos, ss + 1, Value(-alpha - 1), Value(-alpha), redDepth));
         }
 
         // Step 20. For PV nodes only, do a full PV search on the first move or after a fail high,
