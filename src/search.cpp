@@ -67,6 +67,11 @@ alignas(CACHE_LINE_SIZE) constexpr auto LMR_DIVISORS = []() constexpr noexcept {
     return lmrDivisors;
 }();
 
+constexpr double lmr_divisor(const Depth depth) noexcept {
+    const usize idx = usize(depth) < LMR_DIVISORS.size() ? usize(depth) : LMR_DIVISORS.size();
+    return LMR_DIVISORS[idx - 1];
+}
+
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
     constexpr double ReductionScale = 2872.0 / 128.0;
@@ -1465,12 +1470,7 @@ Value Worker::search(Position&    pos,
 
                     // (*Scaler) Generally, lower divisor scales well
                     assert(depth > DEPTH_ZERO);
-                    const usize lmrIdx = usize(depth) < LMR_DIVISORS.size()  //
-                                         ? usize(depth)
-                                         : LMR_DIVISORS.size();
-
-                    lmrDepth =
-                      Depth(lmrDepth + constexpr_round(history / LMR_DIVISORS[lmrIdx - 1]));
+                    lmrDepth = Depth(lmrDepth + constexpr_round(history / lmr_divisor(depth)));
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
@@ -1686,10 +1686,15 @@ Value Worker::search(Position&    pos,
             // Increase reduction if ttMove is not present
             r += int(!ttmOk) * 1127;
 
+            const Depth redDepth = Depth(newDepth                         //
+                                         - int(r > 5234)                  //
+                                         - int(r > 5362 && newDepth > 1)  //
+                                         - int(r > 5487 && newDepth > 2)  //
+                                         - int(r > 5800 && newDepth > 3)  //
+                                         - int(r > 6200 && newDepth > 4));
+
             // Reduce search depth if expected reduction is high
-            value =
-              Value(-search<~NT>(pos, ss + 1, Value(-alpha - 1), Value(-alpha),
-                                 Depth(newDepth - int(r > 5234) - int(r > 5487 && newDepth > 2))));
+            value = Value(-search<~NT>(pos, ss + 1, Value(-alpha - 1), Value(-alpha), redDepth));
         }
 
         // Step 20. For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1702,12 +1707,10 @@ Value Worker::search(Position&    pos,
                 (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
-                if (ttm && newDepth < 1)
-                {
-                    if (ttd.depth > 1
-                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value)))
-                        newDepth = 1;
-                }
+                if (newDepth < 1 && ttm
+                    && (ttd.depth > 1
+                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
+                    newDepth = 1;
 
                 value =
                   Value(-search<NodeType::PV>(pos, ss + 1, Value(-beta), Value(-alpha), newDepth));

@@ -341,49 +341,6 @@ MovePicker::MovePicker(const Position&             p,
     curStage  = Stage{!(ttmOK && pos.capture_promo(ttMove))};
 }
 
-template<GenType GT>
-void MovePicker::init() noexcept {
-
-    if constexpr (GT == GenType::ENC_CAPTURE)
-    {
-        MoveList<GT> moveList{pos};
-
-        assert(cur == nullptr);
-        assert(curEnd == nullptr);
-
-        cur    = moves.data();
-        curEnd = score(moveList);
-
-        remove(ttMove);
-
-        adaptive_stable_sort(cur, curEnd);
-    }
-    else if constexpr (GT == GenType::ENC_QUIET)
-    {
-        MoveList<GT> moveList{pos};
-
-        assert(badCaptureEnd != nullptr);
-
-        cur    = badCaptureEnd;
-        curEnd = score(moveList);
-
-        remove(ttMove);
-
-        partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
-    }
-    else if constexpr (GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
-    {
-        MoveList<GT> moveList{pos};
-
-        cur    = moves.data();
-        curEnd = score(moveList);
-
-        remove(ttMove);
-
-        insertion_sort(cur, curEnd);
-    }
-}
-
 template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
@@ -546,6 +503,65 @@ bool MovePicker::remove(const Move m) noexcept {
     return true;
 }
 
+template<>
+void MovePicker::init<GenType::ENC_CAPTURE>() noexcept {
+    assert(cur == nullptr);
+    assert(curEnd == nullptr);
+
+    MoveList<GenType::ENC_CAPTURE> moveList{pos};
+
+    cur = badCaptureEnd = moves.data();
+    curEnd              = score(moveList);
+
+    remove(ttMove);
+
+    adaptive_stable_sort(cur, curEnd);
+}
+
+template<>
+void MovePicker::init<GenType::ENC_QUIET>() noexcept {
+    assert(cur == curEnd);
+    assert(badCaptureEnd != nullptr);
+
+    MoveList<GenType::ENC_QUIET> moveList{pos};
+
+    cur    = badCaptureEnd;
+    curEnd = score(moveList);
+
+    remove(ttMove);
+
+    partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
+}
+
+template<>
+void MovePicker::init<GenType::EVA_CAPTURE>() noexcept {
+    assert(cur == nullptr);
+    assert(curEnd == nullptr);
+
+    MoveList<GenType::EVA_CAPTURE> moveList{pos};
+
+    cur    = moves.data();
+    curEnd = score(moveList);
+
+    remove(ttMove);
+
+    insertion_sort(cur, curEnd);
+}
+
+template<>
+void MovePicker::init<GenType::EVA_QUIET>() noexcept {
+    assert(cur == curEnd);
+
+    MoveList<GenType::EVA_QUIET> moveList{pos};
+
+    cur    = moves.data();
+    curEnd = score(moveList);
+
+    remove(ttMove);
+
+    insertion_sort(cur, curEnd);
+}
+
 template<typename Predicate>
 bool MovePicker::select(Predicate pred) noexcept {
 
@@ -566,10 +582,9 @@ DISPATCH:
         return ttMove;
 
     case Stage::INIT :
-        initStage == Stage::EVA_CAPTURE ? init<GenType::EVA_CAPTURE>()
-                                        : init<GenType::ENC_CAPTURE>();
-
-        badCaptureEnd = moves.data();
+        initStage == Stage::EVA_CAPTURE  //
+          ? init<GenType::EVA_CAPTURE>()
+          : init<GenType::ENC_CAPTURE>();
 
         curStage = initStage;
 
