@@ -1707,12 +1707,10 @@ Value Worker::search(Position&    pos,
                 (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
-                if (ttm && newDepth < 1)
-                {
-                    if (ttd.depth > 1
-                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value)))
-                        newDepth = 1;
-                }
+                if (newDepth < 1 && ttm
+                    && (ttd.depth > 1
+                        || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
+                    newDepth = 1;
 
                 value =
                   Value(-search<NodeType::PV>(pos, ss + 1, Value(-beta), Value(-alpha), newDepth));
