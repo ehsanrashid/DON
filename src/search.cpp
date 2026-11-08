@@ -1688,6 +1688,7 @@ Value Worker::search(Position&    pos,
 
             const Depth redDepth = Depth(newDepth                         //
                                          - int(r > 5234)                  //
+                                         - int(r > 5362 && newDepth > 1)  //
                                          - int(r > 5487 && newDepth > 2)  //
                                          - int(r > 5800 && newDepth > 3)  //
                                          - int(r > 6200 && newDepth > 4));
