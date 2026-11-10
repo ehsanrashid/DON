@@ -91,8 +91,8 @@ struct EvalFile final {
 struct NetworkTrace final {
    public:
     Array<i32, LAYER_STACKS> nnue;
-    usize                    layerStacks;
-    usize                    layerStack;
+    Index                    layerStacks;
+    Index                    layerStack;
 };
 
 }  // namespace DON::NNUE

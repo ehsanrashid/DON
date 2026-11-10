@@ -198,7 +198,7 @@ std::string nnue_trace(Position&               pos,
     oss << "| Bucket | Evaluation |\n";
     oss << Sep;
 
-    for (usize layerStack = 0; layerStack < netTrace.layerStacks; ++layerStack)
+    for (NNUE::Index layerStack = 0; layerStack < netTrace.layerStacks; ++layerStack)
     {
         oss << "|   " << std::setw(2) << layerStack << "    |  ";
         format_cp_aligned_dot(oss, netTrace.nnue[layerStack], pos);

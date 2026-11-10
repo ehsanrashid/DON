@@ -736,9 +736,9 @@ ALWAYS_INLINE usize Position::bucket() const noexcept {
         return popcount(pieces_bb(c) & ~pieces_bb(PAWN, KING));
     };
 
-    const bool many = std::max(officers(WHITE), officers(BLACK)) >= 2;
+    const bool ofc = std::max(officers(WHITE), officers(BLACK)) >= 2;
 
-    return ((band * 4 + queens) * 3 + layout) * 2 + many;
+    return ((band * 4 + queens) * 3 + layout) * 2 + ofc;
 }
 
 ALWAYS_INLINE int Position::material_std() const noexcept {
