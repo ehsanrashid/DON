@@ -19,7 +19,8 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstring>  // for memset()
+#include <cstring>      // memset()
+#include <type_traits>  // is_same_v<>
 
 #include "../bitboard.h"
 #include "../position.h"
@@ -31,6 +32,7 @@
 #include "../nnue/features/k32h3.h"
 #include "../nnue/features/pp_3wide.h"
 #include "../utility/attributes.h"
+#include "../utility/static_vector.h"  // StaticVector<>
 #include "../utility/types.h"
 
 namespace DON::NNUE {

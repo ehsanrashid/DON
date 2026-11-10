@@ -355,9 +355,9 @@ std::string compiler_info() noexcept {
     return compiler;
 }
 
-FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
+StaticText StaticText::from(const std::string_view sv) noexcept { return StaticText{}.write(sv); }
 
-FixedText& FixedText::write(const char ch) noexcept {
+StaticText& StaticText::write(const char ch) noexcept {
     assert(size() + 1 <= capacity());
     if (size() + 1 > capacity())
         return *this;
@@ -367,7 +367,7 @@ FixedText& FixedText::write(const char ch) noexcept {
     return *this;
 }
 
-FixedText& FixedText::write(const std::string_view sv) noexcept {
+StaticText& StaticText::write(const std::string_view sv) noexcept {
     assert(size() + sv.size() <= capacity());
     if (size() + sv.size() > capacity())
         return *this;
@@ -378,7 +378,7 @@ FixedText& FixedText::write(const std::string_view sv) noexcept {
     return *this;
 }
 
-FixedText& FixedText::write(const int v) noexcept {
+StaticText& StaticText::write(const int v) noexcept {
     constexpr int Base = 10;
 
     auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v, Base);
@@ -389,8 +389,8 @@ FixedText& FixedText::write(const int v) noexcept {
     return *this;
 }
 
-std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
-    os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
+std::ostream& operator<<(std::ostream& os, const StaticText& staticText) noexcept {
+    os.write(staticText.c_str(), std::streamsize(staticText.size()));
 
     return os;
 }
