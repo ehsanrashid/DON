@@ -491,7 +491,7 @@ ALWAYS_INLINE void apply_features_but_odd(const PsqRows&            psqRows,
     */
 
     const auto* thrWeights = &ft.threatAndPpWeights[j];
-    const Index psqCount   = psqRows.size();
+    const Index psqCount   = Index(psqRows.size());
     const auto  psqRow     = [&](const Index i) noexcept {
         if constexpr (std::is_same_v<PsqRows, Features::K32H3::IndexList>)
             return &psqBase[psqRows[i] * Dimensions + j];
