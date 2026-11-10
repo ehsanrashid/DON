@@ -723,10 +723,21 @@ ALWAYS_INLINE bool Position::dtz_is_dtm() const noexcept {
 ALWAYS_INLINE usize Position::bucket() const noexcept {
     const Color ac = active_color();
 
-    const usize pcBucket    = (count() - 1) / 4;
-    const usize queenBucket = ((pieces_bb(ac, QUEEN) != 0) << 1) | ((pieces_bb(~ac, QUEEN) != 0));
+    const usize band   = (count() - 1) / 4;
+    const usize queens = ((pieces_bb(ac, QUEEN) != 0) << 1) | ((pieces_bb(~ac, QUEEN) != 0));
 
-    return (pcBucket << 2) + queenBucket;
+    // Pawn layout: 0 if pawns stand on both board halves, 1 if on one half only, 2 if there are no pawns
+    const Bitboard pawns  = pieces_bb(PAWN);
+    const usize    layout = pawns == 0 ? 2 : (pawns & QUEEN_SIDE) && (pawns & KING_SIDE) ? 0 : 1;
+
+    // Officers are the pieces other than pawns and kings
+    const auto officers = [&](const Color c) noexcept -> u8 {
+        return popcount(pieces_bb(c) & ~pieces_bb(PAWN, KING));
+    };
+
+    const bool many = std::max(officers(WHITE), officers(BLACK)) >= 2;
+
+    return ((band * 4 + queens) * 3 + layout) * 2 + many;
 }
 
 ALWAYS_INLINE int Position::material_std() const noexcept {
