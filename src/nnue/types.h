@@ -48,7 +48,8 @@ inline constexpr Index L3 = 32;
 // Version of the evaluation file
 inline constexpr u32 FILE_VERSION = u32{0x6A448AFA};
 
-inline constexpr Index LAYER_STACKS = 32;
+inline constexpr Index RAW_LAYER_STACKS = 192;
+inline constexpr Index LAYER_STACKS     = RAW_LAYER_STACKS;
 
 // Constant used in evaluation value calculation
 inline constexpr i32 OUTPUT_SCALE      = 16;
@@ -90,7 +91,8 @@ struct EvalFile final {
 struct NetworkTrace final {
    public:
     Array<i32, LAYER_STACKS> nnue;
-    usize                    correctBucket;
+    Index                    layerStacks;
+    Index                    layerStack;
 };
 
 }  // namespace DON::NNUE

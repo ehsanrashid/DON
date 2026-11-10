@@ -64,6 +64,9 @@ inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * 8);
 inline constexpr Bitboard EDGE_FILES_BB      = FILE_A_BB | FILE_H_BB;
 inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 
+inline constexpr Bitboard QUEEN_SIDE = FILE_A_BB | FILE_B_BB | FILE_C_BB | FILE_D_BB;
+inline constexpr Bitboard KING_SIDE  = FILE_E_BB | FILE_F_BB | FILE_G_BB | FILE_H_BB;
+
 inline constexpr Bitboard WHITE_BB = Bitboard{0x55AA55AA55AA55AA};
 inline constexpr Bitboard BLACK_BB = ~WHITE_BB;
 

@@ -27,7 +27,7 @@
 // The default net name must follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build) to work.
 // It is also used in the Makefile.
-#define EvalFileDefaultName "nn-d1ee674a62ca.nnue"
+#define EvalFileDefaultName "nn-18cd32e11a9c.nnue"
 
 namespace DON {
 

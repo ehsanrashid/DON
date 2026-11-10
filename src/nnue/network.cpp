@@ -62,7 +62,9 @@ const unsigned int  gEmbeddedNNUESize    = 1;
 
 namespace DON::NNUE {
 
-const u32 Network::Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
+const u32 Network::Hash = NetworkArchitecture::hash()  //
+                        ^ FeatureTransformer::hash()   //
+                        ^ LayerStackTableHash;
 
 namespace {
 
@@ -223,8 +225,8 @@ void Network::verify(fs::path evalPath, const EvalFile& evalFile) const noexcept
         std::exit(EXIT_FAILURE);
     }
 
-    constexpr usize TotalSize =
-      sizeof(featureTransformer) + LAYER_STACKS * sizeof(NetworkArchitecture);
+    const usize TotalSize = sizeof(featureTransformer)  //
+                          + storedLayerStacks * sizeof(NetworkArchitecture);
 
     std::string msg{"NNUE evaluation using " + evalPath.string() + " ("
                     + std::to_string(TotalSize / MB) + "MiB, ("
@@ -240,10 +242,16 @@ usize Network::content_hash() const noexcept {
     if (initialized)
     {
         combine_hash(h, featureTransformer);
-        for (auto&& arch : networkArchitectures)
-            combine_hash(h, arch);
+        for (const auto fallback : layerStackFallback)
+            combine_hash(h, fallback);
+        for (usize i = 0; i < storedLayerStacks; ++i)
+            combine_hash(h, networkArchitectures[i]);
     }
     return h;
+}
+
+usize Network::layer_stack(const Position& pos) const noexcept {
+    return layerStackIndex[pos.bucket()];
 }
 
 i32 Network::evaluate(const Position&   pos,
@@ -259,8 +267,9 @@ i32 Network::evaluate(const Position&   pos,
     NNZ<L1> nnz;
     featureTransformer.transform(pos, accCache, accStack, transformedFeatures, nnz);
 
-    const auto bucket = pos.bucket();
-    const auto nnue   = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
+    const auto layerStack = layer_stack(pos);
+
+    const auto nnue = networkArchitectures[layerStack].propagate(transformedFeatures, nnz);
     return constexpr_round(double(nnue) / OUTPUT_SCALE);
 }
 
@@ -278,11 +287,13 @@ NetworkTrace Network::trace(const Position&   pos,
     featureTransformer.transform(pos, accCache, accStack, transformedFeatures, nnz);
 
     NetworkTrace netTrace{};
-    netTrace.correctBucket = pos.bucket();
-    for (Index bucket = 0; bucket < LAYER_STACKS; ++bucket)
+    netTrace.layerStacks = storedLayerStacks;
+    netTrace.layerStack  = layer_stack(pos);
+
+    for (Index layerStack = 0; layerStack < netTrace.layerStacks; ++layerStack)
     {
-        const auto nnue       = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
-        netTrace.nnue[bucket] = constexpr_round(double(nnue) / OUTPUT_SCALE);
+        const auto nnue = networkArchitectures[layerStack].propagate(transformedFeatures, nnz);
+        netTrace.nnue[layerStack] = constexpr_round(double(nnue) / OUTPUT_SCALE);
     }
 
     return netTrace;
@@ -355,11 +366,41 @@ bool Network::read_parameters(std::istream& is, std::string& netDescription) noe
     if (hash != Network::Hash)
         return false;
 
+    if (read_little_endian<u32>(is) != LayerStackTableHash)
+        return false;
+
+    if (read_little_endian<u32>(is) != RAW_LAYER_STACKS)
+        return false;
+
+    storedLayerStacks = read_little_endian<u32>(is);
+    if (storedLayerStacks == 0 || storedLayerStacks > LAYER_STACKS)
+        return false;
+
+    for (Index& fallback : layerStackFallback)
+        if ((fallback = read_little_endian<Index>(is)) >= RAW_LAYER_STACKS)
+            return false;
+
+    Index stored = 0;
+    for (Index s = 0; s < RAW_LAYER_STACKS; ++s)
+        if (layerStackFallback[s] == s)
+            layerStackIndex[s] = stored++;
+    if (stored != storedLayerStacks)
+        return false;
+
+    for (Index s = 0; s < RAW_LAYER_STACKS; ++s)
+    {
+        const Index fallback = layerStackFallback[s];
+        if (layerStackFallback[fallback] != fallback)
+            return false;
+
+        layerStackIndex[s] = layerStackIndex[fallback];
+    }
+
     if (!read_parameters_(is, featureTransformer))
         return false;
 
-    for (auto& arch : networkArchitectures)
-        if (!read_parameters_(is, arch))
+    for (usize i = 0; i < storedLayerStacks; ++i)
+        if (!read_parameters_(is, networkArchitectures[i]))
             return false;
 
     return bool(is) && is.peek() == std::ios::traits_type::eof();
@@ -370,11 +411,20 @@ bool Network::write_parameters(std::ostream& os, std::string_view netDescription
     if (!write_header_(os, Network::Hash, netDescription))
         return false;
 
+    write_little_endian<u32>(os, LayerStackTableHash);
+
+    write_little_endian<u32>(os, RAW_LAYER_STACKS);
+
+    write_little_endian<u32>(os, storedLayerStacks);
+
+    for (const Index fallback : layerStackFallback)
+        write_little_endian<Index>(os, fallback);
+
     if (!write_parameters_(os, featureTransformer))
         return false;
 
-    for (const auto& arch : networkArchitectures)
-        if (!write_parameters_(os, arch))
+    for (usize i = 0; i < storedLayerStacks; ++i)
+        if (!write_parameters_(os, networkArchitectures[i]))
             return false;
 
     return bool(os);

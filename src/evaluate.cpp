@@ -198,12 +198,12 @@ std::string nnue_trace(Position&               pos,
     oss << "| Bucket | Evaluation |\n";
     oss << Sep;
 
-    for (usize bucket = 0; bucket < NNUE::LAYER_STACKS; ++bucket)
+    for (NNUE::Index layerStack = 0; layerStack < netTrace.layerStacks; ++layerStack)
     {
-        oss << "|   " << std::setw(2) << bucket << "    |  ";
-        format_cp_aligned_dot(oss, netTrace.nnue[bucket], pos);
+        oss << "|   " << std::setw(2) << layerStack << "    |  ";
+        format_cp_aligned_dot(oss, netTrace.nnue[layerStack], pos);
         oss << "   |";
-        if (bucket == netTrace.correctBucket)
+        if (layerStack == netTrace.layerStack)
             oss << " <-- this bucket is used";
         oss << '\n';
     }

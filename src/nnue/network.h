@@ -64,6 +64,8 @@ class Network final {
                        AccumulatorStack& accStack) const noexcept;
 
    private:
+    usize layer_stack(const Position& pos) const noexcept;
+
     bool load_embedded(EvalFile& evalFile) noexcept;
     bool
     load_external(const fs::path& dirPath, const fs::path& evalPath, EvalFile& evalFile) noexcept;
@@ -79,6 +81,11 @@ class Network final {
 
     // Evaluation function
     Array<NetworkArchitecture, LAYER_STACKS> networkArchitectures;
+    Array<Index, RAW_LAYER_STACKS>           layerStackFallback;
+    Array<Index, RAW_LAYER_STACKS>           layerStackIndex;
+    Index                                    storedLayerStacks = 0;
+
+    static constexpr u32 LayerStackTableHash = u32(0x5A7AB1E5);
 
     // Hash value of evaluation function structure
     static const u32 Hash;
