@@ -42,6 +42,10 @@ struct NNZ;
 }
 #endif
 
+#if defined(USE_SPARSE_AFFINE_SIMD)
+    #include "../../utility/attributes.h"
+#endif
+
 namespace DON::NNUE::Layers {
 
 // This class defines a fully connected layer (aka affine transform) with block-sparse input.
@@ -212,14 +216,14 @@ class SparseAffineTransform final {
 
         outvec_t acc[RegCount];
 
-        for (Index k = 0; k < AccCount; ++k)
+        UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
         // Convince GCC to not do weird pointer arithmetic in the following loops
         const i8* w = weights.data();
 
     #if defined(USE_AVXVNNI) || defined(USE_AVX512) || defined(USE_NEON_DOTPROD)
-        for (Index k = AccCount; k < RegCount; ++k)
+        UNROLLED_FOR (Index k = AccCount; k < RegCount; ++k)
             acc[k] =
         #if defined(USE_AVXVNNI)
               vec_set_32(0)
@@ -252,7 +256,7 @@ class SparseAffineTransform final {
             const auto* col2 =
               reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
-            for (Index k = 0; k < AccCount; ++k)
+            UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
             {
                 vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                 vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -260,7 +264,7 @@ class SparseAffineTransform final {
             }
         }
 
-        for (Index k = 0; k < AccCount; ++k)
+        UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
             acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],  //
                                            acc[k + AccCount * 1]),
                                 acc[k + AccCount * 2]);
@@ -275,7 +279,7 @@ class SparseAffineTransform final {
             const auto* col =
               reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
-            for (Index k = 0; k < AccCount; ++k)
+            UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
     #else
@@ -311,7 +315,7 @@ class SparseAffineTransform final {
 
                 if (bits == 0)
                 {
-                    for (Index k = 0; k < AccCount; ++k)
+                    UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                         vec_add_dpbusd_32(acc[k], in0, col0[k]);
                     break;
                 }
@@ -323,7 +327,7 @@ class SparseAffineTransform final {
                 const auto* col1 =
                   reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
 
-                for (Index k = 0; k < AccCount; ++k)
+                UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 {
                     vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                     vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -340,7 +344,7 @@ class SparseAffineTransform final {
                     const auto* col0 =
                       reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
 
-                    for (Index k = 0; k < AccCount; ++k)
+                    UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                         vec_add_dpbusd_32(acc[k], in0, col0[k]);
                     break;
                 }
@@ -356,7 +360,7 @@ class SparseAffineTransform final {
                     const auto* col1 =
                       reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
 
-                    for (Index k = 0; k < AccCount; ++k)
+                    UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                     {
                         vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                         vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -377,7 +381,7 @@ class SparseAffineTransform final {
                 const auto* col2 =
                   reinterpret_cast<const invec_t*>(&wBase[i2 * OutputDimensions * ChunkSize]);
 
-                for (Index k = 0; k < AccCount; ++k)
+                UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 {
                     vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                     vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -399,7 +403,7 @@ class SparseAffineTransform final {
             #endif
 
                 const invec_t in = vec_load_32(inPtr);
-                for (Index k = 0; k < AccCount; ++k)
+                UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
         #endif
@@ -407,7 +411,7 @@ class SparseAffineTransform final {
         }
 
         #if defined(USE_AVXVNNI) || defined(USE_NEON_DOTPROD)
-        for (Index k = 0; k < AccCount; ++k)
+        UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
             acc[k] =
             #if defined(USE_AVXVNNI)
               vec_add_32(acc[k + AccCount * 0], acc[k + AccCount * 1])
@@ -422,7 +426,7 @@ class SparseAffineTransform final {
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
 
-        for (Index k = 0; k < AccCount; ++k)
+        UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 
     #undef vec_set_32

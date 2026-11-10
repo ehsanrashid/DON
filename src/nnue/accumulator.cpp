@@ -303,13 +303,13 @@ struct Tile final {
 
 ALWAYS_INLINE void load_tile(const i16* const src, const Index j, Tile& tile) noexcept {
     auto* column = reinterpret_cast<const SIMD::vec_t*>(&src[j]);
-    for (Index k = 0; k < Tiling::RegCount; ++k)
+    UNROLLED_FOR (Index k = 0; k < Tiling::RegCount; ++k)
         tile[k] = column[k];
 }
 
 ALWAYS_INLINE void store_tile(i16* const dst, const Index j, const Tile& tile) noexcept {
     auto* column = reinterpret_cast<SIMD::vec_t*>(&dst[j]);
-    for (Index k = 0; k < Tiling::RegCount; ++k)
+    UNROLLED_FOR (Index k = 0; k < Tiling::RegCount; ++k)
         column[k] = tile[k];
 }
 
@@ -320,7 +320,7 @@ ALWAYS_INLINE void
 apply(const i16* const src, [[maybe_unused]] const Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     const auto* column = reinterpret_cast<const SIMD::vec_t*>(src);
-    for (Index k = 0; k < Tiling::RegCount; ++k)
+    UNROLLED_FOR (Index k = 0; k < Tiling::RegCount; ++k)
         if constexpr (op == Op::Add)
             tile[k] = vec_add_16(tile[k], column[k]);
         else
@@ -334,7 +334,7 @@ apply_single(const i8* src, [[maybe_unused]] const Index j, Tile& tile) noexcept
     [[maybe_unused]] const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(src);
 
     #if defined(USE_NEON)
-    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
+    UNROLLED_FOR (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
         if constexpr (op == Op::Add)
         {
@@ -348,7 +348,7 @@ apply_single(const i8* src, [[maybe_unused]] const Index j, Tile& tile) noexcept
         }
     }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
+    UNROLLED_FOR (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
         const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
 
@@ -366,12 +366,7 @@ apply_single(const i8* src, [[maybe_unused]] const Index j, Tile& tile) noexcept
     #elif defined(USE_PAIRED_WIDENING_ADD)
     static_assert(Tiling::RegCount % 2 == 0);
     const SIMD::vec_t zero = vec_zero();
-        #if defined(__clang__)
-            #pragma clang loop unroll(full)
-        #elif defined(__GNUC__)
-            #pragma GCC unroll(Tiling::RegCount / 2)
-        #endif
-    for (Index k = 0; k < Tiling::RegCount; k += 2)
+    UNROLLED_FOR (Index k = 0; k < Tiling::RegCount; k += 2)
     {
         const SIMD::vec_t weight = vec_load(reinterpret_cast<const SIMD::vec_t*>(src) + k / 2);
         const SIMD::vec_t lo     = vec_srai_16(vec_unpacklo_8(zero, weight), 8);
@@ -389,7 +384,7 @@ apply_single(const i8* src, [[maybe_unused]] const Index j, Tile& tile) noexcept
         }
     }
     #else
-    for (Index k = 0; k < Tiling::RegCount; ++k)
+    UNROLLED_FOR (Index k = 0; k < Tiling::RegCount; ++k)
     {
         if constexpr (op == Op::Add)
             tile[k] = vec_add_16(tile[k], vec_convert_8_16(column[k]));
@@ -405,12 +400,7 @@ ALWAYS_INLINE void apply_pair(const i8* src0, const i8* src1, Tile& tile) noexce
     static_assert(op == Op::Add || op == Op::Sub);
     static_assert(Tiling::RegCount % 2 == 0);
     const SIMD::vec_t ones = vec_set_8(1);
-        #if defined(__clang__)
-            #pragma clang loop unroll(full)
-        #elif defined(__GNUC__)
-            #pragma GCC unroll(Tiling::RegCount / 2)
-        #endif
-    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
+    UNROLLED_FOR (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
         const SIMD::vec_t w0 = vec_load(reinterpret_cast<const SIMD::vec_t*>(src0) + k / 2);
         const SIMD::vec_t w1 = vec_load(reinterpret_cast<const SIMD::vec_t*>(src1) + k / 2);
@@ -436,12 +426,7 @@ ALWAYS_INLINE void apply_diff(const i8* add, const i8* sub, Tile& tile) noexcept
     static_assert(Tiling::RegCount % 2 == 0);
     const SIMD::vec_t bias  = vec_set_8(-128);
     const SIMD::vec_t signs = vec_set_16(-255);  // i8 pairs (+1, -1)
-        #if defined(__clang__)
-            #pragma clang loop unroll(full)
-        #elif defined(__GNUC__)
-            #pragma GCC unroll(Tiling::RegCount / 2)
-        #endif
-    for (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
+    UNROLLED_FOR (Index k = 0; k + 1 < Tiling::RegCount; k += 2)
     {
         const SIMD::vec_t au =
           vec_xor(vec_load(reinterpret_cast<const SIMD::vec_t*>(add) + k / 2), bias);
@@ -455,29 +440,10 @@ ALWAYS_INLINE void apply_diff(const i8* add, const i8* sub, Tile& tile) noexcept
 #endif
 
 // The weight-table base already includes the tile offset.
-template<Op op, bool Incremental = false>
+template<Op op>
 ALWAYS_INLINE void
 apply_features(const u16* indices, Index size, const i8* weights, Index j, Tile& tile) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    if constexpr (Incremental)
-    {
-        assert(0 <= size && size <= 2);
-#if defined(VECTOR) || defined(USE_RVV)
-    #if defined(USE_PAIRED_WIDENING_ADD)
-        if (size == 2)
-        {
-            apply_pair<op>(&weights[indices[0] * Dimensions], &weights[indices[1] * Dimensions],
-                           tile);
-            return;
-        }
-    #endif
-        if (size > 0)
-            apply_single<op>(&weights[indices[0] * Dimensions], j, tile);
-        if (size > 1)
-            apply_single<op>(&weights[indices[1] * Dimensions], j, tile);
-        return;
-#endif
-    }
 
     Index i = 0;
 #if defined(USE_PAIRED_WIDENING_ADD)
@@ -491,9 +457,8 @@ apply_features(const u16* indices, Index size, const i8* weights, Index j, Tile&
 
 // Applies one sign's psq and threat/pp rows. With paired widening, an odd row is held back
 // in `odd` so it can be combined with the other sign's odd row.
-template<Op op, bool Incremental = false>
-ALWAYS_INLINE void apply_features_but_odd(const u16*                psq,
-                                          Index                     psqCount,
+template<Op op, typename PsqRows>
+ALWAYS_INLINE void apply_features_but_odd(const PsqRows&            psqRows,
                                           const u16*                thr,
                                           Index                     thrCount,
                                           const FeatureTransformer& ft,
@@ -501,6 +466,7 @@ ALWAYS_INLINE void apply_features_but_odd(const u16*                psq,
                                           Index                     j,
                                           Tile&                     tile,
                                           const i8*&                odd) noexcept {
+    /*
     const auto* psqWeights = &psqBase[j];
     const auto* thrWeights = &ft.threatAndPpWeights[j];
     odd                    = nullptr;
@@ -521,6 +487,45 @@ ALWAYS_INLINE void apply_features_but_odd(const u16*                psq,
 #endif
 
     apply_features<op, Incremental>(psq, psqCount, psqWeights, j, tile);
+    apply_features<op>(thr, thrCount, thrWeights, j, tile);
+    */
+
+    const auto* thrWeights = &ft.threatAndPpWeights[j];
+    const Index psqCount   = psqRows.size();
+    const auto  psqRow     = [&](const Index i) noexcept {
+        if constexpr (std::is_same_v<PsqRows, Features::K32H3::IndexList>)
+            return &psqBase[psqRows[i] * Dimensions + j];
+        else
+            return psqRows[i] + j;
+    };
+
+    odd     = nullptr;
+    Index i = 0;
+#if defined(USE_PAIRED_WIDENING_ADD)
+    for (; i + 1 < psqCount; i += 2)
+        apply_pair<op>(psqRow(i), psqRow(i + 1), tile);
+
+    // Pair the odd psq row with the first threat/pp row of the same sign, if any.
+    if (i < psqCount)
+    {
+        if (thrCount == 0)
+        {
+            odd = psqRow(i);
+            return;
+        }
+
+        apply_pair<op>(psqRow(i), &thrWeights[thr[0] * Dimensions], tile);
+
+        ++thr;
+        --thrCount;
+    }
+
+    if (thrCount % 2 != 0)
+        odd = &thrWeights[usize(thr[--thrCount]) * Dimensions];
+#else
+    for (; i < psqCount; ++i)
+        apply_single<op>(psqRow(i), j, tile);
+#endif
     apply_features<op>(thr, thrCount, thrWeights, j, tile);
 }
 
@@ -545,12 +550,10 @@ ALWAYS_INLINE void apply_psq_features(const Features::K32H3::IndexList& removed,
                                       const Weight*                     psqWeights,
                                       Index                             j,
                                       Tile&                             tile) noexcept {
-    const i8 *oddRemoved, *oddAdded;
-    apply_features_but_odd<Op::Sub>(removed.begin(), removed.size(), nullptr, 0, ft, psqWeights, j,
-                                    tile, oddRemoved);
-    apply_features_but_odd<Op::Add>(added.begin(), added.size(), nullptr, 0, ft, psqWeights, j,
-                                    tile, oddAdded);
-    apply_odd_features(oddRemoved, oddAdded, j, tile);
+    const i8 *removedOdd, *addedOdd;
+    apply_features_but_odd<Op::Sub>(removed, nullptr, 0, ft, psqWeights, j, tile, removedOdd);
+    apply_features_but_odd<Op::Add>(added, nullptr, 0, ft, psqWeights, j, tile, addedOdd);
+    apply_odd_features(removedOdd, addedOdd, j, tile);
 }
 
 template<Op op>
@@ -561,29 +564,21 @@ ALWAYS_INLINE void apply_threat_features(const Features::FullThreats::IndexList&
     apply_features<op>(thrList.begin(), thrList.size(), &ft.threatAndPpWeights[j], j, tile);
 }
 
-template<bool Incremental = false>
-ALWAYS_INLINE void apply_combined_features(const Features::K32H3::IndexList&       psqRemoved,
+template<typename PsqRemoved, typename PsqAdded>
+ALWAYS_INLINE void apply_combined_features(const PsqRemoved&                       psqRemoved,
                                            const Features::FullThreats::IndexList& thrRemoved,
-                                           const Features::K32H3::IndexList&       psqAdded,
+                                           const PsqAdded&                         psqAdded,
                                            const Features::FullThreats::IndexList& thrAdded,
                                            const FeatureTransformer&               ft,
                                            const Weight*                           psqBase,
                                            Index                                   j,
                                            Tile&                                   tile) noexcept {
-    if constexpr (Incremental)
-    {
-        assert(psqRemoved.size() == 1 || psqRemoved.size() == 2);
-        assert(psqAdded.size() == 1 || psqAdded.size() == 2);
-    }
-
-    const i8 *oddRemoved, *oddAdded;
-    apply_features_but_odd<Op::Sub, Incremental>(psqRemoved.begin(), psqRemoved.size(),  //
-                                                 thrRemoved.begin(), thrRemoved.size(),  //
-                                                 ft, psqBase, j, tile, oddRemoved);
-    apply_features_but_odd<Op::Add, Incremental>(psqAdded.begin(), psqAdded.size(),  //
-                                                 thrAdded.begin(), thrAdded.size(),  //
-                                                 ft, psqBase, j, tile, oddAdded);
-    apply_odd_features(oddRemoved, oddAdded, j, tile);
+    const i8 *removedOdd, *addedOdd;
+    apply_features_but_odd<Op::Sub>(psqRemoved, thrRemoved.begin(), thrRemoved.size(),  //
+                                    ft, psqBase, j, tile, removedOdd);
+    apply_features_but_odd<Op::Add>(psqAdded, thrAdded.begin(), thrAdded.size(),  //
+                                    ft, psqBase, j, tile, addedOdd);
+    apply_odd_features(removedOdd, addedOdd, j, tile);
 }
 
 }  // namespace
@@ -857,6 +852,7 @@ void update_refresh_cache(const Color               perspective,
     }
 }
 
+template<Index RemovedSize, Index AddedSize>
 void apply_combined(Color                                   perspective,
                     const FeatureTransformer&               featureTransformer,
                     const Accumulator&                      srcAcc,
@@ -866,8 +862,18 @@ void apply_combined(Color                                   perspective,
                     const Features::FullThreats::IndexList& thrRemoved,
                     const Features::FullThreats::IndexList& thrAdded,
                     const Weight*                           psqWeights) noexcept {
+    static_assert(RemovedSize == 1 || RemovedSize == 2);
+    static_assert(AddedSize == 1 || AddedSize == 2);
+
     const auto& srcAccm = srcAcc.accumulation[perspective];
     auto&       dstAccm = dstAcc.accumulation[perspective];
+
+    Array<const i8*, RemovedSize> removedWeights;
+    Array<const i8*, AddedSize>   addedWeights;
+    for (Index i = 0; i < RemovedSize; ++i)
+        removedWeights[i] = &psqWeights[usize(psqRemoved[i]) * Dimensions];
+    for (Index i = 0; i < AddedSize; ++i)
+        addedWeights[i] = &psqWeights[usize(psqAdded[i]) * Dimensions];
 
     for (Index j = 0; j < Dimensions; increment_index(j))
     {
@@ -875,10 +881,43 @@ void apply_combined(Color                                   perspective,
 
         load_tile(srcAccm.data(), j, tile);
 
-        apply_combined_features<true>(psqRemoved, thrRemoved, psqAdded, thrAdded,
-                                      featureTransformer, psqWeights, j, tile);
+        apply_combined_features(removedWeights, thrRemoved, addedWeights, thrAdded,
+                                featureTransformer, psqWeights, j, tile);
 
         store_tile(dstAccm.data(), j, tile);
+    }
+}
+
+void apply_combined(Color                                   perspective,
+                    const FeatureTransformer&               featureTransformer,
+                    const Accumulator&                      srcAcc,
+                    Accumulator&                            dstAcc,
+                    const Features::K32H3::IndexList&       psqRemoved,
+                    const Features::K32H3::IndexList&       psqAdded,
+                    const Features::FullThreats::IndexList& thrRemoved,
+                    const Features::FullThreats::IndexList& thrAdded,
+                    const Weight*                           psqWeights) noexcept {
+    assert(psqRemoved.size() == 1 || psqRemoved.size() == 2);
+    assert(psqAdded.size() == 1 || psqAdded.size() == 2);
+
+    // Dispatch once; feature counts and row addresses stay fixed across tiles.
+    if (psqRemoved.size() == 1)
+    {
+        if (psqAdded.size() == 1)
+            apply_combined<1, 1>(perspective, featureTransformer, srcAcc, dstAcc,  //
+                                 psqRemoved, psqAdded, thrRemoved, thrAdded, psqWeights);
+        else
+            apply_combined<1, 2>(perspective, featureTransformer, srcAcc, dstAcc,  //
+                                 psqRemoved, psqAdded, thrRemoved, thrAdded, psqWeights);
+    }
+    else
+    {
+        if (psqAdded.size() == 1)
+            apply_combined<2, 1>(perspective, featureTransformer, srcAcc, dstAcc,  //
+                                 psqRemoved, psqAdded, thrRemoved, thrAdded, psqWeights);
+        else
+            apply_combined<2, 2>(perspective, featureTransformer, srcAcc, dstAcc,  //
+                                 psqRemoved, psqAdded, thrRemoved, thrAdded, psqWeights);
     }
 }
 

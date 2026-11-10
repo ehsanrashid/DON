@@ -132,7 +132,7 @@ i16 TTEntry::worth(const u8 gen) const noexcept { return depth8 - 8 * relative_a
 
 // Populates the TTEntry with a new node's data, possibly overwriting an old position.
 // The update is non-atomic and can be racy. Convert external types to internal bitfields.
-void TTEntry::save(bool        new_,
+void TTEntry::save(const bool  new_,
                    const Move  m,
                    const Value v,
                    const Value ev,

@@ -78,6 +78,14 @@
     #define LIKELY(x) (x)
 #endif
 
+#if defined(__clang__)
+    #define UNROLLED_FOR(...) _Pragma("clang loop unroll(full)") for (__VA_ARGS__)
+#elif defined(__GNUC__)
+    #define UNROLLED_FOR(...) _Pragma("GCC unroll 32") for (__VA_ARGS__)
+#else
+    #define UNROLLED_FOR(...) for (__VA_ARGS__)
+#endif
+
 #define PACKED ATTRIBUTE(packed)
 
 #endif  // UTILITY_ATTRIBUTES_H_INCLUDED
