@@ -201,16 +201,16 @@ class TableView final {
     usize size_ = 0;
 };
 
-struct FixedText final {
+struct StaticText final {
    public:
-    // Factory method that creates a FixedText from the specified string view
-    static FixedText from(const std::string_view sv) noexcept;
+    // Factory method that creates a StaticText from the specified string view
+    static StaticText from(const std::string_view sv) noexcept;
 
-    FixedText& write(char ch) noexcept;
+    StaticText& write(char ch) noexcept;
 
-    FixedText& write(std::string_view sv) noexcept;
+    StaticText& write(std::string_view sv) noexcept;
 
-    FixedText& write(int v) noexcept;
+    StaticText& write(int v) noexcept;
 
     [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
@@ -238,9 +238,9 @@ struct FixedText final {
     u8              size_ = 0;
 };
 
-static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
+static_assert(sizeof(StaticText) == 32, "StaticText size must be 32 bytes");
 
-std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
+std::ostream& operator<<(std::ostream& os, const StaticText& staticText) noexcept;
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.

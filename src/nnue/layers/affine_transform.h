@@ -37,6 +37,10 @@
     #include "fallback_affine_transform.h"
 #endif
 
+#if defined(USE_AFFINE_SIMD)
+    #include "../../utility/attributes.h"
+#endif
+
 namespace DON::NNUE::Layers {
 
 // This class defines a fully connected layer (aka affine transform).
@@ -208,9 +212,9 @@ class AffineTransform final {
 
             vec_t acc[RegCount];
 
-            for (Index k = 0; k < AccCount; ++k)
+            UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 acc[k] = biasVec[k];
-            for (Index k = AccCount; k < RegCount; ++k)
+            UNROLLED_FOR (Index k = AccCount; k < RegCount; ++k)
                 acc[k] = vec_set_32(0);
 
             Index i = 0;
@@ -225,14 +229,14 @@ class AffineTransform final {
                 const auto* col1 =
                   reinterpret_cast<const vec_t*>(&weights[(i + 1) * OutputDimensions * 4]);
 
-                for (Index k = 0; k < AccCount; ++k)
+                UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 {
                     vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                     vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
                 }
             }
 
-            for (Index k = 0; k < AccCount; ++k)
+            UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 acc[k] =
         #if defined(USE_VNNI)
                   vec_add_32(acc[k + AccCount * 0], acc[k + AccCount * 1])
@@ -248,13 +252,13 @@ class AffineTransform final {
                 const auto* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
-                for (Index k = 0; k < AccCount; ++k)
+                UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
 
             auto* outVec = reinterpret_cast<vec_t*>(output);
 
-            for (Index k = 0; k < AccCount; ++k)
+            UNROLLED_FOR (Index k = 0; k < AccCount; ++k)
                 outVec[k] = acc[k];
 
     #undef vec_set_32

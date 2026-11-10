@@ -102,21 +102,21 @@ int to_cp(i32 v, const Position& pos) noexcept {
     return constexpr_round(100.0 * int(v) / a);
 }
 
-FixedText to_wdl(i32 v, const Position& pos) noexcept {
+StaticText to_wdl(i32 v, const Position& pos) noexcept {
     assert(is_ok(v));
 
     int w = win_rate_model(+v, pos);
     int l = win_rate_model(-v, pos);
     int d = 1000 - (w + l);
 
-    return FixedText::from(" wdl ").write(w).write(' ').write(d).write(' ').write(l);
+    return StaticText::from(" wdl ").write(w).write(' ').write(d).write(' ').write(l);
 }
 
-FixedText to_score(const Score& score) noexcept {
+StaticText to_score(const Score& score) noexcept {
     return score.visit(Overload{
-      [](Score::Unit unit) -> FixedText { return FixedText::from("cp ").write(unit.value); },
-      [](Score::Tablebase tb) -> FixedText { return FixedText::from("cp ").write(tb.value); },
-      [](Score::Mate mate) -> FixedText { return FixedText::from("mate ").write(mate.value); }});
+      [](Score::Unit unit) -> StaticText { return StaticText::from("cp ").write(unit.value); },
+      [](Score::Tablebase tb) -> StaticText { return StaticText::from("cp ").write(tb.value); },
+      [](Score::Mate mate) -> StaticText { return StaticText::from("mate ").write(mate.value); }});
 }
 
 std::string move_to_can(const Move m) noexcept {

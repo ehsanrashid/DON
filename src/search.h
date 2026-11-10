@@ -534,15 +534,15 @@ class Worker;
 
 struct ShortInfo {
    public:
-    Depth     depth;
-    FixedText score;
+    Depth      depth;
+    StaticText score;
 };
 struct FullInfo final: public ShortInfo {
    public:
     u16              selDepth;
     usize            multiPV;
-    FixedText        bound;
-    FixedText        wdl;
+    StaticText       bound;
+    StaticText       wdl;
     TimePoint        time;
     u64              nodes;
     u64              tbHits;

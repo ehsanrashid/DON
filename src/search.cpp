@@ -312,7 +312,7 @@ void Worker::start_search() noexcept {
 
     if (rootMoves.empty())
     {
-        FixedText score{
+        StaticText score{
           to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
 
         manager->updateContext.onUpdateShort({DEPTH_ZERO, score});
@@ -2912,10 +2912,10 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
 
         // TB and previous scores are exact, even though their bound flags may say otherwise
         const auto bound = !(useTBValue || usePreValue) && rm.is_inexact()
-                           ? FixedText::from(to_string(rm.bound))
-                           : FixedText{};
+                           ? StaticText::from(to_string(rm.bound))
+                           : StaticText{};
 
-        const auto wdl = ShowWDL ? to_wdl(v, rootPos) : FixedText{};
+        const auto wdl = ShowWDL ? to_wdl(v, rootPos) : StaticText{};
 
         const auto pv = usePreValue ? rm.prePV.build_pv() : rm.pv.build_pv();
 

@@ -157,13 +157,13 @@ constexpr auto ANKERL_UNORDERED_DENSE_VERSION_PATCH =
         #include "stl.h"
     #endif
     #if ANKERL_UNORDERED_DENSE_HAS_SSE2
-        #include <emmintrin.h>  // for _mm_loadu_si128, _mm_cmpeq_epi8, ...
+        #include <emmintrin.h>  // _mm_loadu_si128, _mm_cmpeq_epi8, ...
     #endif
     #if ANKERL_UNORDERED_DENSE_HAS_NEON
-        #include <arm_neon.h>  // for vld1q_u8, vceqq_u8, vshrn_n_u16, ...
+        #include <arm_neon.h>  // vld1q_u8, vceqq_u8, vshrn_n_u16, ...
     #endif
     #if defined(_MSC_VER)
-        #include <intrin.h>  // for _BitScanForward
+        #include <intrin.h>  // _BitScanForward(), _mm_prefetch()
     #endif
 
     // __has_cpp_attribute is not provided by every C++17 compiler (e.g. MSVC 19.16); probe it with

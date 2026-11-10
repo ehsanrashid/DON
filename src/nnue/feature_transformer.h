@@ -40,6 +40,9 @@
 #include "../nnue/features/full_threats.h"
 #include "../nnue/features/k32h3.h"
 #include "../nnue/features/pp_3wide.h"
+#if defined(VECTOR)
+    #include "../utility/attributes.h"
+#endif
 #include "../utility/types.h"
 
 #if defined(VECTOR) || defined(USE_RVV)
@@ -338,7 +341,7 @@ class FeatureTransformer final {
         for (Index i = 0; i + 1 < OutputChunkCount; i += 2)
         {
             SIMD::vec_t packed[2];
-            for (Index j = 0; j < 2; ++j)
+            UNROLLED_FOR (Index j = 0; j < 2; ++j)
             {
                 const Index k = (i + j) * 2;
 
